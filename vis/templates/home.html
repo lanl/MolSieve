@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html>
 <head>
-
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"
   integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4="
   crossorigin="anonymous"></script>
@@ -14,15 +13,10 @@
   <title></title>
 </head>
 <body>
-  <div class="container h-100 d-flex justify-content-center">
-    <h1>Prototype visualization</h1><button id="btn_load">Load
-    dataset</button>
+  <div id="vis" class="container h-100 d-flex justify-content-center">
+    <h1>Prototype visualization</h1><button id="btn_load">Load dataset</button>
     <div id="loading-indicator" hidden="true">
       <h2>Loading...</h2>
-    </div>
-    <div id="tooltip" hidden="true"></div>
-    <div id="vis">
-      <canvas id="vis_canvas"></canvas>
     </div>
   </div>
 </body>

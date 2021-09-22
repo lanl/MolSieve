@@ -9,69 +9,40 @@ $(document).ajaxComplete(function(event, request, settings) {
 
 $('document').ready(function() {
 
-    var container;
     
     $('#btn_load').on('click', function(e) {
 	e.preventDefault();	
-	$.getJSON('/load_dataset', "", function(data) {	    
+	$.getJSON('/load_dataset', "", function(data) {
+	    
 	    var base = d3.select("#vis");
 	    var bBox = base.node().getBoundingClientRect();
-	    var chart = d3.select("#vis_canvas")
+	    var tooltip = d3.select("#vis").append("div").attr("class", "tooltip-text").style("position", "absolute").style("opacity", 0).style("z-index", "10").attr("height", 40);
+	    var svg = d3.select("#vis")
+		.append("svg")
 		.attr("width", bBox.width)
 	        .attr("height", 800);
-	    var context = chart.node().getContext("2d");
 
-	    var invis = document.createElement("invis");
-	    container = d3.select(invis);
-	    
+	    data[152].s.number = 14497815140213431073;
+
+	    // experimenting with selecting stuff 14497815140213431073	    
+	    	    	    	    
 	    var scale = d3.scaleLinear().range([0,100]).domain([0,data.length]);
-
-	    var dataBinding = container.selectAll("invis.rect").data(data, function(d) {return d.s});
-	    dataBinding.enter().append("invis").classed("rect",true).attr("x", scale).attr("y", 100).attr("size",5).attr("fillStyle", "black").attr("number", function(d) {return d.s.number});
-	  
-	    context.fillStyle = "#fff";
-	    context.rect(0,0,chart.attr("width"),chart.attr("height"));
-	    context.fill();
-
-	    var elements = container.selectAll("invis.rect");
-	    elements.each(function(d, i) {
-		var node = d3.select(this);
-		context.beginPath();
-		context.fillStyle = node.attr("fillStyle");
-		node.attr("x", i * 10);
-		context.rect(i * 10, node.attr("y"), node.attr("size"), node.attr("size"));
-		context.fill();
-		context.closePath();
-	    });	   
+	    svg.selectAll("rect").data(data, function(d) {return d.s}).enter().append("rect").attr("x", function(d,i) {return i * 5}).attr("y", 100)
+		.attr("width",5).attr("height",20).attr("fill", "black").attr("number", function(d) { return d.s.number })	    
+		.on('mouseover', function(d,i) {
+		    d3.select(this).attr("fill", "red");
+		    d3.selectAll("rect").filter(function (dp) { return dp.s.number == d.target.__data__.s.number }).attr("fill", "red");
+		    tooltip.transition().duration(50).style("opacity", 1);
+		    tooltip.text(d.target.__data__.s.number);
+		    
+		})
+	        .on('mouseout', function(d,i) {
+		    d3.select(this).attr("fill", "black");
+		    d3.selectAll("rect").filter(function (dp) { return dp.s.number == d.target.__data__.s.number }).attr("fill", "black");
+		    tooltip.transition().duration(50).style("opacity", 0);
+		});
 	});
+	
 	$(this).hide();
     });
-
-    $('#vis_canvas').mousemove(function(e) {
-	var o = $('#vis_canvas').offset();
-	var x = e.clientX - o.left;
-	var y = e.clientY - o.top;
-
-	var elements = container.selectAll("invis.rect");
-	var context = d3.select("#vis_canvas").node().getContext("2d");
-	
-	elements.each(function(d,i) {
-	    var node = d3.select(this);
-	    
-	    if(node.attr("x") == x) {
-		context.beginPath();
-		context.fillStyle = "red";
-		node.attr("x", i * 10);
-		context.rect(i * 10, node.attr("y"), node.attr("size"), node.attr("size"));
-		context.fill();
-		context.closePath();
-		console.log(node);
-		$('#tooltip').show();
-		$('#tooltip').text(node.attr("number"));
-	    }
-	    
-	});
-    });
-
-    
 });
