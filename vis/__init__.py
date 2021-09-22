@@ -31,12 +31,19 @@ def create_app(test_config=None):
 
     @app.route('/load_dataset', methods=['GET'])
     def load_dataset():
+        
         qb = querybuilder.Neo4jQueryBuilder([('State','NEXT','State','ONE-TO-ONE'),
-                                                   ('Atom', 'PART_OF', 'State', 'MANY-TO-ONE')])
-        q = qb.generate_get_db()
+                                             ('Atom', 'PART_OF', 'State', 'MANY-TO-ONE')])
+
         graph = py2neo.Graph("bolt://127.0.0.1:7687", auth=("neo4j", "secret"))
-        q = q + " LIMIT 300"
+        q = """MATCH (s:State)-[r:NEXT]->(s2:State) 
+               return s.number as number, r.timestep as timestep ORDER BY timestep ASC LIMIT 2500"""
+        
         j = jsonify(graph.run(q).data())
         return j
+    
+    @app.route('/generate_subsequences', methods=['GET'])
+    def generate_subsequences():
+        raise NotImplementedError("Function not yet implemented.")
 
     return app
