@@ -1,7 +1,15 @@
 import os
-from flask import (render_template, Flask,jsonify)
+from flask import (render_template, Flask, jsonify)
 from neomd import querybuilder
 import py2neo
+import hashlib
+import numpy as np
+from pydivsufsort import divsufsort, kasai, most_frequent_substrings, sa_search
+
+
+def gen_hashID(s):
+    return int(hashlib.sha1(s.encode("utf-8")).hexdigest(), 16) % (10**8)
+
 
 def create_app(test_config=None):
     # create and configure the app
@@ -31,19 +39,66 @@ def create_app(test_config=None):
 
     @app.route('/load_dataset', methods=['GET'])
     def load_dataset():
-        
-        qb = querybuilder.Neo4jQueryBuilder([('State','NEXT','State','ONE-TO-ONE'),
-                                             ('Atom', 'PART_OF', 'State', 'MANY-TO-ONE')])
+
+        qb = querybuilder.Neo4jQueryBuilder([
+            ('State', 'NEXT', 'State', 'ONE-TO-ONE'),
+            ('Atom', 'PART_OF', 'State', 'MANY-TO-ONE')
+        ])
 
         graph = py2neo.Graph("bolt://127.0.0.1:7687", auth=("neo4j", "secret"))
         q = """MATCH (s:State)-[r:NEXT]->(s2:State) 
-               return s.number as number, r.timestep as timestep ORDER BY timestep ASC LIMIT 2500"""
-        
+               return s.number as number, r.timestep as timestep ORDER BY timestep ASC LIMIT 500"""
+
         j = jsonify(graph.run(q).data())
         return j
-    
+
     @app.route('/generate_subsequences', methods=['GET'])
     def generate_subsequences():
-        raise NotImplementedError("Function not yet implemented.")
+        graph = py2neo.Graph("bolt://127.0.0.1:7687", auth=("neo4j", "secret"))
+        q = """MATCH (s:State)-[r:NEXT]->(s2:State) 
+               return s.number as number, r.timestep as timestep ORDER BY r.timestep ASC LIMIT 500"""
+
+        nodes = graph.run(q).data()
+        node_list = []
+
+        for n in nodes:
+            node_list.append(n['number'])
+
+        hashed = np.unique(np.array(node_list), return_inverse=True)[1]
+
+        suffix_arr = divsufsort(hashed)
+        lcp = kasai(hashed, suffix_arr)
+
+        K = 4
+        pos, count = most_frequent_substrings(lcp,
+                                              K,
+                                              limit=10,
+                                              minimum_count=1)
+
+        sequences = []
+        for p, c in zip(suffix_arr[pos], count):
+            sequences.append(node_list[p:p + K])
+        
+        # TODO: Avoid repetition regions - explained in arc diagram paper
+        """
+        for s in sequences:
+            sorted_s = s.copy()
+            sorted_s.sort()
+            for s2 in sequences:
+                if s != s2:
+                    sorted_s2 = s2.copy()
+                    sorted_s2.sort()
+                    if sorted_s == sorted_s2:
+                        sequences.remove(s2)
+        """
+        json = {"K": K, "sequences": []}
+        for s in sequences:
+            idx_list = []
+            for idx, n in enumerate(node_list):
+                if node_list[idx:idx + K] == s:
+                    idx_list.append(idx)
+            json['sequences'].append(idx_list)
+
+        return jsonify(json)
 
     return app

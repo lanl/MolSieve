@@ -6,10 +6,10 @@ $(document).ajaxComplete(function(event, request, settings) {
     $('#loading-indicator').hide();
 });
 
-
 $('document').ready(function() {
-
     
+    $('#toggle_arc').prop("checked", false);
+
     $('#btn_load').on('click', function(e) {
 	e.preventDefault();	
 	$.getJSON('/load_dataset', "", function(data) {
@@ -30,18 +30,25 @@ $('document').ready(function() {
 		    d3.select(this).attr("fill", "red");
 		    d3.selectAll("rect").filter(function (dp) { return dp.number == d.target.__data__.number }).attr("fill", "red");
 		    tooltip.transition().duration(50).style("opacity", 1);
-		    tooltip.text(d.target.__data__.number + " " + "t=" + d.target.__data__.timestep);
-		    
+		    tooltip.html(d.target.__data__.number + " " + "<i>t</i>=" + d.target.__data__.timestep);		    
 		})
 	        .on('mouseout', function(d,i) {
 		    d3.select(this).attr("fill", "black");
 		    d3.selectAll("rect").filter(function (dp) { return dp.number == d.target.__data__.number }).attr("fill", "black");
 		    tooltip.transition().duration(50).style("opacity", 0);
 		});
-
-	    
+	    $('#toggle_arc').show();
+	    $('#lbl_toggle_arc').show();
 	});
-	
 	$(this).hide();
     });
+
+    $('#toggle_arc').change(function() {
+	if(this.checked) {
+	    $.getJSON('/generate_subsequences', "", function(data) {
+		console.log(data);
+	    });
+	}
+    });
+    
 });

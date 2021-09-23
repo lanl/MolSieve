@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
+
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"
   integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4="
   crossorigin="anonymous"></script>
@@ -15,15 +16,15 @@
 <body>
   <div class="container-fluid justify-content-center">
     <div id="info" class="row">
-      <h1>Prototype visualization</h1><button id="btn_load">Load dataset</button>
-          <div id="loading-indicator" hidden="true">
-	    <h2>Loading...</h2>
-	  </div>
+      <h1>Prototype visualization</h1><button id="btn_load">Load
+      dataset</button>
+      <div id="loading-indicator" hidden="true">
+        <h2>Loading...</h2>
+      </div><input id="toggle_arc" type="checkbox" hidden="true"
+      name="toggle_arc"> <label id="lbl_toggle_arc" for=
+      "toggle_arc" hidden="true">Toggle arc diagram</label>
     </div>
-    <div id="vis" class="row">
-      
-    </div>
-
+    <div id="vis" class="row"></div>
   </div>
 </body>
 </html>
