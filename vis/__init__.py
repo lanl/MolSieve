@@ -91,13 +91,20 @@ def create_app(test_config=None):
                     if sorted_s == sorted_s2:
                         sequences.remove(s2)
         """
-        json = {"K": K, "sequences": []}
+        json = {"K": K, "links": []}
         for s in sequences:
             idx_list = []
+            seq = None
             for idx, n in enumerate(node_list):
                 if node_list[idx:idx + K] == s:
                     idx_list.append(idx)
-            json['sequences'].append(idx_list)
+                    seq = s
+            for j in range(0, len(idx_list) - 1):
+                link = {}
+                link.update({"source": idx_list[j]})
+                link.update({"target": idx_list[j+1]})
+                link.update({"sequence": seq})
+                json['links'].append(link)
 
         return jsonify(json)
 
