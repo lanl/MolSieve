@@ -6,11 +6,6 @@ import hashlib
 import numpy as np
 from pydivsufsort import divsufsort, kasai, most_frequent_substrings, sa_search
 
-
-def gen_hashID(s):
-    return int(hashlib.sha1(s.encode("utf-8")).hexdigest(), 16) % (10**8)
-
-
 def create_app(test_config=None):
     # create and configure the app
     app = Flask(__name__, instance_relative_config=True)
@@ -47,7 +42,7 @@ def create_app(test_config=None):
 
         graph = py2neo.Graph("bolt://127.0.0.1:7687", auth=("neo4j", "secret"))
         q = """MATCH (s:State)-[r:NEXT]->(s2:State) 
-               return s.number as number, r.timestep as timestep ORDER BY timestep ASC LIMIT 500"""
+               return s.number as number, r.timestep as timestep ORDER BY timestep ASC"""
 
         j = jsonify(graph.run(q).data())
         return j
@@ -56,7 +51,7 @@ def create_app(test_config=None):
     def generate_subsequences():
         graph = py2neo.Graph("bolt://127.0.0.1:7687", auth=("neo4j", "secret"))
         q = """MATCH (s:State)-[r:NEXT]->(s2:State) 
-               return s.number as number, r.timestep as timestep ORDER BY r.timestep ASC LIMIT 500"""
+               return s.number as number, r.timestep as timestep ORDER BY r.timestep ASC"""
 
         nodes = graph.run(q).data()
         node_list = []
@@ -72,7 +67,7 @@ def create_app(test_config=None):
         K = 4
         pos, count = most_frequent_substrings(lcp,
                                               K,
-                                              limit=10,
+                                              limit=999999999,
                                               minimum_count=1)
 
         sequences = []
