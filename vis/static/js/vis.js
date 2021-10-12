@@ -15,38 +15,50 @@ $('document').ready(function() {
 
     var bBox = base.node().getBoundingClientRect();    
     var margin = {top: 20, bottom: 20, left: 25, right: 25};
-    
-    $('#btn_load').on('click', function(e) {
-	e.preventDefault();	
-	$.getJSON('/load_dataset', "", function(data) {
-	    const overwidth = data.length * 5 + margin.left + margin.right;
-	    var svg = d3.select("#vis")
-		.append("svg")
-		.attr("width", overwidth)
-	        .attr("height", 400)
-	        .attr("id", "svg");	    	    	    	    
-	    scale_x = d3.scaleLinear().range([margin.left, overwidth - margin.right]).domain([0,data.length]);
-	    svg.selectAll("rect").data(data, function(d) {return d}).enter().append("rect").attr("x", function(d,i) {return scale_x(i)}).attr("y", height - 30)
-		.attr("width",5).attr("height",20).attr("fill", "black").attr("number", function(d) { return d.number }).attr("timestep", function(d) { return d.timestep })	    
+
+    function draw(data) {
+	var svg = null;
+	
+	const threshold = $('#slider_threshold').val();	
+	data = data.filter(function (d) { return d['n.occurences'] > threshold });	
+
+	const overwidth = data.length * 5 + margin.left + margin.right;	
+
+	if($('#svg').length) {
+	    d3.select("#svg").selectAll().remove();
+	    svg = d3.select('#svg');
+	} else {
+	    svg = d3.select("#vis").append("svg").attr("width", overwidth).attr("height", 400).attr("id", "svg");
+	}
+	
+	scale_x = d3.scaleLinear().range([margin.left, overwidth - margin.right]).domain([0,data.length]);
+	svg.selectAll("rect").data(data, function(d) {return d}).enter().append("rect")
+	    .attr("x", function(d,i) {return scale_x(i)}).attr("y", height - 30)
+	    .attr("width",5).attr("height",20).attr("fill", "black")
+	    .attr("number", function(d) { return d['n.number'] })
+	    .attr("timestep", function(d) { return d['r.timestep'] })
+	    .attr("occurences", function(d) { return d['n.occurences'] })
 		.on('mouseover', function(event,d) {
 		    d3.select(this).attr("fill", "red");
-		    var sameCount = 0;
-		    d3.selectAll("rect").filter(function (dp) {
-			if(dp.number === d.number) {
-			    sameCount++;
-			}
-			return dp.number === d.number }).attr("fill", "red");
+		    d3.selectAll("rect").filter(function (dp) { return dp['n.number'] === d['n.number'] }).attr("fill", "red");
 		    tippy(this, {
 			allowHTML: true,
-			content: d.number + " " + "<i>t</i>=" + d.timestep + "<br> There are <b>" + sameCount + "</b> occurences of this state.",
+			content: d['n.number'] + " " + "<i>t</i>=" + d['r.timestep'] + "<br> There are <b>" + d['n.occurences'] + "</b> occurences of this state.",
 			arrow: false,
-			maxWidth: 'none'
+			maxWidth: 'none',
 		    });
 		})
 	        .on('mouseout', function(event,d) {
 		    d3.select(this).attr("fill", "black");
-		    d3.selectAll("rect").filter(function (dp) { return dp.number === d.number }).attr("fill", "black");
-		});		    
+		    d3.selectAll("rect").filter(function (dp) { return dp['n.number'] === d['n.number'] }).attr("fill", "black");
+		});		
+    }
+    
+    $('#btn_load').on('click', function(e) {
+	e.preventDefault();	
+	$.getJSON('/load_dataset', "", function(data) {
+
+	    draw(data);	    		    
 	    $('#toggle_arc').show();
 	    $('#lbl_toggle_arc').show();
 	    $('#btn_load_more').show();
@@ -54,6 +66,21 @@ $('document').ready(function() {
 	$(this).hide();
     });
 
+    $('#slider_threshold').on('mousemove change', function(e) {
+	$('#lbl_slider').text("Only show states with more than " + $(this).val() + " occurences.");
+    });
+    
+    $('#slider_threshold').on('change', function(e) {
+	e.preventDefault();
+	$.getJSON('/load_dataset', "", function(data) {
+	    draw(data);
+	    $('#btn_load').hide();
+	    $('#toggle_arc').show();
+	    $('#lbl_toggle_arc').show();
+	    $('#btn_load_more').show();
+	});
+    });
+    
     $('#toggle_arc').change(function() {
 	if(this.checked) {
 	    $.getJSON('/generate_subsequences', "", function(data) {				

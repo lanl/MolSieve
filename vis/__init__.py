@@ -41,23 +41,45 @@ def create_app(test_config=None):
         ])
 
         graph = py2neo.Graph("bolt://127.0.0.1:7687", auth=("neo4j", "secret"))
-        q = """MATCH (s:State)-[r:NEXT]->(s2:State) 
-               return s.number as number, r.timestep as timestep ORDER BY timestep ASC"""
+        q = qb.generate_trajectory("NEXT", "ASC", ['RELATION', 'timestep'], node_attributes=[('number', 'first'), ('occurences', 'first')], relation_attributes=['timestep'])
+        j = jsonify(graph.run(q.text).data())
+        return j
 
-        j = jsonify(graph.run(q).data())
+    @app.route('/calculate_epochs', methods=['GET'])
+    def calculate_epochs():
+        qb = querybuilder.Neo4jQueryBuilder([
+            ('State', 'NEXT', 'State', 'ONE-TO-ONE'),
+            ('Atom', 'PART_OF', 'State', 'MANY-TO-ONE')
+        ])
+
+        graph = py2neo.Graph("bolt://127.0.0.1:7687", auth=("neo4j", "secret"))
+        q = "MATCH (n:State) RETURN n.number, 0;"
+        counter_dict = graph.run(q).data()
+        q = qb.generate_trajectory("NEXT", "ASC", ['RELATION', 'timestep'], node_attributes=[('number', "FIRST")], relation_attributes=['timestep'])       
+        traj = graph.run(q.text).data()
+
+        for it in traj.items():
+            print(it)
+
+        
         return j
 
     @app.route('/generate_subsequences', methods=['GET'])
     def generate_subsequences():
-        graph = py2neo.Graph("bolt://127.0.0.1:7687", auth=("neo4j", "secret"))
-        q = """MATCH (s:State)-[r:NEXT]->(s2:State) 
-               return s.number as number, r.timestep as timestep ORDER BY r.timestep ASC"""
 
-        nodes = graph.run(q).data()
+        qb = querybuilder.Neo4jQueryBuilder([
+            ('State', 'NEXT', 'State', 'ONE-TO-ONE'),
+            ('Atom', 'PART_OF', 'State', 'MANY-TO-ONE')
+        ])
+        
+        graph = py2neo.Graph("bolt://127.0.0.1:7687", auth=("neo4j", "secret"))
+        q = qb.generate_trajectory("NEXT", "ASC", ['RELATION', 'timestep'], node_attributes=[('number', "FIRST")], relation_attributes=['timestep'])   
+
+        nodes = graph.run(q.text).data()
         node_list = []
 
         for n in nodes:
-            node_list.append(n['number'])
+            node_list.append(n['n.number'])
 
         hashed = np.unique(np.array(node_list), return_inverse=True)[1]
 
