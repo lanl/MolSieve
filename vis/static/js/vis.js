@@ -56,9 +56,9 @@ $('document').ready(function() {
     
     $('#btn_load').on('click', function(e) {
 	e.preventDefault();	
-	$.getJSON('/load_dataset', "", function(data) {
-
-	    draw(data);	    		    
+	$.getJSON('/calculate_epochs', "", function(data) {
+	    console.log(data);
+	    //draw(data);	    		    
 	    $('#toggle_arc').show();
 	    $('#lbl_toggle_arc').show();
 	    $('#btn_load_more').show();
