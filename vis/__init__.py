@@ -18,14 +18,15 @@ class Epoch:
         self.end = -sys.maxsize - 1
         self.l_child = None
         self.r_child = None
+        self.depth = 0
 
-def calculate_epoch(data):
-    
+def calculate_epoch(data, depth):
+
     if len(data) > 10:
         l_data = data[len(data)//2:]
         r_data = data[:len(data)//2]
-        l_e = calculate_epoch(l_data)
-        r_e = calculate_epoch(r_data)
+        l_e = calculate_epoch(l_data, depth + 1)
+        r_e = calculate_epoch(r_data, depth + 1)
         n_e = Epoch()
 
         n_e.l_child = l_e
@@ -45,7 +46,7 @@ def calculate_epoch(data):
             if n_e.counts[c[0]] > n_e.max_count:
                 n_e.winner = c[0]
                 n_e.max_count = c[1]
-                
+        n_e.depth = depth
         return n_e
     else:
         e = Epoch()
@@ -62,7 +63,8 @@ def calculate_epoch(data):
                     e.winner = d['n.number']
                     e.max_count = e.counts[d['n.number']]
             else:
-                e.counts[d['n.number']] = 1        
+                e.counts[d['n.number']] = 1
+        e.depth = depth
         return e
     
 def create_app(test_config=None):
@@ -115,7 +117,7 @@ def create_app(test_config=None):
         q = qb.generate_trajectory("NEXT", "ASC", ['RELATION', 'timestep'], node_attributes=[('number', "FIRST")], relation_attributes=['timestep'])       
         traj = graph.run(q.text).data()
 
-        epoch = calculate_epoch(traj)
+        epoch = calculate_epoch(traj, 0)
 
         print(epoch.counts)
         return jsonpickle.encode(epoch)

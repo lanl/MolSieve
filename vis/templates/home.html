@@ -10,23 +10,26 @@
   <script src="https://d3js.org/d3.v7.min.js"></script>
   <script src="https://unpkg.com/@popperjs/core@2"></script>
   <script src="https://unpkg.com/tippy.js@6"></script>  
-  <script type="text/javascript" src=
-	  "{{url_for('static',filename='js/vis.js')}}"></script>
+  <script type="text/javascript" src="{{url_for('static',filename='js/Queue.js')}}"></script>   
+  <script type="text/javascript" src="{{url_for('static',filename='js/vis.js')}}"></script>
+  
   <title>Prototype Trajectory Visualization</title>
 </head>
 <body>
   <div class="container-fluid justify-content-center">
     <div id="info" class="row">
       <h1>Prototype Visualization</h1>
-      <input type="range" min="0" max="100" value="0" id="slider_threshold">
-      <label id="lbl_slider" for="slider_threshold">Only show states with more than 0 occurences.</label>
-      </br>
+      <div id="detail_view" hidden="true">
+	<input type="range" min="0" max="100" value="0" id="slider_threshold">
+	<label id="lbl_slider" for="slider_threshold">Only show states with more than 0 occurences.</label>     
+	<input id="toggle_arc" type="checkbox" name="toggle_arc">
+	<label id="lbl_toggle_arc" for="toggle_arc">Toggle arc diagram</label>
+      </div>
+      
       <button id="btn_load">Load dataset</button>      
       <div id="loading-indicator" hidden="true">
         <h2>Loading...</h2>
-      </div><input id="toggle_arc" type="checkbox" hidden="true"
-      name="toggle_arc"> <label id="lbl_toggle_arc" for=
-      "toggle_arc" hidden="true">Toggle arc diagram</label>
+      </div>
     </div>
     <div id="vis" class="row"></div>
   </div>
