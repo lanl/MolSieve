@@ -119,7 +119,6 @@ def create_app(test_config=None):
 
         epoch = calculate_epoch(traj, 0)
 
-        print(epoch.counts)
         return jsonpickle.encode(epoch)
 
     @app.route('/generate_subsequences', methods=['GET'])

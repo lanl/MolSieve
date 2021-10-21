@@ -19,19 +19,25 @@
   <div class="container-fluid justify-content-center">
     <div id="info" class="row">
       <h1>Prototype Visualization</h1>
-      <div id="detail_view" hidden="true">
+      <div id="detail_view_options" hidden="true">
 	<input type="range" min="0" max="100" value="0" id="slider_threshold">
 	<label id="lbl_slider" for="slider_threshold">Only show states with more than 0 occurences.</label>     
 	<input id="toggle_arc" type="checkbox" name="toggle_arc">
-	<label id="lbl_toggle_arc" for="toggle_arc">Toggle arc diagram</label>
+	<label id="lbl_toggle_arc" for="toggle_arc">Toggle arc diagram</label>	
       </div>
-      
+      <div id="overview_options" hidden="true">
+	<p> Press CTRL to toggle zoom brush. Double click to zoom out.</p>
+	<button id="btn_detail">Switch to Detail View</button>
+	<br/>
+	<br/>
+      </div>
+
       <button id="btn_load">Load dataset</button>      
       <div id="loading-indicator" hidden="true">
         <h2>Loading...</h2>
       </div>
     </div>
     <div id="vis" class="row"></div>
-  </div>
+    
 </body>
 </html>

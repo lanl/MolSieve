@@ -36,7 +36,6 @@ $('document').ready(function() {
 	var b = hash & 0x0000FF;
 	return "#" + ("0" + r.toString(16)).substr(-2) + ("0" + g.toString(16)).substr(-2) + ("0" + b.toString(16)).substr(-2);
     }
-
     
     function draw_overview(data) {
 	var to_draw = []
@@ -67,8 +66,8 @@ $('document').ready(function() {
 	var svg = null;
 	
 	if($('#svg').length) {
-	    d3.select("#svg").selectAll().remove();
-	    svg = d3.select('#svg');
+	    $("#svg").empty();
+	    svg = d3.select('#svg').attr("width", bBox.width);
 	} else {
 	    svg = d3.select("#vis").append("svg").attr("width", bBox.width).attr("height", 400).attr("id", "svg");
 	}
@@ -80,8 +79,8 @@ $('document').ready(function() {
 	    .attr("width", 5 ).attr("height", 5)
 	    .attr("fill", function(d) { return hashStringToColor(d.winner)})
 	    .on('mouseover', function(event,d) {
-		d3.select(this).attr("fill", "red");
-		d3.selectAll("rect").filter(function (dp) { return dp.winner === d.winner }).attr("fill", "red");
+		//d3.select(this).attr("fill", "red");
+		d3.selectAll("rect").filter(function (dp) { return dp.winner != d.winner }).attr("opacity", "0.05");
 		tippy(this, {
 		    allowHTML: true,
 		    content: "Most common state: " + d.winner + "<br><b>Start</b>: " + d.start + " <b>End</b>: " + d.end,
@@ -89,17 +88,29 @@ $('document').ready(function() {
 		    maxWidth: 'none',
 		})		;
 	    }).on('mouseout', function(event,d) {
-		d3.select(this).attr("fill", function(d) {return hashStringToColor(d.winner)});
-		d3.selectAll("rect").filter(function (dp) { return dp.winner === d.winner }).attr("fill", function(d) {return hashStringToColor(d.winner)});
+		//d3.select(this).attr("fill", function(d) {return hashStringToColor(d.winner)});
+		d3.selectAll("rect").filter(function (dp) { return dp.winner != d.winner }).attr("opacity", "1.0");//.attr("fill", function(d) {return hashStringToColor(d.winner)});
 	    });
+	
+	var xAxis = svg.append("g").call(d3.axisBottom().scale(scale_x));
+	
+	svg.on('dblclick', function(event,d) {
+		// zoom out on double click
+	    scale_x.domain([0,to_draw[0].end]);
+	    xAxis.transition().duration(500).call(d3.axisBottom(scale_x));
+	    svg.selectAll("rect").transition().duration(500).attr("x", function(d,i) { return scale_x(d.start) }).attr("y", function(d) {return scale_y(d.depth)});
+	});
 
 	var brush = d3.brushX().extent([[0,0], [bBox.width, 400]]).on('end', function(e) {
 	    var extent = e.selection;
+	    
 	    if(!extent) {
-		scale_x.domain([0,to_draw[0].end]);		
+		scale_x.domain([0,to_draw[0].end]);
+		xAxis.transition().duration(500).call(d3.axisBottom(scale_x));
 	    } else {
 		d3.select("#svg").select('.brush').call(brush.move, null);
-		scale_x.domain([ scale_x.invert(extent[0]), scale_x.invert(extent[1]) ])
+		scale_x.domain([scale_x.invert(extent[0]), scale_x.invert(extent[1])]);
+		xAxis.transition().duration(500).call(d3.axisBottom(scale_x));
 		svg.selectAll("rect").transition().duration(500).attr("x", function(d,i) { return scale_x(d.start) }).attr("y", function(d) {return scale_y(d.depth)});
 		d3.select(this).remove();
 	    }
@@ -122,8 +133,8 @@ $('document').ready(function() {
 	const overwidth = data.length * 5 + margin.left + margin.right;	
 
 	if($('#svg').length) {
-	    d3.select("#svg").selectAll().remove();
-	    svg = d3.select('#svg');
+	    $("#svg").empty();
+	    svg = d3.select('#svg').attr("width", overwidth);
 	} else {
 	    svg = d3.select("#vis").append("svg").attr("width", overwidth).attr("height", 400).attr("id", "svg");
 	}
@@ -148,17 +159,31 @@ $('document').ready(function() {
 	        .on('mouseout', function(event,d) {
 		    d3.select(this).attr("fill", "black");
 		    d3.selectAll("rect").filter(function (dp) { return dp['n.number'] === d['n.number'] }).attr("fill", "black");
-		});		
+		});	
     }
     
     $('#btn_load').on('click', function(e) {
 	e.preventDefault();	
 	$.getJSON('/calculate_epochs', "", function(data) {
 	    draw_overview(data);
+	    $('#overview_options').show();
 	});
+	$('#detail_view_options').hide();
 	$(this).hide();
+	$(this).html("Switch to Overview");
     });
 
+    $('#btn_detail').on('click', function(e) {
+	e.preventDefault();	
+	$.getJSON('/load_dataset', "", function(data) {
+	    draw(data);
+	    $('#detail_view_options').show();
+	    $('#btn_load').show();
+	});
+	$('#overview_options').hide();
+    });
+
+    
     $('#slider_threshold').on('mousemove change', function(e) {
 	$('#lbl_slider').text("Only show states with more than " + $(this).val() + " occurences.");
     });
