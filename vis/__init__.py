@@ -1,72 +1,16 @@
 import os
-from flask import (render_template, Flask, jsonify)
+from flask import (render_template, Flask, jsonify, request)
 from neomd import querybuilder
 import py2neo
+import neo4j
 import hashlib
 import numpy as np
 from pydivsufsort import divsufsort, kasai, most_frequent_substrings, sa_search
 import jsonpickle
-import sys
+from .epoch import Epoch, calculate_epoch
 
+driver = None
 
-class Epoch:
-    def __init__(self):
-        self.counts = {}
-        self.winner = ""
-        self.max_count = -sys.maxsize - 1
-        self.start = sys.maxsize
-        self.end = -sys.maxsize - 1
-        self.l_child = None
-        self.r_child = None
-        self.depth = 0
-
-def calculate_epoch(data, depth):
-
-    if len(data) > 10:
-        l_data = data[len(data)//2:]
-        r_data = data[:len(data)//2]
-        l_e = calculate_epoch(l_data, depth + 1)
-        r_e = calculate_epoch(r_data, depth + 1)
-        n_e = Epoch()
-
-        n_e.l_child = l_e
-        n_e.r_child = r_e
-        n_e.start = l_e.start if l_e.start < r_e.start else r_e.start
-        n_e.end = r_e.end if r_e.end > l_e.end else l_e.end
-        
-        for c in l_e.counts.items():
-            n_e.counts[c[0]] = c[1]
-
-        for c in r_e.counts.items():
-            if str(c[0]) not in n_e.counts:
-                n_e.counts[c[0]] = c[1]
-            else:
-                n_e.counts[c[0]] += c[1]
-
-            if n_e.counts[c[0]] > n_e.max_count:
-                n_e.winner = c[0]
-                n_e.max_count = c[1]
-        n_e.depth = depth
-        return n_e
-    else:
-        e = Epoch()
-        for d in data:
-            # timestep info
-            if d['r.timestep'] < e.start:
-                e.start = d['r.timestep']
-            if d['r.timestep'] > e.end:
-                e.end = d['r.timestep']
-
-            if d['n.number'] in e.counts:
-                e.counts[d['n.number']] = e.counts[d['n.number']] + 1
-                if e.counts[d['n.number']] > e.max_count:
-                    e.winner = d['n.number']
-                    e.max_count = e.counts[d['n.number']]
-            else:
-                e.counts[d['n.number']] = 1
-        e.depth = depth
-        return e
-    
 def create_app(test_config=None):
     # create and configure the app
     app = Flask(__name__, instance_relative_config=True)
@@ -88,7 +32,6 @@ def create_app(test_config=None):
     except OSError:
         pass
 
-    # a simple page that says hello
     @app.route('/')
     def home():
         return render_template('home.html')
@@ -108,10 +51,11 @@ def create_app(test_config=None):
 
     @app.route('/calculate_epochs', methods=['GET'])
     def calculate_epochs():
+        run = request.args.get('run')
         qb = querybuilder.Neo4jQueryBuilder([
             ('State', 'NEXT', 'State', 'ONE-TO-ONE'),
             ('Atom', 'PART_OF', 'State', 'MANY-TO-ONE')
-        ])
+        ],constraints=[("RELATION", "NEXT", "run", run, "STRING")])
 
         graph = py2neo.Graph("bolt://127.0.0.1:7687", auth=("neo4j", "secret"))
         q = qb.generate_trajectory("NEXT", "ASC", ['RELATION', 'timestep'], node_attributes=[('number', "FIRST")], relation_attributes=['timestep'])       
@@ -121,13 +65,22 @@ def create_app(test_config=None):
 
         return jsonpickle.encode(epoch)
 
+    @app.route('/connect_to_db', methods=['GET'])
+    def connect_to_db():
+        driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687", auth=("neo4j", "secret"))
+        result = None
+        with driver.session() as session:
+            try:
+                result = session.run("MATCH (:State)-[r]-(:State) return DISTINCT r.run;")
+                return jsonify(result.values())
+            except neo4j.exceptions.ServiceUnavailable as exception:
+                raise exception
+        
     @app.route('/generate_subsequences', methods=['GET'])
     def generate_subsequences():
 
-        qb = querybuilder.Neo4jQueryBuilder([
-            ('State', 'NEXT', 'State', 'ONE-TO-ONE'),
-            ('Atom', 'PART_OF', 'State', 'MANY-TO-ONE')
-        ])
+        qb = querybuilder.Neo4jQueryBuilder(schema=[('State', 'NEXT', 'State', 'ONE-TO-ONE'), ('Atom', 'PART_OF', 'State', 'MANY-TO-ONE')],
+                                            constraints=[("RELATION", "NEXT", "run", "nano-pt", "STRING")])
         
         graph = py2neo.Graph("bolt://127.0.0.1:7687", auth=("neo4j", "secret"))
         q = qb.generate_trajectory("NEXT", "ASC", ['RELATION', 'timestep'], node_attributes=[('number', "FIRST")], relation_attributes=['timestep'])   

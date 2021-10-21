@@ -7,6 +7,39 @@ $(document).ajaxComplete(function(event, request, settings) {
 });
 
 $('document').ready(function() {
+
+    function error_state() {
+	alert("Error: Could not connect to database. Please check your connection to the database, refresh the page, and try again.");
+	$("*").prop("disabled", true);
+    }
+
+    function load_dataset(name) {
+	$.getJSON('/calculate_epochs', {'run': name}, function(data) {
+	    draw_overview(data, name);
+	});
+    }
+    
+    $.ajax({url: "/connect_to_db",
+	    success: function(data) {
+		$('#load_table_div').append('<p>Select which run(s) to visualize</p>');
+		var table = $('<table>');
+		for(var i = 0; i < data.length; i++) {
+		    if (data[i][0] != null) {
+			var row = $('<tr>');
+			var name_cell = $('<td>').text(data[i][0]);
+			var checkbox = $('<input>', {type:'checkbox', id:'cb_' + data[i][0], value: data[i][0], click: function() { load_dataset(this.value) }})			
+			var input_cell = $('<td>').append(checkbox);
+			row.append(name_cell);
+			row.append(input_cell);
+			table.append(row);
+		    }
+		}
+		$('#load_table_div').append(table);
+	    },
+	    error: function(data) {
+		error_state();
+	   }
+    });
     
     $('#toggle_arc').prop("checked", false);
     var scale_x = null;
@@ -15,29 +48,8 @@ $('document').ready(function() {
 
     var bBox = base.node().getBoundingClientRect();    
     var margin = {top: 20, bottom: 20, left: 25, right: 25};
-
-
-    // stolen from https://stackoverflow.com/questions/11120840/hash-string-into-rgb-color
-    function djb2(str){
-	var hash = 5381;
-	for (var i = 0; i < str.length; i++) {
-	    hash = ((hash << 5) + hash) + str.charCodeAt(i); /* hash * 33 + c */
-	}
-	return hash;
-    }
-
-    function hashStringToColor(str) {
-	if (str === "") {
-	    return "white"
-	}
-	var hash = djb2(str);
-	var r = (hash & 0xFF0000) >> 16;
-	var g = (hash & 0x00FF00) >> 8;
-	var b = hash & 0x0000FF;
-	return "#" + ("0" + r.toString(16)).substr(-2) + ("0" + g.toString(16)).substr(-2) + ("0" + b.toString(16)).substr(-2);
-    }
     
-    function draw_overview(data) {
+    function draw_overview(data,name) {
 	var to_draw = []
 	var q = new Queue();
 	q.enqueue(data);
@@ -65,11 +77,11 @@ $('document').ready(function() {
 
 	var svg = null;
 	
-	if($('#svg').length) {
-	    $("#svg").empty();
-	    svg = d3.select('#svg').attr("width", bBox.width);
+	if($('#svg_' + name).length) {
+	    $("#svg_" + name).empty();
+	    svg = d3.select('#svg_' + name).attr("width", bBox.width);
 	} else {
-	    svg = d3.select("#vis").append("svg").attr("width", bBox.width).attr("height", 400).attr("id", "svg");
+	    svg = d3.select("#vis").append("svg").attr("width", bBox.width).attr("height", 400).attr("id", "svg_" + name);
 	}
 	
 	scale_x = d3.scaleLinear().range([margin.left, bBox.width - margin.right]).domain([0,to_draw[0].end]);
@@ -79,7 +91,6 @@ $('document').ready(function() {
 	    .attr("width", 5 ).attr("height", 5)
 	    .attr("fill", function(d) { return hashStringToColor(d.winner)})
 	    .on('mouseover', function(event,d) {
-		//d3.select(this).attr("fill", "red");
 		d3.selectAll("rect").filter(function (dp) { return dp.winner != d.winner }).attr("opacity", "0.05");
 		tippy(this, {
 		    allowHTML: true,
@@ -87,15 +98,14 @@ $('document').ready(function() {
 		    arrow: false,
 		    maxWidth: 'none',
 		})		;
-	    }).on('mouseout', function(event,d) {
-		//d3.select(this).attr("fill", function(d) {return hashStringToColor(d.winner)});
-		d3.selectAll("rect").filter(function (dp) { return dp.winner != d.winner }).attr("opacity", "1.0");//.attr("fill", function(d) {return hashStringToColor(d.winner)});
+	    }).on('mouseout', function(event,d) {				
+		d3.selectAll("rect").filter(function (dp) { return dp.winner != d.winner }).attr("opacity", "1.0");
 	    });
 	
 	var xAxis = svg.append("g").call(d3.axisBottom().scale(scale_x));
 	
 	svg.on('dblclick', function(event,d) {
-		// zoom out on double click
+	    // zoom out on double click
 	    scale_x.domain([0,to_draw[0].end]);
 	    xAxis.transition().duration(500).call(d3.axisBottom(scale_x));
 	    svg.selectAll("rect").transition().duration(500).attr("x", function(d,i) { return scale_x(d.start) }).attr("y", function(d) {return scale_y(d.depth)});
@@ -173,7 +183,7 @@ $('document').ready(function() {
 	$(this).html("Switch to Overview");
     });
 
-    $('#btn_detail').on('click', function(e) {
+    /*$('#btn_detail').on('click', function(e) {
 	e.preventDefault();	
 	$.getJSON('/load_dataset', "", function(data) {
 	    draw(data);
@@ -181,7 +191,7 @@ $('document').ready(function() {
 	    $('#btn_load').show();
 	});
 	$('#overview_options').hide();
-    });
+    });*/
 
     
     $('#slider_threshold').on('mousemove change', function(e) {
