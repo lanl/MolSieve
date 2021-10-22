@@ -13,21 +13,31 @@ $('document').ready(function() {
 	$("*").prop("disabled", true);
     }
 
-    function load_dataset(name) {
-	$.getJSON('/calculate_epochs', {'run': name}, function(data) {
-	    draw_overview(data, name);
-	});
+    function load_dataset(cb) {
+	
+	if($(cb).prop('checked')) {
+	    $.getJSON('/calculate_epochs', {'run': cb.value}, function(data) {
+		draw_overview(data, cb.value);
+	    });
+	} else {
+	    
+	}
     }
     
     $.ajax({url: "/connect_to_db",
 	    success: function(data) {
-		$('#load_table_div').append('<p>Select which run(s) to visualize</p>');
-		var table = $('<table>');
+		$('#load_table_div').append('<p> Press CTRL to toggle zoom brush. Double click to zoom out.</p>');
+		var table = $('<table>').addClass("table table-sm");
+		var caption = $('<caption>Select which run(s) to visualize</caption>');
+		var head = $('<thead class="thead-dark"><tr><th>Run name</th><th>Load?</th></tr></thead>');
+		table.append(caption);
+		table.append(head);
 		for(var i = 0; i < data.length; i++) {
+
 		    if (data[i][0] != null) {
 			var row = $('<tr>');
 			var name_cell = $('<td>').text(data[i][0]);
-			var checkbox = $('<input>', {type:'checkbox', id:'cb_' + data[i][0], value: data[i][0], click: function() { load_dataset(this.value) }})			
+			var checkbox = $('<input>', {type:'checkbox', id:'cb_' + data[i][0], value: data[i][0], click: function() { load_dataset(this) }})			
 			var input_cell = $('<td>').append(checkbox);
 			row.append(name_cell);
 			row.append(input_cell);
@@ -35,6 +45,7 @@ $('document').ready(function() {
 		    }
 		}
 		$('#load_table_div').append(table);
+		$('#load_table_div').append('<br>');
 	    },
 	    error: function(data) {
 		error_state();
@@ -44,12 +55,12 @@ $('document').ready(function() {
     $('#toggle_arc').prop("checked", false);
     var scale_x = null;
     var height = 400;
-    var base = d3.select("#vis");
 
-    var bBox = base.node().getBoundingClientRect();    
-    var margin = {top: 20, bottom: 20, left: 25, right: 25};
+    var margin = {top: 20, bottom: 20, left: 5, right: 25};
     
     function draw_overview(data,name) {
+	console.log("Data for " + name);
+	console.log(data);
 	var to_draw = []
 	var q = new Queue();
 	q.enqueue(data);
@@ -71,33 +82,44 @@ $('document').ready(function() {
 		if (curr_data.depth > max_depth) {
 		    max_depth = curr_data.depth;
 		}
-	    }
-	
+	    }	
 	}
 
 	var svg = null;
-	
+	var bBox = null;
 	if($('#svg_' + name).length) {
 	    $("#svg_" + name).empty();
+	    bBox = d3.select("#vis_" + name).node().getBoundingClientRect();    
 	    svg = d3.select('#svg_' + name).attr("width", bBox.width);
 	} else {
-	    svg = d3.select("#vis").append("svg").attr("width", bBox.width).attr("height", 400).attr("id", "svg_" + name);
+	    var div = $('<div>').addClass("container-fluid");
+	    var control_div = $('<div>').addClass("col-auto");
+	    control_div.append('<h2>' + name + '</h2>');
+	    control_div.append('<button>test</button>');
+	    var vis_div = $('<div>').attr("id","vis_" + name).addClass("col-auto");
+	    div.append(vis_div);
+	    div.append(control_div);
+	    $('#main').append(div);	    
+	    bBox = d3.select("#vis_" + name).node().getBoundingClientRect();    
+	    svg = d3.select("#vis_" + name).append("svg").attr("width", bBox.width).attr("height", 400).attr("id", "svg_" + name);
 	}
 	
 	scale_x = d3.scaleLinear().range([margin.left, bBox.width - margin.right]).domain([0,to_draw[0].end]);
 	scale_y = d3.scaleLinear().range([margin.top, height - margin.bottom]).domain([0,max_depth]);
 	svg.selectAll("rect").data(to_draw, function(d) { return d }).enter().append("rect").attr("x", function(d,i) { return scale_x(d.start) })
 	    .attr("y", function(d) {return scale_y(d.depth)})
-	    .attr("width", 5 ).attr("height", 5)
+	    .attr("width", function(d,i) { return scale_x(d.end) - scale_x(d.start) }).attr("height", 5)
 	    .attr("fill", function(d) { return hashStringToColor(d.winner)})
 	    .on('mouseover', function(event,d) {
 		d3.selectAll("rect").filter(function (dp) { return dp.winner != d.winner }).attr("opacity", "0.05");
 		tippy(this, {
 		    allowHTML: true,
-		    content: "Most common state: " + d.winner + "<br><b>Start</b>: " + d.start + " <b>End</b>: " + d.end,
+		    content: "<b>Most common state</b>: " + d.winner +
+			     "<br><b>Start</b>: " + d.start + " <b>End</b>: " + d.end + " <b>Sequence length</b>: " + (d.end-d.start) +
+			     "<br><b>Number of occurences at this level</b>: " + d.counts[d.winner],
 		    arrow: false,
 		    maxWidth: 'none',
-		})		;
+		});
 	    }).on('mouseout', function(event,d) {				
 		d3.selectAll("rect").filter(function (dp) { return dp.winner != d.winner }).attr("opacity", "1.0");
 	    });
@@ -108,7 +130,10 @@ $('document').ready(function() {
 	    // zoom out on double click
 	    scale_x.domain([0,to_draw[0].end]);
 	    xAxis.transition().duration(500).call(d3.axisBottom(scale_x));
-	    svg.selectAll("rect").transition().duration(500).attr("x", function(d,i) { return scale_x(d.start) }).attr("y", function(d) {return scale_y(d.depth)});
+	    svg.selectAll("rect").transition().duration(500)
+		.attr("x", function(d,i) { return scale_x(d.start) })
+		.attr("y", function(d) {return scale_y(d.depth)})
+		.attr("width", function(d) { return scale_x(d.end) - scale_x(d.start) });
 	});
 
 	var brush = d3.brushX().extent([[0,0], [bBox.width, 400]]).on('end', function(e) {
@@ -118,18 +143,24 @@ $('document').ready(function() {
 		scale_x.domain([0,to_draw[0].end]);
 		xAxis.transition().duration(500).call(d3.axisBottom(scale_x));
 	    } else {
-		d3.select("#svg").select('.brush').call(brush.move, null);
+		d3.select("#svg_" + name).select('.brush').call(brush.move, null);
 		scale_x.domain([scale_x.invert(extent[0]), scale_x.invert(extent[1])]);
 		xAxis.transition().duration(500).call(d3.axisBottom(scale_x));
-		svg.selectAll("rect").transition().duration(500).attr("x", function(d,i) { return scale_x(d.start) }).attr("y", function(d) {return scale_y(d.depth)});
+		svg.selectAll("rect").transition().duration(500)
+		    .attr("x", function(d,i) { return scale_x(d.start) })
+		    .attr("y", function(d) {return scale_y(d.depth)})
+		    .attr("width", function(d) { return scale_x(d.end) - scale_x(d.start) });
 		d3.select(this).remove();
+		// remove all other brushes too
+		$(".brush").remove();
 	    }
 	});
 
 	// will have to remove these key callbacks after switching to detail view
 	document.onkeyup = function(e) {
-	    if(e.keyCode === 17) {		
-		d3.select("#svg").append("g").attr("class", "brush").call(brush);
+	    if(e.keyCode === 17) {
+		if ($(".brush").length) { $(".brush").remove(); }
+		d3.select("#svg_" + name).append("g").attr("class", "brush").call(brush);
 	    }
 	}		
     }

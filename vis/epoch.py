@@ -26,16 +26,18 @@ def calculate_epoch(data, depth):
         n_e.end = r_e.end if r_e.end > l_e.end else l_e.end
         
         for c in l_e.counts.items():
-            n_e.counts[c[0]] = c[1]
+            n_e.counts[str(c[0])] = c[1]
 
         for c in r_e.counts.items():
             if str(c[0]) not in n_e.counts:
-                n_e.counts[c[0]] = c[1]
+                n_e.counts[str(c[0])] = c[1]
             else:
-                n_e.counts[c[0]] += c[1]
-
-            if n_e.counts[c[0]] > n_e.max_count:
-                n_e.winner = c[0]
+                n_e.counts[str(c[0])] += c[1]
+                
+        # need to fully update counts before finding max
+        for c in n_e.counts.items():
+            if n_e.counts[str(c[0])] > n_e.max_count:
+                n_e.winner = str(c[0])
                 n_e.max_count = c[1]
         n_e.depth = depth
         return n_e

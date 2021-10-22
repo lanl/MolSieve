@@ -9,19 +9,21 @@
 
   <script src="https://d3js.org/d3.v7.min.js"></script>
   <script src="https://unpkg.com/@popperjs/core@2"></script>
-  <script src="https://unpkg.com/tippy.js@6"></script>  
+  <script src="https://unpkg.com/tippy.js@6"></script>
+  <!-- dialog box library ->
+  <!--script src="https://cdnjs.cloudflare.com/ajax/libs/bootbox.js/5.5.2/bootbox.min.js"></script-->
   <script type="text/javascript" src="{{url_for('static',filename='js/Queue.js')}}"></script>
   <script type="text/javascript" src="{{url_for('static',filename='js/utils.js')}}"></script>
   <script type="text/javascript" src="{{url_for('static',filename='js/vis.js')}}"></script>  
   <title>Prototype Trajectory Visualization</title>
 </head>
 <body>
-  <div class="container-fluid justify-content-center">
+  <div id="main" class="container-fluid justify-content-center">
     <h1>Prototype Visualization</h1>
-    <div id="load_table_div"></div>
     <div id="loading-indicator" hidden="true">
       <h2>Loading...</h2>
     </div>
+    <div id="load_table_div"></div>    
     <div id="info" class="row">    
       <div id="detail_view_options" hidden="true">
 	<input type="range" min="0" max="100" value="0" id="slider_threshold">
@@ -30,13 +32,12 @@
 	<label id="lbl_toggle_arc" for="toggle_arc">Toggle arc diagram</label>	
       </div>
       <div id="overview_options" hidden="true">
-	<p> Press CTRL to toggle zoom brush. Double click to zoom out.</p>
 	<button id="btn_detail">Switch to Detail View</button>
 	<br/>
 	<br/>
       </div>
     </div>
-    <div id="vis" class="row"></div>
+
     
 </body>
 </html>
