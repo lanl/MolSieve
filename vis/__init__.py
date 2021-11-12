@@ -1,15 +1,13 @@
 import os
 from flask import (render_template, Flask, jsonify, request)
-from neomd import querybuilder
-import py2neo
+from neomd import querybuilder, calculator
 import neo4j
 import hashlib
 import numpy as np
 from pydivsufsort import divsufsort, kasai, most_frequent_substrings, sa_search
 import jsonpickle
 from .epoch import Epoch, calculate_epoch
-
-driver = None
+import pyemma
 
 def create_app(test_config=None):
     # create and configure the app
@@ -38,28 +36,37 @@ def create_app(test_config=None):
 
     @app.route('/load_dataset', methods=['GET'])
     def load_dataset():
-
+        run = request.args.get('run')
+        driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687", auth=("neo4j", "secret"))
         qb = querybuilder.Neo4jQueryBuilder([
             ('State', 'NEXT', 'State', 'ONE-TO-ONE'),
             ('Atom', 'PART_OF', 'State', 'MANY-TO-ONE')
-        ])
-
-        graph = py2neo.Graph("bolt://127.0.0.1:7687", auth=("neo4j", "secret"))
+        ], constraints=[("RELATION", "NEXT", "run", run, "STRING")])
+        
         q = qb.generate_trajectory("NEXT", "ASC", ['RELATION', 'timestep'], node_attributes=[('number', 'first'), ('occurences', 'first')], relation_attributes=['timestep'])
-        j = jsonify(graph.run(q.text).data())
+        oq = qb.generate_get_occurences("NEXT")
+        with driver.session() as session:
+            session.run(oq.text)
+            result = session.run(q.text)
+            j = jsonify(result.data())
+        
         return j
 
     @app.route('/calculate_epochs', methods=['GET'])
     def calculate_epochs():
+        driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687", auth=("neo4j", "secret"))
         run = request.args.get('run')
         qb = querybuilder.Neo4jQueryBuilder([
             ('State', 'NEXT', 'State', 'ONE-TO-ONE'),
             ('Atom', 'PART_OF', 'State', 'MANY-TO-ONE')
         ],constraints=[("RELATION", "NEXT", "run", run, "STRING")])
+        
+        q = qb.generate_trajectory("NEXT", "ASC", ['RELATION', 'timestep'], node_attributes=[('number', "FIRST")], relation_attributes=['timestep'])
 
-        graph = py2neo.Graph("bolt://127.0.0.1:7687", auth=("neo4j", "secret"))
-        q = qb.generate_trajectory("NEXT", "ASC", ['RELATION', 'timestep'], node_attributes=[('number', "FIRST")], relation_attributes=['timestep'])       
-        traj = graph.run(q.text).data()
+        traj = None
+        with driver.session() as session:
+            result = session.run(q.text)
+            traj = result.data()
 
         epoch = calculate_epoch(traj, 0)
 
@@ -75,17 +82,43 @@ def create_app(test_config=None):
                 return jsonify(result.values())
             except neo4j.exceptions.ServiceUnavailable as exception:
                 raise exception
+
+
+    @app.route('/pcca', methods=['GET'])
+    def pcca():
+        run = request.args.get('run')
+        clusters = request.args.get('clusters')
+        driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687", auth=("neo4j", "secret"))
+        qb = querybuilder.Neo4jQueryBuilder(schema=[("State","NEXT","State","ONE-TO-ONE"),
+                                                    ("Atom", "PART_OF", "State", "MANY-TO-ONE")],
+                                            constraints=[("RELATION","NEXT","run",run, "STRING")])
+        dtraj, idx_to_state = calculator.calculate_discrete_trajectory(driver, qb)
+        mm = pyemma.msm.estimate_markov_model(np.array(dtraj), 1, reversible=True)
+        clustering = mm.pcca(clusters)
+        metastable_sets = clustering.metastable_sets
+        sets = []
+        for s in metastable_sets:
+            new_set = []
+            for idx in s:
+                new_set.append(idx_to_state[idx])
+            sets.append(new_set)
+        del mm # prevents constant 100% CPU usage after clustering
+        return jsonify(sets)
+
         
     @app.route('/generate_subsequences', methods=['GET'])
     def generate_subsequences():
-
+        run = request.args.get('run')
+        driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687", auth=("neo4j", "secret"))
         qb = querybuilder.Neo4jQueryBuilder(schema=[('State', 'NEXT', 'State', 'ONE-TO-ONE'), ('Atom', 'PART_OF', 'State', 'MANY-TO-ONE')],
-                                            constraints=[("RELATION", "NEXT", "run", "nano-pt", "STRING")])
+                                            constraints=[("RELATION", "NEXT", "run", run, "STRING")])
         
-        graph = py2neo.Graph("bolt://127.0.0.1:7687", auth=("neo4j", "secret"))
         q = qb.generate_trajectory("NEXT", "ASC", ['RELATION', 'timestep'], node_attributes=[('number', "FIRST")], relation_attributes=['timestep'])   
 
-        nodes = graph.run(q.text).data()
+        nodes = None
+        with driver.session() as session:
+            result = session.run(q.text)
+            nodes = result.data()
         node_list = []
 
         for n in nodes:

@@ -7,26 +7,55 @@ $(document).ajaxComplete(function(event, request, settings) {
 });
 
 $('document').ready(function() {
-
+    var scale_x = null;
+    var height = 400;
+    var margin = {top: 20, bottom: 20, left: 5, right: 25};
+    
     function error_state() {
 	alert("Error: Could not connect to database. Please check your connection to the database, refresh the page, and try again.");
 	$("*").prop("disabled", true);
     }
 
-    function load_dataset(cb) {
-	
-	if($(cb).prop('checked')) {
-	    $.getJSON('/calculate_epochs', {'run': cb.value}, function(data) {
-		draw_overview(data, cb.value);
+
+    function PCCA(name, clusters) {       
+        $.getJSON('/pcca', {'run': name, 'clusters' : clusters}, function(clustered_data) {
+	    console.log(clustered_data);
+	    $.getJSON('/load_dataset', {'run': name}, function(data) {
+		draw(data,name,clustered_data);
+		switch_controls(name, false);
 	    });
+	});
+
+    }
+
+    function load_dataset(name) {
+	$.getJSON('/calculate_epochs', {'run': name}, function(data) {
+	    draw_overview(data, name);
+	    switch_controls(name,true);
+	});
+    }
+
+    function switch_controls(name, overview) {
+	if (!overview) {
+	    $("#header_" + name).text("PCCA mode");
+	    $("#slider_pcca_" + name).show();
+	    $("#lbl_pcca_slider_" + name).show();
+	    $("#btn_pcca_" + name).hide();
+	    $("#btn_overview_" + name).show();
+	    $("#btn_overview_" + name).prop('disabled', false);
 	} else {
-	    
+	    $("#header_" + name).text("Overview mode");
+	    $("#slider_pcca_" + name).hide();
+	    $("#lbl_pcca_slider_" + name).hide();
+	    $("#btn_pcca_" + name).show();
+	    $("#btn_pcca_" + name).prop('disabled', false);
+	    $("#btn_overview_" + name).hide();
 	}
     }
     
     $.ajax({url: "/connect_to_db",
 	    success: function(data) {
-		$('#load_table_div').append('<p> Press CTRL to toggle zoom brush. Double click to zoom out.</p>');
+		$('#load_table_div').append('<p> Press CTRL to toggle zoom brush in overview mode. Double click to zoom out.</p>');
 		var table = $('<table>').addClass("table table-sm");
 		var caption = $('<caption>Select which run(s) to visualize</caption>');
 		var head = $('<thead class="thead-dark"><tr><th>Run name</th><th>Load?</th></tr></thead>');
@@ -37,7 +66,11 @@ $('document').ready(function() {
 		    if (data[i][0] != null) {
 			var row = $('<tr>');
 			var name_cell = $('<td>').text(data[i][0]);
-			var checkbox = $('<input>', {type:'checkbox', id:'cb_' + data[i][0], value: data[i][0], click: function() { load_dataset(this) }})			
+			var checkbox = $('<input>', {type:'checkbox', id:'cb_' + data[i][0], value: data[i][0], click: function() {
+			    if(this.checked) {
+				load_dataset(this.value)
+			    }
+			}});			
 			var input_cell = $('<td>').append(checkbox);
 			row.append(name_cell);
 			row.append(input_cell);
@@ -52,16 +85,32 @@ $('document').ready(function() {
 	   }
     });
     
-    $('#toggle_arc').prop("checked", false);
-    var scale_x = null;
-    var height = 400;
+    //$('#toggle_arc').prop("checked", false);
 
-    var margin = {top: 20, bottom: 20, left: 5, right: 25};
+    function setup_controls(name) {
+	var div = $('<div>').addClass("row");
+	var control_div = $('<div>').addClass("col-sm-3");
+	var detail_header = $('<h2>Overview mode</h2>', {id:"header_" + name});
+        var slider = $('<input type="range" min="1" max="64" value="3">').attr("id", "slider_pcca_" + name)
+	    .on('mousemove change', function(e) { $("#lbl_pcca_slider_" + name).text(this.value + " clusters")})
+	    .on('change', function(e) {PCCA(name,this.value)}).hide();
+	var label = $('<label>3 clusters</label>').attr("id","lbl_pcca_slider_" + name).attr("for","slider_pcca" + name).hide();
+	var pcca_button = $('<button>Show PCCA Clustering</button>').attr("id", "btn_pcca_" + name).on('click', function() {$(this).prop('disabled', true); PCCA(name,3);});
+	var back_button = $('<button>Show overview mode</button>').attr("id", "btn_overview_" + name).on('click', function() {$(this).prop('disabled', true); load_dataset(name);}).hide();
+	control_div.append(detail_header)
+	control_div.append(pcca_button);
+	control_div.append(slider);
+	control_div.append(label);
+	control_div.append(back_button);
+	var vis_div = $('<div>').attr("id","vis_" + name).addClass("col-lg-9");
+	vis_div.append('<h2>' + name + '</h2>');
+	div.append(vis_div);
+	div.append(control_div);
+	$('#main').append(div);
+    }
     
     function draw_overview(data,name) {
-	console.log("Data for " + name);
-	console.log(data);
-	var to_draw = []
+        var to_draw = []
 	var q = new Queue();
 	q.enqueue(data);
 	var max_depth = 0;
@@ -92,18 +141,10 @@ $('document').ready(function() {
 	    bBox = d3.select("#vis_" + name).node().getBoundingClientRect();    
 	    svg = d3.select('#svg_' + name).attr("width", bBox.width);
 	} else {
-	    var div = $('<div>').addClass("container-fluid");
-	    var control_div = $('<div>').addClass("col-auto");
-	    control_div.append('<h2>' + name + '</h2>');
-	    control_div.append('<button>test</button>');
-	    var vis_div = $('<div>').attr("id","vis_" + name).addClass("col-auto");
-	    div.append(vis_div);
-	    div.append(control_div);
-	    $('#main').append(div);	    
+	    setup_controls(name);
 	    bBox = d3.select("#vis_" + name).node().getBoundingClientRect();    
 	    svg = d3.select("#vis_" + name).append("svg").attr("width", bBox.width).attr("height", 400).attr("id", "svg_" + name);
 	}
-	
 	scale_x = d3.scaleLinear().range([margin.left, bBox.width - margin.right]).domain([0,to_draw[0].end]);
 	scale_y = d3.scaleLinear().range([margin.top, height - margin.bottom]).domain([0,max_depth]);
 	svg.selectAll("rect").data(to_draw, function(d) { return d }).enter().append("rect").attr("x", function(d,i) { return scale_x(d.start) })
@@ -155,52 +196,78 @@ $('document').ready(function() {
 		$(".brush").remove();
 	    }
 	});
-
-	// will have to remove these key callbacks after switching to detail view
+	//TODO: zoom only shows up on last drawn graph
 	document.onkeyup = function(e) {
-	    if(e.keyCode === 17) {
+	    if(e.keyCode === 17) {                
 		if ($(".brush").length) { $(".brush").remove(); }
 		d3.select("#svg_" + name).append("g").attr("class", "brush").call(brush);
 	    }
 	}		
     }
     
-    function draw(data) {
+    function draw(data, name, clustered_data) {
 	var svg = null;
 	
-	const threshold = $('#slider_threshold').val();	
-	data = data.filter(function (d) { return d['n.occurences'] > threshold });	
+	//const threshold = $('#slider_threshold').val();	
+	//data = data.filter(function (d) { return d['n.occurences'] > threshold });
+	
+	cluster_colors = [];
 
-	const overwidth = data.length * 5 + margin.left + margin.right;	
-
-	if($('#svg').length) {
-	    $("#svg").empty();
-	    svg = d3.select('#svg').attr("width", overwidth);
+	for(var i = 0; i < clustered_data.length; i++) {
+	    console.log(intToRGB(i));
+	    cluster_colors.push(intToRGB(i));	    
+	}
+	
+	for(var i = 0; i < data.length; i++) {
+	    for(var j = 0; j < clustered_data.length; j++) {
+		if(clustered_data[j].includes(data[i]['n.number'])) {
+		    data[i]['cluster'] = j;
+		}
+	    }
+	    if(data[i]['cluster'] == null) {
+		data[i]['cluster'] = -1;
+	    }
+	}
+	       
+	if($('#svg_' + name).length) {
+	    $("#svg_" + name).empty();
+	    bBox = d3.select("#vis_" + name).node().getBoundingClientRect();    
+	    svg = d3.select('#svg_' + name).attr("width", bBox.width);
 	} else {
 	    svg = d3.select("#vis").append("svg").attr("width", overwidth).attr("height", 400).attr("id", "svg");
 	}
 	
-	scale_x = d3.scaleLinear().range([margin.left, overwidth - margin.right]).domain([0,data.length]);
+	scale_x = d3.scaleLinear().range([margin.left, bBox.width - margin.right]).domain([0,data.length]);
+	scale_y = d3.scaleLinear().range([margin.top, height - margin.bottom]).domain([-1,clustered_data.length]);
 	svg.selectAll("rect").data(data, function(d) {return d}).enter().append("rect")
-	    .attr("x", function(d,i) {return scale_x(i)}).attr("y", height - 30)
-	    .attr("width",5).attr("height",20).attr("fill", "black")
+	    .attr("x", function(d,i) {return scale_x(i)}).attr("y", function (d) {
+		return scale_y(d['cluster']);
+	    })
+	    .attr("width",5).attr("height",5).attr("fill", function(d) {
+                if(d['cluster'] == -1) {
+		    return "black";
+		} else {
+		    return cluster_colors[d['cluster']];
+		}
+	    })
 	    .attr("number", function(d) { return d['n.number'] })
 	    .attr("timestep", function(d) { return d['r.timestep'] })
 	    .attr("occurences", function(d) { return d['n.occurences'] })
 		.on('mouseover', function(event,d) {
-		    d3.select(this).attr("fill", "red");
-		    d3.selectAll("rect").filter(function (dp) { return dp['n.number'] === d['n.number']}).attr("fill", "red");
+                    d3.selectAll("rect").filter(function (dp) { return dp['n.number'] != d['n.number'] }).attr("opacity", "0.05");
 		    tippy(this, {
 			allowHTML: true,
-			content: d['n.number'] + " " + "<i>t</i>=" + d['r.timestep'] + "<br> There are <b>" + d['n.occurences'] + "</b> occurences of this state.",
-			arrow: false,
+			content: "<b>State number</b>: " + d['n.number'] + " <i>t</i>=" + d['r.timestep'] +
+			         "<br><b>Cluster</b>: " + d['cluster'] +
+			         "<br>There are <b>" + d['n.occurences'] + "</b> occurences of this state.",
+			arrow: true,
 			maxWidth: 'none',
 		    });
 		})
 	        .on('mouseout', function(event,d) {
-		    d3.select(this).attr("fill", "black");
-		    d3.selectAll("rect").filter(function (dp) { return dp['n.number'] === d['n.number'] }).attr("fill", "black");
-		});	
+                    d3.selectAll("rect").filter(function (dp) { return dp['n.number'] != d['n.number'] }).attr("opacity", "1.0");
+		});
+	var xAxis = svg.append("g").call(d3.axisBottom().scale(scale_x));
     }
     
     $('#btn_load').on('click', function(e) {
@@ -225,7 +292,7 @@ $('document').ready(function() {
     });*/
 
     
-    $('#slider_threshold').on('mousemove change', function(e) {
+    /*$('#slider_threshold').on('mousemove change', function(e) {
 	$('#lbl_slider').text("Only show states with more than " + $(this).val() + " occurences.");
     });
     
@@ -236,7 +303,7 @@ $('document').ready(function() {
 	    $('#btn_load').hide();
 	    $('#detail_view').show();
 	});
-    });
+    });*/
     
     $('#toggle_arc').change(function() {
 	if(this.checked) {

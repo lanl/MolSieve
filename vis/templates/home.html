@@ -1,21 +1,22 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <script src="https://code.jquery.com/jquery-3.6.0.min.js"
-  integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4="
-  crossorigin="anonymous"></script>
+  <!-- script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4="
+       crossorigin="anonymous"></script>-->
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
   <link rel="stylesheet" href=
-  "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+	"https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
 
   <script src="https://d3js.org/d3.v7.min.js"></script>
   <script src="https://unpkg.com/@popperjs/core@2"></script>
   <script src="https://unpkg.com/tippy.js@6"></script>
-  <!-- dialog box library ->
+  <!-- dialog box library -->
   <!--script src="https://cdnjs.cloudflare.com/ajax/libs/bootbox.js/5.5.2/bootbox.min.js"></script-->
   <script type="text/javascript" src="{{url_for('static',filename='js/Queue.js')}}"></script>
   <script type="text/javascript" src="{{url_for('static',filename='js/utils.js')}}"></script>
+  <script src="https://intervis-projects.ccs.neu.edu/ssvg/ssvg.js"></script>
   <script type="text/javascript" src="{{url_for('static',filename='js/vis.js')}}"></script>  
-  <title>Prototype Trajectory Visualization</title>
+  <title>Prototype Trajectory Visualization</title>  
 </head>
 <body>
   <div id="main" class="container-fluid justify-content-center">
