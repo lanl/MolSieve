@@ -1,17 +1,16 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <!-- script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4="
-       crossorigin="anonymous"></script>-->
-  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
   <link rel="stylesheet" href=
 	"https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
-
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/izimodal/1.5.1/css/iziModal.min.css" integrity="sha512-8vr9VoQNQkkCCHGX4BSjg63nI5CI4B+nZ8SF2xy4FMOIyH/2MT0r55V276ypsBFAgmLIGXKtRhbbJueVyYZXjA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+  <link rel="stylesheet" href="{{url_for('static', filename='css/main.css')}}">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/izimodal/1.5.1/js/iziModal.min.js" integrity="sha512-8aOKv+WECF2OZvOoJWZQMx7+VYNxqokDKTGJqkEYlqpsSuKXoocijXQNip3oT4OEkFfafyluI6Bm6oWZjFXR0A==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script src="https://d3js.org/d3.v7.min.js"></script>
-  <script src="https://unpkg.com/@popperjs/core@2"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/2.6.0/umd/popper.min.js"></script>
   <script src="https://unpkg.com/tippy.js@6"></script>
-  <!-- dialog box library -->
-  <!--script src="https://cdnjs.cloudflare.com/ajax/libs/bootbox.js/5.5.2/bootbox.min.js"></script-->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/bootbox.js/5.5.2/bootbox.min.js"></script>
   <script type="text/javascript" src="{{url_for('static',filename='js/Queue.js')}}"></script>
   <script type="text/javascript" src="{{url_for('static',filename='js/utils.js')}}"></script>
   <script src="https://intervis-projects.ccs.neu.edu/ssvg/ssvg.js"></script>
@@ -21,9 +20,6 @@
 <body>
   <div id="main" class="container-fluid justify-content-center">
     <h1>Prototype Visualization</h1>
-    <div id="loading-indicator" hidden="true">
-      <h2>Loading...</h2>
-    </div>
     <div id="load_table_div"></div>    
     <div id="info" class="row">    
       <div id="detail_view_options" hidden="true">
@@ -38,7 +34,11 @@
 	<br/>
       </div>
     </div>
-
-    
+    <div id="modal_loading-indicator" style="text-align:center">
+      <img src="https://raw.githubusercontent.com/Codelessly/FlutterLoadingGIFs/master/packages/cupertino_activity_indicator_selective.gif" width="10%">
+    </div>
+    <div id="modal_info">
+      <div id="modal_container" class="scrollingModal"></div>
+    </div>
 </body>
 </html>

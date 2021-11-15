@@ -1,21 +1,37 @@
-$(document).ajaxSend(function(event, request, settings) {
-    $('#loading-indicator').show();
-});
-
-$(document).ajaxComplete(function(event, request, settings) {
-    $('#loading-indicator').hide();
-});
-
 $('document').ready(function() {
+    
+    $("#modal_loading-indicator").iziModal({
+	title: 'Loading',
+	closeButton: false,
+	closeOnEscape: false,
+	borderBottom: false,
+    });
+
+    $("#modal_info").iziModal({
+	title: 'Sequence Info',                            
+	borderBottom: false,               
+	fullscreen:true,        
+    });		                
+
+    
+    $(document).ajaxSend(function(event, request, settings) {
+	$('#modal_loading-indicator').iziModal('open');
+    });
+   
+    $(document).ajaxComplete(function(event, request, settings) {
+	$('#modal_loading-indicator').iziModal('close');
+    });
+
     var scale_x = null;
     var height = 400;
     var margin = {top: 20, bottom: 20, left: 5, right: 25};
     
-    function error_state() {
+    function error_state() {	
+	$('#modal_loading-indicator').iziModal('close');
+	$('#modal_loading-indicator').hide();
 	alert("Error: Could not connect to database. Please check your connection to the database, refresh the page, and try again.");
 	$("*").prop("disabled", true);
     }
-
 
     function PCCA(name, clusters) {       
         $.getJSON('/pcca', {'run': name, 'clusters' : clusters}, function(clustered_data) {
@@ -161,12 +177,44 @@ $('document').ready(function() {
 		    arrow: false,
 		    maxWidth: 'none',
 		});
-	    }).on('mouseout', function(event,d) {				
+	    })
+	    .on('click', function(event,d) {
+		event.preventDefault();
+		$('#modal_container').html('');                	
+		var items = Object.keys(d.counts).map(function(key) {
+		    return [key, d.counts[key]];
+		});
+
+		items.sort(function(first, second) {
+		    return second[1] - first[1];
+		});
+                		                
+		var table = $('<table>').addClass("table table-sm");
+		var head = $('<thead class="thead-dark"><tr><th>State number</th><th>Count</th></tr></thead>');                
+		table.append(head);
+		var count = 0;
+		for(const item of items) {
+		    var row = $('<tr>');                    
+		    var name_cell = $('<td>').text(item[0]);
+		    var count_cell = $('<td>').text(item[1]);
+		    row.append(name_cell);
+		    row.append(count_cell);
+		    table.append(row);
+		    if(count > 10) {
+			break;
+		    }
+		    count++;
+		}				
+		
+		$('#modal_container').append(table);                
+		$('#modal_info').iziModal('open');
+	    })
+	    .on('mouseout', function(event,d) {				
 		d3.selectAll("rect").filter(function (dp) { return dp.winner != d.winner }).attr("opacity", "1.0");
 	    });
 	
 	var xAxis = svg.append("g").call(d3.axisBottom().scale(scale_x));
-	
+	//disable in detail mode
 	svg.on('dblclick', function(event,d) {
 	    // zoom out on double click
 	    scale_x.domain([0,to_draw[0].end]);
@@ -199,7 +247,7 @@ $('document').ready(function() {
 	//TODO: zoom only shows up on last drawn graph
 	document.onkeyup = function(e) {
 	    if(e.keyCode === 17) {                
-		if ($(".brush").length) { $(".brush").remove(); }
+		if ($(".brush").length) { $(".brush").remove(); }               
 		d3.select("#svg_" + name).append("g").attr("class", "brush").call(brush);
 	    }
 	}		
@@ -238,7 +286,7 @@ $('document').ready(function() {
 	}
 	
 	scale_x = d3.scaleLinear().range([margin.left, bBox.width - margin.right]).domain([0,data.length]);
-	scale_y = d3.scaleLinear().range([margin.top, height - margin.bottom]).domain([-1,clustered_data.length]);
+	scale_y = d3.scaleLinear().range([margin.top, height - margin.bottom]).domain([clustered_data.length,-1]);
 	svg.selectAll("rect").data(data, function(d) {return d}).enter().append("rect")
 	    .attr("x", function(d,i) {return scale_x(i)}).attr("y", function (d) {
 		return scale_y(d['cluster']);
