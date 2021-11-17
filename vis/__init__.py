@@ -8,6 +8,24 @@ from pydivsufsort import divsufsort, kasai, most_frequent_substrings, sa_search
 import jsonpickle
 from .epoch import Epoch, calculate_epoch
 import pyemma
+import pygpcca as gp
+import json
+
+# https://stackoverflow.com/questions/57269741/typeerror-object-of-type-ndarray-is-not-json-serializable
+class NumpyEncoder(json.JSONEncoder):
+    """ Special json encoder for numpy types """
+    def default(self, obj):
+        if isinstance(obj, (np.int_, np.intc, np.intp, np.int8,
+                            np.int16, np.int32, np.int64, np.uint8,
+                            np.uint16, np.uint32, np.uint64)):
+            return int(obj)
+        elif isinstance(obj, (np.float_, np.float16, np.float32,
+                              np.float64)):
+            return float(obj)
+        elif isinstance(obj, (np.ndarray,)):
+            return obj.tolist()
+        return json.JSONEncoder.default(self, obj)
+
 
 def create_app(test_config=None):
     # create and configure the app
@@ -92,19 +110,49 @@ def create_app(test_config=None):
         qb = querybuilder.Neo4jQueryBuilder(schema=[("State","NEXT","State","ONE-TO-ONE"),
                                                     ("Atom", "PART_OF", "State", "MANY-TO-ONE")],
                                             constraints=[("RELATION","NEXT","run",run, "STRING")])
+        m, idx_to_state_number = calculator.calculate_transition_matrix(driver, qb, True)
+        print(idx_to_state_number)
+        gpcca = gp.GPCCA(np.array(m), z='LM', method='brandts')
+        # TODO: determine best cluster number automagically
+        gpcca.optimize(4)
+        sets = {}
+        for idx, s in enumerate(gpcca.macrostate_sets):
+            newSet = []
+            for i in s:
+                newSet.append(idx_to_state_number[i])
+            sets.update({idx: newSet})
+        return jsonify(list(sets.values()))
+        """
         dtraj, idx_to_state = calculator.calculate_discrete_trajectory(driver, qb)
         mm = pyemma.msm.estimate_markov_model(np.array(dtraj), 1, reversible=True)
         clustering = mm.pcca(clusters)
-        metastable_sets = clustering.metastable_sets
-        sets = []
-        for s in metastable_sets:
-            new_set = []
-            for idx in s:
-                new_set.append(idx_to_state[idx])
-            sets.append(new_set)
+        metastable_sets = clustering.metastable_assignment.tolist()
+        unique_clusters = set(metastable_sets)
+        
+        sets = dict(zip(unique_clusters, [[] for _ in range(len(unique_clusters))]))
+        for idx, s in enumerate(metastable_sets):
+            sets[s].append(idx_to_state[idx])
+        
         del mm # prevents constant 100% CPU usage after clustering
-        return jsonify(sets)
-
+        return json.dumps(list(sets.values()))
+        """
+        
+    
+    @app.route('/generate_ovito_image', methods=['GET'])
+    def generate_ovito_image():
+        run = request.args.get('run')
+        sequences = request.args.get('sequences')
+        driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687", auth=("neo4j", "secret"))
+        qb = querybuilder.Neo4jQueryBuilder(schema=[("State","NEXT","State","ONE-TO-ONE"),
+                                                    ("Atom", "PART_OF", "State", "MANY-TO-ONE")],
+                                            constraints=[("RELATION","NEXT","run",run, "STRING")])
+        if len(sequences) > 1:
+            q = qb.generate_get_path()
+            # TODO: start with modifying neomd to return the correct path
+            # once that is done, figure out how to get images from the backend
+            # and pass in the sequence
+        else:
+            raise NotImplementedError()
         
     @app.route('/generate_subsequences', methods=['GET'])
     def generate_subsequences():

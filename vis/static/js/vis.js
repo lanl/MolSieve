@@ -34,8 +34,7 @@ $('document').ready(function() {
     }
 
     function PCCA(name, clusters) {       
-        $.getJSON('/pcca', {'run': name, 'clusters' : clusters}, function(clustered_data) {
-	    console.log(clustered_data);
+        $.getJSON('/pcca', {'run': name, 'clusters' : clusters}, function(clustered_data) {           
 	    $.getJSON('/load_dataset', {'run': name}, function(data) {
 		draw(data,name,clustered_data);
 		switch_controls(name, false);
@@ -252,30 +251,35 @@ $('document').ready(function() {
 	    }
 	}		
     }
+
+    
     
     function draw(data, name, clustered_data) {
 	var svg = null;
 	
 	//const threshold = $('#slider_threshold').val();	
-	//data = data.filter(function (d) { return d['n.occurences'] > threshold });
-	
-	cluster_colors = [];
-
-	for(var i = 0; i < clustered_data.length; i++) {
-	    console.log(intToRGB(i));
+	//data = data.filter(function (d) { return d['n.occurences'] > threshold });        
+        
+	cluster_colors = [];        
+	for(var i = 0; i < clustered_data.length; i++) {	    
 	    cluster_colors.push(intToRGB(i));	    
 	}
-	
+
+	console.log(clustered_data);
+	console.log(clustered_data.length);
+	console.log(clustered_data[0]);	
 	for(var i = 0; i < data.length; i++) {
 	    for(var j = 0; j < clustered_data.length; j++) {
 		if(clustered_data[j].includes(data[i]['n.number'])) {
 		    data[i]['cluster'] = j;
 		}
 	    }
-	    if(data[i]['cluster'] == null) {
+            if(data[i]['cluster'] == null) {
 		data[i]['cluster'] = -1;
 	    }
 	}
+	
+	console.log(data);
 	       
 	if($('#svg_' + name).length) {
 	    $("#svg_" + name).empty();
@@ -288,15 +292,14 @@ $('document').ready(function() {
 	scale_x = d3.scaleLinear().range([margin.left, bBox.width - margin.right]).domain([0,data.length]);
 	scale_y = d3.scaleLinear().range([margin.top, height - margin.bottom]).domain([clustered_data.length,-1]);
 	svg.selectAll("rect").data(data, function(d) {return d}).enter().append("rect")
-	    .attr("x", function(d,i) {return scale_x(i)}).attr("y", function (d) {
+	    .attr("x", function(d,i) {return scale_x(i)}).attr("y", function (d) {		
 		return scale_y(d['cluster']);
 	    })
-	    .attr("width",5).attr("height",5).attr("fill", function(d) {
-                if(d['cluster'] == -1) {
+	    .attr("width",1).attr("height",5).attr("fill", function(d) {
+		if(d['cluster'] == -1) {
 		    return "black";
-		} else {
-		    return cluster_colors[d['cluster']];
 		}
+		return cluster_colors[d['cluster']];
 	    })
 	    .attr("number", function(d) { return d['n.number'] })
 	    .attr("timestep", function(d) { return d['r.timestep'] })
