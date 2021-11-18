@@ -61,7 +61,7 @@ def create_app(test_config=None):
             ('Atom', 'PART_OF', 'State', 'MANY-TO-ONE')
         ], constraints=[("RELATION", "NEXT", "run", run, "STRING")])
         
-        q = qb.generate_trajectory("NEXT", "ASC", ['RELATION', 'timestep'], node_attributes=[('number', 'first'), ('occurences', 'first')], relation_attributes=['timestep'])
+        q = qb.generate_trajectory("NEXT", "ASC", ['RELATION', 'timestep'], node_attributes=[('number', 'first'), ('occurences', 'first'), ('id', 'first')], relation_attributes=['timestep'])
         oq = qb.generate_get_occurences("NEXT")
         with driver.session() as session:
             session.run(oq.text)
@@ -111,9 +111,9 @@ def create_app(test_config=None):
                                                     ("Atom", "PART_OF", "State", "MANY-TO-ONE")],
                                             constraints=[("RELATION","NEXT","run",run, "STRING")])
         m, idx_to_state_number = calculator.calculate_transition_matrix(driver, qb, True)
-        print(idx_to_state_number)
+        
         gpcca = gp.GPCCA(np.array(m), z='LM', method='brandts')
-        # TODO: determine best cluster number automagically
+        # TODO: determine best cluster number automagically, return feasible values + optimal value        
         gpcca.optimize(4)
         sets = {}
         for idx, s in enumerate(gpcca.macrostate_sets):

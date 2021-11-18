@@ -26,45 +26,73 @@ $('document').ready(function() {
     var height = 400;
     var margin = {top: 20, bottom: 20, left: 5, right: 25};
     
-    function error_state() {	
+    function error_state(msg) {	
 	$('#modal_loading-indicator').iziModal('close');
 	$('#modal_loading-indicator').hide();
-	alert("Error: Could not connect to database. Please check your connection to the database, refresh the page, and try again.");
+	alert("Error: " + msg);
 	$("*").prop("disabled", true);
     }
 
     function PCCA(name, clusters) {       
         $.getJSON('/pcca', {'run': name, 'clusters' : clusters}, function(clustered_data) {           
 	    $.getJSON('/load_dataset', {'run': name}, function(data) {
-		draw(data,name,clustered_data);
-		switch_controls(name, false);
+		draw_PCCA(data,name,clustered_data);
+		switch_controls(name, "PCCA");
 	    });
 	});
+    }
 
+    function calculate_epochs(name) {
+	$.getJSON('/calculate_epochs', {'run': name}, function(data) {
+	    draw_overview(data, name);
+	    switch_controls(name,"overview");
+	});
     }
 
     function load_dataset(name) {
-	$.getJSON('/calculate_epochs', {'run': name}, function(data) {
-	    draw_overview(data, name);
-	    switch_controls(name,true);
+	$.getJSON('/load_dataset', {'run': name}, function(data) {
+	    draw_state_id(data,name);
+	    switch_controls(name,"state_id")
 	});
-    }
+    }    
 
-    function switch_controls(name, overview) {
-	if (!overview) {
-	    $("#header_" + name).text("PCCA mode");
+    function switch_controls(name, mode) {
+
+	switch(mode) {
+	case "PCCA":            
+	    $("#header_" + name).text("PCCA clustering");
 	    $("#slider_pcca_" + name).show();
 	    $("#lbl_pcca_slider_" + name).show();
-	    $("#btn_pcca_" + name).hide();
-	    $("#btn_overview_" + name).show();
-	    $("#btn_overview_" + name).prop('disabled', false);
-	} else {
-	    $("#header_" + name).text("Overview mode");
+            switch_buttons(name, "PCCA")
+	    break;
+	case "overview":
+	    $("#header_" + name).text("Overview");
 	    $("#slider_pcca_" + name).hide();
 	    $("#lbl_pcca_slider_" + name).hide();
-	    $("#btn_pcca_" + name).show();
-	    $("#btn_pcca_" + name).prop('disabled', false);
-	    $("#btn_overview_" + name).hide();
+	    switch_buttons(name, "overview");            
+	    break;
+	case "state_id":
+	    $("#header_" + name).text("State ID")
+	    $("#slider_pcca_" + name).hide();
+	    $("#lbl_pcca_slider_" + name).hide();
+            switch_buttons(name, "state_id");
+	    break;
+	default:
+	    error_state("Invalid mode selected: " + mode);
+	    break;
+	}
+    }
+	
+
+    function switch_buttons(name,mode) {
+	modes = ["PCCA","state_id","overview"];
+        const idx = modes.indexOf(mode);
+	modes.splice(idx,1);
+	
+	$("#btn_" + mode + "_" + name).hide();
+	for(var i = 0; i < modes.length; i++) {
+	    $("#btn_" + modes[i] + "_" + name).show();
+	    $("#btn_" + modes[i] + "_" + name).prop('disabled', false);
 	}
     }
     
@@ -83,7 +111,7 @@ $('document').ready(function() {
 			var name_cell = $('<td>').text(data[i][0]);
 			var checkbox = $('<input>', {type:'checkbox', id:'cb_' + data[i][0], value: data[i][0], click: function() {
 			    if(this.checked) {
-				load_dataset(this.value)
+				calculate_epochs(this.value)
 			    }
 			}});			
 			var input_cell = $('<td>').append(checkbox);
@@ -95,33 +123,75 @@ $('document').ready(function() {
 		$('#load_table_div').append(table);
 		$('#load_table_div').append('<br>');
 	    },
-	    error: function(data) {
-		error_state();
+	    error: function(data) {                
+		error_state("Could not connect to database. Please check your connection to the database, refresh the page, and try again.");
 	   }
     });
     
     //$('#toggle_arc').prop("checked", false);
-
     function setup_controls(name) {
 	var div = $('<div>').addClass("row");
 	var control_div = $('<div>').addClass("col-sm-3");
-	var detail_header = $('<h2>Overview mode</h2>', {id:"header_" + name});
+	var detail_header = $('<h2>Overview</h2>').attr("id","header_" + name);
         var slider = $('<input type="range" min="1" max="64" value="3">').attr("id", "slider_pcca_" + name)
 	    .on('mousemove change', function(e) { $("#lbl_pcca_slider_" + name).text(this.value + " clusters")})
 	    .on('change', function(e) {PCCA(name,this.value)}).hide();
 	var label = $('<label>3 clusters</label>').attr("id","lbl_pcca_slider_" + name).attr("for","slider_pcca" + name).hide();
-	var pcca_button = $('<button>Show PCCA Clustering</button>').attr("id", "btn_pcca_" + name).on('click', function() {$(this).prop('disabled', true); PCCA(name,3);});
-	var back_button = $('<button>Show overview mode</button>').attr("id", "btn_overview_" + name).on('click', function() {$(this).prop('disabled', true); load_dataset(name);}).hide();
+	var pcca_button = $('<button>Show PCCA Clustering</button>').attr("id", "btn_PCCA_" + name).on('click', function() {$(this).prop('disabled', true); PCCA(name,3);});
+	var overview_button = $('<button>Show Overview</button>').attr("id", "btn_overview_" + name).on('click', function() {$(this).prop('disabled', true); calculate_epochs(name);}).hide();
+	var state_id_button = $('<button>Show State ID vs Time</button>').attr("id", "btn_state_id_" + name).on('click', function() {$(this).prop('disabled', true); load_dataset(name);});
 	control_div.append(detail_header)
 	control_div.append(pcca_button);
 	control_div.append(slider);
 	control_div.append(label);
-	control_div.append(back_button);
+	control_div.append(overview_button);
+	control_div.append(state_id_button);
 	var vis_div = $('<div>').attr("id","vis_" + name).addClass("col-lg-9");
 	vis_div.append('<h2>' + name + '</h2>');
 	div.append(vis_div);
 	div.append(control_div);
 	$('#main').append(div);
+    }
+
+    function draw_state_id(data, name) {
+	var svg = null;
+	var bBox = null;
+
+	if($('#svg_' + name).length) {
+	    $("#svg_" + name).empty();
+	    bBox = d3.select("#vis_" + name).node().getBoundingClientRect();    
+	    svg = d3.select('#svg_' + name).attr("width", bBox.width);
+	} else {            
+	    bBox = d3.select("#vis_" + name).node().getBoundingClientRect();    
+	    svg = d3.select("#vis_" + name).append("svg").attr("width", bBox.width).attr("height", 400).attr("id", "svg_" + name);
+	}
+        
+        var unique_states = new Set();
+        for (var i = 0; i < data.length; i++) {
+	    unique_states.add(data[i].id);
+	}
+	
+	scale_x = d3.scaleLinear().range([margin.left, bBox.width - margin.right]).domain([0,data.length]);
+	scale_y = d3.scaleLinear().range([margin.top, height - margin.bottom]).domain([d3.extent(unique_states)[0], d3.extent(unique_states)[1]]);
+	svg.selectAll("rect").data(data, function(d) { return d }).enter().append("rect").attr("x", function(d,i) { return scale_x(d['timestep']) })
+	    .attr("y", function(d) {                
+		return scale_y(d.id)})
+	    .attr("width", 5).attr("height", 5)
+	    .attr("fill", function(d) { return hashStringToColor(d['number'])})
+	    .on('mouseover', function(event,d) {
+		d3.selectAll("rect").filter(function (dp) { return dp['number'] != d['number'] }).attr("opacity", "0.05");
+		tippy(this, {
+		    allowHTML: true,                    
+		    content: "<b>State number</b>: " + d['number'] + " <i>t</i>=" + d['timestep'] +
+                             "<br>There are <b>" + d['occurences'] + "</b> occurences of this state.",
+		    arrow: false,
+		    maxWidth: 'none',
+		});
+	    }).on('mouseout', function(event,d) {
+                d3.selectAll("rect").filter(function (dp) { return dp['number'] != d['number'] }).attr("opacity", "1.0");
+	   });
+	var xAxis = svg.append("g").call(d3.axisBottom().scale(scale_x));
+	
     }
     
     function draw_overview(data,name) {
@@ -254,7 +324,7 @@ $('document').ready(function() {
 
     
     
-    function draw(data, name, clustered_data) {
+    function draw_PCCA(data, name, clustered_data) {
 	var svg = null;
 	
 	//const threshold = $('#slider_threshold').val();	
@@ -264,22 +334,17 @@ $('document').ready(function() {
 	for(var i = 0; i < clustered_data.length; i++) {	    
 	    cluster_colors.push(intToRGB(i));	    
 	}
-
-	console.log(clustered_data);
-	console.log(clustered_data.length);
-	console.log(clustered_data[0]);	
+                
 	for(var i = 0; i < data.length; i++) {
 	    for(var j = 0; j < clustered_data.length; j++) {
-		if(clustered_data[j].includes(data[i]['n.number'])) {
+		if(clustered_data[j].includes(data[i]['number'])) {
 		    data[i]['cluster'] = j;
 		}
 	    }
             if(data[i]['cluster'] == null) {
 		data[i]['cluster'] = -1;
 	    }
-	}
-	
-	console.log(data);
+	}	        
 	       
 	if($('#svg_' + name).length) {
 	    $("#svg_" + name).empty();
@@ -301,27 +366,27 @@ $('document').ready(function() {
 		}
 		return cluster_colors[d['cluster']];
 	    })
-	    .attr("number", function(d) { return d['n.number'] })
-	    .attr("timestep", function(d) { return d['r.timestep'] })
-	    .attr("occurences", function(d) { return d['n.occurences'] })
+	    .attr("number", function(d) { return d['number'] })
+	    .attr("timestep", function(d) { return d['timestep'] })
+	    .attr("occurences", function(d) { return d['occurences'] })
 		.on('mouseover', function(event,d) {
-                    d3.selectAll("rect").filter(function (dp) { return dp['n.number'] != d['n.number'] }).attr("opacity", "0.05");
+                    d3.selectAll("rect").filter(function (dp) { return dp['number'] != d['number'] }).attr("opacity", "0.05");
 		    tippy(this, {
 			allowHTML: true,
-			content: "<b>State number</b>: " + d['n.number'] + " <i>t</i>=" + d['r.timestep'] +
+			content: "<b>State number</b>: " + d['number'] + " <i>t</i>=" + d['timestep'] +
 			         "<br><b>Cluster</b>: " + d['cluster'] +
-			         "<br>There are <b>" + d['n.occurences'] + "</b> occurences of this state.",
+			         "<br>There are <b>" + d['occurences'] + "</b> occurences of this state.",
 			arrow: true,
 			maxWidth: 'none',
 		    });
 		})
 	        .on('mouseout', function(event,d) {
-                    d3.selectAll("rect").filter(function (dp) { return dp['n.number'] != d['n.number'] }).attr("opacity", "1.0");
+                    d3.selectAll("rect").filter(function (dp) { return dp['number'] != d['number'] }).attr("opacity", "1.0");
 		});
 	var xAxis = svg.append("g").call(d3.axisBottom().scale(scale_x));
     }
     
-    $('#btn_load').on('click', function(e) {
+    /*$('#btn_load').on('click', function(e) {
 	e.preventDefault();	
 	$.getJSON('/calculate_epochs', "", function(data) {
 	    draw_overview(data);

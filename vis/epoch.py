@@ -45,17 +45,17 @@ def calculate_epoch(data, depth):
         e = Epoch()
         for d in data:
             # timestep info
-            if d['r.timestep'] < e.start:
-                e.start = d['r.timestep']
-            if d['r.timestep'] > e.end:
-                e.end = d['r.timestep']
+            if d['timestep'] < e.start:
+                e.start = d['timestep']
+            if d['timestep'] > e.end:
+                e.end = d['timestep']
 
-            if d['n.number'] in e.counts:
-                e.counts[d['n.number']] = e.counts[d['n.number']] + 1
-                if e.counts[d['n.number']] > e.max_count:
-                    e.winner = d['n.number']
-                    e.max_count = e.counts[d['n.number']]
+            if d['number'] in e.counts:
+                e.counts[d['number']] = e.counts[d['number']] + 1
+                if e.counts[d['number']] > e.max_count:
+                    e.winner = d['number']
+                    e.max_count = e.counts[d['number']]
             else:
-                e.counts[d['n.number']] = 1
+                e.counts[d['number']] = 1
         e.depth = depth
         return e
