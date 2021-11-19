@@ -106,22 +106,44 @@ def create_app(test_config=None):
     def pcca():
         run = request.args.get('run')
         clusters = request.args.get('clusters')
+        optimal = request.args.get('optimal')
         driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687", auth=("neo4j", "secret"))
         qb = querybuilder.Neo4jQueryBuilder(schema=[("State","NEXT","State","ONE-TO-ONE"),
                                                     ("Atom", "PART_OF", "State", "MANY-TO-ONE")],
                                             constraints=[("RELATION","NEXT","run",run, "STRING")])
         m, idx_to_state_number = calculator.calculate_transition_matrix(driver, qb, True)
-        
         gpcca = gp.GPCCA(np.array(m), z='LM', method='brandts')
-        # TODO: determine best cluster number automagically, return feasible values + optimal value        
-        gpcca.optimize(4)
+        j = {}
+        m_min = 2
+        m_max = 12
+        print("optimal value: " + optimal)
+        if int(optimal) == 1:
+            gpcca.optimize({'m_min': m_min, 'm_max': m_max})
+            feasible_clusters = []
+            print(gpcca.crispness_values)
+            for idx, val in enumerate(gpcca.crispness_values):
+                if val != 0:
+                    feasible_clusters.append(idx + m_min)
+            gpcca.optimize(gpcca.n_m)
+            j.update({'optimal_value': gpcca.n_m})
+            j.update({'feasible_clusters': feasible_clusters})
+        else:
+            try:
+                gpcca.optimize(int(clusters))
+            except ValueError as exception:
+                print(exception)
+                return {
+                    'status': 500,
+                    'Error': str(exception)
+                }, 500
         sets = {}
         for idx, s in enumerate(gpcca.macrostate_sets):
             newSet = []
             for i in s:
                 newSet.append(idx_to_state_number[i])
             sets.update({idx: newSet})
-        return jsonify(list(sets.values()))
+        j.update({'sets': list(sets.values())})
+        return jsonify(j)
         """
         dtraj, idx_to_state = calculator.calculate_discrete_trajectory(driver, qb)
         mm = pyemma.msm.estimate_markov_model(np.array(dtraj), 1, reversible=True)
