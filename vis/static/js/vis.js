@@ -1,6 +1,7 @@
 $('document').ready(function() {
 
     var trajectories = {};
+    var vis_modes = {};
     
     $("#modal_loading-indicator").iziModal({
 	title: 'Loading',
@@ -45,11 +46,9 @@ $('document').ready(function() {
      var load_PCCA = function(name, clusters, optimal) {
 	return new Promise(function(resolve, reject) {
 	    $.getJSON('/pcca', {'run': name, 'clusters' : clusters, 'optimal' : optimal}, function(clustered_data) {
-		if (optimal === 1) {
-		    console.log(optimal);
+		if (optimal === 1) {                    
 		    trajectories[name].optimal_cluster_value = clustered_data.optimal_value;
-		    trajectories[name].feasible_clusters = clustered_data.feasible_clusters;
-		    console.log(clustered_data.feasible_clusters);
+		    trajectories[name].feasible_clusters = clustered_data.feasible_clusters;                    
 		}
 		trajectories[name].current_clustering = clustered_data.sets;
 		if (trajectories[name].sequence == null) {
@@ -68,66 +67,66 @@ $('document').ready(function() {
 	});
     };
     
-    function calculate_epochs(name) {
-	if(trajectories[name].overview == null) {
-	    $.getJSON('/calculate_epochs', {'run': name}, function(data) {	   
-		trajectories[name].overview = data;	    	     
-		draw_overview(trajectories[name].overview, name);
-		switch_controls(name,"overview");
-	    });
-	} else {
-	    showLoadingIndicator();
-	    draw_overview(trajectories[name].overview, name);
-	    switch_controls(name,"overview", closeLoadingIndicator);
-	};
-    }
-
-    function load_dataset(name) {
-	if(trajectories[name].sequence == null) {
-	    $.getJSON('/load_dataset', {'run': name}, function(data) {
-		trajectories[name].sequence = data;	    	    
-		draw_state_id(data,name);
-		switch_controls(name,"state_id");
-	    });
-	} else {
-            showLoadingIndicator();
-	    draw_state_id(trajectories[name].sequence,name);                    
-	    switch_controls(name,"overview", closeLoadingIndicator);
-	}
+    var calculate_epochs = function(name) { 
+	return new Promise(function(resolve,reject) {
+	    if(trajectories[name].overview == null) {
+		$.getJSON('/calculate_epochs', {'run': name}, function(data) {	   
+		    trajectories[name].overview = data;
+    		    resolve(name);
+		}).fail(function(msg) {
+		    reject(msg.responseText);
+		});
+	    } else {
+		resolve(name);                                                
+	    };
+	})
+    }					      
+    var load_dataset = function(name) {
+	return new Promise(function(resolve,reject) {
+	    if(trajectories[name].sequence == null) {
+		$.getJSON('/load_dataset', {'run': name}, function(data) {
+		    trajectories[name].sequence = data;	    	    
+		    resolve(name);
+		}).fail(function(msg) {
+		    reject(msg.responseText);
+		});
+	    } else {
+		resolve(name);                                   
+	    }
+	})	
     }    
 
     function switch_controls(name, mode, callback) {
 	switch(mode) {
 	case "PCCA":            
 	    $("#header_" + name).text("PCCA clustering");
-	    $("#slider_pcca_" + name).show();
-	    $("#lbl_pcca_slider_" + name).show();
+	    $("#pcca_div_" + name).show();
+            $("#state_id_div_" + name).hide();            
             switch_buttons(name, "PCCA")
 	    break;
 	case "overview":
 	    $("#header_" + name).text("Overview");
-	    $("#slider_pcca_" + name).hide();
-	    $("#lbl_pcca_slider_" + name).hide();
+            $("#pcca_div_" + name).hide();
+            $("#state_id_div_" + name).hide();            
 	    switch_buttons(name, "overview");            
 	    break;
 	case "state_id":
-	    $("#header_" + name).text("State ID")
-	    $("#slider_pcca_" + name).hide();
-	    $("#lbl_pcca_slider_" + name).hide();
+	    $("#header_" + name).text("State ID");
+	    $("#pcca_div_" + name).hide();
+            $("#state_id_div_" + name).show();            
             switch_buttons(name, "state_id");
 	    break;
 	default:
 	    error_state("Error: Invalid mode selected: " + mode);
 	    break;
 	}
-
 	if (callback) {
 	    callback();
 	}	
     }
     
     function switch_buttons(name,mode) {
-	modes = ["PCCA","state_id","overview"];
+	var modes = ["PCCA","state_id","overview"];
         const idx = modes.indexOf(mode);
 	modes.splice(idx,1);
 	
@@ -150,12 +149,20 @@ $('document').ready(function() {
 		    if (data[i][0] != null) {
 			var newTrajectory = new Trajectory();
 			trajectories[data[i][0]] = newTrajectory;
+			vis_modes[data[i][0]] = calculate_epochs;
 			var row = $('<tr>');
 			var name_cell = $('<td>').text(data[i][0]);
 			var checkbox = $('<input>', {type:'checkbox', id:'cb_' + data[i][0], value: data[i][0], click: function() {
-			    if(this.checked) {
-				calculate_epochs(this.value);
-				setup_controls(this.value);
+			    if(this.checked) {                                
+				calculate_epochs(this.value).then((name) => {
+				    showLoadingIndicator();
+				    setup_controls(this.value);
+				    draw_overview(trajectories[name].overview, name);	
+				}).catch((err => {error_state(err);})).finally((name) => {
+				    closeLoadingIndicator();
+				    switch_controls(name,"overview");
+				    vis_modes[name] = calculate_epochs;
+				});				
 			    }
 			}});			
 			var input_cell = $('<td>').append(checkbox);
@@ -177,7 +184,7 @@ $('document').ready(function() {
 	var div = $('<div>').addClass("row");
 	var control_div = $('<div>').addClass("col-sm-3");
 	var detail_header = $('<h2>Overview</h2>').attr("id","header_" + name);
-        var slider = $('<input type="range" min="1" max="64" value="3">').attr("id", "slider_pcca_" + name)
+        var pcca_slider = $('<input type="range" min="1" max="64" value="3">').attr("id", "slider_pcca_" + name)
 	    .on('mousemove change', function(e) {                
 		if(trajectories[name].feasible_clusters.includes(parseInt(this.value))) {
 		    $("#lbl_pcca_slider_" + name).text(this.value + " clusters (valid)");
@@ -192,38 +199,86 @@ $('document').ready(function() {
 		if(trajectories[name].feasible_clusters.includes(parseInt(this.value))) {
 		    load_PCCA(name,this.value,0).then((name) => {
 			showLoadingIndicator();
-			draw_PCCA(trajectories[name].sequence,name,trajectories[name].current_clustering);
+			vis_modes[name](trajectories[name].sequence,name,trajectories[name].current_clustering);
 		    }).catch((err) =>{error_state(err);}).finally(() => {closeLoadingIndicator();});		    
 		} else {
 		    alert("Warning: clustering trajectory into " + this.value + " clusters will split complex conjugate eigenvalues. Try a different clustering value.");
-		}}).hide();
-	var label = $('<label>3 clusters</label>').attr("id","lbl_pcca_slider_" + name).attr("for","slider_pcca" + name).hide();
+		}});
+	var pcca_label = $('<label>3 clusters</label>').attr("id","lbl_pcca_slider_" + name).attr("for","slider_pcca" + name);
+	
+	var checkbox_cluster_color = $('<input type="checkbox" id="chkbox_colorbycluster_' + name + '" value="' + name + '">').on('change', function() {            
+	    if($(this).prop('checked')) {                		
+		load_PCCA(name,0,1).then((name) => {
+		    showLoadingIndicator();
+                    draw_state_id(trajectories[name].sequence,name,trajectories[name].current_clustering);
+		}).catch((err) =>{ error_state(err);}).finally(() => {
+		    closeLoadingIndicator();
+		    $("#slider_pcca_" + name).val(trajectories[name].optimal_cluster_value);
+		    $("#lbl_pcca_slider_" + name).text(trajectories[name].optimal_cluster_value + " clusters");
+		    $("#pcca_div_" + name).show();
+		});
+	    } else {
+                $("#pcca_div_" + name).hide();                
+	    }});
+	var cluster_color_label = $('<label for="chkbox_colorbycluster_' + name +'" id="lbl_chkbox_colorbycluster_'+ name + ' "> Color by clustering</label>');
+
 	var pcca_button = $('<button>Show PCCA Clustering</button>').attr("id", "btn_PCCA_" + name).on('click', function() {
 	    $(this).prop('disabled', true);
 	    load_PCCA(name,-1,1).then((name) => {
 		showLoadingIndicator();
+		draw_PCCA(trajectories[name].sequence,name,trajectories[name].current_clustering);
+	    }).catch((err) =>{ error_state(err);}).finally(() => {
+		closeLoadingIndicator();
                 $("#slider_pcca_" + name).val(trajectories[name].optimal_cluster_value);
 		$("#lbl_pcca_slider_" + name).text(trajectories[name].optimal_cluster_value + " clusters");				
-		switch_controls(name, "PCCA");
-		draw_PCCA(trajectories[name].sequence,name,trajectories[name].current_clustering);
-	    }).catch((err) =>{ error_state(err);}).finally(() => {closeLoadingIndicator();});
+		switch_controls(name, "PCCA");});
+	    	vis_modes[name] = draw_PCCA;
 	});
-	//TODO: Start here for cluster coloring
-	var checkbox_cluster_color = $('<>');
 	
-	var overview_button = $('<button>Show Overview</button>').attr("id", "btn_overview_" + name).on('click', function() {$(this).prop('disabled', true); calculate_epochs(name);}).hide();
-	var state_id_button = $('<button>Show State ID vs Time</button>').attr("id", "btn_state_id_" + name).on('click', function() {$(this).prop('disabled', true); load_dataset(name);});
-	control_div.append(detail_header)
+	var overview_button = $('<button>Show Overview</button>').attr("id", "btn_overview_" + name).on('click', function() {
+	    $(this).prop('disabled', true);
+	    calculate_epochs(name).then((name) => {
+		showLoadingIndicator();
+		draw_overview(trajectories[name].overview, name);		
+	    }).catch((err => {error_state(err);})).finally(() => {
+		closeLoadingIndicator();
+		switch_controls(name,"overview");
+		vis_modes[name] = calculate_epochs;
+	    });
+	}).hide();
+	
+	var state_id_button = $('<button>Show State ID vs Time</button>').attr("id", "btn_state_id_" + name).on('click', function() {
+	    $(this).prop('disabled', true);
+	    load_dataset(name).then((name) => {		
+		showLoadingIndicator();
+		draw_state_id(trajectories[name].sequence,name, null);
+		$('#chkbox_colorbycluster_' + name).prop('checked', false);
+	    }).catch(err => {error_state(err)}).finally(() => {
+		closeLoadingIndicator();
+		switch_controls(name,"state_id");
+		vis_modes[name] = draw_state_id;            
+	    });				  
+	});
+	var pcca_div = $('<div id="pcca_div_' + name + '">').addClass("row").hide();
+	pcca_div.append(pcca_slider);
+	pcca_div.append(pcca_label);
+	
+        var state_id_div = $('<div id="state_id_div_' + name + '">').addClass("row").hide();	
+	state_id_div.append(checkbox_cluster_color);
+	state_id_div.append(cluster_color_label);
+
+	control_div.append(detail_header);
 	control_div.append(pcca_button);
-	control_div.append(slider);
-	control_div.append(label);
 	control_div.append(overview_button);
 	control_div.append(state_id_button);
+	control_div.append(pcca_div);
+	control_div.append(state_id_div);
+	
 	var vis_div = $('<div>').attr("id","vis_" + name).addClass("col-lg-9");
 	vis_div.append('<h2>' + name + '</h2>');
 	div.append(vis_div);
 	div.append(control_div);
-	$('#main').append(div);
+	$('#main').append(div);        
     }
 
     function draw_state_id(data, name, clustered_data) {
@@ -239,7 +294,8 @@ $('document').ready(function() {
 	    svg = d3.select("#vis_" + name).append("svg").attr("width", bBox.width).attr("height", 400).attr("id", "svg_" + name);
 	}
 
-	cluster_colors = [];        
+	cluster_colors = [];
+        
 	if(clustered_data != null) {	    
 	    for(var k = 0; k < clustered_data.length; k++) {	    
 		cluster_colors.push(intToRGB(k));	    
@@ -266,8 +322,8 @@ $('document').ready(function() {
 	}        
 	
 	scale_x = d3.scaleLinear().range([margin.left, bBox.width - margin.right]).domain([0,data.length]);
-	scale_y = d3.scaleLinear().range([margin.top, height - margin.bottom]).domain([d3.extent(unique_states)[0], d3.extent(unique_states)[1]]);
-	svg.selectAll("rect").data(data, function(d) { return d }).enter().append("rect").attr("x", function(d,i) { return scale_x(d['timestep']) })
+	scale_y = d3.scaleLinear().range([margin.top, height - margin.bottom]).domain([d3.extent(trajectories[name].unique_states)[0], d3.extent(trajectories[name].unique_states)[1]]);
+	svg.selectAll("rect").data(data, function(d) { return d }).enter().append("rect").attr("x", function(d) { return scale_x(d['timestep']) })
 	    .attr("y", function(d) {                
 		return scale_y(d.id)})
 	    .attr("width", 5).attr("height", 5)
@@ -290,8 +346,7 @@ $('document').ready(function() {
 	    }).on('mouseout', function(event,d) {
                 d3.selectAll("rect").filter(function (dp) { return dp['number'] != d['number'] }).attr("opacity", "1.0");
 	   });
-	var xAxis = svg.append("g").call(d3.axisBottom().scale(scale_x));
-	
+	var xAxis = svg.append("g").call(d3.axisBottom().scale(scale_x));	
     }
     
     function draw_overview(data,name) {
@@ -332,9 +387,9 @@ $('document').ready(function() {
 	}
 	scale_x = d3.scaleLinear().range([margin.left, bBox.width - margin.right]).domain([0,to_draw[0].end]);
 	scale_y = d3.scaleLinear().range([margin.top, height - margin.bottom]).domain([0,max_depth]);
-	svg.selectAll("rect").data(to_draw, function(d) { return d }).enter().append("rect").attr("x", function(d,i) { return scale_x(d.start) })
+	svg.selectAll("rect").data(to_draw, function(d) { return d }).enter().append("rect").attr("x", function(d) { return scale_x(d.start) })
 	    .attr("y", function(d) {return scale_y(d.depth)})
-	    .attr("width", function(d,i) { return scale_x(d.end) - scale_x(d.start) }).attr("height", 5)
+	    .attr("width", function(d) { return scale_x(d.end) - scale_x(d.start) }).attr("height", 5)
 	    .attr("fill", function(d) { return hashStringToColor(d.winner)})
 	    .on('mouseover', function(event,d) {
 		d3.selectAll("rect").filter(function (dp) { return dp.winner != d.winner }).attr("opacity", "0.05");
@@ -405,7 +460,7 @@ $('document').ready(function() {
 		scale_x.domain([scale_x.invert(extent[0]), scale_x.invert(extent[1])]);
 		xAxis.transition().duration(500).call(d3.axisBottom(scale_x));
 		svg.selectAll("rect").transition().duration(500)
-		    .attr("x", function(d,i) { return scale_x(d.start) })
+		    .attr("x", function(d) { return scale_x(d.start) })
 		    .attr("y", function(d) {return scale_y(d.depth)})
 		    .attr("width", function(d) { return scale_x(d.end) - scale_x(d.start) });
 		d3.select(this).remove();
@@ -415,7 +470,7 @@ $('document').ready(function() {
 	});
 	//TODO: zoom only shows up on last drawn graph
 	document.onkeyup = function(e) {
-	    if(e.keyCode === 17) {                
+	    if(e.key === "Control") {                
 		if ($(".brush").length) { $(".brush").remove(); }               
 		d3.select("#svg_" + name).append("g").attr("class", "brush").call(brush);
 	    }
