@@ -5,4 +5,5 @@ class Trajectory {
     optimal_cluster_value;
     overview;
     unique_states;
+    color_by_cluster;
 }

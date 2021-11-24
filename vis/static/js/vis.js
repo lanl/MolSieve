@@ -15,7 +15,6 @@ $('document').ready(function() {
 	borderBottom: false,               
 	fullscreen:true,        
     });		                
-
     
     $(document).ajaxSend(function(event, request, settings) {
         showLoadingIndicator();
@@ -34,17 +33,27 @@ $('document').ready(function() {
     }
 
     var scale_x = null;
-    var height = 400;
+    let widget_height = 500;
+    let svg_height = widget_height - 100;
+    var width = d3.select("#main").node().getBoundingClientRect().width;    
     var margin = {top: 20, bottom: 20, left: 5, right: 25};
-    
+    var gridster = $('#grid').gridster({helper: 'clone',					
+					widget_base_dimensions: [width * 0.45,widget_height],
+					resize: { enabled: true, stop: function(e,ui,widget) {
+					    var name = $(widget).attr("data-name");                                            
+					    vis_modes[name](name);                                                                                        
+					}},
+//					widget_margins: [50,0],
+					widget_selector: ".gs-w",
+					max_size_x: 2}).data('gridster');
     function error_state(msg) {	
 	$('#modal_loading-indicator').iziModal('close');
 	$('#modal_loading-indicator').hide();
 	alert(msg);	
     }
     
-     var load_PCCA = function(name, clusters, optimal) {
-	return new Promise(function(resolve, reject) {
+    var load_PCCA = function(name, clusters, optimal) {
+	return new Promise(function(resolve, reject) {            
 	    $.getJSON('/pcca', {'run': name, 'clusters' : clusters, 'optimal' : optimal}, function(clustered_data) {
 		if (optimal === 1) {                    
 		    trajectories[name].optimal_cluster_value = clustered_data.optimal_value;
@@ -149,7 +158,7 @@ $('document').ready(function() {
 		    if (data[i][0] != null) {
 			var newTrajectory = new Trajectory();
 			trajectories[data[i][0]] = newTrajectory;
-			vis_modes[data[i][0]] = calculate_epochs;
+			vis_modes[data[i][0]] = draw_overview;
 			var row = $('<tr>');
 			var name_cell = $('<td>').text(data[i][0]);
 			var checkbox = $('<input>', {type:'checkbox', id:'cb_' + data[i][0], value: data[i][0], click: function() {
@@ -157,12 +166,16 @@ $('document').ready(function() {
 				calculate_epochs(this.value).then((name) => {
 				    showLoadingIndicator();
 				    setup_controls(this.value);
-				    draw_overview(trajectories[name].overview, name);	
+				    draw_overview(name);	
 				}).catch((err => {error_state(err);})).finally((name) => {
 				    closeLoadingIndicator();
 				    switch_controls(name,"overview");
-				    vis_modes[name] = calculate_epochs;
-				});				
+				    vis_modes[name] = draw_overview;
+				});
+			    } else {				
+				delete vis_modes[this.value];
+				$("#div_" + this.value).empty();
+				gridster.remove_widget($('#div_' + this.value));				
 			    }
 			}});			
 			var input_cell = $('<td>').append(checkbox);
@@ -181,7 +194,7 @@ $('document').ready(function() {
     });
         
     function setup_controls(name) {
-	var div = $('<div>').addClass("row");
+	var div = $('<div id="div_' + name + '">').addClass("gs-w").attr("data-name", name).css("border", "2px solid black");
 	var control_div = $('<div>').addClass("col-sm-3");
 	var detail_header = $('<h2>Overview</h2>').attr("id","header_" + name);
         var pcca_slider = $('<input type="range" min="1" max="64" value="3">').attr("id", "slider_pcca_" + name)
@@ -199,7 +212,7 @@ $('document').ready(function() {
 		if(trajectories[name].feasible_clusters.includes(parseInt(this.value))) {
 		    load_PCCA(name,this.value,0).then((name) => {
 			showLoadingIndicator();
-			vis_modes[name](trajectories[name].sequence,name,trajectories[name].current_clustering);
+			vis_modes[name](name);
 		    }).catch((err) =>{error_state(err);}).finally(() => {closeLoadingIndicator();});		    
 		} else {
 		    alert("Warning: clustering trajectory into " + this.value + " clusters will split complex conjugate eigenvalues. Try a different clustering value.");
@@ -210,7 +223,8 @@ $('document').ready(function() {
 	    if($(this).prop('checked')) {                		
 		load_PCCA(name,0,1).then((name) => {
 		    showLoadingIndicator();
-                    draw_state_id(trajectories[name].sequence,name,trajectories[name].current_clustering);
+		    trajectories[name].color_by_cluster = true;
+                    draw_state_id(name);		    
 		}).catch((err) =>{ error_state(err);}).finally(() => {
 		    closeLoadingIndicator();
 		    $("#slider_pcca_" + name).val(trajectories[name].optimal_cluster_value);
@@ -218,6 +232,7 @@ $('document').ready(function() {
 		    $("#pcca_div_" + name).show();
 		});
 	    } else {
+		trajectories[name].color_by_cluster = false;
                 $("#pcca_div_" + name).hide();                
 	    }});
 	var cluster_color_label = $('<label for="chkbox_colorbycluster_' + name +'" id="lbl_chkbox_colorbycluster_'+ name + ' "> Color by clustering</label>');
@@ -226,39 +241,40 @@ $('document').ready(function() {
 	    $(this).prop('disabled', true);
 	    load_PCCA(name,-1,1).then((name) => {
 		showLoadingIndicator();
-		draw_PCCA(trajectories[name].sequence,name,trajectories[name].current_clustering);
+		draw_PCCA(name);
 	    }).catch((err) =>{ error_state(err);}).finally(() => {
 		closeLoadingIndicator();
                 $("#slider_pcca_" + name).val(trajectories[name].optimal_cluster_value);
 		$("#lbl_pcca_slider_" + name).text(trajectories[name].optimal_cluster_value + " clusters");				
 		switch_controls(name, "PCCA");});
 	    	vis_modes[name] = draw_PCCA;
-	});
+	}).addClass("btn btn-primary");
 	
 	var overview_button = $('<button>Show Overview</button>').attr("id", "btn_overview_" + name).on('click', function() {
 	    $(this).prop('disabled', true);
 	    calculate_epochs(name).then((name) => {
 		showLoadingIndicator();
-		draw_overview(trajectories[name].overview, name);		
+		draw_overview(name);		
 	    }).catch((err => {error_state(err);})).finally(() => {
 		closeLoadingIndicator();
 		switch_controls(name,"overview");
-		vis_modes[name] = calculate_epochs;
+		vis_modes[name] = draw_overview;
 	    });
-	}).hide();
+	}).addClass("btn btn-primary").hide();
 	
 	var state_id_button = $('<button>Show State ID vs Time</button>').attr("id", "btn_state_id_" + name).on('click', function() {
 	    $(this).prop('disabled', true);
 	    load_dataset(name).then((name) => {		
 		showLoadingIndicator();
-		draw_state_id(trajectories[name].sequence,name, null);
+		draw_state_id(name);
+		trajectories[name].color_by_cluster = false;		
 		$('#chkbox_colorbycluster_' + name).prop('checked', false);
 	    }).catch(err => {error_state(err)}).finally(() => {
 		closeLoadingIndicator();
 		switch_controls(name,"state_id");
 		vis_modes[name] = draw_state_id;            
 	    });				  
-	});
+	}).addClass("btn btn-primary");
 	var pcca_div = $('<div id="pcca_div_' + name + '">').addClass("row").hide();
 	pcca_div.append(pcca_slider);
 	pcca_div.append(pcca_label);
@@ -278,22 +294,31 @@ $('document').ready(function() {
 	vis_div.append('<h2>' + name + '</h2>');
 	div.append(vis_div);
 	div.append(control_div);
-	$('#main').append(div);        
+        gridster.add_widget(div,1,1,1, Object.keys(vis_modes).length);
     }
 
-    function draw_state_id(data, name, clustered_data) {
-	var svg = null;
+    function set_svg(name) {
+        var svg = null;
 	var bBox = null;
-	
+
 	if($('#svg_' + name).length) {
 	    $("#svg_" + name).empty();
 	    bBox = d3.select("#vis_" + name).node().getBoundingClientRect();    
 	    svg = d3.select('#svg_' + name).attr("width", bBox.width);
 	} else {            
 	    bBox = d3.select("#vis_" + name).node().getBoundingClientRect();    
-	    svg = d3.select("#vis_" + name).append("svg").attr("width", bBox.width).attr("height", 400).attr("id", "svg_" + name);
+	    svg = d3.select("#vis_" + name).append("svg").attr("width", bBox.width).attr("height", svg_height).attr("id", "svg_" + name);
 	}
-
+	return [svg, bBox];
+    }
+    
+    function draw_state_id(name) {        
+	var data = trajectories[name].sequence;
+	var clustered_data = null;
+	if (trajectories[name].color_by_cluster) {
+	    var clustered_data = trajectories[name].current_clustering;
+	}
+	let [svg, bBox] = set_svg(name);        
 	cluster_colors = [];
         
 	if(clustered_data != null) {	    
@@ -322,7 +347,7 @@ $('document').ready(function() {
 	}        
 	
 	scale_x = d3.scaleLinear().range([margin.left, bBox.width - margin.right]).domain([0,data.length]);
-	scale_y = d3.scaleLinear().range([margin.top, height - margin.bottom]).domain([d3.extent(trajectories[name].unique_states)[0], d3.extent(trajectories[name].unique_states)[1]]);
+	scale_y = d3.scaleLinear().range([margin.top, svg_height - margin.bottom]).domain([d3.extent(trajectories[name].unique_states)[0], d3.extent(trajectories[name].unique_states)[1]]);
 	svg.selectAll("rect").data(data, function(d) { return d }).enter().append("rect").attr("x", function(d) { return scale_x(d['timestep']) })
 	    .attr("y", function(d) {                
 		return scale_y(d.id)})
@@ -349,7 +374,8 @@ $('document').ready(function() {
 	var xAxis = svg.append("g").call(d3.axisBottom().scale(scale_x));	
     }
     
-    function draw_overview(data,name) {
+    function draw_overview(name) {
+	var data = trajectories[name].overview;
         var to_draw = []
 	var q = new Queue();
 	q.enqueue(data);
@@ -374,19 +400,10 @@ $('document').ready(function() {
 	    }	
 	}
 
-	var svg = null;
-	var bBox = null;
-	if($('#svg_' + name).length) {
-	    $("#svg_" + name).empty();
-	    bBox = d3.select("#vis_" + name).node().getBoundingClientRect();    
-	    svg = d3.select('#svg_' + name).attr("width", bBox.width);
-	} else {
-
-	    bBox = d3.select("#vis_" + name).node().getBoundingClientRect();    
-	    svg = d3.select("#vis_" + name).append("svg").attr("width", bBox.width).attr("height", 400).attr("id", "svg_" + name);
-	}
+        let [svg, bBox] = set_svg(name);
+	
 	scale_x = d3.scaleLinear().range([margin.left, bBox.width - margin.right]).domain([0,to_draw[0].end]);
-	scale_y = d3.scaleLinear().range([margin.top, height - margin.bottom]).domain([0,max_depth]);
+	scale_y = d3.scaleLinear().range([margin.top, svg_height - margin.bottom]).domain([0,max_depth]);
 	svg.selectAll("rect").data(to_draw, function(d) { return d }).enter().append("rect").attr("x", function(d) { return scale_x(d.start) })
 	    .attr("y", function(d) {return scale_y(d.depth)})
 	    .attr("width", function(d) { return scale_x(d.end) - scale_x(d.start) }).attr("height", 5)
@@ -449,7 +466,7 @@ $('document').ready(function() {
 		.attr("width", function(d) { return scale_x(d.end) - scale_x(d.start) });
 	});
 
-	var brush = d3.brushX().extent([[0,0], [bBox.width, 400]]).on('end', function(e) {
+	var brush = d3.brushX().extent([[0,0], [bBox.width, svg_height]]).on('end', function(e) {
 	    var extent = e.selection;
 	    
 	    if(!extent) {
@@ -477,9 +494,9 @@ $('document').ready(function() {
 	}		
     }
         
-    function draw_PCCA(data, name, clustered_data) {
-	var svg = null;
-	
+    function draw_PCCA(name) {        
+	var data = trajectories[name].sequence;
+	var clustered_data = trajectories[name].current_clustering;
 	//const threshold = $('#slider_threshold').val();	
 	//data = data.filter(function (d) { return d['n.occurences'] > threshold });                
 	cluster_colors = [];        
@@ -498,16 +515,10 @@ $('document').ready(function() {
 	    }
 	}	        
 	
-	if($('#svg_' + name).length) {
-	    $("#svg_" + name).empty();
-	    bBox = d3.select("#vis_" + name).node().getBoundingClientRect();    
-	    svg = d3.select('#svg_' + name).attr("width", bBox.width);
-	} else {
-	    svg = d3.select("#vis").append("svg").attr("width", overwidth).attr("height", 400).attr("id", "svg");
-	}
+        let [svg,bBox] = set_svg(name);
 	
 	scale_x = d3.scaleLinear().range([margin.left, bBox.width - margin.right]).domain([0,data.length]);
-	scale_y = d3.scaleLinear().range([margin.top, height - margin.bottom]).domain([clustered_data.length,-1]);
+	scale_y = d3.scaleLinear().range([margin.top, svg_height - margin.bottom]).domain([clustered_data.length,-1]);
 	svg.selectAll("rect").data(data, function(d) {return d}).enter().append("rect")
 	    .attr("x", function(d,i) {return scale_x(i)}).attr("y", function (d) {		
 		return scale_y(d['cluster']);
