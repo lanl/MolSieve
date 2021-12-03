@@ -101,7 +101,6 @@ def create_app(test_config=None):
             except neo4j.exceptions.ServiceUnavailable as exception:
                 raise exception
 
-
     @app.route('/pcca', methods=['GET'])
     def pcca():
         run = request.args.get('run')
@@ -111,16 +110,16 @@ def create_app(test_config=None):
         qb = querybuilder.Neo4jQueryBuilder(schema=[("State","NEXT","State","ONE-TO-ONE"),
                                                     ("Atom", "PART_OF", "State", "MANY-TO-ONE")],
                                             constraints=[("RELATION","NEXT","run",run, "STRING")])
-        m, idx_to_state_number = calculator.calculate_transition_matrix(driver, qb, True)
+        m, idx_to_state_number = calculator.calculate_transition_matrix(driver,qb, True)
         gpcca = gp.GPCCA(np.array(m), z='LM', method='brandts')
         j = {}
         m_min = 2
-        m_max = 12
+        # make this retry if it gets stuck
+        m_max = 4
         print("optimal value: " + optimal)
         if int(optimal) == 1:
             gpcca.optimize({'m_min': m_min, 'm_max': m_max})
             feasible_clusters = []
-            print(gpcca.crispness_values)
             for idx, val in enumerate(gpcca.crispness_values):
                 if val != 0:
                     feasible_clusters.append(idx + m_min)
