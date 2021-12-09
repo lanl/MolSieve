@@ -1,22 +1,33 @@
 // stolen from https://stackoverflow.com/questions/11120840/hash-string-into-rgb-color
-    function djb2(str){
-	var hash = 5381;
-	for (var i = 0; i < str.length; i++) {
+function djb2(str){
+    var hash = 5381;
+    for (var i = 0; i < str.length; i++) {
 	    hash = ((hash << 5) + hash) + str.charCodeAt(i); /* hash * 33 + c */
-	}
-	return hash;
     }
+    return hash;
+}
 
-    function hashStringToColor(str) {
-	if (str === "") {
-	    return "white"
-	}
-	var hash = djb2(str);
-	var r = (hash & 0xFF0000) >> 16;
-	var g = (hash & 0x00FF00) >> 8;
-	var b = hash & 0x0000FF;
-	return "#" + ("0" + r.toString(16)).substr(-2) + ("0" + g.toString(16)).substr(-2) + ("0" + b.toString(16)).substr(-2);
+function hashStringToColor(str) {
+    if (str === "") {
+	return "white"
     }
+    var hash = djb2(str);
+    var r = (hash & 0xFF0000) >> 16;
+    var g = (hash & 0x00FF00) >> 8;
+    var b = hash & 0x0000FF;
+    return "#" + ("0" + r.toString(16)).substr(-2) + ("0" + g.toString(16)).substr(-2) + ("0" + b.toString(16)).substr(-2);
+}
+
+// https://stackoverflow.com/questions/59065687/how-to-get-most-frequent-occurring-element-in-an-array
+function mostOccurringElement(arr) {
+    var counts = arr.reduce((a, c) => {
+	a[c] = (a[c] || 0) + 1;
+	return a;
+    }, {});
+       
+    return Object.keys(counts).reduce((a, b) => counts[a] > counts[b] ? a : b);
+}
+
 
 // https://stackoverflow.com/questions/3426404/create-a-hexadecimal-colour-based-on-a-string-with-javascript
 function intToRGB(i){
@@ -25,5 +36,5 @@ function intToRGB(i){
 }
 // https://stackoverflow.com/questions/1960473/get-all-unique-values-in-a-javascript-array-remove-duplicates
 function onlyUnique(value, index, self) {
-  return self.indexOf(value) === index;
+    return self.indexOf(value) === index;
 }

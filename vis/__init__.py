@@ -142,6 +142,11 @@ def create_app(test_config=None):
                 newSet.append(idx_to_state_number[i])
             sets.update({idx: newSet})
         j.update({'sets': list(sets.values())})
+        j.update({'fuzzy_memberships': gpcca.memberships.tolist()})
+        #TODO: add as metadata in vis
+        #j.update({'dominant_eigenvalues': gpcca.dominant_eigenvalues.tolist()})
+        #j.update({'minChi': gpcca.minChi(m_min, m_max)})
+        
         return jsonify(j)
         """
         dtraj, idx_to_state = calculator.calculate_discrete_trajectory(driver, qb)

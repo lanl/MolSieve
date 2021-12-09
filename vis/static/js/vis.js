@@ -37,7 +37,7 @@ $('document').ready(function() {
     let svg_height = widget_height - 100;
     var width = d3.select("#main").node().getBoundingClientRect().width;    
     var margin = {top: 20, bottom: 20, left: 5, right: 25};
-    var gridster = $('#grid').gridster({helper: 'clone',					
+    /*var gridster = $('#grid').gridster({helper: 'clone',					
 					widget_base_dimensions: [width * 0.985,widget_height],
 					resize: { enabled: false, stop: function(e,ui,widget) {
 					    var name = $(widget).attr("data-name");                                            
@@ -45,7 +45,7 @@ $('document').ready(function() {
 					}},
 //					widget_margins: [50,0],
 					widget_selector: ".gs-w",
-					max_size_x: 2}).data('gridster');
+					max_size_x: 2}).data('gridster');*/
     function error_state(msg) {	
 	$('#modal_loading-indicator').iziModal('close');
 	$('#modal_loading-indicator').hide();
@@ -55,16 +55,18 @@ $('document').ready(function() {
     var load_PCCA_json = function(names,index,clusters,optimal) {
 	return new Promise(function(resolve, reject) {
 	    var name = names[index];
-	    console.log("loading pcca for " + name);
+	    console.log("Loading PCCA for " + name);
 	   
-		$.getJSON('/pcca', {'run': name, 'clusters' : clusters, 'optimal' : optimal}, function(clustered_data) {
+	    $.getJSON('/pcca', {'run': name, 'clusters' : clusters, 'optimal' : optimal}, function(clustered_data) {
+		console.log(clustered_data);
 		    if (optimal === 1) {                    
 			trajectories[name].optimal_cluster_value = clustered_data.optimal_value;
 			trajectories[name].feasible_clusters = clustered_data.feasible_clusters;			
 		    }
 		    trajectories[name].current_clustering = clustered_data.sets;
 		    if(trajectories[name].sequence == null) {
-			console.log("loading sequence for " + name);
+			console.log("Loading sequence for " + name);
+			
 			$.getJSON('/load_dataset', {'run': name}, function(data) {			
 			    trajectories[name].sequence = data;                        
 			}).then(() => {                        
@@ -87,7 +89,20 @@ $('document').ready(function() {
     
     var load_PCCA = function(names, clusters, optimal) {
 	return new Promise(function(resolve, reject) {
-            load_PCCA_json(names,0,clusters,optimal).then((names) => {console.log(names); resolve(names)});
+            load_PCCA_json(names,0,clusters,optimal).then((names) => {
+		for(const name of names) {
+		    for(var i = 0; i < trajectories[name].sequence.length; i++) {
+			for(var j = 0; j < trajectories[name].current_clustering.length; j++) {
+			    if(trajectories[name].current_clustering[j].includes(trajectories[name].sequence[i]['number'])) {
+				trajectories[name].sequence[i]['cluster'] = j;
+			    }
+			}
+			if(trajectories[name].sequence[i]['cluster'] == null) {
+			    trajectories[name].sequence[i]['cluster'] = -1;
+			}
+		    }
+		}                
+		resolve(names)});
 	});	  
     };
     
@@ -125,8 +140,7 @@ $('document').ready(function() {
 	case "PCCA":            
 	    $("#header_" + name).text("PCCA clustering");
 	    $("#pcca_div_" + name).show();
-            $("#state_id_div_" + name).hide();
-            //update_pcca(name);
+            $("#state_id_div_" + name).hide();            
 	    //switch_buttons(name, "PCCA")
 	    break;
 	case "overview":
@@ -167,6 +181,61 @@ $('document').ready(function() {
 	$("#slider_pcca_" + name).val(trajectories[name].optimal_cluster_value);
 	$("#lbl_pcca_slider_" + name).text(trajectories[name].optimal_cluster_value + " clusters (valid)");
     }
+    
+    function transition_filter(name, slider_value, mode) {
+	var window;        
+	if(mode == "abs") {
+	    window = parseInt(slider_value);
+	}
+        	
+	const sequence = trajectories[name].sequence;
+	const clusters = trajectories[name].current_clustering;
+	var min = Number.MAX_SAFE_INTEGER;        
+	var dominants = [];
+        	
+	for(var i = 0; i < clusters.length; i++) {
+	    var clustered_data = sequence.filter(function(d) {                
+		if(d['cluster'] === i) {
+		    return d;
+		}
+	    }).map(function(d) {return d.number});
+
+	    
+	    if(clustered_data.length < min) {
+		min = clustered_data.length;
+	    }
+	    
+	    dominants[i] = mostOccurringElement(clustered_data);	               
+	}
+
+	if(mode == "per") {
+	    const ws = slider_value / 100;
+	    window = Math.ceil(ws * min);	    
+	}
+        	        
+	var timesteps = [];        
+	var count;
+	       
+	for(var i = 0; i < sequence.length - window; i += window) {
+	    count = 0;
+
+	    for(var j = 0; j < window; j++) {                
+		if(sequence[i+j]['number']  === dominants[sequence[i+j]['cluster']]) {
+		    count++;		                        
+		}
+	    }
+	    for(var k = 0; k < window; k++) {
+		timesteps.push(count / window);
+	    }	                
+	}
+        
+        d3.selectAll("rect").filter(function() {            
+	    return this.getAttributeNode("run").nodeValue == name;
+	}).attr("opacity",function(d,i) {            
+	    return timesteps[i];
+	});
+        
+    }	
     
     showLoadingIndicator();
     $.ajax({url: "/connect_to_db",
@@ -221,15 +290,16 @@ $('document').ready(function() {
 
     function setup_main() {
 	var name = "main"
-	var div = $('<div id="div_' + name + '">').addClass("gs-w").attr("data-name", name);
+	var div = $('<div id="div_' + name + '">').attr("data-name", name);
 	var control_div = $('<div id="div_control">').addClass("col-sm-3");
 	var detail_header = $('<h2>PCCA Clustering</h2>').attr("id","header_" + name);
 	var vis_div = $('<div>').attr("id","vis_" + name).addClass("col-lg-9");
 	vis_div.append('<h2>' + name + '</h2>');
 	div.append(vis_div);
-	div.append(detail_header);
+	control_div.append(detail_header);
 	div.append(control_div);
-        gridster.add_widget(div,1,1,1, Object.keys(vis_modes).length);
+	$('#grid').append(div);
+	//gridster.add_widget(div,1,1,1, Object.keys(vis_modes).length);
     }
     
     function setup_controls(name) {
@@ -246,7 +316,7 @@ $('document').ready(function() {
 		}		
 	    })
 	    .on('change', function(e) {                
-		if(trajectories[name].feasible_clusters.includes(parseInt(this.value))) {
+		if(trajectories[name].feasible_clusters.includes(parseInt(this.value) || Math.max(trajectories[name].feasible_clusters) < parseInt(this.value))) {
 		    showLoadingIndicator();
 		    load_PCCA([name],this.value,0).then(() => {
                         draw_PCCA(names_in_use);
@@ -254,16 +324,78 @@ $('document').ready(function() {
 		} else {
 		    alert("Warning: clustering trajectory into " + this.value + " clusters will split complex conjugate eigenvalues. Try a different clustering value.");
 		}});
-	var pcca_label = $('<label>' + name + ': 3 clusters</label>').attr("id","lbl_pcca_slider_" + name).attr("for","slider_pcca" + name);                       
-	var pcca_div = $('<div id="pcca_div_' + name + '">').addClass("row").css("border", "1px solid gray");
+	var pcca_label = $('<label> 3 clusters</label>').attr("id","lbl_pcca_slider_" + name).attr("for","slider_pcca" + name);                       
+
+	var chkbx_filter = $('<input type="checkbox">').attr("id","chkbx_filter_" + name).on('click', function() {
+	    if(this.checked) {
+                showLoadingIndicator();
+		transition_filter(name, $("#slider_filter_" + name).val(), $('#select_transition_filter_window_type_' + name).val());                
+		closeLoadingIndicator();
+	    } else {
+		// BUG: unchecking one should redraw the other as it was,
+		// not reset everything
+		draw_PCCA(names_in_use);
+	    }
+	});
+	
+	var chkbx_label = $('<label>Filter transitions from dominant state?</label>').attr("for", "chkbx_filter_" + name);
+
+	var filter_slider = $('<input type="range" min=1 max=100 value="10">').attr("id", "slider_filter_" + name).on('mousemove change', function(e) {
+	    
+	    if($('#select_transition_filter_window_type_' + name).val() == "abs") {
+		$("#lbl_filter_slider_" + name).text("Size of window: " + $("#slider_filter_" + name).val() + " timesteps");
+	    } else {
+		$("#lbl_filter_slider_" + name).text("Size of window: " + this.value + "% of smallest cluster");
+	    }	    
+	}).on('change', function(e) {
+	    if($('#chkbx_filter_' + name).is(':checked')) {
+		showLoadingIndicator();
+		transition_filter(name, this.value, $('#select_transition_filter_window_type_' + name).val());
+		closeLoadingIndicator();
+	    }
+	});
+	
+	var filter_slider_label = $('<label>Size of window: 10% of smallest cluster</label>').attr("id", "lbl_filter_slider_" + name).attr("for", "slider_filter_" + name);
+
+	var filter_window_types = [{val: "per", text: 'Percentage of cluster size'},
+				   {val: "abs", text: 'Absolute number of states'}];
+	
+	var transition_filter_window_type = $('<select id="select_transition_filter_window_type_' + name +'">').on('change', function(e) {
+	    if(this.value == "abs") {
+		$("#slider_filter_" + name).prop({'min': 1, 'max': trajectories[name].sequence.length});
+		$("#lbl_filter_slider_" + name).text("Size of window: " + $("#slider_filter_" + name).val() + " timesteps");
+	    } else {
+		$("#slider_filter_" + name).prop({'min': 1, 'max': 100});
+		$("#lbl_filter_slider_" + name).text("Size of window: " + $("#slider_filter_" + name).val() + "% of smallest cluster");
+	    }
+	});
+
+	$(filter_window_types).each(function() {
+	    transition_filter_window_type.append($("<option>").attr('value', this.val).text(this.text));
+	});
+
+	transition_filter_window_type.val("per");
+
+	var transition_filter_window_label = $('<label>Compute window size with: </label>')
+	    .attr("id", "lbl_select_transition_filter_window_type_" + name)
+	    .attr("for", "select_transition_filter_window_type_" + name);
+	
+	var pcca_div = $('<div id="pcca_div_' + name + '">').addClass("row").css("border", "1px solid gray");	 	
 	pcca_div.append(name_label);
 	pcca_div.append(pcca_slider);
 	pcca_div.append(pcca_label);
-	        
+	pcca_div.append("<br>");
+	pcca_div.append(chkbx_filter);
+        pcca_div.append(chkbx_label);
+	pcca_div.append(filter_slider);
+	pcca_div.append(filter_slider_label);
+	pcca_div.append("<br>")
+	pcca_div.append(transition_filter_window_label);
+	pcca_div.append(transition_filter_window_type);
 	$('#div_control').append(pcca_div);        	
     }
 
-    function set_svg(name) {
+    function set_svg(name) { 
         var svg = null;
 	var bBox = null;
 
@@ -282,7 +414,7 @@ $('document').ready(function() {
 	var data = trajectories[name].sequence;
 	var clustered_data = null;
 	if (trajectories[name].color_by_cluster) {
-	    var clustered_data = trajectories[name].current_clustering;
+	    clustered_data = trajectories[name].current_clustering;
 	}
 	let [svg, bBox] = set_svg(name);        
 	cluster_colors = [];
@@ -340,7 +472,7 @@ $('document').ready(function() {
 	var xAxis = svg.append("g").call(d3.axisBottom().scale(scale_x));	
     }
     
-    function draw_overview(name) {
+    function draw_overview(name) { 
 	var data = trajectories[name].overview;
         var to_draw = []
 	var q = new Queue();
@@ -459,38 +591,26 @@ $('document').ready(function() {
 	    }
 	}		
     }
-        
-    function draw_PCCA(names) {
+    
+    function draw_PCCA(names) { 
         
 	var dataList = [];
 	var count = 0;
 	var maxLength = -Number.MAX_SAFE_INTEGER;
+
 	for (const name of names) {            
 	    var data = trajectories[name].sequence;
-	    var clustered_data = trajectories[name].current_clustering;
-	    //const threshold = $('#slider_threshold').val();	
-	    //data = data.filter(function (d) { return d['n.occurences'] > threshold });                
+	    var clustered_data = trajectories[name].current_clustering;            
 	    cluster_colors = [];        
 	    for(var i = 0; i < clustered_data.length; i++) {	    
 		cluster_colors.push(intToRGB(i));	    
-	    }
-        
-	    for(var i = 0; i < data.length; i++) {
-		for(var j = 0; j < clustered_data.length; j++) {
-		    if(clustered_data[j].includes(data[i]['number'])) {
-			data[i]['cluster'] = j;
-		    }
-		}
-		if(data[i]['cluster'] == null) {
-		    data[i]['cluster'] = -1;
-		}
-	    }
-
-	    count++;
+	    }        
+	    
 	    if(data.length > maxLength) {
                 maxLength = data.length;
 	    }
 	    dataList.push({'name': name, 'data': data, 'y': count});
+	    count++;
 	}
         
         let [svg,bBox] = set_svg("main");
@@ -509,11 +629,12 @@ $('document').ready(function() {
 		    }
 		    return cluster_colors[d['cluster']];
 		})
+	        .attr("run", function() { return t.name })
 		.attr("number", function(d) { return d['number'] })
 		.attr("timestep", function(d) { return d['timestep'] })
 		.attr("occurences", function(d) { return d['occurences'] })
 		.on('mouseover', function(event,d) {
-                    d3.selectAll("rect").filter(function (dp) { return dp['number'] != d['number'] }).attr("opacity", "0.05");
+                    //d3.selectAll("rect").filter(function (dp) { return dp['number'] != d['number'] }).attr("opacity", "0.05");
 		    tippy(this, {
 			allowHTML: true,
 			content: "<b>Run</b>: " + t.name + " <b>State number</b>: " + d['number'] + " <i>t</i>=" + d['timestep'] +
@@ -524,7 +645,7 @@ $('document').ready(function() {
 		    });
 		})
 		.on('mouseout', function(event,d) {
-                    d3.selectAll("rect").filter(function (dp) { return dp['number'] != d['number'] }).attr("opacity", "1.0");
+                    //d3.selectAll("rect").filter(function (dp) { return dp['number'] != d['number'] }).attr("opacity", "1.0");
 		});
 	}
 	var xAxis = svg.append("g").call(d3.axisBottom().scale(scale_x));
