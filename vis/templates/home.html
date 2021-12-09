@@ -1,12 +1,13 @@
 <!DOCTYPE html>
 <html>
   <head>
-
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/izimodal/1.5.1/css/iziModal.min.css" integrity="sha512-8vr9VoQNQkkCCHGX4BSjg63nI5CI4B+nZ8SF2xy4FMOIyH/2MT0r55V276ypsBFAgmLIGXKtRhbbJueVyYZXjA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <link rel="stylesheet" href="{{url_for('static', filename='css/main.css')}}">
     <link rel="stylesheet" href="{{url_for('static', filename='js/gridster/jquery.gridster.css')}}">
     <script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+    <link href = "https://code.jquery.com/ui/1.10.4/themes/ui-lightness/jquery-ui.css" rel = "stylesheet">
+    <script src="https://code.jquery.com/ui/1.13.0/jquery-ui.js"></script> <!-- Slider with range -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/izimodal/1.5.1/js/iziModal.min.js" integrity="sha512-8aOKv+WECF2OZvOoJWZQMx7+VYNxqokDKTGJqkEYlqpsSuKXoocijXQNip3oT4OEkFfafyluI6Bm6oWZjFXR0A==" crossorigin="anonymous" referrerpolicy="no-referrer"></script> <!-- Dialogs -->
     <script src="https://d3js.org/d3.v7.min.js"></script> <!-- D3 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/2.6.0/umd/popper.min.js"></script> <!-- Dependency -->
@@ -33,5 +34,17 @@
     <div id="modal_info">
       <div id="modal_container" class="scrollingModal"></div>
     </div>
+    <div id="modal_optimal_clustering">
+      <div id="modal_clustering_container" class="scrollingModal">
+	<br>
+	<div id="slider_optimal_clustering"></div>
+	<br>
+	<label for="optimal_cluster_range">Clusters </label>
+	<input type="text" id="optimal_cluster_range" readonly style="border:0; font-weight:bold;">
+	<br>
+	<button id="btn_cancel_optimal_clustering" class="btn btn-danger">Cancel</button>
+	<button id="btn_calculate_optimal_clustering" class="btn btn-primary">Calculate</button>
+      </div>
+    </div>    
   </body>
 </html>

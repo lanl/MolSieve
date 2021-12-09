@@ -104,31 +104,36 @@ def create_app(test_config=None):
     @app.route('/pcca', methods=['GET'])
     def pcca():
         run = request.args.get('run')
-        clusters = request.args.get('clusters')
-        optimal = request.args.get('optimal')
+        clusters = int(request.args.get('clusters'))
+        optimal = int(request.args.get('optimal'))
         driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687", auth=("neo4j", "secret"))
         qb = querybuilder.Neo4jQueryBuilder(schema=[("State","NEXT","State","ONE-TO-ONE"),
                                                     ("Atom", "PART_OF", "State", "MANY-TO-ONE")],
                                             constraints=[("RELATION","NEXT","run",run, "STRING")])
         m, idx_to_state_number = calculator.calculate_transition_matrix(driver,qb, True)
         gpcca = gp.GPCCA(np.array(m), z='LM', method='brandts')
-        j = {}
-        m_min = 2
-        # make this retry if it gets stuck
-        m_max = 4
-        print("optimal value: " + optimal)
-        if int(optimal) == 1:
-            gpcca.optimize({'m_min': m_min, 'm_max': m_max})
-            feasible_clusters = []
-            for idx, val in enumerate(gpcca.crispness_values):
-                if val != 0:
-                    feasible_clusters.append(idx + m_min)
-            gpcca.optimize(gpcca.n_m)
-            j.update({'optimal_value': gpcca.n_m})
-            j.update({'feasible_clusters': feasible_clusters})
+        j = {}        
+        if optimal == 1:
+            m_min = int(request.args.get('m_min'))
+            m_max = int(request.args.get('m_max'))
+            try:
+                gpcca.optimize({'m_min': m_min, 'm_max': m_max})
+                feasible_clusters = []
+                for idx, val in enumerate(gpcca.crispness_values):
+                    if val != 0:
+                        feasible_clusters.append(idx + m_min)
+                        gpcca.optimize(gpcca.n_m)
+                        j.update({'optimal_value': gpcca.n_m})
+                        j.update({'feasible_clusters': feasible_clusters})
+            except ValueError as exception:
+                print(exception)
+                return {
+                    'status': 500,
+                    'Error': str(exception)
+                }, 500
         else:
             try:
-                gpcca.optimize(int(clusters))
+                gpcca.optimize(clusters)
             except ValueError as exception:
                 print(exception)
                 return {

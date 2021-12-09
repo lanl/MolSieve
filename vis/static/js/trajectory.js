@@ -1,9 +1,10 @@
 class Trajectory {
-    sequence;
-    current_clustering;
-    feasible_clusters;
-    optimal_cluster_value;
-    overview;
+    sequence;            
     unique_states;
+    optimal_cluster_value;
+    feasible_clusters;
     color_by_cluster;
+    clusterings = {};
+    fuzzy_memberships = {};
+    current_clustering;
 }
