@@ -1,6 +1,6 @@
 import os
 from flask import (render_template, Flask, jsonify, request)
-from neomd import querybuilder, calculator
+from neomd import querybuilder, calculator, converter
 import neo4j
 import hashlib
 import numpy as np
@@ -30,6 +30,10 @@ class NumpyEncoder(json.JSONEncoder):
 def create_app(test_config=None):
     # create and configure the app
     app = Flask(__name__, instance_relative_config=True)
+
+    # set this to your lammps path
+    lammps_path = 'mpirun -n 4 /home/frosty/Apps/lammps/install/bin/lmp'
+    
     app.config.from_mapping(
         SECRET_KEY='dev',
         DATABASE=os.path.join(app.instance_path, 'flaskr.sqlite'),
@@ -52,16 +56,23 @@ def create_app(test_config=None):
     def home():
         return render_template('home.html')
 
+    # TODO: rename to load sequence or load trajectory
     @app.route('/load_dataset', methods=['GET'])
     def load_dataset():
         run = request.args.get('run')
+        properties = request.args.get('properties')
+        properties = properties.split(',')
+        node_attributes = [('number', 'first'), ('occurences', 'first'), ('id', 'first')]
+        if properties:
+            for property in properties:
+                node_attributes.append((property, 'first'))
         driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687", auth=("neo4j", "secret"))
         qb = querybuilder.Neo4jQueryBuilder([
             ('State', 'NEXT', 'State', 'ONE-TO-ONE'),
             ('Atom', 'PART_OF', 'State', 'MANY-TO-ONE')
         ], constraints=[("RELATION", "NEXT", "run", run, "STRING")])
         
-        q = qb.generate_trajectory("NEXT", "ASC", ['RELATION', 'timestep'], node_attributes=[('number', 'first'), ('occurences', 'first'), ('id', 'first')], relation_attributes=['timestep'])
+        q = qb.generate_trajectory("NEXT", "ASC", ['RELATION', 'timestep'], node_attributes=node_attributes, relation_attributes=['timestep'])
         oq = qb.generate_get_occurences("NEXT")
         with driver.session() as session:
             session.run(oq.text)
@@ -89,17 +100,22 @@ def create_app(test_config=None):
         epoch = calculate_epoch(traj, 0)
 
         return jsonpickle.encode(epoch)
-
+    
     @app.route('/connect_to_db', methods=['GET'])
     def connect_to_db():
         driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687", auth=("neo4j", "secret"))
-        result = None
+        j = {}
         with driver.session() as session:
             try:
-                result = session.run("MATCH (:State)-[r]-(:State) return DISTINCT r.run;")
-                return jsonify(result.values())
+                result = session.run("MATCH (:State)-[r]-(:State) RETURN DISTINCT r.run;")
+                # gets rid of ugly syntax on js side - puts everything in one array; probably a better more elegant way to do this
+                j.update({'runs': [r[0] for r in result.values()]})
+                result = session.run("MATCH (n:State) with n LIMIT 1 UNWIND keys(n) as key RETURN DISTINCT key;")
+                j.update({'properties': [r[0] for r in result.values()]})
             except neo4j.exceptions.ServiceUnavailable as exception:
                 raise exception
+
+        return jsonify(j)
 
     @app.route('/pcca', methods=['GET'])
     def pcca():
@@ -152,23 +168,9 @@ def create_app(test_config=None):
         #j.update({'dominant_eigenvalues': gpcca.dominant_eigenvalues.tolist()})
         #j.update({'minChi': gpcca.minChi(m_min, m_max)})
         
-        return jsonify(j)
-        """
-        dtraj, idx_to_state = calculator.calculate_discrete_trajectory(driver, qb)
-        mm = pyemma.msm.estimate_markov_model(np.array(dtraj), 1, reversible=True)
-        clustering = mm.pcca(clusters)
-        metastable_sets = clustering.metastable_assignment.tolist()
-        unique_clusters = set(metastable_sets)
-        
-        sets = dict(zip(unique_clusters, [[] for _ in range(len(unique_clusters))]))
-        for idx, s in enumerate(metastable_sets):
-            sets[s].append(idx_to_state[idx])
-        
-        del mm # prevents constant 100% CPU usage after clustering
-        return json.dumps(list(sets.values()))
-        """
-        
-    
+        return jsonify(j)        
+
+    #TODO
     @app.route('/generate_ovito_image', methods=['GET'])
     def generate_ovito_image():
         run = request.args.get('run')
@@ -184,67 +186,19 @@ def create_app(test_config=None):
             # and pass in the sequence
         else:
             raise NotImplementedError()
-        
-    @app.route('/generate_subsequences', methods=['GET'])
-    def generate_subsequences():
+
+    @app.route('/neb_on_path', methods=['GET'])
+    def neb_on_path():
         run = request.args.get('run')
+        start = request.args.get('start')
+        end = request.args.get('end')
         driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687", auth=("neo4j", "secret"))
-        qb = querybuilder.Neo4jQueryBuilder(schema=[('State', 'NEXT', 'State', 'ONE-TO-ONE'), ('Atom', 'PART_OF', 'State', 'MANY-TO-ONE')],
-                                            constraints=[("RELATION", "NEXT", "run", run, "STRING")])
+        qb = querybuilder.Neo4jQueryBuilder(schema=[("State","NEXT","State","ONE-TO-ONE"),
+                                                    ("Atom", "PART_OF", "State", "MANY-TO-ONE")],
+                                            constraints=[("RELATION","NEXT","run",run, "STRING")])
+
+        q = qb.generate_get_path(start, end, relation="NEXT", limit=1, optional_relations="PART_OF", returnRelationships=True)
+        state_atom_dict, relationList = converter.query_to_ASE(driver, q, True);
+        relation_list = calculator.calculate_neb_on_path(driver,state_atom_dict, relationList, qb, lammps_path)
         
-        q = qb.generate_trajectory("NEXT", "ASC", ['RELATION', 'timestep'], node_attributes=[('number', "FIRST")], relation_attributes=['timestep'])   
-
-        nodes = None
-        with driver.session() as session:
-            result = session.run(q.text)
-            nodes = result.data()
-        node_list = []
-
-        for n in nodes:
-            node_list.append(n['n.number'])
-
-        hashed = np.unique(np.array(node_list), return_inverse=True)[1]
-
-        suffix_arr = divsufsort(hashed)
-        lcp = kasai(hashed, suffix_arr)
-
-        K = 4
-        pos, count = most_frequent_substrings(lcp,
-                                              K,
-                                              limit=999999999,
-                                              minimum_count=1)
-
-        sequences = []
-        for p, c in zip(suffix_arr[pos], count):
-            sequences.append(node_list[p:p + K])
-        
-        # TODO: Avoid repetition regions - explained in arc diagram paper
-        """
-        for s in sequences:
-            sorted_s = s.copy()
-            sorted_s.sort()
-            for s2 in sequences:
-                if s != s2:
-                    sorted_s2 = s2.copy()
-                    sorted_s2.sort()
-                    if sorted_s == sorted_s2:
-                        sequences.remove(s2)
-        """
-        json = {"K": K, "links": []}
-        for s in sequences:
-            idx_list = []
-            seq = None
-            for idx, n in enumerate(node_list):
-                if node_list[idx:idx + K] == s:
-                    idx_list.append(idx)
-                    seq = s
-            for j in range(0, len(idx_list) - 1):
-                link = {}
-                link.update({"source": idx_list[j]})
-                link.update({"target": idx_list[j+1]})
-                link.update({"sequence": seq})
-                json['links'].append(link)
-
-        return jsonify(json)
-
     return app

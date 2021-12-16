@@ -42,9 +42,45 @@
 	<label for="optimal_cluster_range">Clusters </label>
 	<input type="text" id="optimal_cluster_range" readonly style="border:0; font-weight:bold;">
 	<br>
+	<table id="tbl_properties" class="table table-sm">
+	<br>
 	<button id="btn_cancel_optimal_clustering" class="btn btn-danger">Cancel</button>
 	<button id="btn_calculate_optimal_clustering" class="btn btn-primary">Calculate</button>
       </div>
-    </div>    
+    </div>
+    <div id="modal_path_selection">
+      <div id="modal_path_selection_container" class="scrollingModal">
+	<button id="btn_calculate_neb" class="btn btn-primary">Calculate NEB on path</button>
+	<button id="btn_draw_ovito_animation" class="btn btn-primary">Draw Ovito Animation</button>
+      </div>
+    </div>
+    <div id="modal_add_filter">
+      <div class="scrollingModal">
+	<b>Ranges are calculated automatically using min and max values of the given property.</b>
+	<br>
+	For now, all filters are bound to opacity. This may change in the future.
+	<br>
+	<label for="select_new_filter">Attribute: </label>
+        <select name="select_new_filter" id="select_new_filter"></select>
+	<label for="select_new_filter_type">Filter type: </label>
+	<select name="select_new_filter_type" id="select_new_filter_type">
+	  <option value="MIN">Show states with at least this quantity (min)</option>
+	  <option value="MAX">Show states with at most this quantity (max)</option>
+	  <option value="RANGE">Show states with quantities between a range</option>
+	</select>
+	<br>
+	<button id="btn_cancel_create_filter">Cancel</button>
+	<button id="btn_create_filter">Create filter</button>
+      </div>
+    </div>
+    <div id="modal_xy_plot">
+      <div class="scrollingModal">
+	<b>For the time being, x will always refer to timestep.</b>
+	<label for="select_y_attribute">Attribute: </label>
+        <select name="select_y_attribute" id="select_y_attribute"></select>
+	<button id="btn_generate_xy_plot">Generate plot</button>
+	<div id="vis_xy"></div>
+      </div>
+    </div>
   </body>
 </html>

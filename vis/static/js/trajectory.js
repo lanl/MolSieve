@@ -7,4 +7,5 @@ class Trajectory {
     clusterings = {};
     fuzzy_memberships = {};
     current_clustering;
+    properties;
 }
