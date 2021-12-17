@@ -1,4 +1,6 @@
 import os
+import json
+
 from flask import (render_template, Flask, jsonify, request)
 from neomd import querybuilder, calculator, converter
 import neo4j
@@ -9,7 +11,7 @@ import jsonpickle
 from .epoch import Epoch, calculate_epoch
 import pyemma
 import pygpcca as gp
-import json
+
 
 
 # https://stackoverflow.com/questions/57269741/typeerror-object-of-type-ndarray-is-not-json-serializable
@@ -25,7 +27,6 @@ class NumpyEncoder(json.JSONEncoder):
         elif isinstance(obj, (np.ndarray, )):
             return obj.tolist()
         return json.JSONEncoder.default(self, obj)
-
 
 def create_app(test_config=None):
     # create and configure the app
@@ -61,8 +62,9 @@ def create_app(test_config=None):
     def load_dataset():
         run = request.args.get('run')
         properties = request.args.get('properties')
-        node_attributes = [('number', 'first'), ('occurences', 'first'),
-                           ('id', 'first')]
+        # id is technically not a property, so we have to include it here
+        # everything else is dynamically loaded in
+        node_attributes = [('id', 'first')]
         if properties != "":
             properties = properties.split(',')
             for prop in properties:
@@ -148,7 +150,7 @@ def create_app(test_config=None):
         gpcca = gp.GPCCA(np.array(m), z='LM', method='brandts')
         j = {}
         sets = {}
-        fuzzy_memberships = {}
+        fuzzy_memberships = {}    
         if optimal == 1:
             m_min = int(request.args.get('m_min'))
             m_max = int(request.args.get('m_max'))

@@ -17,13 +17,16 @@
     <script type="text/javascript" src="{{url_for('static',filename='js/myutils.js')}}"></script>
     <script src="https://intervis-projects.ccs.neu.edu/ssvg/ssvg.js"></script> <!-- Performance boost? -->
     <script type="text/javascript" src="{{url_for('static',filename='js/trajectory.js')}}"></script>
+    <script type="text/javascript" src="{{url_for('static',filename='js/vis_model.js')}}"></script>  
     <script type="text/javascript" src="{{url_for('static',filename='js/vis.js')}}"></script>  
     <title>Prototype Trajectory Visualization</title>  
   </head>
   <body>
     <div id="main" class="container-fluid justify-content-center">
       <h1>Prototype Visualization</h1>
-      <div id="load_table_div"></div>
+      <div id="load_table_div">
+	<p>Press CTRL to toggle path selection brush.</p>
+      </div>
     </div>
     <br/>
     <div id="grid">
@@ -50,8 +53,8 @@
     </div>
     <div id="modal_path_selection">
       <div id="modal_path_selection_container" class="scrollingModal">
-	<button id="btn_calculate_neb" class="btn btn-primary">Calculate NEB on path</button>
-	<button id="btn_draw_ovito_animation" class="btn btn-primary">Draw Ovito Animation</button>
+	<button id="btn_calculate_neb" class="btn btn-light">Calculate NEB on path</button>
+	<button id="btn_draw_ovito_animation" class="btn btn-light">Draw Ovito Animation</button>
       </div>
     </div>
     <div id="modal_add_filter">
@@ -78,7 +81,7 @@
 	<b>For the time being, x will always refer to timestep.</b>
 	<label for="select_y_attribute">Attribute: </label>
         <select name="select_y_attribute" id="select_y_attribute"></select>
-	<button id="btn_generate_xy_plot">Generate plot</button>
+	<button id="btn_generate_xy_plot" class="btn btn-light">Generate plot</button>
 	<div id="vis_xy"></div>
       </div>
     </div>
