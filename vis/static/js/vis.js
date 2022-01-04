@@ -152,11 +152,11 @@ $('document').ready(function() {
 	}
     });
 
-    $('#btn_calculate_neb').on('click', function() {
-	
+    $('#btn_calculate_neb').on('click', function() {	
 	var name = $('#modal_path_selection_container').attr("data-name");
-	var start = 300;//$('#modal_path_selection_container').attr("data-start");
-	var end = 305;//$('#modal_path_selection_container').attr("data-end");        
+	var start = $('#modal_path_selection_container').attr("data-start");
+	var end = $('#modal_path_selection_container').attr("data-end");
+        //TODO add loading indicator 
 	//showLoadingIndicator("Calculating nudged elastic band on timesteps " + start + " - " + end);
 	calculate_neb_on_path(name, start, end+1).then((data) => {
 	    let sequence = trajectories[name].sequence.slice(start, end+1);
@@ -640,9 +640,19 @@ $('document').ready(function() {
 		.attr("number", function(d) { return d['number'] })
 		.attr("timestep", function(d) { return d['timestep'] })
 		.attr("occurences", function(d) { return d['occurences'] })
-	        .attr("fuzzy_membership", function(d,i) {                    
+	        .attr("fuzzy_membership", function(d) {                    
 		    return t.fuzzy_memberships[parseInt(d['id'])] })
-		.on('mouseover', function(event,d,i) {                                        
+	        .on('click', function(event,d) {
+		    showLoadingIndicator("Generating Ovito image for state " + d['number']);
+		    generate_ovito_image(d['number']).then((data) => {
+			console.log(data);
+			var img = $('<img>').attr("src", 'data:image/png;base64,' + data);
+			$("#modal_container").append(img);
+		    }).catch((error) => {error_state(error);}).finally(closeLoadingIndicator());
+		    $("#modal_info").iziModal('setSubtitle', d['number']);
+		    $("#modal_info").iziModal('open');
+		})
+		.on('mouseover', function(event,d) {                                        
 		    var props = trajectories[t.name].properties;
 		    var propertyString = "";
 		    var perLine = 3;

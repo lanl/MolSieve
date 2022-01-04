@@ -2,16 +2,18 @@ import os
 import json
 
 from flask import (render_template, Flask, jsonify, request)
-from neomd import querybuilder, calculator, converter, query
+from neomd import querybuilder, calculator, converter, query, visualizations
 import neo4j
 import hashlib
 import numpy as np
+from PIL import Image
+import os, io, sys
 from pydivsufsort import divsufsort, kasai, most_frequent_substrings, sa_search
 import jsonpickle
 from .epoch import Epoch, calculate_epoch
 import pyemma
 import pygpcca as gp
-
+import base64
 
 
 # https://stackoverflow.com/questions/57269741/typeerror-object-of-type-ndarray-is-not-json-serializable
@@ -200,25 +202,53 @@ def create_app(test_config=None):
 
         return jsonify(j)
 
-    #TODO
+
     @app.route('/generate_ovito_image', methods=['GET'])
-    def generate_ovito_image():
+    def generate_ovito_image():        
+        number = request.args.get('number')
+        driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687",
+                                            auth=("neo4j", "secret"))
+        
+        qb = querybuilder.Neo4jQueryBuilder(
+            schema=[("State", "NEXT", "State", "ONE-TO-ONE"),
+                    ("Atom", "PART_OF", "State", "MANY-TO-ONE")])
+        
+        q = qb.generate_get_node('State', ("number", number), 'PART_OF')               
+        state_atom_dict = converter.query_to_ASE(driver, q, False)        
+        qimg = None
+        for atoms in state_atom_dict.values():            
+            qimg = visualizations.render_ASE(atoms)
+        print("finished writation")
+
+        img = Image.fromqimage(qimg)
+        rawBytes = io.BytesIO()
+        img.save(rawBytes, "PNG")
+        rawBytes.seek(0)
+        img_base64 = base64.b64encode(rawBytes.read())
+        print(img_base64)
+        
+        return jsonify({'image': str(img_base64)})
+        
+        
+    @app.route('/generate_ovito_animation', methods=['GET'])
+    def generate_ovito_animation():
         run = request.args.get('run')
-        sequences = request.args.get('sequences')
+        start = request.args.get('start')
+        end = request.args.get('end')
+        
         driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687",
                                             auth=("neo4j", "secret"))
         qb = querybuilder.Neo4jQueryBuilder(
             schema=[("State", "NEXT", "State", "ONE-TO-ONE"),
                     ("Atom", "PART_OF", "State", "MANY-TO-ONE")],
             constraints=[("RELATION", "NEXT", "run", run, "STRING")])
-        if len(sequences) > 1:
-            q = qb.generate_get_path()
-            # TODO: start with modifying neomd to return the correct path
-            # once that is done, figure out how to get images from the backend
-            # and pass in the sequence
-        else:
-            raise NotImplementedError()
+        
+        q = qb.generate_get_path(start,end)
 
+        # TODO: start with modifying neomd to return the correct path
+        # once that is done, figure out how to get images from the backend
+        # and pass in the sequence
+                                
     @app.route('/calculate_neb_on_path', methods=['GET'])
     def calculate_neb_on_path():
         run = request.args.get('run')
@@ -233,11 +263,9 @@ def create_app(test_config=None):
                     ("Atom", "PART_OF", "State", "MANY-TO-ONE")],
             constraints=[("RELATION", "NEXT", "run", run, "STRING")])
 
-        q = """MATCH (s1:State)-[r {{run: "{name}" }}]->(:State) WHERE r.timestep >= {start} AND r.timestep <= {end} 
-               WITH s1, r MATCH (a:Atom)-[:PART_OF]->(s1) WITH collect(DISTINCT a) AS atoms, s1, r 
-               RETURN s1, atoms, r ORDER by r.timestep ASC;""".format(name=run,start=start,end=end)        
+        q = qb.generate_get_path(start,end)
         
-        state_atom_dict, relationList = converter.query_to_ASE(driver, query.Query(q, ["ASE", "RELATIONS"]), True)                
+        state_atom_dict, relationList = converter.query_to_ASE(driver, q, True)
                 
         neb, ef_list, de_list = calculator.calculate_neb_on_path(driver, state_atom_dict, relationList, qb, lammps_path)               
         

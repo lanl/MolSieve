@@ -95,7 +95,7 @@ var calculate_epochs = function(name) {
  * start - beginning of the path
  * end - last state in path
  * name - name of the trajectory these states belong to
- * returns...
+ * returns list of energy values across the path
  */
 var calculate_neb_on_path = function(name,start,end) {
     return new Promise(function(resolve,reject) {
@@ -103,6 +103,19 @@ var calculate_neb_on_path = function(name,start,end) {
 	    resolve(data);
 	}).fail(function(msg) {
 	    reject(msg.responseText);
+	});
+    });
+}
+/* Ajax call to generate an ovito image given a state's number
+ * number - number of the state to generate an image for
+ * returns - base 64 encoding of image
+ */
+var generate_ovito_image = function(number) {
+    return new Promise(function(resolve,reject) {
+	$.get('/generate_ovito_image', {'number':number}, function(data) {            
+	    resolve(data.split('\'')[1])
+	}).fail(function(msg) {
+	    reject(msg.responseText)
 	});
     });
 }
