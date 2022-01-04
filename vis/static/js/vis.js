@@ -24,7 +24,7 @@ $('document').ready(function() {
 	if(subtitle) {
 	    $('#modal_loading-indicator').iziModal('setSubtitle', subtitle);
 	}
-	$('#modal_loading-indicator').iziModal('open');
+	$('#modal_loading-indicator').attr("data-izimodal-preventclose", "").iziModal('open');
     }
 
     /* Closes the loading indicator when you're done doing asynchronous stuff */
@@ -66,7 +66,7 @@ $('document').ready(function() {
 	var name = $(this).attr("data-name");
 	var sequence = trajectories[name].sequence;
 	var attribute = $('#select_y_attribute').val();
-	draw_xy_plot(attribute, sequence);	
+	draw_xy_plot(attribute, sequence, "xy");	
     });
  
     // Optimal clustering modal
@@ -102,7 +102,7 @@ $('document').ready(function() {
 	showLoadingIndicator("Calculating PCCA for " + name);
 	load_PCCA(name,-1,1, m_min, m_max).then((name) => {            
 	    $('#modal_loading-indicator').iziModal('setSubtitle', "Loading sequence for " + name);                    		    
-	    return load_dataset(name, properties);
+	    return load_sequence(name, properties);
 	}).then((name) => {
 	    $('#modal_loading-indicator').iziModal('setSubtitle', "Rendering");                    		    
 	    set_cluster_info(name);
@@ -145,7 +145,30 @@ $('document').ready(function() {
     $('#modal_path_selection').iziModal({
 	title: 'Path Selection',
 	closeButton: false,
-        borderBottom: false
+        borderBottom: false,
+	onClosed: function() {
+	    $("#vis_neb").empty();
+	    $("#btn_calculate_neb").show();
+	}
+    });
+
+    $('#btn_calculate_neb').on('click', function() {
+	
+	var name = $('#modal_path_selection_container').attr("data-name");
+	var start = 300;//$('#modal_path_selection_container').attr("data-start");
+	var end = 305;//$('#modal_path_selection_container').attr("data-end");        
+	//showLoadingIndicator("Calculating nudged elastic band on timesteps " + start + " - " + end);
+	calculate_neb_on_path(name, start, end+1).then((data) => {
+	    let sequence = trajectories[name].sequence.slice(start, end+1);
+	    var max_energy = Math.max.apply(Math,data);
+	    var init_energy = data[0];
+	    var dE = max_energy - init_energy;            
+	    $("#vis_neb").append("<p><b>Maximum energy barrier on path:</b>" + max_energy + "</p>");
+	    $("#vis_neb").append("<p><b>Total ΔE over path:</b>" + dE + "</p>");	    
+	    draw_xy_plot("Energy", sequence, "neb", data);            
+	}).catch((error) => {error_state(error);}).finally(() => {
+	    //closeLoadingIndicator();
+	});
     });
 
     // add filter modal
@@ -651,11 +674,14 @@ $('document').ready(function() {
 		if (curr_name != null && curr_name != undefined) {
 		    var begin = trajectories[curr_name].sequence[Math.round(scale_x.invert(extent[0][0]))];
 		    var end = trajectories[curr_name].sequence[Math.round(scale_x.invert(extent[1][0]))];                    
-		    $('#modal_path_selection').iziModal('setSubtitle', "State " + begin.number + " - " + "State " + end.number);                    		    
-		    $('#modal_path_selection').iziModal('open');
-                    //TODO bind start and end to data attributes of buttons in modal		    
+		    $('#modal_path_selection').iziModal('setSubtitle', "State " + begin.number + " - " + "State " + end.number);
+		    $('#modal_path_selection_container').attr("data-start", begin.timestep);
+		    $('#modal_path_selection_container').attr("data-end", end.timestep);
+		    $('#modal_path_selection_container').attr("data-name", curr_name);
+		    $('#modal_path_selection').attr("data-izimodal-preventclose", "");
+		    $('#modal_path_selection').iziModal('open');                    
 		}                                
-	    }	    
+	    }            
 	    d3.select(this).remove();            
 	    $(".brush").remove();
 	});
@@ -668,37 +694,44 @@ $('document').ready(function() {
 	}	
     }
 
-    /* Draws an xy plot within the xy modal. X is always time vs the user selected attribute y.
+    /* Draws an xy plot within the specified modal. X is always time vs the user selected attribute y.
      * attribute - what Y will be in the plot
      * sequence - sequence to draw, can be any length; the entire trajectory is not needed
+     * svgName - svg where the x-y plot should be drawn
+     * attributeList - if we're using an outside source for the y attribute, pass it here
      */
-    function draw_xy_plot(attribute, sequence) {
-	let [svg,bBox] = set_svg("xy");
-                 
-	var attributeList = [];
-	for(d of sequence) {
-	    attributeList.push(d[attribute]);
-	}
+    function draw_xy_plot(attribute, sequence, svgName, attributeList) {        
+	let [svg,bBox] = set_svg(svgName);
 
+	if(attributeList == null) {
+	    attributeList = [];
+	    for(d of sequence) {
+		attributeList.push(d[attribute]);
+	    }
+	}        
+	
 	var xtent = d3.extent(attributeList);        
 	
-        scale_x = d3.scaleLinear().range([margin.left, bBox.width - margin.right]).domain([0,sequence.length]);
+        scale_x = d3.scaleLinear().range([margin.left, bBox.width - margin.right]).domain([sequence[0]['timestep'],
+											   sequence[sequence.length-1]['timestep']]);
 	scale_y = d3.scaleLinear().range([margin.top, svg_height - margin.bottom]).domain([xtent[0],xtent[1]]);
 	
         svg.selectAll("rect").data(sequence).enter().append("rect")
 	    .attr("x", function(d) {return scale_x(d['timestep'])})
-	    .attr("y", function(d) {return scale_y(d[attribute])})
+	    .attr("y", function(d, i) {return scale_y(attributeList[i])})
+	    .attr("index", function(d,i) {return i})
 	    .attr("width", 5).attr("height", 5)
 	    .attr("fill", function(d) {                
 		if(d['cluster'] == -1) {
 		    return "black";
 		}
 		return intToRGB(d['cluster']);
-	    }).on('mouseover', function(event, d) {
+	    }).on('mouseover', function(event, d) {                               
+		const i = event.currentTarget.getAttribute("index");                
 		tippy(this, {
 		    allowHTML: true,
 		    content: "<i>t<i> = " + d['timestep'] +
-			     "<br><b>" + attribute + "</b>: " + d[attribute],
+			     "<br><b>" + attribute + "</b>: " + attributeList[i],
 		    arrow: true,
 		    maxWidth: 'none',
 		});		

@@ -58,9 +58,9 @@ var load_PCCA = function(name, clusters, optimal, m_min, m_max) {
  * name - run to load from database
  * properties - properties to load from the database
  */
-var load_dataset = function(name,properties) { 
+var load_sequence = function(name,properties) { 
     return new Promise(function(resolve,reject) {	
-	$.getJSON('/load_dataset', {'run': name, 'properties': properties.toString()}, function(data) {
+	$.getJSON('/load_sequence', {'run': name, 'properties': properties.toString()}, function(data) {
 	    trajectories[name].sequence = data;	    	    
 	    trajectories[name].properties = properties;            
 	    resolve(name);
@@ -90,6 +90,22 @@ var calculate_epochs = function(name) {
 	};
     })
 }					      
+
+/* Ajax call to calculate a Nudged Elastic Band on a given path between two nodes.
+ * start - beginning of the path
+ * end - last state in path
+ * name - name of the trajectory these states belong to
+ * returns...
+ */
+var calculate_neb_on_path = function(name,start,end) {
+    return new Promise(function(resolve,reject) {
+	$.getJSON('/calculate_neb_on_path', {'run': name, 'start': start, 'end': end}, function(data) {            
+	    resolve(data);
+	}).fail(function(msg) {
+	    reject(msg.responseText);
+	});
+    });
+}
 
 // Section: Dataset calculations
 

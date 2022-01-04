@@ -2,7 +2,7 @@ import os
 import json
 
 from flask import (render_template, Flask, jsonify, request)
-from neomd import querybuilder, calculator, converter
+from neomd import querybuilder, calculator, converter, query
 import neo4j
 import hashlib
 import numpy as np
@@ -58,8 +58,8 @@ def create_app(test_config=None):
         return render_template('home.html')
 
     # TODO: rename to load sequence or load trajectory
-    @app.route('/load_dataset', methods=['GET'])
-    def load_dataset():
+    @app.route('/load_sequence', methods=['GET'])
+    def load_sequence(): 
         run = request.args.get('run')
         properties = request.args.get('properties')
         # id is technically not a property, so we have to include it here
@@ -219,27 +219,27 @@ def create_app(test_config=None):
         else:
             raise NotImplementedError()
 
-    @app.route('/neb_on_path', methods=['GET'])
-    def neb_on_path():
+    @app.route('/calculate_neb_on_path', methods=['GET'])
+    def calculate_neb_on_path():
         run = request.args.get('run')
         start = request.args.get('start')
         end = request.args.get('end')
+        
         driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687",
                                             auth=("neo4j", "secret"))
+
         qb = querybuilder.Neo4jQueryBuilder(
             schema=[("State", "NEXT", "State", "ONE-TO-ONE"),
                     ("Atom", "PART_OF", "State", "MANY-TO-ONE")],
             constraints=[("RELATION", "NEXT", "run", run, "STRING")])
 
-        q = qb.generate_get_path(start,
-                                 end,
-                                 relation="NEXT",
-                                 limit=1,
-                                 optional_relations="PART_OF",
-                                 returnRelationships=True)
-        state_atom_dict, relationList = converter.query_to_ASE(
-            driver, q, True)
-        relation_list = calculator.calculate_neb_on_path(
-            driver, state_atom_dict, relationList, qb, lammps_path)
-
+        q = """MATCH (s1:State)-[r {{run: "{name}" }}]->(:State) WHERE r.timestep >= {start} AND r.timestep <= {end} 
+               WITH s1, r MATCH (a:Atom)-[:PART_OF]->(s1) WITH collect(DISTINCT a) AS atoms, s1, r 
+               RETURN s1, atoms, r ORDER by r.timestep ASC;""".format(name=run,start=start,end=end)        
+        
+        state_atom_dict, relationList = converter.query_to_ASE(driver, query.Query(q, ["ASE", "RELATIONS"]), True)                
+                
+        neb, ef_list, de_list = calculator.calculate_neb_on_path(driver, state_atom_dict, relationList, qb, lammps_path)               
+        
+        return jsonify(ef_list)
     return app
