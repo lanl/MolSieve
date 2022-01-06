@@ -4,7 +4,6 @@ $('document').ready(function() {
     var names_in_use = [];
 
     //view
-    var scale_x = null;
     let widget_height = 500;
     let svg_height = widget_height - 100;    
     var margin = {top: 20, bottom: 20, left: 5, right: 25};
@@ -15,7 +14,7 @@ $('document').ready(function() {
     function error_state(msg) {	
 	$('#modal_loading-indicator').iziModal('close');
 	$('#modal_loading-indicator').hide();
-	$('*').hide();
+ 	$('*').hide();
 	alert(msg);	
     }
 
@@ -154,21 +153,24 @@ $('document').ready(function() {
 
     $('#btn_calculate_neb').on('click', function() {	
 	var name = $('#modal_path_selection_container').attr("data-name");
-	var start = $('#modal_path_selection_container').attr("data-start");
-	var end = $('#modal_path_selection_container').attr("data-end");
-        //TODO add loading indicator 
-	//showLoadingIndicator("Calculating nudged elastic band on timesteps " + start + " - " + end);
+	var start = 300;//$('#modal_path_selection_container').attr("data-start");
+	var end = 305;//$('#modal_path_selection_container').attr("data-end");
+	showLoadingIndicator("Calculating nudged elastic band on timesteps " + start + " - " + end);
 	calculate_neb_on_path(name, start, end+1).then((data) => {
 	    let sequence = trajectories[name].sequence.slice(start, end+1);
 	    var max_energy = Math.max.apply(Math,data);
 	    var init_energy = data[0];
 	    var dE = max_energy - init_energy;            
-	    $("#vis_neb").append("<p><b>Maximum energy barrier on path:</b>" + max_energy + "</p>");
-	    $("#vis_neb").append("<p><b>Total ΔE over path:</b>" + dE + "</p>");	    
-	    draw_xy_plot("Energy", sequence, "neb", data);            
+	    closeLoadingIndicator();
+	    $('#modal_path_selection').iziModal('open');
+	    $('#btn_calculate_neb').hide();
+	    $("#vis_neb").append("<p><b>Maximum energy barrier on path:</b> " + max_energy + "</p>");
+	    $("#vis_neb").append("<p><b>Total ΔE over path:</b> " + dE + "</p>");	                
+	    draw_xy_plot("Energy", sequence, "neb", data);            	    
 	}).catch((error) => {error_state(error);}).finally(() => {
-	    //closeLoadingIndicator();
+	    closeLoadingIndicator();
 	});
+
     });
 
     // add filter modal
@@ -576,7 +578,7 @@ $('document').ready(function() {
 
 	if($('#svg_' + name).length) {
 	    $("#svg_" + name).empty();
-	    bBox = d3.select("#vis_" + name).node().getBoundingClientRect();    
+	    bBox = d3.select("#vis_" + name).node().getBoundingClientRect();            
 	    svg = d3.select('#svg_' + name).attr("width", bBox.width);
 	} else {            
 	    bBox = d3.select("#vis_" + name).node().getBoundingClientRect();    
@@ -611,12 +613,12 @@ $('document').ready(function() {
 	    dataList.push({'name': name, 'data': data, 'y': count,
 			   'fuzzy_memberships': trajectories[name].fuzzy_memberships[trajectories[name].current_clustering]});
 	    count++;
-	}
-        
+	}        
+       	
         let [svg,bBox] = set_svg("main");
 	
-	scale_x = d3.scaleLinear().range([margin.left, bBox.width - margin.right]).domain([0,maxLength]);
-	scale_y = d3.scaleLinear().range([margin.top, svg_height - margin.bottom]).domain([0,dataList.length]);
+	var scale_x = d3.scaleLinear().range([margin.left, bBox.width - margin.right]).domain([0,maxLength]);
+	var scale_y = d3.scaleLinear().range([margin.top, svg_height - margin.bottom]).domain([0,dataList.length]);
 
 	var tickNames = [];
 
@@ -641,14 +643,14 @@ $('document').ready(function() {
 		.attr("timestep", function(d) { return d['timestep'] })
 		.attr("occurences", function(d) { return d['occurences'] })
 	        .attr("fuzzy_membership", function(d) {                    
-		    return t.fuzzy_memberships[parseInt(d['id'])] })
+		    return t.fuzzy_memberships[parseInt(d['id'])]; })
 	        .on('click', function(event,d) {
-		    showLoadingIndicator("Generating Ovito image for state " + d['number']);
-		    generate_ovito_image(d['number']).then((data) => {
+		    //showLoadingIndicator("Generating Ovito image for state " + d['number']);
+		    /*generate_ovito_image(d['number']).then((data) => {
 			console.log(data);
 			var img = $('<img>').attr("src", 'data:image/png;base64,' + data);
 			$("#modal_container").append(img);
-		    }).catch((error) => {error_state(error);}).finally(closeLoadingIndicator());
+		    }).catch((error) => {error_state(error);}).finally(closeLoadingIndicator());*/
 		    $("#modal_info").iziModal('setSubtitle', d['number']);
 		    $("#modal_info").iziModal('open');
 		})
@@ -680,7 +682,8 @@ $('document').ready(function() {
 	var brush = d3.brush().extent([[0,0], [bBox.width, svg_height]]).on('end', function(e) {
 	    var extent = e.selection;                        
 	    if(extent) {
-		var curr_name = dataList[Math.round(scale_y.invert(extent[0][1]))].name;		
+		console.log(scale_y.invert(extent[0][1]));
+                var curr_name = dataList[Math.round(scale_y.invert(extent[0][1]))].name;		
 		if (curr_name != null && curr_name != undefined) {
 		    var begin = trajectories[curr_name].sequence[Math.round(scale_x.invert(extent[0][0]))];
 		    var end = trajectories[curr_name].sequence[Math.round(scale_x.invert(extent[1][0]))];                    
@@ -705,14 +708,19 @@ $('document').ready(function() {
     }
 
     /* Draws an xy plot within the specified modal. X is always time vs the user selected attribute y.
+     * Default is to draw Y values towards the top of the graph; reverse switches that so that
+     * the highest values are drawn towards the bottom of the graph.
      * attribute - what Y will be in the plot
      * sequence - sequence to draw, can be any length; the entire trajectory is not needed
      * svgName - svg where the x-y plot should be drawn
      * attributeList - if we're using an outside source for the y attribute, pass it here
+     * reverse - draw y values top to bottom
      */
-    function draw_xy_plot(attribute, sequence, svgName, attributeList) {        
+    function draw_xy_plot(attribute, sequence, svgName, attributeList, reverse) {        
 	let [svg,bBox] = set_svg(svgName);
-
+        
+	if(reverse == null) reverse = false;
+	
 	if(attributeList == null) {
 	    attributeList = [];
 	    for(d of sequence) {
@@ -721,10 +729,20 @@ $('document').ready(function() {
 	}        
 	
 	var xtent = d3.extent(attributeList);        
-	
-        scale_x = d3.scaleLinear().range([margin.left, bBox.width - margin.right]).domain([sequence[0]['timestep'],
+
+	var first = 1;
+	var last = 0;
+
+	if(reverse) {
+	    first = 0;
+	    last = 1;
+	}
+
+	// 1.25 for breathing room between axis and values
+        var scale_x = d3.scaleLinear().range([margin.left, bBox.width - margin.right]).domain([sequence[0]['timestep'],
 											   sequence[sequence.length-1]['timestep']]);
-	scale_y = d3.scaleLinear().range([margin.top, svg_height - margin.bottom]).domain([xtent[0],xtent[1]]);
+
+	var scale_y = d3.scaleLinear().range([margin.top, svg_height - (margin.bottom * 1.5)]).domain([xtent[first],xtent[last]]);
 	
         svg.selectAll("rect").data(sequence).enter().append("rect")
 	    .attr("x", function(d) {return scale_x(d['timestep'])})
@@ -746,7 +764,8 @@ $('document').ready(function() {
 		    maxWidth: 'none',
 		});		
 	    });
-
-	var xAxis = svg.append("g").call(d3.axisBottom().scale(scale_x));				
+	
+	var xAxisPos = svg_height - margin.bottom;
+	var xAxis = svg.append("g").attr("transform", "translate(0," + xAxisPos + ")").call(d3.axisBottom().scale(scale_x));                	
     }
 });

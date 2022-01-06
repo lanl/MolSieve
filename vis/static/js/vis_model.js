@@ -14,7 +14,7 @@ var connect_to_database = function () {
 		}
 	    }
 	    resolve(data);
-	}).fail(function(msg, text, error) {            
+	}).fail(function(msg, text, error) {                                    
 	    reject("Failed to connect to the database. Error: " + msg.responseText);
 	});
     });
@@ -109,6 +109,7 @@ var calculate_neb_on_path = function(name,start,end) {
 /* Ajax call to generate an ovito image given a state's number
  * number - number of the state to generate an image for
  * returns - base 64 encoding of image
+ * TODO: Rendering doesn't work for whatever reason
  */
 var generate_ovito_image = function(number) {
     return new Promise(function(resolve,reject) {

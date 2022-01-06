@@ -1,17 +1,14 @@
 import os
 import json
-
 from flask import (render_template, Flask, jsonify, request)
 from neomd import querybuilder, calculator, converter, query, visualizations
 import neo4j
-import hashlib
 import numpy as np
 from PIL import Image
-import os, io, sys
+import io, sys
 from pydivsufsort import divsufsort, kasai, most_frequent_substrings, sa_search
 import jsonpickle
 from .epoch import Epoch, calculate_epoch
-import pyemma
 import pygpcca as gp
 import base64
 
@@ -36,7 +33,7 @@ def create_app(test_config=None):
 
     # set this to your lammps path
     lammps_path = 'mpirun -n 4 /home/frosty/Apps/lammps/install/bin/lmp'
-
+    os.environ['LD_LIBRARY_PATH'] = '/home/frosty/Apps/lammps/install/lib'    
     app.config.from_mapping(
         SECRET_KEY='dev',
         DATABASE=os.path.join(app.instance_path, 'flaskr.sqlite'),
