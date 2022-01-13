@@ -410,6 +410,7 @@ $('document').ready(function() {
 	    }).on('change', function(e) {                                		
 		showLoadingIndicator();
 		load_PCCA(name, parseInt(this.value), 0, -1, -1).then(() => {
+		    set_cluster_info(name);                    
                     draw_PCCA(names_in_use);
 		}).catch((err) =>{error_state(err);}).finally(() => {closeLoadingIndicator();});		    
 	    });

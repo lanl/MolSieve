@@ -7,15 +7,16 @@ var trajectories = {};
 /* Ajax call that connects to the neo4j database and retrieves the various trajectories available, as well as their properties. */
 var connect_to_database = function () {
     return new Promise(function(resolve, reject) {
-	$.ajax({url: "/connect_to_db"}).done(function(data) {            
+	$.ajax({url: "/connect_to_db"}).done(function(data) {
+	    console.log(data);
 	    for(var i = 0; i < data.runs.length; i++) {
 		if (data.runs[i] != null) {                        
 		    trajectories[data.runs[i]] = new Trajectory();                        
 		}
 	    }
 	    resolve(data);
-	}).fail(function(msg, text, error) {                                    
-	    reject("Failed to connect to the database. Error: " + msg.responseText);
+	}).fail(function(msg, text, error) {        
+	    reject(error + "\n" + msg.responseJSON.error.message);
 	});
     });
 }
@@ -48,9 +49,9 @@ var load_PCCA = function(name, clusters, optimal, m_min, m_max) {
 			  trajectories[name].current_clustering = clusters;
 		      }
 		      resolve(name);                      
-		  }).fail(function(msg) {
-		      reject(msg.responseText);
-		  });
+		  }).fail(function(msg, text, error) {        
+		      reject(error + "\n" + msg.responseJSON.error.message);
+		  });    
     });
 };
 
@@ -64,9 +65,9 @@ var load_sequence = function(name,properties) {
 	    trajectories[name].sequence = data;	    	    
 	    trajectories[name].properties = properties;            
 	    resolve(name);
-	}).fail(function(msg) {
-	    reject(msg.responseText);
-	});            	
+	}).fail(function(msg, text, error) {        
+	    reject(error + "\n" + msg.responseJSON.error.message);
+	});
     });	
 }    
 
@@ -82,13 +83,13 @@ var calculate_epochs = function(name) {
 	    $.getJSON('/calculate_epochs', {'run': name}, function(data) {	   
 		trajectories[name].overview = data;
 		resolve(name);
-	    }).fail(function(msg) {
-		reject(msg.responseText);
-	    });
+	    }).fail(function(msg, text, error) {        
+	    reject(error + "\n" + msg.responseJSON.error.message);
+	});
 	} else {
 	    resolve(name);                                                
 	};
-    })
+    });
 }					      
 
 /* Ajax call to calculate a Nudged Elastic Band on a given path between two nodes.
@@ -99,10 +100,11 @@ var calculate_epochs = function(name) {
  */
 var calculate_neb_on_path = function(name,start,end) {
     return new Promise(function(resolve,reject) {
-	$.getJSON('/calculate_neb_on_path', {'run': name, 'start': start, 'end': end}, function(data) {            
+	$.getJSON('/calculate_neb_on_path', {'run': name, 'start': start, 'end': end}, function(data) {
+	    console.log(data);
 	    resolve(data);
-	}).fail(function(msg) {
-	    reject(msg.responseText);
+	}).fail(function(msg, text, error) {        
+	    reject(error + "\n" + msg.responseJSON.error.message);
 	});
     });
 }
@@ -115,8 +117,8 @@ var generate_ovito_image = function(number) {
     return new Promise(function(resolve,reject) {
 	$.get('/generate_ovito_image', {'number':number}, function(data) {            
 	    resolve(data.split('\'')[1])
-	}).fail(function(msg) {
-	    reject(msg.responseText)
+	}).fail(function(msg, text, error) {        
+	    reject(error + "\n" + msg.responseJSON.error.message);
 	});
     });
 }

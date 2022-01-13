@@ -12,7 +12,6 @@ from .epoch import Epoch, calculate_epoch
 import pygpcca as gp
 import base64
 
-
 # https://stackoverflow.com/questions/57269741/typeerror-object-of-type-ndarray-is-not-json-serializable
 class NumpyEncoder(json.JSONEncoder):
     """ Special json encoder for numpy types """
@@ -52,11 +51,23 @@ def create_app(test_config=None):
     except OSError:
         pass
 
+    @app.errorhandler(Exception)
+    def handle_exception(error):
+        response = {
+            'success': False,
+            'error': {
+                'type': error.__class__.__name__,
+                'message': [str(x) for x in error.args]
+            }
+        }
+        return jsonify(response), 500
+    
     @app.route('/')
     def home():
         return render_template('home.html')
 
     # TODO: rename to load sequence or load trajectory
+    # TODO: the trajectory gets generated twice... can do this once in PCCA and skip extra processing time
     @app.route('/load_sequence', methods=['GET'])
     def load_sequence(): 
         run = request.args.get('run')
@@ -71,15 +82,14 @@ def create_app(test_config=None):
         driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687",
                                             auth=("neo4j", "secret"))
         qb = querybuilder.Neo4jQueryBuilder(
-            [('State', 'NEXT', 'State', 'ONE-TO-ONE'),
-             ('Atom', 'PART_OF', 'State', 'MANY-TO-ONE')],
-            constraints=[("RELATION", "NEXT", "run", run, "STRING")])
+            [('State', run, 'State', 'ONE-TO-ONE'),
+             ('Atom', 'PART_OF', 'State', 'MANY-TO-ONE')])
 
-        q = qb.generate_trajectory("NEXT",
+        q = qb.generate_trajectory(run,
                                    "ASC", ['RELATION', 'timestep'],
                                    node_attributes=node_attributes,
                                    relation_attributes=['timestep'])
-        oq = qb.generate_get_occurences("NEXT")
+        oq = qb.generate_get_occurences(run)
         with driver.session() as session:
             session.run(oq.text)
             result = session.run(q.text)
@@ -119,7 +129,7 @@ def create_app(test_config=None):
         with driver.session() as session:
             try:
                 result = session.run(
-                    "MATCH (:State)-[r]-(:State) RETURN DISTINCT r.run;")
+                    "MATCH (:State)-[r]-(:State) RETURN DISTINCT TYPE(r)")
                 # gets rid of ugly syntax on js side - puts everything in one array; probably a better more elegant way to do this
                 j.update({'runs': [r[0] for r in result.values()]})
                 result = session.run(
@@ -141,11 +151,10 @@ def create_app(test_config=None):
         driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687",
                                             auth=("neo4j", "secret"))
         qb = querybuilder.Neo4jQueryBuilder(
-            schema=[("State", "NEXT", "State", "ONE-TO-ONE"),
-                    ("Atom", "PART_OF", "State", "MANY-TO-ONE")],
-            constraints=[("RELATION", "NEXT", "run", run, "STRING")])
+            schema=[("State", run, "State", "ONE-TO-ONE"),
+                    ("Atom", "PART_OF", "State", "MANY-TO-ONE")])
         m, idx_to_state_number = calculator.calculate_transition_matrix(
-            driver, qb, True)
+            driver, qb, run=run, discrete=True)
         gpcca = gp.GPCCA(np.array(m), z='LM', method='brandts')
         j = {}
         sets = {}
@@ -235,10 +244,10 @@ def create_app(test_config=None):
         
         driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687",
                                             auth=("neo4j", "secret"))
+
         qb = querybuilder.Neo4jQueryBuilder(
-            schema=[("State", "NEXT", "State", "ONE-TO-ONE"),
-                    ("Atom", "PART_OF", "State", "MANY-TO-ONE")],
-            constraints=[("RELATION", "NEXT", "run", run, "STRING")])
+            schema=[("State", run, "State", "ONE-TO-ONE"),
+                    ("Atom", "PART_OF", "State", "MANY-TO-ONE")])
         
         q = qb.generate_get_path(start,end)
 
@@ -256,15 +265,14 @@ def create_app(test_config=None):
                                             auth=("neo4j", "secret"))
 
         qb = querybuilder.Neo4jQueryBuilder(
-            schema=[("State", "NEXT", "State", "ONE-TO-ONE"),
-                    ("Atom", "PART_OF", "State", "MANY-TO-ONE")],
-            constraints=[("RELATION", "NEXT", "run", run, "STRING")])
+            schema=[("State", run, "State", "ONE-TO-ONE"),
+                    ("Atom", "PART_OF", "State", "MANY-TO-ONE")])
 
-        q = qb.generate_get_path(start,end)
+        q = qb.generate_get_path(start,end,run=run)
         
         state_atom_dict, relationList = converter.query_to_ASE(driver, q, True)
-                
-        neb, ef_list, de_list = calculator.calculate_neb_on_path(driver, state_atom_dict, relationList, qb, lammps_path)               
+        
+        neb, ef_list, de_list = calculator.calculate_neb_on_path(driver, state_atom_dict, relationList, qb, run, lammps_path)               
         
         return jsonify(ef_list)
     return app
