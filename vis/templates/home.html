@@ -6,7 +6,7 @@
     <link rel="stylesheet" href="{{url_for('static', filename='css/main.css')}}">
     <link rel="stylesheet" href="{{url_for('static', filename='js/gridster/jquery.gridster.css')}}">
     <script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
-    <link href = "https://code.jquery.com/ui/1.10.4/themes/ui-lightness/jquery-ui.css" rel = "stylesheet">
+    <link href="https://code.jquery.com/ui/1.10.4/themes/ui-lightness/jquery-ui.css" rel="stylesheet">
     <script src="https://code.jquery.com/ui/1.13.0/jquery-ui.js"></script> <!-- Slider with range -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/izimodal/1.5.1/js/iziModal.min.js" integrity="sha512-8aOKv+WECF2OZvOoJWZQMx7+VYNxqokDKTGJqkEYlqpsSuKXoocijXQNip3oT4OEkFfafyluI6Bm6oWZjFXR0A==" crossorigin="anonymous" referrerpolicy="no-referrer"></script> <!-- Dialogs -->
     <script src="https://d3js.org/d3.v7.min.js"></script> <!-- D3 -->
@@ -25,7 +25,7 @@
     <div id="main" class="container-fluid justify-content-center">
       <h1>Prototype Visualization</h1>
       <div id="load_table_div">
-	<p>Press CTRL to toggle path selection brush.</p>
+	<p>Press CTRL to toggle path selection brush. Press Z to toggle zoom brush. Double click to reset zoom. Press SHIFT to toggle multiple path selection. When you are finished with your selection, press S to open the comparison dialog.</p>
       </div>
     </div>
     <br/>
@@ -47,8 +47,8 @@
 	<br>
 	<table id="tbl_properties" class="table table-sm">
 	<br>
-	<button id="btn_cancel_optimal_clustering" class="btn btn-danger">Cancel</button>
-	<button id="btn_calculate_optimal_clustering" class="btn btn-primary">Calculate</button>
+	<button id="btn_calculate_optimal_clustering" class="btn btn-primary btn-margin">Calculate</button>
+	<button id="btn_cancel_optimal_clustering" class="btn btn-danger btn-margin">Cancel</button>
       </div>
     </div>
     <div id="modal_path_selection">
@@ -73,8 +73,8 @@
 	  <option value="RANGE">Show states with quantities between a range</option>
 	</select>
 	<br>
-	<button id="btn_cancel_create_filter">Cancel</button>
-	<button id="btn_create_filter">Create filter</button>
+	<button id="btn_create_filter" class="btn-margin">Create filter</button>
+	<button id="btn_cancel_create_filter" class="btn-margin">Cancel</button>
       </div>
     </div>
     <div id="modal_xy_plot">

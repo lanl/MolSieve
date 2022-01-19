@@ -141,6 +141,24 @@ def create_app(test_config=None):
 
         return jsonify(j)
 
+    @app.route('/get_metadata', methods=['GET'])
+    def get_metadata():
+        driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687",
+                                            auth=("neo4j", "secret"))
+        j = {}
+        run = request.args.get('run')
+        with driver.session() as session:
+            try:
+                result = session.run(
+                    "MATCH (n:Metadata {{run: {run} }}) RETURN n".format(run='"' +  run +'"'))
+                record = result.single()
+                for n in record.values():
+                    for key,value in n.items():
+                        j.update({key:value})                    
+            except neo4j.exceptions.ServiceUnavailable as exception:
+                raise exception
+
+        return jsonify(j)
 
     #TODO: Refactor to be cleaner
     @app.route('/pcca', methods=['GET'])
@@ -179,7 +197,10 @@ def create_app(test_config=None):
                                 newSet.append(idx_to_state_number[i])
                             clusterings.append(newSet)
                         sets.update({cluster_idx + m_min: clusterings})
-                        fuzzy_memberships.update({cluster_idx + m_min: gpcca.memberships.tolist()})
+                        state_to_membership = {}
+                        for idx,m in enumerate(gpcca.memberships.tolist()):
+                            state_to_membership.update({idx_to_state_number[idx]: m})                        
+                        fuzzy_memberships.update({cluster_idx + m_min: state_to_membership})
                 j.update({'feasible_clusters': feasible_clusters})
             except ValueError as exception:
                 print(exception)
@@ -194,14 +215,16 @@ def create_app(test_config=None):
                         newSet.append(idx_to_state_number[i])
                     clusterings.append(newSet)
                 sets.update({clusters: clusterings})
-                fuzzy_memberships.update({clusters: gpcca.memberships.tolist()})
+                state_to_membership = {}
+                for idx,m in enumerate(gpcca.memberships.tolist()):
+                    state_to_membership.update({idx_to_state_number[idx]: m})                        
+                fuzzy_memberships.update({clusters: state_to_membership})
             except ValueError as exception:
                 print(exception)
                 return {'status': 500, 'Error': str(exception)}, 500
             
         j.update({'sets': sets})
-        j.update({'fuzzy_memberships': fuzzy_memberships})
-
+        j.update({'fuzzy_memberships': fuzzy_memberships})        
         # TODO: add as metadata in vis
         # j.update({'dominant_eigenvalues': gpcca.dominant_eigenvalues.tolist()})
         # j.update({'minChi': gpcca.minChi(m_min, m_max)})
@@ -223,8 +246,7 @@ def create_app(test_config=None):
         state_atom_dict = converter.query_to_ASE(driver, q, False)        
         qimg = None
         for atoms in state_atom_dict.values():            
-            qimg = visualizations.render_ASE(atoms)
-        print("finished writation")
+            qimg = visualizations.render_ASE(atoms)        
 
         img = Image.fromqimage(qimg)
         rawBytes = io.BytesIO()

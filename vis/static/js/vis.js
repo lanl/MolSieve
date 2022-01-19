@@ -108,6 +108,10 @@ $('document').ready(function() {
 	    calculate_unique_states(name);    
 	    setup_controls(name);                                 	
 	    draw_PCCA(names_in_use);
+	    $('#modal_loading-indicator').iziModal('setSubtitle', "Fetching metadata");
+	    return get_metadata(name);
+	}).then((data) => {
+	    set_metadata(data);            
 	}).catch((err => {                        
 	    error_state(err);
 	})).finally(() => {
@@ -153,10 +157,11 @@ $('document').ready(function() {
 
     $('#btn_calculate_neb').on('click', function() {	
 	var name = $('#modal_path_selection_container').attr("data-name");
-	var start = 300;//$('#modal_path_selection_container').attr("data-start");
-	var end = 305;//$('#modal_path_selection_container').attr("data-end");
-	showLoadingIndicator("Calculating nudged elastic band on timesteps " + start + " - " + end);
+	var start = parseInt($('#modal_path_selection_container').attr("data-start"));
+	var end = parseInt($('#modal_path_selection_container').attr("data-end"));
+	showLoadingIndicator("Calculating nudged elastic band on timesteps " + start + " - " + end);        
 	calculate_neb_on_path(name, start, end+1).then((data) => {
+	    console.log(data);
 	    let sequence = trajectories[name].sequence.slice(start, end+1);
 	    var max_energy = Math.max.apply(Math,data);
 	    var init_energy = data[0];
@@ -166,11 +171,10 @@ $('document').ready(function() {
 	    $('#btn_calculate_neb').hide();
 	    $("#vis_neb").append("<p><b>Maximum energy barrier on path:</b> " + max_energy + "</p>");
 	    $("#vis_neb").append("<p><b>Total ΔE over path:</b> " + dE + "</p>");	                
-	    draw_xy_plot("Energy", sequence, "neb", data);            	    
+	    draw_xy_plot("Energy", sequence, "neb", data, false, true);            	    
 	}).catch((error) => {error_state(error);}).finally(() => {
 	    closeLoadingIndicator();
 	});
-
     });
 
     // add filter modal
@@ -395,8 +399,10 @@ $('document').ready(function() {
 	    $(this).css("color", "blue");            
 	}).on('mouseout', function() {
 	    $(this).css("color", "black");
-	}).on('click', function() {
-	    //TODO show metadata about run
+	}).on('click', function() {            
+            $('#modal_container').text(trajectories[name].raw);
+	    $('#modal_info').iziModal('setSubtitle', 'Metadata for ' + name);
+	    $('#modal_info').iziModal('open');
 	});
                         
 	var pcca_slider = $('<input type="range" min="1" max="20" value="' + trajectories[name].optimal_cluster_value + '">')
@@ -606,12 +612,12 @@ $('document').ready(function() {
 
 	for (const name of names) {            
 	    var data = trajectories[name].sequence;            
-            
-	    if(data.length > maxLength) {
+
+            if(data.length > maxLength) {
                 maxLength = data.length;
 	    }
-	    
-	    dataList.push({'name': name, 'data': data, 'y': count,
+
+            dataList.push({'name': name, 'data': data, 'y': count,
 			   'fuzzy_memberships': trajectories[name].fuzzy_memberships[trajectories[name].current_clustering]});
 	    count++;
 	}        
@@ -625,12 +631,14 @@ $('document').ready(function() {
 
 	//TODO add modal on state click, to show additional information if interested
 
-	for(const t of dataList) {
+	for(const t of dataList) {            
 	    let g = svg.append("g").attr("id", "g_" + t.name);	
 	    tickNames.push(t.name);
 	    g.selectAll("rect").data(t.data, function(d) {return d}).enter().append("rect")
-		.attr("x", function(d,i) {                    
-		    return scale_x(i)}).attr("y", function () {		
+		.attr("x", function(d) {                    
+		    return scale_x(d['timestep'])
+		})
+		.attr("y", function () {		
 		    return scale_y(t.y);
 		})
 		.attr("width",5).attr("height",5).attr("fill", function(d) {
@@ -643,8 +651,9 @@ $('document').ready(function() {
 		.attr("number", function(d) { return d['number'] })
 		.attr("timestep", function(d) { return d['timestep'] })
 		.attr("occurences", function(d) { return d['occurences'] })
-	        .attr("fuzzy_membership", function(d) {                    
-		    return t.fuzzy_memberships[parseInt(d['id'])]; })
+	        .attr("fuzzy_membership", function(d,i) {                                        
+		    return t.fuzzy_memberships[d['number']];
+		})
 	        .on('click', function(event,d) {
 		    //showLoadingIndicator("Generating Ovito image for state " + d['number']);
 		    /*generate_ovito_image(d['number']).then((data) => {
@@ -669,21 +678,62 @@ $('document').ready(function() {
 		    }
 		    tippy(this, {
 			allowHTML: true,
-			content: "<b>Run</b>: " + t.name + " <b>State number</b>: " + d['number'] + " <i>t</i>=" + d['timestep'] +
-			    "<br><b>Cluster</b>: " + d['cluster'] + " <b>Fuzzy memberships:</b>" +
-			    $(this).attr("fuzzy_membership").toString() + 
-			    "<br>There are <b>" + d['occurences'] + "</b> occurences of this state.<br>" + propertyString,
+			content: "<b>Run</b>: " + t.name + " <i>t</i>=" + d['timestep'] +
+			    "<br><b>Cluster</b>: " + d['cluster'] +
+			    " <b>Fuzzy memberships:</b>" + $(this).attr("fuzzy_membership").toString() + 
+			    "<br>" + propertyString,
 			arrow: true,
 			maxWidth: 'none',
 		    });
 		});	    
 	}
 	
-	svg.append("g").call(d3.axisBottom().scale(scale_x));				
-	var brush = d3.brush().extent([[0,0], [bBox.width, svg_height]]).on('end', function(e) {
+	var xAxis = svg.append("g").call(d3.axisBottom().scale(scale_x));
+
+	// reset zoom
+	svg.on('dblclick', function(event,d) {
+	    // zoom out on double click
+	    scale_x.domain([0,maxLength]);
+	    xAxis.call(d3.axisBottom(scale_x));
+	    svg.selectAll("rect")
+		.attr("x", function(d) { return scale_x(d['timestep']); });             
+	});
+
+	var z_brush = d3.brushX().extent([[0,0], [bBox.width, svg_height]]).on('end', function(e) {
+	    var extent = e.selection;                        
+	    if(extent) {                
+                d3.select("#svg_" + name).select('.brush').call(z_brush.move, null);
+		scale_x.domain([scale_x.invert(extent[0]), scale_x.invert(extent[1])]);
+		xAxis.call(d3.axisBottom(scale_x));
+		svg.selectAll("rect")
+		    .attr("x", function(d) { return scale_x(d['timestep']); });                  
+		d3.select(this).remove();                
+		$(".brush").remove();
+	    }            
+	    d3.select(this).remove();            
+	    $(".brush").remove();
+	});
+
+	// multiple path selection
+	var extents = [];
+	
+	var m_s_brush = d3.brush().extent([[0,0], [bBox.width, svg_height]]).on('end', function(e) {
 	    var extent = e.selection;                        
 	    if(extent) {
-		console.log(scale_y.invert(extent[0][1]));
+		var curr_name = dataList[Math.round(scale_y.invert(extent[0][1]))].name;		
+		if (curr_name != null && curr_name != undefined) {
+		    var begin = trajectories[curr_name].sequence[Math.round(scale_x.invert(extent[0][0]))];
+		    var end = trajectories[curr_name].sequence[Math.round(scale_x.invert(extent[1][0]))];
+		    var xtent = {name:curr_name, begin:begin,end:end};
+		    extents.push(xtent);
+		}
+	    }            
+	});
+
+	// single path selection
+	var s_brush = d3.brush().extent([[0,0], [bBox.width, svg_height]]).on('end', function(e) {
+	    var extent = e.selection;                        
+	    if(extent) {                
                 var curr_name = dataList[Math.round(scale_y.invert(extent[0][1]))].name;		
 		if (curr_name != null && curr_name != undefined) {
 		    var begin = trajectories[curr_name].sequence[Math.round(scale_x.invert(extent[0][0]))];
@@ -699,12 +749,33 @@ $('document').ready(function() {
 	    d3.select(this).remove();            
 	    $(".brush").remove();
 	});
-	
+
+	// controls
 	document.onkeyup = function(e) {
-	    if(e.key === "Control") {                
+	    if(e.key == "Control") {                
 		if ($(".brush").length) { $(".brush").remove(); }               
-		d3.select("#svg_main").append("g").attr("class", "brush").call(brush);
-	    }                			
+		d3.select("#svg_main").append("g").attr("class", "brush").call(s_brush);
+	    }
+	    
+	    if(e.key == 'Z' || e.key == 'z') {
+		if ($(".brush").length) { $(".brush").remove(); }                
+		d3.select("#svg_main").append("g").attr("class", "brush").call(z_brush);
+	    }
+	    
+	    if(e.key == "Shift") {
+		d3.select("#svg_main").append("g").attr("class", "brush").call(m_s_brush);                
+	    }
+	    
+	    if(e.key == "S" || e.key == "s") {
+		if ($(".brush").length) { $(".brush").remove(); }
+		if(extents.length >= 2) {
+		    if(extents.length > 2) {
+			extents.splice(0, extents.length - 2);
+		    }
+		    console.log(extents);                    
+		}
+		extents = [];
+	    }	    	    
 	}	
     }
 
@@ -716,12 +787,14 @@ $('document').ready(function() {
      * svgName - svg where the x-y plot should be drawn
      * attributeList - if we're using an outside source for the y attribute, pass it here
      * reverse - draw y values top to bottom
+     * path - draw lines between values
      */
-    function draw_xy_plot(attribute, sequence, svgName, attributeList, reverse) {        
+    function draw_xy_plot(attribute, sequence, svgName, attributeList, reverse, path) {        
 	let [svg,bBox] = set_svg(svgName);
         
-	if(reverse == null) reverse = false;
-	
+	if(reverse == null) reverse = false;        
+        if(path == null) path = false;
+        
 	if(attributeList == null) {
 	    attributeList = [];
 	    for(d of sequence) {
@@ -765,6 +838,22 @@ $('document').ready(function() {
 		    maxWidth: 'none',
 		});		
 	    });
+
+        
+        if(path) {	    
+	    var datum = [];
+
+	    for(var i = 0; i < sequence.length; i++) {
+		const d = {x: sequence[i]['timestep'], y: attributeList[i] };
+		datum.push(d);
+	    }
+            
+	    const line = d3.line()
+		  .x(d => scale_x(d.x))
+		  .y(d => scale_y(d.y))	
+		  .curve(d3.curveCatmullRom.alpha(0.5));
+	    svg.append('path').datum(datum).attr('d', line).attr("stroke","black").attr("fill","none");            
+        }        
 	
 	var xAxisPos = svg_height - margin.bottom;
 	var xAxis = svg.append("g").attr("transform", "translate(0," + xAxisPos + ")").call(d3.axisBottom().scale(scale_x));                	

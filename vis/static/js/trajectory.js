@@ -7,4 +7,6 @@ class Trajectory {
     fuzzy_memberships = {};
     current_clustering;
     properties;
+    raw;
+    LAMMPSBootstrapScript;
 }

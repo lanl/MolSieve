@@ -7,8 +7,7 @@ var trajectories = {};
 /* Ajax call that connects to the neo4j database and retrieves the various trajectories available, as well as their properties. */
 var connect_to_database = function () {
     return new Promise(function(resolve, reject) {
-	$.ajax({url: "/connect_to_db"}).done(function(data) {
-	    console.log(data);
+	$.ajax({url: "/connect_to_db"}).done(function(data) {            
 	    for(var i = 0; i < data.runs.length; i++) {
 		if (data.runs[i] != null) {                        
 		    trajectories[data.runs[i]] = new Trajectory();                        
@@ -31,7 +30,7 @@ var connect_to_database = function () {
 var load_PCCA = function(name, clusters, optimal, m_min, m_max) { 
     return new Promise(function(resolve, reject) {            
 	$.getJSON('/pcca', {'run': name, 'clusters' : clusters, 'optimal' : optimal, 'm_min': m_min, 'm_max': m_max},
-		  function(clustered_data) {
+		  function(clustered_data) {                      
 		      if (optimal === 1) {                    
 			  trajectories[name].optimal_cluster_value = clustered_data.optimal_value;
 			  trajectories[name].current_clustering = clustered_data.optimal_value;                    
@@ -100,8 +99,7 @@ var calculate_epochs = function(name) {
  */
 var calculate_neb_on_path = function(name,start,end) {
     return new Promise(function(resolve,reject) {
-	$.getJSON('/calculate_neb_on_path', {'run': name, 'start': start, 'end': end}, function(data) {
-	    console.log(data);
+	$.get('/calculate_neb_on_path', {'run': name, 'start': start, 'end': end}, function(data) {            
 	    resolve(data);
 	}).fail(function(msg, text, error) {        
 	    reject(error + "\n" + msg.responseJSON.error.message);
@@ -116,8 +114,21 @@ var calculate_neb_on_path = function(name,start,end) {
 var generate_ovito_image = function(number) {
     return new Promise(function(resolve,reject) {
 	$.get('/generate_ovito_image', {'number':number}, function(data) {            
-	    resolve(data.split('\'')[1])
+	    resolve(data.split('\'')[1]);
 	}).fail(function(msg, text, error) {        
+	    reject(error + "\n" + msg.responseJSON.error.message);
+	});
+    });
+}
+
+/* Ajax call to retrieve metadata from the database
+ * run - run to retrieve the metadata from
+ */
+var get_metadata = function(run) {
+    return new Promise(function(resolve,reject) {
+	$.get('/get_metadata', {'run':run}, function(data) {
+	    resolve(data);
+	}).fail(function(msg,text,error) {
 	    reject(error + "\n" + msg.responseJSON.error.message);
 	});
     });
@@ -150,11 +161,19 @@ function set_cluster_info(name) {
 function calculate_unique_states(name) { 	
     if (trajectories[name].unique_states == null) {
 	var unique_states = new Set();
-	for (var i = 0; i < trajectories[name].sequence.length; i++) {
+	for(var i = 0; i < trajectories[name].sequence.length; i++) {
 	    unique_states.add(trajectories[name].sequence[i].number);
 	}
 	trajectories[name].unique_states = unique_states;
     }        
+}
+
+/* Sets the metadata for the run in the trajectory object
+   data - metadata for the run retrieved from get_metadata
+ */
+function set_metadata(data) {
+    trajectories[data.run].raw = data.raw;
+    trajectories[data.run].LAMMPSBootstrapScript = data.LAMMPSBootstrapScript;
 }
 
 // Section: Filters
@@ -274,7 +293,7 @@ function fuzzy_membership_filter(name) {
      }
 
      for(var j = 0; j < trajectories[name].sequence.length; j++) {
-	 var id = trajectories[name].sequence[j]['id'];
+	 var id = trajectories[name].sequence[j]['number'];
 	 var cluster_membership = trajectories[name].sequence[j]['cluster'];                    
 	 extents[cluster_membership][0] = Math.min(extents[cluster_membership][0], current_membership_values[id][cluster_membership]);
 	 extents[cluster_membership][1] = Math.max(extents[cluster_membership][1], current_membership_values[id][cluster_membership]);
@@ -284,8 +303,7 @@ function fuzzy_membership_filter(name) {
      for(var i = 0; i < trajectories[name].current_clustering; i++) {
 	 scales.push(d3.scaleLinear().range([0,0.5]).domain([extents[i][0], extents[i][1]]));
      }                
-
-     //still not that great of a metric
+     
      d3.selectAll("rect").filter(function() {            
 	 return this.getAttributeNode("run").nodeValue == name;
      }).attr("opacity", function(d) {
