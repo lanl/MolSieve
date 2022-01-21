@@ -77,13 +77,19 @@
 	<button id="btn_cancel_create_filter" class="btn-margin">Cancel</button>
       </div>
     </div>
+    <div id="modal_comparison">
+      <div id="modal_comparison_container">
+	<label for="select_y_attributes">Attribute: </label>
+        <select name="select_y_attributes" id="select_y_attributes"></select>
+	<button id="btn_generate_xy_plots" class="btn btn-light" data-izimodal-preventclose="">Generate plots</button>        
+      </div>
+    </div>
     <div id="modal_xy_plot">
-      <div class="scrollingModal">
+      <div id="modal_xy_plot_container" class="scrollingModal">
 	<b>For the time being, x will always refer to timestep.</b>
 	<label for="select_y_attribute">Attribute: </label>
         <select name="select_y_attribute" id="select_y_attribute"></select>
-	<button id="btn_generate_xy_plot" class="btn btn-light" data-izimodal-preventclose="">Generate plot</button>
-	<div id="vis_xy"></div>
+	<button id="btn_generate_xy_plot" class="btn btn-light" data-izimodal-preventclose="">Generate plot</button>        
       </div>
     </div>
   </body>

@@ -66,7 +66,6 @@ def create_app(test_config=None):
     def home():
         return render_template('home.html')
 
-    # TODO: rename to load sequence or load trajectory
     # TODO: the trajectory gets generated twice... can do this once in PCCA and skip extra processing time
     @app.route('/load_sequence', methods=['GET'])
     def load_sequence(): 

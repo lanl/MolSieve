@@ -56,7 +56,7 @@ $('document').ready(function() {
 	borderBottom: false,                      
 	onClosed: function() {
 	    $("#select_y_attribute").empty();
-	    $("#vis_xy").empty();
+	    $(".plot").remove();
 	}
     });
 
@@ -65,6 +65,7 @@ $('document').ready(function() {
 	var name = $(this).attr("data-name");
 	var sequence = trajectories[name].sequence;
 	var attribute = $('#select_y_attribute').val();
+
 	draw_xy_plot(attribute, sequence, "xy");	
     });
  
@@ -268,6 +269,30 @@ $('document').ready(function() {
         
 	$('#modal_add_filter').iziModal('close');
     });
+
+    $('#modal_comparison').iziModal({
+	title: 'Comparison',        
+	overlayClose: false,
+	borderBottom: false,        
+	onClosed: function() {
+	    $('#select_y_attributes').empty();
+            $('.plot').remove();
+	}
+    });
+
+    /* Button inside comparison modal that draws whatever user selected */
+    $('#btn_generate_xy_plots').on('click', function() {
+	var extents = JSON.parse($('#modal_comparison_container').attr("data-extents"));        
+	for(var i = 0; i < extents.length; i++) {
+	    var name = extents[i]['name'];
+	    var sequence = trajectories[name].sequence.slice(extents[i]['begin']['timestep'], extents[i]['end']['timestep']);            
+	    var attribute = $('#select_y_attributes').val();
+	    var div = $('<div>').attr("id", "vis_xy" + i).addClass("plot");
+	    $('#modal_comparison_container').append(div);
+	    draw_xy_plot(attribute, sequence, "xy" + i);	
+	}
+    });
+
 
     /* Generic filter function that gets all states with at least val of property.
      * property - property to filter on
@@ -567,7 +592,11 @@ $('document').ready(function() {
 		    select.append($('<option>').val(property).text(property));		    
 		}
 		$('#btn_generate_xy_plot').attr("data-name", name);
-	        $('#modal_xy_plot').iziModal('open');
+
+		var div = $('<div>').attr("id", "vis_xy").addClass("plot");
+		$('#modal_xy_plot_container').append(div);
+
+		$('#modal_xy_plot').iziModal('open');
 	    });
 
 	div.append(btn_add_filter);
@@ -768,12 +797,24 @@ $('document').ready(function() {
 	    
 	    if(e.key == "S" || e.key == "s") {
 		if ($(".brush").length) { $(".brush").remove(); }
-		if(extents.length >= 2) {
-		    if(extents.length > 2) {
-			extents.splice(0, extents.length - 2);
+		if(extents.length >= 2) {                    
+		    var select = $("#select_y_attributes");
+
+		    var propList = []
+		    for(var i = 0; i < extents.length; i++) {
+			propList.push(trajectories[extents[i]['name']].properties);
 		    }
-		    console.log(extents);                    
+		    
+		    var cmn = intersection(propList); 
+		    
+		    for(property of cmn) {
+			select.append($('<option>').val(property).text(property));		    
+		    }
+		    
+		    $('#modal_comparison_container').attr("data-extents", JSON.stringify(extents));
+                    $('#modal_comparison').iziModal('open');
 		}
+		// clear extents array
 		extents = [];
 	    }	    	    
 	}	
@@ -838,7 +879,6 @@ $('document').ready(function() {
 		    maxWidth: 'none',
 		});		
 	    });
-
         
         if(path) {	    
 	    var datum = [];
