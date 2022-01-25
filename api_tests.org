@@ -1,10 +1,10 @@
 * Introduction
 Use this file to test the API provided by the server using the emacs plugin [[https://github.com/federicotdn/verb][verb]]. If you don't use emacs, you can use the curl commands provided as well.
 * NEB Calculation :verb:
-get http://localhost:5000/calculate_neb_on_path?run=nano_pt&start=12992&end=12994
+get http://localhost:5000/calculate_neb_on_path?run=nano_pt&start=12990&end=13000&atomType=Pt
 
 #+begin_src
-curl http://localhost:5000/calculate_neb_on_path\?run\=nano\_pt\&start\=300\&end\=305
+curl http://localhost:5000/calculate_neb_on_path\?run\=nano\_pt\&start\=300\&end\=305\&atomType=\Pt
 #+end_src
 * Retrieve Metadata :verb:
 get http://localhost:5000/get_metadata?run=nano_pt
@@ -12,3 +12,5 @@ get http://localhost:5000/get_metadata?run=nano_pt
 #+begin_src
 curl http://localhost:5000/get_metadata\?run\=nano\_pt
 #+end_src
+* Get Ovito Modifiers :verb:
+get http://localhost:5000/get_ovito_modifiers

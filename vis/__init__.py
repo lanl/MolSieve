@@ -1,6 +1,7 @@
 import os
 import json
 from flask import (render_template, Flask, jsonify, request)
+import neomd
 from neomd import querybuilder, calculator, converter, query, visualizations
 import neo4j
 import numpy as np
@@ -8,9 +9,15 @@ from PIL import Image
 import io, sys
 from pydivsufsort import divsufsort, kasai, most_frequent_substrings, sa_search
 import jsonpickle
-from .epoch import Epoch, calculate_epoch
 import pygpcca as gp
 import base64
+
+from .epoch import Epoch, calculate_epoch
+from .config import Config
+from .trajectory import Trajectory
+from .utils import metadata_to_parameters, get_atom_type
+
+trajectories = {}
 
 # https://stackoverflow.com/questions/57269741/typeerror-object-of-type-ndarray-is-not-json-serializable
 class NumpyEncoder(json.JSONEncoder):
@@ -29,30 +36,19 @@ class NumpyEncoder(json.JSONEncoder):
 def create_app(test_config=None):
     # create and configure the app
     app = Flask(__name__, instance_relative_config=True)
+                
+    app.config.from_object(Config())
+                    
+    if not os.path.isdir(app.config["LD_LIBRARY_PATH"]):
+        raise FileNotFoundError("Error: {LD_LIBRARY_PATH} does not exist.".format(LD_LIBRARY_PATH=app.config["LD_LIBRARY_PATH"]))
 
-    # set this to your lammps path
-    lammps_path = 'mpirun -n 4 /home/frosty/Apps/lammps/install/bin/lmp'
-    os.environ['LD_LIBRARY_PATH'] = '/home/frosty/Apps/lammps/install/lib'    
-    app.config.from_mapping(
-        SECRET_KEY='dev',
-        DATABASE=os.path.join(app.instance_path, 'flaskr.sqlite'),
-    )
-
-    if test_config is None:
-        # load the instance config, if it exists, when not testing
-        app.config.from_pyfile('config.py', silent=True)
-    else:
-        # load the test config if passed in
-        app.config.from_mapping(test_config)
-
-    # ensure the instance folder exists
-    try:
-        os.makedirs(app.instance_path)
-    except OSError:
-        pass
-
+    os.environ['LD_LIBRARY_PATH'] = app.config["LD_LIBRARY_PATH"]
+    
+    if not os.path.isfile(app.config["LAMMPS_PATH"]):
+        raise FileNotFoundError("Error: LAMMPS binary not found at {lammps_path}".format(lammps_path=app.config["LAMMPS_PATH"]))
+        
     @app.errorhandler(Exception)
-    def handle_exception(error):
+    def handle_exception(error):        
         response = {
             'success': False,
             'error': {
@@ -66,7 +62,10 @@ def create_app(test_config=None):
     def home():
         return render_template('home.html')
 
-    # TODO: the trajectory gets generated twice... can do this once in PCCA and skip extra processing time
+    @app.route('/get_ovito_modifiers', methods=['GET'])
+    def get_ovito_modifiers():
+        return jsonify(neomd.utils.return_ovito_modifiers())
+    
     @app.route('/load_sequence', methods=['GET'])
     def load_sequence(): 
         run = request.args.get('run')
@@ -102,11 +101,10 @@ def create_app(test_config=None):
                                             auth=("neo4j", "secret"))
         run = request.args.get('run')
         qb = querybuilder.Neo4jQueryBuilder(
-            [('State', 'NEXT', 'State', 'ONE-TO-ONE'),
-             ('Atom', 'PART_OF', 'State', 'MANY-TO-ONE')],
-            constraints=[("RELATION", "NEXT", "run", run, "STRING")])
+            [('State', run, 'State', 'ONE-TO-ONE'),
+             ('Atom', 'PART_OF', 'State', 'MANY-TO-ONE')])
 
-        q = qb.generate_trajectory("NEXT",
+        q = qb.generate_trajectory(run,
                                    "ASC", ['RELATION', 'timestep'],
                                    node_attributes=[('number', "FIRST")],
                                    relation_attributes=['timestep'])
@@ -130,14 +128,18 @@ def create_app(test_config=None):
                 result = session.run(
                     "MATCH (:State)-[r]-(:State) RETURN DISTINCT TYPE(r)")
                 # gets rid of ugly syntax on js side - puts everything in one array; probably a better more elegant way to do this
-                j.update({'runs': [r[0] for r in result.values()]})
+                runs = []
+                for r in result.values():
+                    runs.append(r[0])
+                    trajectories.update({r[0] : Trajectory()})                    
+                j.update({'runs': runs})
                 result = session.run(
                     "MATCH (n:State) with n LIMIT 1 UNWIND keys(n) as key RETURN DISTINCT key;"
                 )
                 j.update({'properties': [r[0] for r in result.values()]})
             except neo4j.exceptions.ServiceUnavailable as exception:
                 raise exception
-
+        
         return jsonify(j)
 
     @app.route('/get_metadata', methods=['GET'])
@@ -152,11 +154,13 @@ def create_app(test_config=None):
                     "MATCH (n:Metadata {{run: {run} }}) RETURN n".format(run='"' +  run +'"'))
                 record = result.single()
                 for n in record.values():
-                    for key,value in n.items():
+                    for key,value in n.items():                        
+                        if key == "LAMMPSBootstrapScript" and trajectories is not None and trajectories[run] is not None:                            
+                            trajectories[run].metadata = metadata_to_parameters(value)
                         j.update({key:value})                    
             except neo4j.exceptions.ServiceUnavailable as exception:
                 raise exception
-
+        
         return jsonify(j)
 
     #TODO: Refactor to be cleaner
@@ -242,7 +246,7 @@ def create_app(test_config=None):
                     ("Atom", "PART_OF", "State", "MANY-TO-ONE")])
         
         q = qb.generate_get_node('State', ("number", number), 'PART_OF')               
-        state_atom_dict = converter.query_to_ASE(driver, q, False)        
+        state_atom_dict = converter.query_to_ASE(driver, q, get_atom_type(trajectories[run].metadata), False)        
         qimg = None
         for atoms in state_atom_dict.values():            
             qimg = visualizations.render_ASE(atoms)        
@@ -281,19 +285,29 @@ def create_app(test_config=None):
         run = request.args.get('run')
         start = request.args.get('start')
         end = request.args.get('end')
+        atomType = request.args.get('atomType')
         
         driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687",
                                             auth=("neo4j", "secret"))
-
+        
         qb = querybuilder.Neo4jQueryBuilder(
             schema=[("State", run, "State", "ONE-TO-ONE"),
                     ("Atom", "PART_OF", "State", "MANY-TO-ONE")])
 
+        # hack at the end here so that the final node in the sequence is filled out
+        # saves the trouble of modifying query_to_ASE + generate_get_path
+        # needs to be fixed in the future though
+        end = str(int(end) + 1)
         q = qb.generate_get_path(start,end,run=run)
+
+        if atomType == None or atomType == '':
+            atomType = get_atom_type(trajectories[run].metadata)
         
-        state_atom_dict, relationList = converter.query_to_ASE(driver, q, True)
-        
-        neb, ef_list, de_list = calculator.calculate_neb_on_path(driver, state_atom_dict, relationList, qb, run, lammps_path)               
-        
-        return jsonify(ef_list)
+        state_atom_dict, relationList = converter.query_to_ASE(driver, q, atomType, True)                        
+        ef_list, de_list = calculator.calculate_neb_on_path(driver, state_atom_dict, relationList, qb, run, app.config["LAMMPS_RUN"])                       
+
+        j = {}
+        j.update({"ef_list":ef_list})
+        j.update({"de_list":de_list})
+        return jsonify(j)
     return app

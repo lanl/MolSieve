@@ -109,7 +109,7 @@ $('document').ready(function() {
 	    calculate_unique_states(name);    
 	    setup_controls(name);                                 	
 	    draw_PCCA(names_in_use);
-	    $('#modal_loading-indicator').iziModal('setSubtitle', "Fetching metadata");
+	    $('#modal_loading-indicator').iziModal('setSubtitle', "Fetching metadata");            
 	    return get_metadata(name);
 	}).then((data) => {
 	    set_metadata(data);            
@@ -156,23 +156,23 @@ $('document').ready(function() {
 	}
     });
 
+    /* Button inside path selection modal that draws NEB for selected path */ 
     $('#btn_calculate_neb').on('click', function() {	
 	var name = $('#modal_path_selection_container').attr("data-name");
 	var start = parseInt($('#modal_path_selection_container').attr("data-start"));
 	var end = parseInt($('#modal_path_selection_container').attr("data-end"));
 	showLoadingIndicator("Calculating nudged elastic band on timesteps " + start + " - " + end);        
-	calculate_neb_on_path(name, start, end+1).then((data) => {
-	    console.log(data);
-	    let sequence = trajectories[name].sequence.slice(start, end+1);
-	    var max_energy = Math.max.apply(Math,data);
-	    var init_energy = data[0];
-	    var dE = max_energy - init_energy;            
-	    closeLoadingIndicator();
+	calculate_neb_on_path(name, start, end).then((data) => {            
+	    let sequence = trajectories[name].sequence.slice(start, end+1);            
+	    var max_energy = Math.max.apply(Math,data['ef_list']);            
+	    //still not sure how to calculate this correctly
+	    var dE = max_energy - data['ef_list'][0];
+            closeLoadingIndicator();
 	    $('#modal_path_selection').iziModal('open');
 	    $('#btn_calculate_neb').hide();
 	    $("#vis_neb").append("<p><b>Maximum energy barrier on path:</b> " + max_energy + "</p>");
 	    $("#vis_neb").append("<p><b>Total ΔE over path:</b> " + dE + "</p>");	                
-	    draw_xy_plot("Energy", sequence, "neb", data, false, true);            	    
+	    draw_xy_plot("Energy", sequence, "neb", data['ef_list'], false, true);            	    
 	}).catch((error) => {error_state(error);}).finally(() => {
 	    closeLoadingIndicator();
 	});
@@ -270,6 +270,7 @@ $('document').ready(function() {
 	$('#modal_add_filter').iziModal('close');
     });
 
+    // multiple path comparison modal
     $('#modal_comparison').iziModal({
 	title: 'Comparison',        
 	overlayClose: false,
@@ -293,6 +294,28 @@ $('document').ready(function() {
 	}
     });
 
+    $('#modal_preprocessing').iziModal({
+	title: 'Preprocess data',        
+	overlayClose: false,
+	borderBottom: false,        
+	onClosed: function() {
+            var checkboxes = $("#tbl_preprocessing").find('td input:checkbox');
+
+            for(chkbx of checkboxes) {
+		if(chkbx.checked) {
+		    chkbx.prop("checked", false);
+		}
+	    }
+	}
+    });
+    
+    $('#btn_open_preprocessing_modal').on('click', function() {
+	$('#modal_preprocessing').iziModal('open');        
+    });
+
+    $('#btn_preprocess_data').on('click', function() {
+	//gather all the selects and begin work
+    });
 
     /* Generic filter function that gets all states with at least val of property.
      * property - property to filter on
@@ -331,41 +354,47 @@ $('document').ready(function() {
     // Application actually starts here
     showLoadingIndicator();    
     connect_to_database().then((data) => {        
-	setup_properties_table(data.properties, "tbl_properties");
-	setup_runs_table(data);	
+	setup_checkbox_table(data.properties, "tbl_properties", ['occurences', 'number'], 'Select which properties to load', 'Property', 'Load?');        
+	setup_checkbox_table(data.runs, "tbl_preprocessing", [], 'Select which runs to preprocess', 'Run', 'Preprocess?');
+	setup_runs_table(data);
+	$('#btn_open_preprocessing_modal').show();
 	$('#grid').append(setup_main());        
     }).catch(function(error) {
 	error_state(error);
     }).then(() => {
 	closeLoadingIndicator();
     });               
-
-    /* Sets up the properties table that is seen within the optimal_clustering modal
+        
+    /* Set up table with checkboxes next to each option - used in property table and preprocessing table.
      * propertyList - properties to include
      * id - DOM id of the table to populate
+     * default_values - which values to grey out, if any
+     * caption - caption to use for the table
+     * th1 - header for first row
+     * th2 - header for second row
      */
-    function setup_properties_table(propertyList, id) { 
-	const default_properties = ['occurences', 'number'];        
+    function setup_checkbox_table(propertyList, id, default_values, caption, th1, th2) { 
 	var table = $('#' + id);
-	var caption = $('<caption>Select which properties to load</caption>');
-	var head = $('<thead class="thead-dark"><tr><th>Property</th><th>Load?</th></tr></thead>');
+	var caption = $('<caption>' + caption + '</caption>');
+	var head = $('<thead class="thead-dark"><tr><th>' + th1 + '</th><th>' + th2 + '</th></tr></thead>');
 	table.append(caption);
 	table.append(head);        
 	for(property of propertyList) {	    
 	    var row = $('<tr>');
 	    var name_cell = $('<td>').text(property);
-	    var checkbox = $('<input>', {type:'checkbox', id:'cb_' + property, value: property});
+	    var checkbox = $('<input>', {type:'checkbox', value: property});
 	    var input_cell = $('<td>').append(checkbox);
 	    row.append(name_cell);
 	    row.append(input_cell);
 	    table.append(row);
-	    
-	    if(default_properties.includes(property)) {
+	    if(default_values.includes(property)) {
 		checkbox.prop("checked", true);
 		checkbox.prop("disabled", true);
 	    }
-	}        
-    }
+	}
+	console.log(table);
+	return table;
+    }    
 
     /* Set up table where you can choose which trajectories to visualize
      * data - data from the ajax call that includes the properties available in the database,

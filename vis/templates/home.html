@@ -26,6 +26,7 @@
       <h1>Prototype Visualization</h1>
       <div id="load_table_div">
 	<p>Press CTRL to toggle path selection brush. Press Z to toggle zoom brush. Double click to reset zoom. Press SHIFT to toggle multiple path selection. When you are finished with your selection, press S to open the comparison dialog.</p>
+	<button id="btn_open_preprocessing_modal" class="btn-light" hidden="true">Preprocess data</button>
       </div>
     </div>
     <br/>
@@ -45,7 +46,7 @@
 	<label for="optimal_cluster_range">Clusters </label>
 	<input type="text" id="optimal_cluster_range" readonly style="border:0; font-weight:bold;">
 	<br>
-	<table id="tbl_properties" class="table table-sm">
+	<table id="tbl_properties" class="table table-sm"></table>
 	<br>
 	<button id="btn_calculate_optimal_clustering" class="btn btn-primary btn-margin">Calculate</button>
 	<button id="btn_cancel_optimal_clustering" class="btn btn-danger btn-margin">Cancel</button>
@@ -90,6 +91,16 @@
 	<label for="select_y_attribute">Attribute: </label>
         <select name="select_y_attribute" id="select_y_attribute"></select>
 	<button id="btn_generate_xy_plot" class="btn btn-light" data-izimodal-preventclose="">Generate plot</button>        
+      </div>
+    </div>
+    <div id="modal_preprocessing">
+      <div id="modal_preprocessing_container" class="scrollingmodal">
+	<table id="tbl_preprocessing" class="table table-sm margin"></table>
+	<button id="btn_add_preprocessing_step" class="btn-light btn-margin">Add preprocessing step</button>
+	<button id="btn_preprocess_data" class="btn-light btn-margin">Begin preprocessing</button>
+	<div id="modal_preprocessing_steps">
+	  
+	</div>
       </div>
     </div>
   </body>
