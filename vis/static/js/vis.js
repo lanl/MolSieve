@@ -64,9 +64,10 @@ $('document').ready(function() {
     $('#btn_generate_xy_plot').on('click', function() {
 	var name = $(this).attr("data-name");
 	var sequence = trajectories[name].sequence;
-	var attribute = $('#select_y_attribute').val();
+	var x_attribute = $('#select_x_attribute').val();
+	var y_attribute = $('#select_y_attribute').val();
 
-	draw_xy_plot(attribute, sequence, "xy");	
+	draw_xy_plot(x_attribute, y_attribute, sequence, "xy");	
     });
  
     // Optimal clustering modal
@@ -173,7 +174,7 @@ $('document').ready(function() {
 	    $('#btn_calculate_neb').hide();
 	    $("#vis_neb").append("<p><b>Maximum energy barrier on path:</b> " + max_energy + "</p>");
 	    $("#vis_neb").append("<p><b>Total ΔE over path:</b> " + dE + "</p>");	                
-	    draw_xy_plot("Energy", sequence, "neb", data['ef_list'], false, true);            	    
+	    draw_xy_plot("timestep", "Energy", sequence, "neb", null, data['ef_list'], false, true);            	    
 	}).catch((error) => {error_state(error);}).finally(() => {
 	    closeLoadingIndicator();
 	});
@@ -288,10 +289,11 @@ $('document').ready(function() {
 	for(var i = 0; i < extents.length; i++) {
 	    var name = extents[i]['name'];
 	    var sequence = trajectories[name].sequence.slice(extents[i]['begin']['timestep'], extents[i]['end']['timestep']);            
-	    var attribute = $('#select_y_attributes').val();
+	    var x_attribute = $('#select_x_attributes').val();
+	    var y_attribute = $('#select_y_attributes').val();
 	    var div = $('<div>').attr("id", "vis_xy" + i).addClass("plot");
 	    $('#modal_comparison_container').append(div);
-	    draw_xy_plot(attribute, sequence, "xy" + i);	
+	    draw_xy_plot(x_attribute, y_attribute, sequence, "xy" + i);	
 	}
     });
 
@@ -617,10 +619,17 @@ $('document').ready(function() {
 
 	var btn_plot_attribute = $('<button>Generate x-y plot with attribute</button>').attr("id", "btn_plot_attribute_" + name)
 	    .addClass("btn btn-light").on('click', function() {                
-		var select = $("#select_y_attribute");
+		var select_x = $("#select_x_attribute");
+		var select_y = $("#select_y_attribute");
+
+		select_x.append($('<option>').val('timestep').text('timestep'));
+		select_y.append($('<option>').val('timestep').text('timestep'));		    
+		
 		for(property of trajectories[name].properties) {
-		    select.append($('<option>').val(property).text(property));		    
+		    select_x.append($('<option>').val(property).text(property));
+		    select_y.append($('<option>').val(property).text(property));		    
 		}
+		
 		$('#btn_generate_xy_plot').attr("data-name", name);
 
 		var div = $('<div>').attr("id", "vis_xy").addClass("plot");
@@ -828,7 +837,8 @@ $('document').ready(function() {
 	    if(e.key == "S" || e.key == "s") {
 		if ($(".brush").length) { $(".brush").remove(); }
 		if(extents.length >= 2) {                    
-		    var select = $("#select_y_attributes");
+		    var x_select = $('#select_x_attributes');
+		    var y_select = $("#select_y_attributes");
 
 		    var propList = []
 		    for(var i = 0; i < extents.length; i++) {
@@ -836,9 +846,13 @@ $('document').ready(function() {
 		    }
 		    
 		    var cmn = intersection(propList); 
+
+		    x_select.append($('<option>').val('timestep').text('timestep'));
+                    y_select.append($('<option>').val('timestep').text('timestep'));
 		    
 		    for(property of cmn) {
-			select.append($('<option>').val(property).text(property));		    
+			x_select.append($('<option>').val(property).text(property));
+			y_select.append($('<option>').val(property).text(property));
 		    }
 		    
 		    $('#modal_comparison_container').attr("data-extents", JSON.stringify(extents));
@@ -850,30 +864,40 @@ $('document').ready(function() {
 	}	
     }
 
-    /* Draws an xy plot within the specified modal. X is always time vs the user selected attribute y.
+    /* Draws an xy plot within the specified modal. 
      * Default is to draw Y values towards the top of the graph; reverse switches that so that
      * the highest values are drawn towards the bottom of the graph.
-     * attribute - what Y will be in the plot
+     * x_attribute - what X will be in the plot
+     * y_attribute - what Y will be in the plot
      * sequence - sequence to draw, can be any length; the entire trajectory is not needed
      * svgName - svg where the x-y plot should be drawn
-     * attributeList - if we're using an outside source for the y attribute, pass it here
-     * reverse - draw y values top to bottom
-     * path - draw lines between values
+     * x_attributeList - if we're using an outside source (not in the database, calculated somewhere else) for the x attribute, pass it here (optional)
+     * y_attributeList - if we're using an outside source (not in the database, calculated somewhere else) for the y attribute, pass it here (optional)
+     * reverse - draw y values top to bottom (optional)
+     * path - draw lines between values (optional)
      */
-    function draw_xy_plot(attribute, sequence, svgName, attributeList, reverse, path) {        
+    function draw_xy_plot(x_attribute, y_attribute, sequence, svgName, x_attributeList, y_attributeList, reverse, path) {        
 	let [svg,bBox] = set_svg(svgName);
         
 	if(reverse == null) reverse = false;        
         if(path == null) path = false;
-        
-	if(attributeList == null) {
-	    attributeList = [];
+
+	if(x_attributeList == null) {
+	    x_attributeList = [];
 	    for(d of sequence) {
-		attributeList.push(d[attribute]);
+		x_attributeList.push(d[x_attribute]);
 	    }
 	}        
 	
-	var xtent = d3.extent(attributeList);        
+	if(y_attributeList == null) {
+	    y_attributeList = [];
+	    for(d of sequence) {
+		y_attributeList.push(d[y_attribute]);
+	    }
+	}        
+
+	var xtent = d3.extent(x_attributeList)
+	var ytent = d3.extent(y_attributeList);        
 
 	var first = 1;
 	var last = 0;
@@ -884,14 +908,14 @@ $('document').ready(function() {
 	}
 
 	// 1.25 for breathing room between axis and values
-        var scale_x = d3.scaleLinear().range([margin.left, bBox.width - margin.right]).domain([sequence[0]['timestep'],
-											   sequence[sequence.length-1]['timestep']]);
+        var scale_x = d3.scaleLinear().range([margin.left, bBox.width - margin.right]).domain([xtent[0],xtent[1]]);
 
-	var scale_y = d3.scaleLinear().range([margin.top, svg_height - (margin.bottom * 1.5)]).domain([xtent[first],xtent[last]]);
+	var scale_y = d3.scaleLinear().range([margin.top, svg_height - (margin.bottom * 1.5)]).domain([ytent[first],ytent[last]]);
 	
         svg.selectAll("rect").data(sequence).enter().append("rect")
-	    .attr("x", function(d) {return scale_x(d['timestep'])})
-	    .attr("y", function(d, i) {return scale_y(attributeList[i])})
+
+	    .attr("x", function(d,i) {return scale_x(x_attributeList[i])})
+	    .attr("y", function(d, i) {return scale_y(y_attributeList[i])})
 	    .attr("index", function(d,i) {return i})
 	    .attr("width", 5).attr("height", 5)
 	    .attr("fill", function(d) {                
@@ -903,8 +927,8 @@ $('document').ready(function() {
 		const i = event.currentTarget.getAttribute("index");                
 		tippy(this, {
 		    allowHTML: true,
-		    content: "<i>t<i> = " + d['timestep'] +
-			     "<br><b>" + attribute + "</b>: " + attributeList[i],
+		    content: "<b>" + x_attribute + "</b>: " + x_attributeList[i] +
+			     "<br><b>" + y_attribute + "</b>: " + y_attributeList[i],
 		    arrow: true,
 		    maxWidth: 'none',
 		});		
@@ -912,9 +936,8 @@ $('document').ready(function() {
         
         if(path) {	    
 	    var datum = [];
-
 	    for(var i = 0; i < sequence.length; i++) {
-		const d = {x: sequence[i]['timestep'], y: attributeList[i] };
+		const d = {x: x_attributeList[i], y: y_attributeList[i] };
 		datum.push(d);
 	    }
             

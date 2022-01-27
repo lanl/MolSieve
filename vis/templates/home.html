@@ -82,6 +82,8 @@
     </div>
     <div id="modal_comparison">
       <div id="modal_comparison_container">
+	<label for="select_x_attributes">X attribute: </label>
+	<select name="select_x_attributes" id="select_x_attributes"></select>
 	<label for="select_y_attributes">Attribute: </label>
         <select name="select_y_attributes" id="select_y_attributes"></select>
 	<button id="btn_generate_xy_plots" class="btn btn-light" data-izimodal-preventclose="">Generate plots</button>        
@@ -89,8 +91,9 @@
     </div>
     <div id="modal_xy_plot">
       <div id="modal_xy_plot_container" class="scrollingModal">
-	<b>For the time being, x will always refer to timestep.</b>
-	<label for="select_y_attribute">Attribute: </label>
+        <label for="select_x_attribute">X attribute: </label>
+	<select name="select_x_attribute" id="select_x_attribute"></select>
+	<label for="select_y_attribute">Y attribute: </label>
         <select name="select_y_attribute" id="select_y_attribute"></select>
 	<button id="btn_generate_xy_plot" class="btn btn-light" data-izimodal-preventclose="">Generate plot</button>        
       </div>
