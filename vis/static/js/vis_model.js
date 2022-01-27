@@ -97,9 +97,9 @@ var calculate_epochs = function(name) {
  * name - name of the trajectory these states belong to
  * returns list of energy values across the path
  */
-var calculate_neb_on_path = function(name,start,end) {
+var calculate_neb_on_path = function(name,start,end,interpolate) {
     return new Promise(function(resolve,reject) {
-	$.get('/calculate_neb_on_path', {'run': name, 'start': start, 'end': end}, function(data) {            
+	$.get('/calculate_neb_on_path', {'run': name, 'start': start, 'end': end, 'interpolate': interpolate}, function(data) {            
 	    resolve(data);
 	}).fail(function(msg, text, error) {        
 	    reject(error + "\n" + msg.responseJSON.error.message);

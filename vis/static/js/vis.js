@@ -161,8 +161,9 @@ $('document').ready(function() {
 	var name = $('#modal_path_selection_container').attr("data-name");
 	var start = parseInt($('#modal_path_selection_container').attr("data-start"));
 	var end = parseInt($('#modal_path_selection_container').attr("data-end"));
+	var interpolate = parseInt($('#txt_path_neb').val());
 	showLoadingIndicator("Calculating nudged elastic band on timesteps " + start + " - " + end);        
-	calculate_neb_on_path(name, start, end).then((data) => {            
+	calculate_neb_on_path(name, start, end, interpolate).then((data) => {            
 	    let sequence = trajectories[name].sequence.slice(start, end+1);            
 	    var max_energy = Math.max.apply(Math,data['ef_list']);            
 	    //still not sure how to calculate this correctly

@@ -286,6 +286,10 @@ def create_app(test_config=None):
         start = request.args.get('start')
         end = request.args.get('end')
         atomType = request.args.get('atomType')
+        interpolate = int(request.args.get('interpolate'))
+        potential_path = request.args.get('potential_path')
+        pair_coeff = request.args.get('pair_coeff')
+        pair_style = request.args.get('pair_style')
         
         driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687",
                                             auth=("neo4j", "secret"))
@@ -302,9 +306,22 @@ def create_app(test_config=None):
 
         if atomType == None or atomType == '':
             atomType = get_atom_type(trajectories[run].metadata)
+
+        if potential_path == None or potential_path == '':
+            potential_path = calculator.retrieve_potentials_file(driver,run)            
+
+        if pair_coeff == None or pair_coeff == '' or pair_style == None or pair_style == "":
+            metadata = trajectories[run].metadata
+        else:
+            metadata = {}
+            metadata.update({"pair_coeff": [pair_coeff.replace("_", " ")]})
+            metadata.update({"pair_style": pair_style})                            
+            
+        state_atom_dict, relationList = converter.query_to_ASE(driver, q, atomType, True)        
         
-        state_atom_dict, relationList = converter.query_to_ASE(driver, q, atomType, True)                        
-        ef_list, de_list = calculator.calculate_neb_on_path(driver, state_atom_dict, relationList, qb, run, app.config["LAMMPS_RUN"])                       
+        ef_list, de_list = calculator.calculate_neb_on_path(driver, state_atom_dict, relationList,
+                                                            qb, run, metadata, ASE_LAMMPSRUN_COMMAND_PATH=app.config["LAMMPS_RUN"],
+                                                            interpolate=interpolate, LAMMPS_POTENTIALS=potential_path)                       
 
         j = {}
         j.update({"ef_list":ef_list})
