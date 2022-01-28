@@ -8,5 +8,6 @@ class Trajectory {
     current_clustering;
     properties;
     raw;
+    atom_properties;
     LAMMPSBootstrapScript;
 }

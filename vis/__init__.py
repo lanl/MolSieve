@@ -65,7 +65,30 @@ def create_app(test_config=None):
     @app.route('/get_ovito_modifiers', methods=['GET'])
     def get_ovito_modifiers():
         return jsonify(neomd.utils.return_ovito_modifiers())
-    
+
+    @app.route('/calculate_path_similarity', methods=['POST'])
+    def calculate_path_similarity():        
+        extents = request.get_json(force=True)        
+        
+        driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687",
+                                            auth=("neo4j", "secret"))
+
+        qb1 = querybuilder.Neo4jQueryBuilder(
+            [('State', extents['p1']['name'], 'State', 'ONE-TO-ONE'),
+             ('Atom', 'PART_OF', 'State', 'MANY-TO-ONE')])
+        
+        q1 = qb1.generate_get_path(extents['p1']['begin']['timestep'], extents['p1']['end']['timestep'], extents['p1']['name'], 'timestep', include_atoms=False)        
+
+        qb2 = querybuilder.Neo4jQueryBuilder(
+            [('State', extents['p1']['name'], 'State', 'ONE-TO-ONE'),
+             ('Atom', 'PART_OF', 'State', 'MANY-TO-ONE')])
+
+        q2 = qb2.generate_get_path(extents['p2']['begin']['timestep'], extents['p2']['end']['timestep'], extents['p2']['name'], 'timestep', include_atoms=False)                
+        
+        score = neomd.calculator.calculate_path_similarity(driver,q1,q2,qb2, extents['state_attributes'], extents['atom_attributes'])
+
+        return jsonify(score)
+            
     @app.route('/load_sequence', methods=['GET'])
     def load_sequence(): 
         run = request.args.get('run')
@@ -87,36 +110,13 @@ def create_app(test_config=None):
                                    "ASC", ['RELATION', 'timestep'],
                                    node_attributes=node_attributes,
                                    relation_attributes=['timestep'])
-        oq = qb.generate_get_occurences(run)
+        oq = qb.generate_get_occurrences(run)
         with driver.session() as session:
             session.run(oq.text)
             result = session.run(q.text)
             j = jsonify(result.data())
 
-        return j
-
-    @app.route('/calculate_epochs', methods=['GET'])
-    def calculate_epochs():
-        driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687",
-                                            auth=("neo4j", "secret"))
-        run = request.args.get('run')
-        qb = querybuilder.Neo4jQueryBuilder(
-            [('State', run, 'State', 'ONE-TO-ONE'),
-             ('Atom', 'PART_OF', 'State', 'MANY-TO-ONE')])
-
-        q = qb.generate_trajectory(run,
-                                   "ASC", ['RELATION', 'timestep'],
-                                   node_attributes=[('number', "FIRST")],
-                                   relation_attributes=['timestep'])
-
-        traj = None
-        with driver.session() as session:
-            result = session.run(q.text)
-            traj = result.data()
-
-        epoch = calculate_epoch(traj, 0)
-
-        return jsonpickle.encode(epoch)
+        return j                                                                                                
 
     @app.route('/connect_to_db', methods=['GET'])
     def connect_to_db():
@@ -125,6 +125,7 @@ def create_app(test_config=None):
         j = {}
         with driver.session() as session:
             try:
+                # get all the types of relations between states - our runs!
                 result = session.run(
                     "MATCH (:State)-[r]-(:State) RETURN DISTINCT TYPE(r)")
                 # gets rid of ugly syntax on js side - puts everything in one array; probably a better more elegant way to do this
@@ -133,10 +134,26 @@ def create_app(test_config=None):
                     runs.append(r[0])
                     trajectories.update({r[0] : Trajectory()})                    
                 j.update({'runs': runs})
+
+                """
+                NOTE: Technically, this would produce invalid properties if for some reason the database returns a state / atom
+                that has properties that are undefined everywhere else. A way to get around this is to have a "model" state / atom
+                that has properties that are guaranteed to be in each state / atom. It would make sense to update this "model" state / atom
+                whenever a query is run that affects the entire database, as they will be guaranteed to be correct.
+                """
+                
+                # gets the properties for states
                 result = session.run(
                     "MATCH (n:State) with n LIMIT 1 UNWIND keys(n) as key RETURN DISTINCT key;"
                 )
                 j.update({'properties': [r[0] for r in result.values()]})
+
+                # gets the properties for atoms
+                result = session.run(
+                    "MATCH (n:Atom) with n LIMIT 1 UNWIND keys(n) as key RETURN DISTINCT key;"                    
+                )
+                j.update({'atom_properties': [r[0] for r in result.values()]})
+
             except neo4j.exceptions.ServiceUnavailable as exception:
                 raise exception
         
@@ -302,7 +319,7 @@ def create_app(test_config=None):
         # saves the trouble of modifying query_to_ASE + generate_get_path
         # needs to be fixed in the future though
         end = str(int(end) + 1)
-        q = qb.generate_get_path(start,end,run=run)
+        q = qb.generate_get_path(start,end,run,'timestep')
 
         if atomType == None or atomType == '':
             atomType = get_atom_type(trajectories[run].metadata)

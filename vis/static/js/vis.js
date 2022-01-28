@@ -9,12 +9,16 @@ $('document').ready(function() {
     var margin = {top: 20, bottom: 20, left: 40, right: 25};    
     
     // view utility functions    
-    /* If there's an error, just disable everything.
-     * TODO make more sensitive towards non-fatal server errors */
-    function error_state(msg) {	
+    /** Disable everything if there is a severe, unrecoverable error. Otherwise just display a message.
+      * @param {string} msg - error message to display
+      * @param {boolean} severe - whether or not this error is severe 
+      */
+    function error_state(msg, severe) {	
 	$('#modal_loading-indicator').iziModal('close');
 	$('#modal_loading-indicator').hide();
- 	$('*').hide();
+	if(severe) {	
+ 	    $('*').hide();
+	}
 	alert(msg);	
     }
 
@@ -55,6 +59,7 @@ $('document').ready(function() {
 	title: 'XY Plot',
 	borderBottom: false,                      
 	onClosed: function() {
+	    $('#select_x_attribute').empty();
 	    $("#select_y_attribute").empty();
 	    $(".plot").remove();
 	}
@@ -115,7 +120,7 @@ $('document').ready(function() {
 	}).then((data) => {
 	    set_metadata(data);            
 	}).catch((err => {                        
-	    error_state(err);
+	    error_state(err, true);
 	})).finally(() => {
 	    closeLoadingIndicator();				    				                                        
 	});	
@@ -175,7 +180,7 @@ $('document').ready(function() {
 	    $("#vis_neb").append("<p><b>Maximum energy barrier on path:</b> " + max_energy + "</p>");
 	    $("#vis_neb").append("<p><b>Total ΔE over path:</b> " + dE + "</p>");	                
 	    draw_xy_plot("timestep", "Energy", sequence, "neb", null, data['ef_list'], "NEB Plot", false, true);            	    
-	}).catch((error) => {error_state(error);}).finally(() => {
+	}).catch((error) => {error_state(error, false);}).finally(() => {
 	    closeLoadingIndicator();
 	});
     });
@@ -278,13 +283,16 @@ $('document').ready(function() {
 	borderBottom: false,
         width: '65%',
 	onClosed: function() {
+	    $('#select_x_attributes').empty();
 	    $('#select_y_attributes').empty();            
             $('#modal_comparison_grid').empty();
+	    $('.similarity_select').empty();
+	    $('#similarity_score').empty();
 	}
     });
 
     /* Button inside comparison modal that draws whatever user selected */
-    $('#btn_generate_xy_plots').on('click', function() {
+    $('#btn_generate_xy_plots').on('click', function() { 
 	var extents = JSON.parse($('#modal_comparison_container').attr("data-extents"));        
 
 	let PLOTS_PER_ROW = 2;
@@ -331,6 +339,23 @@ $('document').ready(function() {
 	}
     });
 
+    $('#btn_calculate_path_similarity').on('click', function() {        
+	var extents_1 = $('#select_similarity_path_1').val();
+	var extents_2 = $('#select_similarity_path_2').val();
+  	// later on will naturally have selections for all of this, will wait to implement in svelte
+	showLoadingIndicator('Calculating path similarity');
+	calculate_path_similarity(extents_1, extents_2, ['occurrences'], "").then((data) => {
+	    closeLoadingIndicator();
+	    alert("Similarity score: " + data);            
+	}).catch(function(error) {
+	    error_state(error, false);
+	}).then(() => {
+	    closeLoadingIndicator();
+	});
+    });
+
+    
+    // Preprocessing modal setup     
     $('#modal_preprocessing').iziModal({
 	title: 'Preprocess data',        
 	overlayClose: false,
@@ -345,7 +370,8 @@ $('document').ready(function() {
 	    }
 	}
     });
-    
+
+    // opens preprocessing modal
     $('#btn_open_preprocessing_modal').on('click', function() {
 	$('#modal_preprocessing').iziModal('open');        
     });
@@ -354,10 +380,11 @@ $('document').ready(function() {
 	//gather all the selects and begin work
     });
 
-    /* Generic filter function that gets all states with at least val of property.
-     * property - property to filter on
-     * name - name of the trajectory 
-     * val - min value
+    /** 
+     * Generic filter function that gets all states with at least val of property.
+     * @param {string} property - property to filter on
+     * @param {string} name - name of the trajectory 
+     * @param {number} val - min value
      */
     function filter_min_opacity(property, name, val) {        
         d3.selectAll("rect").filter(function(d) {     
@@ -391,27 +418,27 @@ $('document').ready(function() {
     // Application actually starts here
     showLoadingIndicator();    
     connect_to_database().then((data) => {        
-	setup_checkbox_table(data.properties, "tbl_properties", ['occurences', 'number'], 'Select which properties to load', 'Property', 'Load?');        
-	setup_checkbox_table(data.runs, "tbl_preprocessing", [], 'Select which runs to preprocess', 'Run', 'Preprocess?');
+	setup_checkbox_table(data.properties, "tbl_properties", ['occurrences', 'number'], 'Select which properties to load', 'Property', 'Load?');        
+	setup_checkbox_table(data.runs, "tbl_preprocessing", [], 'Select which runs to preprocess', 'Run', 'Preprocess?');	        
 	setup_runs_table(data);
 	$('#btn_open_preprocessing_modal').show();
 	$('#grid').append(setup_main());        
     }).catch(function(error) {
-	error_state(error);
+	error_state(error, true);
     }).then(() => {
 	closeLoadingIndicator();
     });               
         
-    /* Set up table with checkboxes next to each option - used in property table and preprocessing table.
-     * propertyList - properties to include
-     * id - DOM id of the table to populate
-     * default_values - which values to grey out, if any
-     * caption - caption to use for the table
-     * th1 - header for first row
-     * th2 - header for second row
+    /** Set up table with checkboxes next to each option - used in property table and preprocessing table.
+     * @param {array} propertyList - properties to include
+     * @param {id} id - DOM id of the table to populate
+     * @param {array} default_values - which values to grey out, if any
+     * @param {string} caption - caption to use for the table
+     * @param {string} th1 - header for first row
+     * @param {string} th2 - header for second row
      */
     function setup_checkbox_table(propertyList, id, default_values, caption, th1, th2) { 
-	var table = $('#' + id);
+	var table = $(`#${id}`);
 	var caption = $('<caption>' + caption + '</caption>');
 	var head = $('<thead class="thead-dark"><tr><th>' + th1 + '</th><th>' + th2 + '</th></tr></thead>');
 	table.append(caption);
@@ -508,7 +535,7 @@ $('document').ready(function() {
 		load_PCCA(name, parseInt(this.value), 0, -1, -1).then(() => {
 		    set_cluster_info(name);                    
                     draw_PCCA(names_in_use);
-		}).catch((err) =>{error_state(err);}).finally(() => {closeLoadingIndicator();});		    
+		}).catch((err) =>{error_state(err, false);}).finally(() => {closeLoadingIndicator();});		    
 	    });
 
 	var pcca_label = $('<label>' + pcca_slider.val() + " clusters (valid)" + '</label>')
@@ -753,7 +780,7 @@ $('document').ready(function() {
 	        .attr("run", function() { return t.name })
 		.attr("number", function(d) { return d['number'] })
 		.attr("timestep", function(d) { return d['timestep'] })
-		.attr("occurences", function(d) { return d['occurences'] })
+		.attr("occurrences", function(d) { return d['occurrences'] })
 	        .attr("fuzzy_membership", function(d,i) {                                        
 		    return t.fuzzy_memberships[d['number']];
 		})
@@ -827,7 +854,7 @@ $('document').ready(function() {
 		if (curr_name != null && curr_name != undefined) {
 		    var begin = trajectories[curr_name].sequence[Math.round(scale_x.invert(extent[0][0]))];
 		    var end = trajectories[curr_name].sequence[Math.round(scale_x.invert(extent[1][0]))];
-		    var xtent = {name:curr_name, begin:begin,end:end};
+		    var xtent = {name:curr_name,begin:begin,end:end};
 		    extents.push(xtent);
 		}
 	    }            
@@ -885,13 +912,20 @@ $('document').ready(function() {
 		    x_select.append($('<option>').val('timestep').text('timestep'));
                     y_select.append($('<option>').val('timestep').text('timestep'));
 		    
-		    for(property of cmn) {
+		    for(const property of cmn) {
 			x_select.append($('<option>').val(property).text(property));
 			y_select.append($('<option>').val(property).text(property));
 		    }
+                    		    
+		    $('.similarity_select').each(function() {                        
+                        for(const extent of extents) {                            
+			    $(this).append($('<option>').val(JSON.stringify(extent)).text(`${extent['name']}: timesteps ${extent['begin']['timestep']} - ${extent['end']['timestep']}`));
+			}
+		    });	    
 		    
 		    $('#modal_comparison_container').attr("data-extents", JSON.stringify(extents));
                     $('#modal_comparison').iziModal('open');
+		    
 		}
 		// clear extents array
 		extents = [];

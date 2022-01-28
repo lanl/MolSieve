@@ -81,13 +81,25 @@
       </div>
     </div>
     <div id="modal_comparison">
-      <div id="modal_comparison_container" class="scrollingModal">        
-	<label for="select_x_attributes">X attribute: </label>
-	  <select name="select_x_attributes" id="select_x_attributes"></select>
-	  <label for="select_y_attributes">Y Attribute: </label>
-          <select name="select_y_attributes" id="select_y_attributes"></select>
-	  <button id="btn_generate_xy_plots" class="btn btn-light" data-izimodal-preventclose="">Generate plots</button>
-        
+      <div id="modal_comparison_container" class="scrollingModal">
+	<div class="container">
+	  <div class="row">
+	    <div class="col-md-6">
+	      <label for="select_x_attributes">X attribute: </label>
+	      <select name="select_x_attributes" id="select_x_attributes"></select>
+	      <label for="select_y_attributes">Y Attribute: </label>
+              <select name="select_y_attributes" id="select_y_attributes"></select>
+	      <button id="btn_generate_xy_plots" class="btn btn-light" data-izimodal-preventclose="">Generate plots</button>
+	    </div>
+	    <div class="col-md-6">
+	      <button id="btn_calculate_path_similarity">Calculate similarity between paths</button>
+	      <br/>
+	      <p><select id="select_similarity_path_1" class="similarity_select"></select>
+	      and 
+	      <select id="select_similarity_path_2" class="similarity_select"></select></p>
+	      <p id="similarity_score"></p>
+	    </div>
+	</div>
 	<div id="modal_comparison_grid" class="container">
 	</div>
       </div>

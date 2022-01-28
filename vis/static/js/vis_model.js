@@ -4,13 +4,16 @@ var trajectories = {};
 
 // Section: AJAX calls
 
-/* Ajax call that connects to the neo4j database and retrieves the various trajectories available, as well as their properties. */
+/** Ajax call that connects to the neo4j database and retrieves the various trajectories available, as well as the properties for states 
+ *  and atoms within each trajectory.
+ */
 var connect_to_database = function () {
     return new Promise(function(resolve, reject) {
 	$.ajax({url: "/connect_to_db"}).done(function(data) {            
 	    for(var i = 0; i < data.runs.length; i++) {
 		if (data.runs[i] != null) {                        
-		    trajectories[data.runs[i]] = new Trajectory();                        
+		    trajectories[data.runs[i]] = new Trajectory();
+		    trajectories[data.runs[i]].atom_properties = data.atom_properties;
 		}
 	    }
 	    resolve(data);
@@ -20,7 +23,7 @@ var connect_to_database = function () {
     });
 }
 	       		      		     
-/* This calculates the PCCA for the trajectory specified by name. 
+/** This calculates the PCCA for the trajectory specified by name. 
  * name - which trajectory to calculate PCCA for 
  * optimal - if the PCCA calculation should look for an optimal clustering, requires m_min and m_max
  * m_min - smallest clustering to try
@@ -54,11 +57,11 @@ var load_PCCA = function(name, clusters, optimal, m_min, m_max) {
     });
 };
 
-/* Ajax call that loads the sequence of the given run into the trajectories object
- * name - run to load from database
- * properties - properties to load from the database
+/** Ajax call that loads the sequence of the given run into the trajectories object.
+ * @param {string} name - run to load from database
+ * @param {array} properties - properties to load from the database
  */
-var load_sequence = function(name,properties) { 
+var load_sequence = function(name, properties) { 
     return new Promise(function(resolve,reject) {	
 	$.getJSON('/load_sequence', {'run': name, 'properties': properties.toString()}, function(data) {
 	    trajectories[name].sequence = data;	    	    
@@ -70,34 +73,13 @@ var load_sequence = function(name,properties) {
     });	
 }    
 
-/* Ajax call that calculates the overview for the sequence. The overview is calculated
- * via a simple divide and conquer algorithm that keeps recursively splitting the 
- * sequence until the subsequence is reduced to a length of ten, then counting the 
- * occurrence of each unique state within that subsequence, and merging up. This
- * demonstrates what states were dominant within a given region of the sequence.
+/** Ajax call to calculate a Nudged Elastic Band on a given path between two nodes.
+ * @param {string} start - beginning of the path
+ * @param {string} end - last state in the path
+ * @param {string} name - name of the trajectory these states belong to
+ * @return {array} list of energy values across the path
  */
-var calculate_epochs = function(name) { 
-    return new Promise(function(resolve,reject) {
-	if(trajectories[name].overview == null) {
-	    $.getJSON('/calculate_epochs', {'run': name}, function(data) {	   
-		trajectories[name].overview = data;
-		resolve(name);
-	    }).fail(function(msg, text, error) {        
-	    reject(error + "\n" + msg.responseJSON.error.message);
-	});
-	} else {
-	    resolve(name);                                                
-	};
-    });
-}					      
-
-/* Ajax call to calculate a Nudged Elastic Band on a given path between two nodes.
- * start - beginning of the path
- * end - last state in path
- * name - name of the trajectory these states belong to
- * returns list of energy values across the path
- */
-var calculate_neb_on_path = function(name,start,end,interpolate) {
+var calculate_neb_on_path = function(name, start, end, interpolate) {
     return new Promise(function(resolve,reject) {
 	$.get('/calculate_neb_on_path', {'run': name, 'start': start, 'end': end, 'interpolate': interpolate}, function(data) {            
 	    resolve(data);
@@ -106,10 +88,11 @@ var calculate_neb_on_path = function(name,start,end,interpolate) {
 	});
     });
 }
-/* Ajax call to generate an ovito image given a state's number
- * number - number of the state to generate an image for
- * returns - base 64 encoding of image
+/** 
+ * Ajax call to generate an ovito image given a state's number.
  * TODO: Rendering doesn't work for whatever reason
+ * @param {string} number - number of the state to generate an image for
+ * @return {string} base 64 encoding of image
  */
 var generate_ovito_image = function(number) {
     return new Promise(function(resolve,reject) {
@@ -121,8 +104,9 @@ var generate_ovito_image = function(number) {
     });
 }
 
-/* Ajax call to retrieve metadata from the database
- * run - run to retrieve the metadata from
+/** Ajax call to retrieve metadata from the database
+ * @param {string} run - run to retrieve the metadata from
+ * @return {string} metadata for the run
  */
 var get_metadata = function(run) {
     return new Promise(function(resolve,reject) {
@@ -133,6 +117,25 @@ var get_metadata = function(run) {
 	});
     });
 }
+
+/** Ajax call to calculate the similarity between two paths
+ * @param {object} extents1 - Javascript object with name, the sequence object the path starts with, and the sequence object the path ends with
+ * @param {object} extents2 - Same as above
+ * @param {array} atom_attributes - Array of strings with atom attributes to be compared in similarity calculation
+ * @param {array} state_attributes - Array of string with state attributes to be compared in similarity calculation
+ * @return {number} similarity score
+ */
+var calculate_path_similarity = function(extents1, extents2, state_attributes, atom_attributes) {
+    return new Promise(function(resolve, reject) {
+	$.post('/calculate_path_similarity', JSON.stringify({'p1': JSON.parse(extents1), 'p2': JSON.parse(extents2),
+							     'atom_attributes': atom_attributes, 'state_attributes': state_attributes}), function(data) {
+	    resolve(data);
+	}, "json").fail(function(msg,text,error) {
+	    reject(error);// + "\n" + msg.responseJSON.error.message);
+	});
+    });
+}
+
 
 // Section: Dataset calculations
 
