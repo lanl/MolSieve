@@ -6,8 +6,8 @@ $('document').ready(function() {
     //view
     let widget_height = 500;
     let svg_height = widget_height - 100;    
-    var margin = {top: 20, bottom: 20, left: 5, right: 25};
-
+    var margin = {top: 20, bottom: 20, left: 40, right: 25};    
+    
     // view utility functions    
     /* If there's an error, just disable everything.
      * TODO make more sensitive towards non-fatal server errors */
@@ -174,7 +174,7 @@ $('document').ready(function() {
 	    $('#btn_calculate_neb').hide();
 	    $("#vis_neb").append("<p><b>Maximum energy barrier on path:</b> " + max_energy + "</p>");
 	    $("#vis_neb").append("<p><b>Total ΔE over path:</b> " + dE + "</p>");	                
-	    draw_xy_plot("timestep", "Energy", sequence, "neb", null, data['ef_list'], false, true);            	    
+	    draw_xy_plot("timestep", "Energy", sequence, "neb", null, data['ef_list'], "NEB Plot", false, true);            	    
 	}).catch((error) => {error_state(error);}).finally(() => {
 	    closeLoadingIndicator();
 	});
@@ -274,26 +274,60 @@ $('document').ready(function() {
 
     // multiple path comparison modal
     $('#modal_comparison').iziModal({
-	title: 'Comparison',        
-	overlayClose: false,
-	borderBottom: false,        
+	title: 'Comparison',                
+	borderBottom: false,
+        width: '65%',
 	onClosed: function() {
-	    $('#select_y_attributes').empty();
-            $('.plot').remove();
+	    $('#select_y_attributes').empty();            
+            $('#modal_comparison_grid').empty();
 	}
     });
 
     /* Button inside comparison modal that draws whatever user selected */
     $('#btn_generate_xy_plots').on('click', function() {
 	var extents = JSON.parse($('#modal_comparison_container').attr("data-extents"));        
+
+	let PLOTS_PER_ROW = 2;
+	if(extents.length > 2) {
+	    PLOTS_PER_ROW = 3;
+	}	
+	var row = null;
+	var buildDivs = false;
+
+	if($('#modal_comparison_grid > div').length == 0) {
+	    buildDivs = true;
+	}
+	        
 	for(var i = 0; i < extents.length; i++) {
 	    var name = extents[i]['name'];
-	    var sequence = trajectories[name].sequence.slice(extents[i]['begin']['timestep'], extents[i]['end']['timestep']);            
+	    var b_timestep = extents[i]['begin']['timestep'];
+	    var e_timestep = extents[i]['end']['timestep'];
+	    var sequence = trajectories[name].sequence.slice(b_timestep, e_timestep);            
 	    var x_attribute = $('#select_x_attributes').val();
 	    var y_attribute = $('#select_y_attributes').val();
-	    var div = $('<div>').attr("id", "vis_xy" + i).addClass("plot");
-	    $('#modal_comparison_container').append(div);
-	    draw_xy_plot(x_attribute, y_attribute, sequence, "xy" + i);	
+
+	    if(buildDivs) {
+		if (i % PLOTS_PER_ROW == 0) {
+		    row = $('<div>').addClass("row");
+		    $('#modal_comparison_grid').append(row);
+		}
+
+		/* The key in understanding this is that bootstrap expects there to be 12 elements maximum in one row.
+		 * So, to get an even layout, you need to take however many elements you expect per row and divide 12 by that
+		 * to get the correct size string - with two elements you need md-6, with 3 you need md-4 etc.
+		 */
+		var colString = 6;
+		if(PLOTS_PER_ROW == 3) {
+		    colString = 4;
+		}
+		
+		var div = $('<div>').attr("id", "vis_xy" + i).addClass("col-md-" + colString);
+		row.append(div);
+	    }
+
+	    var title = `Timesteps ${b_timestep} - ${e_timestep} in ${name}`;
+	    
+	    draw_xy_plot(x_attribute, y_attribute, sequence, "xy" + i, null, null, title);            
 	}
     });
 
@@ -395,8 +429,7 @@ $('document').ready(function() {
 		checkbox.prop("disabled", true);
 	    }
 	}
-	console.log(table);
-	return table;
+        return table;
     }    
 
     /* Set up table where you can choose which trajectories to visualize
@@ -653,12 +686,14 @@ $('document').ready(function() {
 
 	if($('#svg_' + name).length) {
 	    $("#svg_" + name).empty();
-	    bBox = d3.select("#vis_" + name).node().getBoundingClientRect();            
-	    svg = d3.select('#svg_' + name).attr("width", bBox.width);
+	    bBox = d3.select("#vis_" + name).node().getBoundingClientRect();
+	    //svg = d3.select('#svg_' + name).attr("width", bBox.width);
 	} else {            
 	    bBox = d3.select("#vis_" + name).node().getBoundingClientRect();    
-	    svg = d3.select("#vis_" + name).append("svg").attr("width", bBox.width).attr("height", svg_height).attr("id", "svg_" + name);
-	}
+	    //svg = d3.select("#vis_" + name).append("svg").attr("width", bBox.width).attr("height", svg_height).attr("id", "svg_" + name);
+	    svg = d3.select("#vis_" + name).append("svg").attr("viewBox", [0,0,bBox.width,svg_height]).attr("id", "svg_" + name);
+	}        
+	
 	return [svg, bBox];
     }
 
@@ -873,10 +908,11 @@ $('document').ready(function() {
      * svgName - svg where the x-y plot should be drawn
      * x_attributeList - if we're using an outside source (not in the database, calculated somewhere else) for the x attribute, pass it here (optional)
      * y_attributeList - if we're using an outside source (not in the database, calculated somewhere else) for the y attribute, pass it here (optional)
+     * title - title for the graph (optional; defaults to x_attribute vs y_attribute)
      * reverse - draw y values top to bottom (optional)
      * path - draw lines between values (optional)
      */
-    function draw_xy_plot(x_attribute, y_attribute, sequence, svgName, x_attributeList, y_attributeList, reverse, path) {        
+    function draw_xy_plot(x_attribute, y_attribute, sequence, svgName, x_attributeList, y_attributeList, title, reverse, path) {        
 	let [svg,bBox] = set_svg(svgName);
         
 	if(reverse == null) reverse = false;        
@@ -899,18 +935,18 @@ $('document').ready(function() {
 	var xtent = d3.extent(x_attributeList)
 	var ytent = d3.extent(y_attributeList);        
 
-	var first = 1;
-	var last = 0;
+	var first = 0;
+	var last = 1;
 
 	if(reverse) {
-	    first = 0;
-	    last = 1;
+	    first = 1;
+	    last = 0;
 	}
 
 	// 1.25 for breathing room between axis and values
         var scale_x = d3.scaleLinear().range([margin.left, bBox.width - margin.right]).domain([xtent[0],xtent[1]]);
 
-	var scale_y = d3.scaleLinear().range([margin.top, svg_height - (margin.bottom * 1.5)]).domain([ytent[first],ytent[last]]);
+	var scale_y = d3.scaleLinear().range([svg_height - margin.bottom,margin.top]).domain([ytent[first],ytent[last]]);
 	
         svg.selectAll("rect").data(sequence).enter().append("rect")
 
@@ -947,8 +983,25 @@ $('document').ready(function() {
 		  .curve(d3.curveCatmullRom.alpha(0.5));
 	    svg.append('path').datum(datum).attr('d', line).attr("stroke","black").attr("fill","none");            
         }        
-	
+
+	// decorations
+
+	var yAxisPos = margin.left;	
 	var xAxisPos = svg_height - margin.bottom;
-	var xAxis = svg.append("g").attr("transform", "translate(0," + xAxisPos + ")").call(d3.axisBottom().scale(scale_x));                	
+	
+	var xAxis = svg.append("g").attr("transform", `translate(0,${xAxisPos})`).call(d3.axisBottom().scale(scale_x));
+	var yAxis = svg.append("g").attr("id", "yAxis"+svgName).attr("transform", `translate(${yAxisPos},0)`).call(d3.axisLeft().scale(scale_y));
+	
+	if(title == null || title == "") {
+	    title = x_attribute + " vs " + y_attribute;
+	}        
+	
+	svg.append("text")            
+	    .attr("x", bBox.width/2)
+	    .attr("y", margin.top)
+	    .attr("text-anchor", "middle")
+	    .style("font-size", "12px")
+	    .text(title);
+	
     }
 });
