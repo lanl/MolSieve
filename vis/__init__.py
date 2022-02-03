@@ -46,7 +46,18 @@ def create_app(test_config=None):
     
     if not os.path.isfile(app.config["LAMMPS_PATH"]):
         raise FileNotFoundError("Error: LAMMPS binary not found at {lammps_path}".format(lammps_path=app.config["LAMMPS_PATH"]))
-        
+
+    @app.errorhandler(neo4j.exceptions.ServiceUnavailable)
+    def handle_service_not_available(error):
+        response = {
+            'success': False,
+            'error': {
+                'type': error.__class__.__name__,
+                'message': [str(x) for x in error.args]
+            }
+        }
+        return jsonify(response), 503
+    
     @app.errorhandler(Exception)
     def handle_exception(error):        
         response = {
@@ -118,11 +129,11 @@ def create_app(test_config=None):
 
         return j                                                                                                
 
-    @app.route('/connect_to_db', methods=['GET'])
-    def connect_to_db():
+    @app.route('/get_run_list', methods=['GET'])
+    def get_run_list():
         driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687",
                                             auth=("neo4j", "secret"))
-        j = {}
+        j = []
         with driver.session() as session:
             try:
                 # get all the types of relations between states - our runs!
@@ -133,7 +144,7 @@ def create_app(test_config=None):
                 for r in result.values():
                     runs.append(r[0])
                     trajectories.update({r[0] : Trajectory()})                    
-                j.update({'runs': runs})
+                j = runs
 
                 """
                 NOTE: Technically, this would produce invalid properties if for some reason the database returns a state / atom
@@ -143,16 +154,16 @@ def create_app(test_config=None):
                 """
                 
                 # gets the properties for states
-                result = session.run(
-                    "MATCH (n:State) with n LIMIT 1 UNWIND keys(n) as key RETURN DISTINCT key;"
-                )
-                j.update({'properties': [r[0] for r in result.values()]})
+                #result = session.run(
+                #    "MATCH (n:State) with n LIMIT 1 UNWIND keys(n) as key RETURN DISTINCT key;"
+                #)
+                #j.update({'properties': [r[0] for r in result.values()]})
 
                 # gets the properties for atoms
-                result = session.run(
-                    "MATCH (n:Atom) with n LIMIT 1 UNWIND keys(n) as key RETURN DISTINCT key;"                    
-                )
-                j.update({'atom_properties': [r[0] for r in result.values()]})
+                #result = session.run(
+                #    "MATCH (n:Atom) with n LIMIT 1 UNWIND keys(n) as key RETURN DISTINCT key;"                    
+                #)
+                #j.update({'atom_properties': [r[0] for r in result.values()]})
 
             except neo4j.exceptions.ServiceUnavailable as exception:
                 raise exception
