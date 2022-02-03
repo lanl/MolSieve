@@ -713,11 +713,10 @@ $('document').ready(function() {
 
 	if($('#svg_' + name).length) {
 	    $("#svg_" + name).empty();
-	    bBox = d3.select("#vis_" + name).node().getBoundingClientRect();
-	    //svg = d3.select('#svg_' + name).attr("width", bBox.width);
+	    bBox = d3.select("#vis_" + name).node().getBoundingClientRect();            
+	    svg = d3.select("#svg_" + name).attr("viewBox", [0,0,bBox.width,svg_height]);
 	} else {            
-	    bBox = d3.select("#vis_" + name).node().getBoundingClientRect();    
-	    //svg = d3.select("#vis_" + name).append("svg").attr("width", bBox.width).attr("height", svg_height).attr("id", "svg_" + name);
+	    bBox = d3.select("#vis_" + name).node().getBoundingClientRect();                
 	    svg = d3.select("#vis_" + name).append("svg").attr("viewBox", [0,0,bBox.width,svg_height]).attr("id", "svg_" + name);
 	}        
 	
@@ -810,7 +809,7 @@ $('document').ready(function() {
 			allowHTML: true,
 			content: "<b>Run</b>: " + t.name + " <i>t</i>=" + d['timestep'] +
 			    "<br><b>Cluster</b>: " + d['cluster'] +
-			    " <b>Fuzzy memberships:</b>" + $(this).attr("fuzzy_membership").toString() + 
+			    " <b>Fuzzy memberships</b>: " + $(this).attr("fuzzy_membership").toString() + 
 			    "<br>" + propertyString,
 			arrow: true,
 			maxWidth: 'none',
