@@ -4,16 +4,20 @@ const axios = require('axios').default;
 class CheckboxTable extends React.Component {
     constructor(props) {
 	super(props);
-	this.state = {
-	    error: null,
+	this.state = {            
 	    isLoaded: false,
-	    items: []
+	    items: [],
+	    click: () => void 0,
+	    clicked: []
 	};
     }
 
     click = (e) => {
-        console.log(e.target);
-	this.props.click(e);
+        if(this.props.click) {
+	    this.props.click(e);
+	}
+	// build list of clicked checkboxes
+	this.state.clicked.push(e.target.value);        
     }
 
     componentDidMount() {        
@@ -23,18 +27,27 @@ class CheckboxTable extends React.Component {
 	}).catch(e => {            
 	    alert(e);
 	});
+
+	if(this.props.defaults) {
+	    this.setState({...this.state, clicked : this.props.defaults});                        
+	}
     }
     
     render() {
-	const { error, isLoaded, items } = this.state;
-	if (error) {
-	    return <div>Error: { error.message }</div>;
-	} else if (!isLoaded) {
+	const { isLoaded, items } = this.state;
+	if (!isLoaded) {
 	    return <div>Loading...</div>
-	} else {           
+	} else {                        
 	    return(<table><thead><tr><th>{this.props.header}</th><th>Load?</th></tr></thead>
 			      <tbody>
-				  {items.map((i) => <tr key={i}><td>{i}</td><td><input onClick={this.click} type="checkbox" value={i}></input></td></tr>)}
+				  {items.map((i) => <tr key={i}>
+							<td>{i}</td>
+							<td><input onClick={this.click} type="checkbox" value={i}
+								   readOnly={this.props.defaults.includes(i)}
+								   disabled={this.props.defaults.includes(i)}
+								   defaultChecked={this.props.defaults.includes(i)}
+							    ></input>
+							</td></tr>)}
 			      </tbody>
 		   </table>);	    
 	}	

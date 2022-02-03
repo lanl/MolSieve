@@ -127,7 +127,32 @@ def create_app(test_config=None):
             result = session.run(q.text)
             j = jsonify(result.data())
 
-        return j                                                                                                
+        return j
+
+    @app.route('/get_property_list', methods=['GET'])
+    def get_property_list():
+        run = request.args.get('run')
+        driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687",
+                                            auth=("neo4j", "secret"))
+        j = []
+        with driver.session() as session:
+            try:
+                """
+                NOTE: Technically, this would produce invalid properties if for some reason the database returns a state / atom
+                that has properties that are undefined everywhere else. A way to get around this is to have a "model" state / atom
+                that has properties that are guaranteed to be in each state / atom. It would make sense to update this "model" state / atom
+                whenever a query is run that affects the entire database, as they will be guaranteed to be correct.
+                """
+                                
+                result = session.run(
+                    "MATCH (n:State) with n LIMIT 1 UNWIND keys(n) as key RETURN DISTINCT key;"
+                )
+                j = [r[0] for r in result.values()]
+
+            except neo4j.exceptions.ServiceUnavailable as exception:
+                raise exception
+        
+        return jsonify(j)
 
     @app.route('/get_run_list', methods=['GET'])
     def get_run_list():
@@ -145,20 +170,7 @@ def create_app(test_config=None):
                     runs.append(r[0])
                     trajectories.update({r[0] : Trajectory()})                    
                 j = runs
-
-                """
-                NOTE: Technically, this would produce invalid properties if for some reason the database returns a state / atom
-                that has properties that are undefined everywhere else. A way to get around this is to have a "model" state / atom
-                that has properties that are guaranteed to be in each state / atom. It would make sense to update this "model" state / atom
-                whenever a query is run that affects the entire database, as they will be guaranteed to be correct.
-                """
-                
-                # gets the properties for states
-                #result = session.run(
-                #    "MATCH (n:State) with n LIMIT 1 UNWIND keys(n) as key RETURN DISTINCT key;"
-                #)
-                #j.update({'properties': [r[0] for r in result.values()]})
-
+                                                                                                
                 # gets the properties for atoms
                 #result = session.run(
                 #    "MATCH (n:Atom) with n LIMIT 1 UNWIND keys(n) as key RETURN DISTINCT key;"                    
