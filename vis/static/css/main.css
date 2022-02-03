@@ -1,1 +1,3 @@
-.scrollingModal{overflow-y:scroll; !important;}
+.scrollingModal{overflow-y:scroll; !important; text-align:center;}
+.btn-margin{margin:5px}
+.margin{margin:5px}

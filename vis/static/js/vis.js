@@ -1,554 +1,1040 @@
 $('document').ready(function() {
 
-    var trajectories = {};
-    var vis_modes = {};
+    // global variable that keeps track of what trajectories are currently being used
+    var names_in_use = [];
+
+    //view
+    let widget_height = 500;
+    let svg_height = widget_height - 100;    
+    var margin = {top: 20, bottom: 20, left: 40, right: 25};    
     
+    // view utility functions    
+    /** Disable everything if there is a severe, unrecoverable error. Otherwise just display a message.
+      * @param {string} msg - error message to display
+      * @param {boolean} severe - whether or not this error is severe 
+      */
+    function error_state(msg, severe) {	
+	$('#modal_loading-indicator').iziModal('close');
+	$('#modal_loading-indicator').hide();
+	if(severe) {	
+ 	    $('*').hide();
+	}
+	alert(msg);	
+    }
+
+    /* Shows a nice loading indicator with a subtitle that tells the user what you're doing */
+    async function showLoadingIndicator(subtitle) {
+	if(subtitle) {
+	    $('#modal_loading-indicator').iziModal('setSubtitle', subtitle);
+	}
+	$('#modal_loading-indicator').attr("data-izimodal-preventclose", "").iziModal('open');
+    }
+
+    /* Closes the loading indicator when you're done doing asynchronous stuff */
+    async function closeLoadingIndicator() {
+	$('#modal_loading-indicator').iziModal('close');
+	$('#modal_loading-indicator').iziModal('setSubtitle', '');
+    }    
+    
+    // modal init here
     $("#modal_loading-indicator").iziModal({
 	title: 'Loading',
 	closeButton: false,
 	closeOnEscape: false,
+	overlayClose: false,
 	borderBottom: false,
     });
 
     $("#modal_info").iziModal({
-	title: 'Sequence Info',                            
+	title: 'Sequence Info',
 	borderBottom: false,               
-	fullscreen:true,        
-    });		                
-    
-    $(document).ajaxSend(function(event, request, settings) {
-        showLoadingIndicator();
-    });
-   
-    $(document).ajaxComplete(function(event, request, settings) {
-        closeLoadingIndicator();
+	fullscreen:true,
+	onClosed: function() {
+	    $("#modal_container").empty();
+	}
     });
 
-    async function showLoadingIndicator() {
-	$('#modal_loading-indicator').iziModal('open');
-    }
+    // xy plot modal
+    $('#modal_xy_plot').iziModal({
+	title: 'XY Plot',
+	borderBottom: false,                      
+	onClosed: function() {
+	    $('#select_x_attribute').empty();
+	    $("#select_y_attribute").empty();
+	    $(".plot").remove();
+	}
+    });
 
-    async function closeLoadingIndicator() {
-	$('#modal_loading-indicator').iziModal('close');
-    }
+    /* Button inside xy plot modal that draws whatever user selected */
+    $('#btn_generate_xy_plot').on('click', function() {
+	var name = $(this).attr("data-name");
+	var sequence = trajectories[name].sequence;
+	var x_attribute = $('#select_x_attribute').val();
+	var y_attribute = $('#select_y_attribute').val();
 
-    var scale_x = null;
-    let widget_height = 500;
-    let svg_height = widget_height - 100;
-    var width = d3.select("#main").node().getBoundingClientRect().width;    
-    var margin = {top: 20, bottom: 20, left: 5, right: 25};
-    var gridster = $('#grid').gridster({helper: 'clone',					
-					widget_base_dimensions: [width * 0.45,widget_height],
-					resize: { enabled: true, stop: function(e,ui,widget) {
-					    var name = $(widget).attr("data-name");                                            
-					    vis_modes[name](name);                                                                                        
-					}},
-//					widget_margins: [50,0],
-					widget_selector: ".gs-w",
-					max_size_x: 2}).data('gridster');
-    function error_state(msg) {	
-	$('#modal_loading-indicator').iziModal('close');
-	$('#modal_loading-indicator').hide();
-	alert(msg);	
-    }
-    
-    var load_PCCA = function(name, clusters, optimal) {
-	return new Promise(function(resolve, reject) {            
-	    $.getJSON('/pcca', {'run': name, 'clusters' : clusters, 'optimal' : optimal}, function(clustered_data) {
-		if (optimal === 1) {                    
-		    trajectories[name].optimal_cluster_value = clustered_data.optimal_value;
-		    trajectories[name].feasible_clusters = clustered_data.feasible_clusters;                    
-		}
-		trajectories[name].current_clustering = clustered_data.sets;
-		if (trajectories[name].sequence == null) {
-		    $.getJSON('/load_dataset', {'run': name}, function(data) {
-			trajectories[name].sequence = data;
-			resolve(name);
-		    }).fail(function(msg) {
-			reject(msg.responseText);
-		    });
-		} else {
-		    resolve(name);
-		}			 			 
-	    }).fail(function(msg) {
-		reject(msg.responseText);
-	    });
-	});
-    };
-    
-    var calculate_epochs = function(name) { 
-	return new Promise(function(resolve,reject) {
-	    if(trajectories[name].overview == null) {
-		$.getJSON('/calculate_epochs', {'run': name}, function(data) {	   
-		    trajectories[name].overview = data;
-    		    resolve(name);
-		}).fail(function(msg) {
-		    reject(msg.responseText);
-		});
-	    } else {
-		resolve(name);                                                
-	    };
-	})
-    }					      
-    var load_dataset = function(name) {
-	return new Promise(function(resolve,reject) {
-	    if(trajectories[name].sequence == null) {
-		$.getJSON('/load_dataset', {'run': name}, function(data) {
-		    trajectories[name].sequence = data;	    	    
-		    resolve(name);
-		}).fail(function(msg) {
-		    reject(msg.responseText);
-		});
-	    } else {
-		resolve(name);                                   
+	draw_xy_plot(x_attribute, y_attribute, sequence, "xy");	
+    });
+ 
+    // Optimal clustering modal
+    $("#modal_optimal_clustering").iziModal({
+	title: 'Select optimal clustering bounds',
+	closeButton: false,
+	closeOnEscape: false,
+	overlayClose: false,
+	borderBottom: false	
+    });
+
+    /* Cancels optimal clustering if cancel is selected. */
+    $("#btn_cancel_optimal_clustering").on('click', function() {                
+	$("#modal_optimal_clustering").iziModal('close');
+	$('#' + $(this).attr("data-name")).prop('checked', false);
+    });
+
+    /* Calculates the optimal clustering, creates the trajectory in memory etc. */
+    $("#btn_calculate_optimal_clustering").on('click', function(e) {        
+	var name = $(this).attr("data-name");
+	var m_min = $(this).attr("data-m_min");
+	var m_max = $(this).attr("data-m_max");
+	var checkboxes = $("#tbl_properties").find('td input:checkbox');
+	var properties = [];
+
+	for(chkbx of checkboxes) {
+	    if(chkbx.checked) {                
+		properties.push(chkbx.value);
 	    }
-	})	
-    }    
+	}
 
-    function switch_controls(name, mode, callback) {
-	switch(mode) {
-	case "PCCA":            
-	    $("#header_" + name).text("PCCA clustering");
-	    $("#pcca_div_" + name).show();
-            $("#state_id_div_" + name).hide();            
-            switch_buttons(name, "PCCA")
-	    break;
-	case "overview":
-	    $("#header_" + name).text("Overview");
-            $("#pcca_div_" + name).hide();
-            $("#state_id_div_" + name).hide();            
-	    switch_buttons(name, "overview");            
-	    break;
-	case "state_id":
-	    $("#header_" + name).text("State ID");
-	    $("#pcca_div_" + name).hide();
-            $("#state_id_div_" + name).show();            
-            switch_buttons(name, "state_id");
-	    break;
-	default:
-	    error_state("Error: Invalid mode selected: " + mode);
-	    break;
-	}
-	if (callback) {
-	    callback();
-	}	
-    }
-    
-    function switch_buttons(name,mode) {
-	var modes = ["PCCA","state_id","overview"];
-        const idx = modes.indexOf(mode);
-	modes.splice(idx,1);
+	names_in_use.push(name);
+	showLoadingIndicator("Calculating PCCA for " + name);
+	load_PCCA(name,-1,1, m_min, m_max).then((name) => {            
+	    $('#modal_loading-indicator').iziModal('setSubtitle', "Loading sequence for " + name);                    		    
+	    return load_sequence(name, properties);
+	}).then((name) => {
+	    $('#modal_loading-indicator').iziModal('setSubtitle', "Rendering");                    		    
+	    set_cluster_info(name);
+	    calculate_unique_states(name);    
+	    setup_controls(name);                                 	
+	    draw_PCCA(names_in_use);
+	    $('#modal_loading-indicator').iziModal('setSubtitle', "Fetching metadata");            
+	    return get_metadata(name);
+	}).then((data) => {
+	    set_metadata(data);            
+	}).catch((err => {                        
+	    error_state(err, true);
+	})).finally(() => {
+	    closeLoadingIndicator();				    				                                        
+	});	
+    });
+
+    /* Opens the optimal clustering modal. Since there's a lot of setup here, placed in its own function. 
+     * name - trajectory to prepare to calculate
+     */
+    function open_optimal_clustering_modal(name) { 
+	$("#slider_optimal_clustering").slider({
+	    range: true,
+	    min: 2,
+	    max: 20,
+	    values: [2,4],
+	    slide: function(event, ui) {
+		$('#optimal_cluster_range').val(ui.values[0] + " - " + ui.values[1]);
+		$('#btn_calculate_optimal_clustering').attr("data-m_min", ui.values[0]);
+		$('#btn_calculate_optimal_clustering').attr("data-m_max", ui.values[1]);
+	    }
+	});    				
 	
-	$("#btn_" + mode + "_" + name).hide();
-	for(var i = 0; i < modes.length; i++) {
-	    $("#btn_" + modes[i] + "_" + name).show();
-	    $("#btn_" + modes[i] + "_" + name).prop('disabled', false);
-	}
+	$("#optimal_cluster_range").val($("#slider_optimal_clustering").slider("values", 0) +
+					" - " + $("#slider_optimal_clustering").slider("values", 1));
+	$('#btn_calculate_optimal_clustering').attr("data-m_min", $("#slider_optimal_clustering").slider("values", 0));
+	$('#btn_calculate_optimal_clustering').attr("data-m_max", $("#slider_optimal_clustering").slider("values", 1));
+	$('#btn_cancel_optimal_clustering').attr("data-name", 'cb_' + name);
+	$('#btn_calculate_optimal_clustering').attr("data-name", name);
+	$("#modal_optimal_clustering").iziModal('open');				                                
     }
-    
-    $.ajax({url: "/connect_to_db",
-	    success: function(data) {
-		$('#load_table_div').append('<p> Press CTRL to toggle zoom brush in overview mode. Double click to zoom out.</p>');
-		var table = $('<table>').addClass("table table-sm");
-		var caption = $('<caption>Select which run(s) to visualize</caption>');
-		var head = $('<thead class="thead-dark"><tr><th>Run name</th><th>Load?</th></tr></thead>');
-		table.append(caption);
-		table.append(head);
-		for(var i = 0; i < data.length; i++) {
-		    if (data[i][0] != null) {
-			var newTrajectory = new Trajectory();
-			trajectories[data[i][0]] = newTrajectory;
-			vis_modes[data[i][0]] = draw_overview;
-			var row = $('<tr>');
-			var name_cell = $('<td>').text(data[i][0]);
-			var checkbox = $('<input>', {type:'checkbox', id:'cb_' + data[i][0], value: data[i][0], click: function() {
-			    if(this.checked) {                                
-				calculate_epochs(this.value).then((name) => {
-				    showLoadingIndicator();
-				    setup_controls(this.value);
-				    draw_overview(name);	
-				}).catch((err => {error_state(err);})).finally((name) => {
-				    closeLoadingIndicator();
-				    switch_controls(name,"overview");
-				    vis_modes[name] = draw_overview;
-				});
-			    } else {				
-				delete vis_modes[this.value];
-				$("#div_" + this.value).empty();
-				gridster.remove_widget($('#div_' + this.value));				
-			    }
-			}});			
-			var input_cell = $('<td>').append(checkbox);
-			row.append(name_cell);
-			row.append(input_cell);
-			table.append(row);
+
+    // path selection modal
+    $('#modal_path_selection').iziModal({
+	title: 'Path Selection',
+	closeButton: false,
+        borderBottom: false,
+	onClosed: function() {
+	    $("#vis_neb").empty();
+	    $("#btn_calculate_neb").show();
+	}
+    });
+
+    /* Button inside path selection modal that draws NEB for selected path */ 
+    $('#btn_calculate_neb').on('click', function() {	
+	var name = $('#modal_path_selection_container').attr("data-name");
+	var start = parseInt($('#modal_path_selection_container').attr("data-start"));
+	var end = parseInt($('#modal_path_selection_container').attr("data-end"));
+	var interpolate = parseInt($('#txt_path_neb').val());
+	showLoadingIndicator("Calculating nudged elastic band on timesteps " + start + " - " + end);        
+	calculate_neb_on_path(name, start, end, interpolate).then((data) => {            
+	    let sequence = trajectories[name].sequence.slice(start, end+1);            
+	    var max_energy = Math.max.apply(Math,data['ef_list']);            
+	    //still not sure how to calculate this correctly
+	    var dE = max_energy - data['ef_list'][0];
+            closeLoadingIndicator();
+	    $('#modal_path_selection').iziModal('open');
+	    $('#btn_calculate_neb').hide();
+	    $("#vis_neb").append("<p><b>Maximum energy barrier on path:</b> " + max_energy + "</p>");
+	    $("#vis_neb").append("<p><b>Total ΔE over path:</b> " + dE + "</p>");	                
+	    draw_xy_plot("timestep", "Energy", sequence, "neb", null, data['ef_list'], "NEB Plot", false, true);            	    
+	}).catch((error) => {error_state(error, false);}).finally(() => {
+	    closeLoadingIndicator();
+	});
+    });
+
+    // add filter modal
+    $('#modal_add_filter').iziModal({ 
+	title: 'Add new filter',
+	closeButton: false,
+	closeOnEscape: false,
+	overlayClose: false,
+	borderBottom: false,        
+	onClosed: function() {
+	    $('#select_new_filter').empty();	   
+	}
+    });
+
+    /* Self explanatory - closes add filter modal */
+    $('#btn_cancel_create_filter').on('click', function(e) {
+	$('#modal_add_filter').iziModal('close');
+    });
+
+    /* Creates filter based on user input in modal */
+    $('#btn_create_filter').on('click', function(e) {
+	var attribute = $('#select_new_filter').val();
+	var filterType = $('#select_new_filter_type').val();
+
+	var filter_functions = {"MIN": filter_min_opacity,
+			        "MAX": filter_max_opacity,
+			        "RANGE": filter_range_opacity};
+
+	var filter_text = {"MIN": "At least ",
+			   "MAX": "At most ",
+			   "RANGE": "Between "}
+	
+	var name = $(this).attr("data-name");                
+        
+	var div = $('<div>')
+
+	var label = $('<label for="slider_filter_'+name+'_'+attribute+'"><label>');
+	var slider = null;
+	
+	if(filterType != "RANGE") {
+	    slider = $('<input>', {type: 'range', min: getMinProperty(attribute, name),
+				   max: getMaxProperty(attribute, name),
+				   value: getMinProperty(attribute, name),
+				   id:'slider_filter_' + name + '_' + attribute}).on('change', function() {
+				       label.text(filter_text[filterType] + this.value); 
+				       if($("#cb_filter_" + name + "_" + attribute).is(":checked")) {
+					   $('#g_' + name).children().attr("opacity", 1);
+					   filter_functions[filterType](attribute, name, this.value);
+				       }
+				   });
+	    label.text(slider.val());
+	} else {
+	    slider = $('<div>', {id:'slider_filter_' + name + '_' + attribute});
+	    slider.slider({
+		range: true,
+		min: getMinProperty(attribute, name),
+		max: getMaxProperty(attribute,name),
+		values: [getMinProperty(attribute,name), getMaxProperty(attribute,name)],
+		slide: function(event, ui) {
+		    label.text(filter_text[filterType] + ui.values[0] + " - " + ui.values[1]);                    
+		    if($("#cb_filter_" + name + "_" + attribute).is(":checked")) {
+                        $('#g_' + name).children().attr("opacity", 1);
+			filter_functions[filterType](attribute,name, ui.values[0], ui.values[1]);
 		    }
 		}
-		$('#load_table_div').append(table);
-		$('#load_table_div').append('<br>');               
-	    },
-	    error: function() {                
-		error_state("Error: Could not connect to database. Please check your connection to the database, refresh the page, and try again.");
-		$("*").prop("disabled", true);
-	   }
-    });
-        
-    function setup_controls(name) {
-	var div = $('<div id="div_' + name + '">').addClass("gs-w").attr("data-name", name).css("border", "2px solid black");
-	var control_div = $('<div>').addClass("col-sm-3");
-	var detail_header = $('<h2>Overview</h2>').attr("id","header_" + name);
-        var pcca_slider = $('<input type="range" min="1" max="64" value="3">').attr("id", "slider_pcca_" + name)
-	    .on('mousemove change', function(e) {                
-		if(trajectories[name].feasible_clusters.includes(parseInt(this.value))) {
-		    $("#lbl_pcca_slider_" + name).text(this.value + " clusters (valid)");
-		}
-	        else if (Math.max(trajectories[name].feasible_clusters) < parseInt(this.value)) {
-		    $("#lbl_pcca_slider_" + name).text(this.value + " clusters (possibly valid, not tested)");
+	    });    						
+	}
+
+	var checkbox_label = $('<label>Filter ' + attribute + '? </label>', {for:'cb_filter_'+name+'_'+attribute});
+	var checkbox = $('<input>', {type:'checkbox', id:'cb_filter_' + name + '_' + attribute}).on('click', function() {
+	    if(this.checked) {
+		if(filterType != "RANGE") {
+		    $('#g_' + name).children().attr("opacity", 1);
+		    filter_functions[filterType](attribute, name, $('#slider_filter_' + name + '_' + attribute).val());
 		} else {
-		    $("#lbl_pcca_slider_" + name).text(this.value + " clusters (invalid clustering)");
+		    $('#g_' + name).children().attr("opacity", 1);
+		    filter_functions[filterType](attribute, name,
+						 $('#slider_filter_' + name + '_' + attribute).slider("values", 0),
+						 $('#slider_filter_' + name + '_' + attribute).slider("values", 1))
 		}		
-	    })
-	    .on('change', function(e) {                
-		if(trajectories[name].feasible_clusters.includes(parseInt(this.value))) {
-		    load_PCCA(name,this.value,0).then((name) => {
-			showLoadingIndicator();
-			vis_modes[name](name);
-		    }).catch((err) =>{error_state(err);}).finally(() => {closeLoadingIndicator();});		    
-		} else {
-		    alert("Warning: clustering trajectory into " + this.value + " clusters will split complex conjugate eigenvalues. Try a different clustering value.");
-		}});
-	var pcca_label = $('<label>3 clusters</label>').attr("id","lbl_pcca_slider_" + name).attr("for","slider_pcca" + name);
-	
-	var checkbox_cluster_color = $('<input type="checkbox" id="chkbox_colorbycluster_' + name + '" value="' + name + '">').on('change', function() {            
-	    if($(this).prop('checked')) {                		
-		load_PCCA(name,0,1).then((name) => {
-		    showLoadingIndicator();
-		    trajectories[name].color_by_cluster = true;
-                    draw_state_id(name);		    
-		}).catch((err) =>{ error_state(err);}).finally(() => {
-		    closeLoadingIndicator();
-		    $("#slider_pcca_" + name).val(trajectories[name].optimal_cluster_value);
-		    $("#lbl_pcca_slider_" + name).text(trajectories[name].optimal_cluster_value + " clusters");
-		    $("#pcca_div_" + name).show();
-		});
 	    } else {
-		trajectories[name].color_by_cluster = false;
-                $("#pcca_div_" + name).hide();                
-	    }});
-	var cluster_color_label = $('<label for="chkbox_colorbycluster_' + name +'" id="lbl_chkbox_colorbycluster_'+ name + ' "> Color by clustering</label>');
+		$('#g_' + name).children().attr("opacity", 1);
+	    }
+	});
+	
+	div.append(checkbox);
+	div.append(checkbox_label)
+	div.append(slider);
+	div.append(label);
+	$('#pcca_div_' + name).append(div);
+        
+	$('#modal_add_filter').iziModal('close');
+    });
 
-	var pcca_button = $('<button>Show PCCA Clustering</button>').attr("id", "btn_PCCA_" + name).on('click', function() {
-	    $(this).prop('disabled', true);
-	    load_PCCA(name,-1,1).then((name) => {
-		showLoadingIndicator();
-		draw_PCCA(name);
-	    }).catch((err) =>{ error_state(err);}).finally(() => {
-		closeLoadingIndicator();
-                $("#slider_pcca_" + name).val(trajectories[name].optimal_cluster_value);
-		$("#lbl_pcca_slider_" + name).text(trajectories[name].optimal_cluster_value + " clusters");				
-		switch_controls(name, "PCCA");});
-	    	vis_modes[name] = draw_PCCA;
-	}).addClass("btn btn-primary");
-	
-	var overview_button = $('<button>Show Overview</button>').attr("id", "btn_overview_" + name).on('click', function() {
-	    $(this).prop('disabled', true);
-	    calculate_epochs(name).then((name) => {
-		showLoadingIndicator();
-		draw_overview(name);		
-	    }).catch((err => {error_state(err);})).finally(() => {
-		closeLoadingIndicator();
-		switch_controls(name,"overview");
-		vis_modes[name] = draw_overview;
-	    });
-	}).addClass("btn btn-primary").hide();
-	
-	var state_id_button = $('<button>Show State ID vs Time</button>').attr("id", "btn_state_id_" + name).on('click', function() {
-	    $(this).prop('disabled', true);
-	    load_dataset(name).then((name) => {		
-		showLoadingIndicator();
-		draw_state_id(name);
-		trajectories[name].color_by_cluster = false;		
-		$('#chkbox_colorbycluster_' + name).prop('checked', false);
-	    }).catch(err => {error_state(err)}).finally(() => {
-		closeLoadingIndicator();
-		switch_controls(name,"state_id");
-		vis_modes[name] = draw_state_id;            
-	    });				  
-	}).addClass("btn btn-primary");
-	var pcca_div = $('<div id="pcca_div_' + name + '">').addClass("row").hide();
-	pcca_div.append(pcca_slider);
-	pcca_div.append(pcca_label);
-	
-        var state_id_div = $('<div id="state_id_div_' + name + '">').addClass("row").hide();	
-	state_id_div.append(checkbox_cluster_color);
-	state_id_div.append(cluster_color_label);
+    // multiple path comparison modal
+    $('#modal_comparison').iziModal({
+	title: 'Comparison',                
+	borderBottom: false,
+        width: '65%',
+	onClosed: function() {
+	    $('#select_x_attributes').empty();
+	    $('#select_y_attributes').empty();            
+            $('#modal_comparison_grid').empty();
+	    $('.similarity_select').empty();
+	    $('#similarity_score').empty();
+	}
+    });
 
-	control_div.append(detail_header);
-	control_div.append(pcca_button);
-	control_div.append(overview_button);
-	control_div.append(state_id_button);
-	control_div.append(pcca_div);
-	control_div.append(state_id_div);
-	
+    /* Button inside comparison modal that draws whatever user selected */
+    $('#btn_generate_xy_plots').on('click', function() { 
+	var extents = JSON.parse($('#modal_comparison_container').attr("data-extents"));        
+
+	let PLOTS_PER_ROW = 2;
+	if(extents.length > 2) {
+	    PLOTS_PER_ROW = 3;
+	}	
+	var row = null;
+	var buildDivs = false;
+
+	if($('#modal_comparison_grid > div').length == 0) {
+	    buildDivs = true;
+	}
+	        
+	for(var i = 0; i < extents.length; i++) {
+	    var name = extents[i]['name'];
+	    var b_timestep = extents[i]['begin']['timestep'];
+	    var e_timestep = extents[i]['end']['timestep'];
+	    var sequence = trajectories[name].sequence.slice(b_timestep, e_timestep);            
+	    var x_attribute = $('#select_x_attributes').val();
+	    var y_attribute = $('#select_y_attributes').val();
+
+	    if(buildDivs) {
+		if (i % PLOTS_PER_ROW == 0) {
+		    row = $('<div>').addClass("row");
+		    $('#modal_comparison_grid').append(row);
+		}
+
+		/* The key in understanding this is that bootstrap expects there to be 12 elements maximum in one row.
+		 * So, to get an even layout, you need to take however many elements you expect per row and divide 12 by that
+		 * to get the correct size string - with two elements you need md-6, with 3 you need md-4 etc.
+		 */
+		var colString = 6;
+		if(PLOTS_PER_ROW == 3) {
+		    colString = 4;
+		}
+		
+		var div = $('<div>').attr("id", "vis_xy" + i).addClass("col-md-" + colString);
+		row.append(div);
+	    }
+
+	    var title = `Timesteps ${b_timestep} - ${e_timestep} in ${name}`;
+	    
+	    draw_xy_plot(x_attribute, y_attribute, sequence, "xy" + i, null, null, title);            
+	}
+    });
+
+    $('#btn_calculate_path_similarity').on('click', function() {        
+	var extents_1 = $('#select_similarity_path_1').val();
+	var extents_2 = $('#select_similarity_path_2').val();
+  	// later on will naturally have selections for all of this, will wait to implement in svelte
+	showLoadingIndicator('Calculating path similarity');
+	calculate_path_similarity(extents_1, extents_2, ['occurrences'], "").then((data) => {
+	    closeLoadingIndicator();
+	    alert("Similarity score: " + data);            
+	}).catch(function(error) {
+	    error_state(error, false);
+	}).then(() => {
+	    closeLoadingIndicator();
+	});
+    });
+
+    
+    // Preprocessing modal setup     
+    $('#modal_preprocessing').iziModal({
+	title: 'Preprocess data',        
+	overlayClose: false,
+	borderBottom: false,        
+	onClosed: function() {
+            var checkboxes = $("#tbl_preprocessing").find('td input:checkbox');
+
+            for(chkbx of checkboxes) {
+		if(chkbx.checked) {
+		    chkbx.prop("checked", false);
+		}
+	    }
+	}
+    });
+
+    // opens preprocessing modal
+    $('#btn_open_preprocessing_modal').on('click', function() {
+	$('#modal_preprocessing').iziModal('open');        
+    });
+
+    $('#btn_preprocess_data').on('click', function() {
+	//gather all the selects and begin work
+    });
+
+    /** 
+     * Generic filter function that gets all states with at least val of property.
+     * @param {string} property - property to filter on
+     * @param {string} name - name of the trajectory 
+     * @param {number} val - min value
+     */
+    function filter_min_opacity(property, name, val) {        
+        d3.selectAll("rect").filter(function(d) {     
+	    return this.getAttributeNode("run").nodeValue == name && d[property] <= val;
+	}).attr("opacity", 0);	
+    }
+
+    /* Generic filter function that gets all states with at most val of property.
+     * property - property to filter on
+     * name - name of the trajectory 
+     * val - max value
+     */
+    function filter_max_opacity(property, name, val) {        
+	d3.selectAll("rect").filter(function(d,i) {            
+	    return this.getAttributeNode("run").nodeValue == name && d[property] >= val;
+	}).attr("opacity", 0);	
+    }
+    
+    /* Generic filter function that gets all states that are between val1 and val2 of the given property
+     * property - property to filter on
+     * name - name of the trajectory 
+     * val1 - min value
+     * val2 - max value
+     */    
+    function filter_range_opacity(property, name, val1, val2) {        
+	d3.selectAll("rect").filter(function(d,i) {            
+	    return this.getAttributeNode("run").nodeValue == name && (d[property] <= val1 || d[property] >= val2);
+	}).attr("opacity", 0);	
+    }
+
+    // Application actually starts here
+    showLoadingIndicator();    
+    connect_to_database().then((data) => {        
+	setup_checkbox_table(data.properties, "tbl_properties", ['occurrences', 'number'], 'Select which properties to load', 'Property', 'Load?');        
+	setup_checkbox_table(data.runs, "tbl_preprocessing", [], 'Select which runs to preprocess', 'Run', 'Preprocess?');	        
+	setup_runs_table(data);
+	$('#btn_open_preprocessing_modal').show();
+	$('#grid').append(setup_main());        
+    }).catch(function(error) {
+	error_state(error, true);
+    }).then(() => {
+	closeLoadingIndicator();
+    });               
+        
+    /** Set up table with checkboxes next to each option - used in property table and preprocessing table.
+     * @param {array} propertyList - properties to include
+     * @param {id} id - DOM id of the table to populate
+     * @param {array} default_values - which values to grey out, if any
+     * @param {string} caption - caption to use for the table
+     * @param {string} th1 - header for first row
+     * @param {string} th2 - header for second row
+     */
+    function setup_checkbox_table(propertyList, id, default_values, caption, th1, th2) { 
+	var table = $(`#${id}`);
+	var caption = $('<caption>' + caption + '</caption>');
+	var head = $('<thead class="thead-dark"><tr><th>' + th1 + '</th><th>' + th2 + '</th></tr></thead>');
+	table.append(caption);
+	table.append(head);        
+	for(property of propertyList) {	    
+	    var row = $('<tr>');
+	    var name_cell = $('<td>').text(property);
+	    var checkbox = $('<input>', {type:'checkbox', value: property});
+	    var input_cell = $('<td>').append(checkbox);
+	    row.append(name_cell);
+	    row.append(input_cell);
+	    table.append(row);
+	    if(default_values.includes(property)) {
+		checkbox.prop("checked", true);
+		checkbox.prop("disabled", true);
+	    }
+	}
+        return table;
+    }    
+
+    /* Set up table where you can choose which trajectories to visualize
+     * data - data from the ajax call that includes the properties available in the database,
+     * as well as the runs / trajectories available
+     */
+    function setup_runs_table(data) { 
+	var table = $('<table>').addClass("table table-sm");
+	var caption = $('<caption>Select which run(s) to visualize</caption>');
+	var head = $('<thead class="thead-dark"><tr><th>Run name</th><th>Load?</th></tr></thead>');
+	table.append(caption);
+	table.append(head);                
+	for(var i = 0; i < data.runs.length; i++) {
+	    if (data.runs[i] != null) {                
+		var row = $('<tr>');
+		var name_cell = $('<td>').text(data.runs[i]);                
+		var checkbox = $('<input>', {type:'checkbox', id:'cb_' + data.runs[i], value: data.runs[i], click: function() {
+		    if(this.checked) {                                
+			open_optimal_clustering_modal(this.value);
+		    } else {				
+			names_in_use.splice(names_in_use.indexOf(this.value), 1);                                
+			$('#pcca_div_' + this.value).remove();
+			draw_PCCA(names_in_use);
+		    }
+		}});		
+		var input_cell = $('<td>').append(checkbox);
+		row.append(name_cell);
+		row.append(input_cell);
+		table.append(row);
+	    }
+	}
+	$('#load_table_div').append(table);
+	$('#load_table_div').append('<br>');
+    }
+
+    /* Set up main divider where everything is drawn */
+    function setup_main() {
+	var name = "main"
+	var div = $('<div id="div_' + name + '">').attr("data-name", name);
+	var control_div = $('<div id="div_control">').addClass("col-sm-3");
+	var detail_header = $('<h2>PCCA Clustering</h2>').attr("id","header_" + name);
 	var vis_div = $('<div>').attr("id","vis_" + name).addClass("col-lg-9");
 	vis_div.append('<h2>' + name + '</h2>');
 	div.append(vis_div);
+	control_div.append(detail_header);
 	div.append(control_div);
-        gridster.add_widget(div,1,1,1, Object.keys(vis_modes).length);
+	return div;	
+    }                   
+
+    /* Set up controls for the given trajectory on the right hand side of the divider
+     * name - name of trajectory to set up controls for
+     */
+    function setup_controls(name) {
+	var pcca_div = $('<div id="pcca_div_' + name + '">').addClass("row").css("border", "1px solid gray");	 	
+
+	var name_label = $('<p><b>' + name + '</b></p>').on('mouseover', function() {
+	    $(this).css("color", "blue");            
+	}).on('mouseout', function() {
+	    $(this).css("color", "black");
+	}).on('click', function() {            
+            $('#modal_container').text(trajectories[name].raw);
+	    $('#modal_info').iziModal('setSubtitle', 'Metadata for ' + name);
+	    $('#modal_info').iziModal('open');
+	});
+                        
+	var pcca_slider = $('<input type="range" min="1" max="20" value="' + trajectories[name].optimal_cluster_value + '">')
+	    .attr("id", "slider_pcca_" + name)
+	    .on('mousemove change', function(e) {                
+		if(trajectories[name].feasible_clusters.includes(parseInt(this.value))) {
+		    $("#lbl_pcca_slider_" + name).text(this.value + " clusters (valid)");
+		} else {
+		    $("#lbl_pcca_slider_" + name).text(this.value + " clusters (possibly invalid clustering)");
+		}		
+	    }).on('change', function(e) {                                		
+		showLoadingIndicator();
+		load_PCCA(name, parseInt(this.value), 0, -1, -1).then(() => {
+		    set_cluster_info(name);                    
+                    draw_PCCA(names_in_use);
+		}).catch((err) =>{error_state(err, false);}).finally(() => {closeLoadingIndicator();});		    
+	    });
+
+	var pcca_label = $('<label>' + pcca_slider.val() + " clusters (valid)" + '</label>')
+	    .attr("id","lbl_pcca_slider_" + name).attr("for", "slider_pcca" + name);                       	
+
+	var clustering_difference_label = $('<label>Show clustering difference</label>').attr("for", "cb_clustering_difference_" + name);
+	var cb_clustering_difference = $('<input>', {type:'checkbox', id:'cb_clustering_difference_' + name}).on('click', function() {
+		if(this.checked) {
+		    $('#modal_loading-indicator').iziModal('setSubtitle', 'Calculating differences for clusters ' +
+						       trajectories[name].feasible_clusters.toString());
+		    showLoadingIndicator();
+		    clustering_difference_filter(name);
+ 		    closeLoadingIndicator();
+		} else {
+                    d3.selectAll("rect").filter(function() {            
+			return this.getAttributeNode("run").nodeValue == name;
+		    }).attr("fill", function(d,i) {
+			return intToRGB(d['cluster']);
+		    });		    
+		}
+	});	
+	pcca_div.append(name_label);
+	pcca_div.append(pcca_slider);
+	pcca_div.append(pcca_label);
+	pcca_div.append("<br>");
+
+	pcca_div.append(cb_clustering_difference);
+	pcca_div.append(clustering_difference_label);
+	pcca_div.append("<br>");
+	
+	pcca_div.append(setup_transition_filter(name));        
+	pcca_div.append(setup_fuzzy_membership_filter(name));
+
+	if(trajectories[name].properties.length > 0) {
+	    pcca_div.append(setup_filter_buttons(name));
+	}
+	
+	$('#div_control').append(pcca_div);        	
     }
 
-    function set_svg(name) {
+    /* Sets up the transition filter within the control divider
+     * name - name of trajectory to set up controls for
+     */
+    function setup_transition_filter(name) {
+	var div = $('<div>');
+	var chkbx_transition_filter = $('<input type="checkbox">').attr("id","chkbx_filter_" + name).on('click', function() {
+	    if(this.checked) {
+                showLoadingIndicator();
+		transition_filter(name, $("#slider_filter_" + name).val(), $('#select_transition_filter_window_type_' + name).val());
+		closeLoadingIndicator();
+	    } else {                
+		$("#g_" + name).children().attr("opacity", 1);                
+	    }
+	});
+	
+	var chkbx_transition_label = $('<label>Filter transitions from dominant state?</label>').attr("for", "chkbx_filter_" + name);
+
+	var transition_filter_slider = $('<input type="range" min=1 max=100 value="10">').attr("id", "slider_filter_" + name).on('mousemove change', function(e) {	    
+	    if($('#select_transition_filter_window_type_' + name).val() == "abs") {
+		$("#lbl_filter_slider_" + name).text("Size of window: " + $("#slider_filter_" + name).val() + " timesteps");
+	    } else {
+		$("#lbl_filter_slider_" + name).text("Size of window: " + this.value + "% of smallest cluster");
+	    }	    
+	}).on('change', function(e) {
+	    if($('#chkbx_filter_' + name).is(':checked')) {
+		showLoadingIndicator();
+		transition_filter(name, this.value, $('#select_transition_filter_window_type_' + name).val());
+		closeLoadingIndicator();
+	    }
+	});
+	
+	var transition_filter_slider_label = $('<label>Size of window: 10% of smallest cluster</label>')
+	    .attr("id", "lbl_filter_slider_" + name).attr("for", "slider_filter_" + name);
+
+	var filter_window_types = [{val: "per", text: 'Percentage of cluster size'},
+				   {val: "abs", text: 'Absolute number of states'}];
+	
+	var transition_filter_window_type = $('<select id="select_transition_filter_window_type_' + name +'">').on('change', function(e) {
+	    if(this.value == "abs") {
+		$("#slider_filter_" + name).prop({'min': 1, 'max': trajectories[name].sequence.length});
+		$("#lbl_filter_slider_" + name).text("Size of window: " + $("#slider_filter_" + name).val() + " timesteps");
+	    } else {
+		$("#slider_filter_" + name).prop({'min': 1, 'max': 100});
+		$("#lbl_filter_slider_" + name).text("Size of window: " + $("#slider_filter_" + name).val() + "% of smallest cluster");
+	    }
+	});
+
+	$(filter_window_types).each(function() {
+	    transition_filter_window_type.append($("<option>").attr('value', this.val).text(this.text));
+	});
+
+	transition_filter_window_type.val("per");
+
+	var transition_filter_window_label = $('<label>Compute window size with: </label>')
+	    .attr("id", "lbl_select_transition_filter_window_type_" + name)
+	    .attr("for", "select_transition_filter_window_type_" + name);
+
+	div.append(chkbx_transition_filter);
+        div.append(chkbx_transition_label);
+	div.append(transition_filter_slider);
+	div.append(transition_filter_slider_label);
+	div.append("<br>")
+	div.append(transition_filter_window_label);
+	div.append(transition_filter_window_type);	
+	return div;
+    }
+
+    /* Set up the fuzzy membership filter 
+     * name - name of trajectory to set up controls for
+     */
+    function setup_fuzzy_membership_filter(name) {	
+	var div = $('<div>');        
+	var chkbox = $('<input type="checkbox">').attr("id","chkbx_membership_filter_" + name).on('click', function() {
+	    if(this.checked) {
+		fuzzy_membership_filter(name);
+	    } else {
+		$("#g_" + name).children().attr("opacity", 1);                                
+	    }
+	});
+	
+	var chkbx_label = $('<label>Filter fuzzy memberships?</label>').attr("for", "chkbx_membership_filter_" + name);
+	div.append(chkbox);	
+	div.append(chkbx_label);
+	return div;
+    }
+
+    /* Set up the dynamic filters 
+     * name - name of trajectory to set up controls for
+     */
+    function setup_filter_buttons(name) { 
+	var div = $('<div>');
+	var btn_add_filter = $('<button>+ Add a new filter...</button>').attr("id", "btn_add_filter_" + name).addClass("btn btn-light")
+	    .on('click', function() {
+		$('#modal_add_filter').iziModal('setSubtitle', name);
+		for(property of trajectories[name].properties) {
+		    $('#select_new_filter').append($('<option>').val(property).text(property));
+		}
+		$('#btn_create_filter').attr("data-name", name);
+		$('#modal_add_filter').iziModal('open');
+	    });
+
+	var btn_plot_attribute = $('<button>Generate x-y plot with attribute</button>').attr("id", "btn_plot_attribute_" + name)
+	    .addClass("btn btn-light").on('click', function() {                
+		var select_x = $("#select_x_attribute");
+		var select_y = $("#select_y_attribute");
+
+		select_x.append($('<option>').val('timestep').text('timestep'));
+		select_y.append($('<option>').val('timestep').text('timestep'));		    
+		
+		for(property of trajectories[name].properties) {
+		    select_x.append($('<option>').val(property).text(property));
+		    select_y.append($('<option>').val(property).text(property));		    
+		}
+		
+		$('#btn_generate_xy_plot').attr("data-name", name);
+
+		var div = $('<div>').attr("id", "vis_xy").addClass("plot");
+		$('#modal_xy_plot_container').append(div);
+
+		$('#modal_xy_plot').iziModal('open');
+	    });
+
+	div.append(btn_add_filter);
+	div.append(btn_plot_attribute);
+
+	return div;
+    }
+    
+    /* Sets up a SVG for drawing. Assumes that the divider you're drawing in is called vis_ something.
+     * Trivial to make general, just no real point. 
+     */    
+    function set_svg(name) { 
         var svg = null;
 	var bBox = null;
 
 	if($('#svg_' + name).length) {
 	    $("#svg_" + name).empty();
-	    bBox = d3.select("#vis_" + name).node().getBoundingClientRect();    
-	    svg = d3.select('#svg_' + name).attr("width", bBox.width);
+	    bBox = d3.select("#vis_" + name).node().getBoundingClientRect();            
+	    svg = d3.select("#svg_" + name).attr("viewBox", [0,0,bBox.width,svg_height]);
 	} else {            
-	    bBox = d3.select("#vis_" + name).node().getBoundingClientRect();    
-	    svg = d3.select("#vis_" + name).append("svg").attr("width", bBox.width).attr("height", svg_height).attr("id", "svg_" + name);
-	}
-	return [svg, bBox];
-    }
-    
-    function draw_state_id(name) {        
-	var data = trajectories[name].sequence;
-	var clustered_data = null;
-	if (trajectories[name].color_by_cluster) {
-	    var clustered_data = trajectories[name].current_clustering;
-	}
-	let [svg, bBox] = set_svg(name);        
-	cluster_colors = [];
-        
-	if(clustered_data != null) {	    
-	    for(var k = 0; k < clustered_data.length; k++) {	    
-		cluster_colors.push(intToRGB(k));	    
-	    }
-	    
-	    for(var i = 0; i < data.length; i++) {
-		for(var j = 0; j < clustered_data.length; j++) {
-		    if(clustered_data[j].includes(data[i]['number'])) {
-			data[i]['cluster'] = j;
-		    }
-		}
-		if(data[i]['cluster'] == null) {
-		    data[i]['cluster'] = -1;
-		}
-	    }	        	    
-	}
-
-	if (trajectories[name].unique_states == null) {
-	    var unique_states = new Set();
-	    for (var i = 0; i < data.length; i++) {
-		unique_states.add(data[i].id);
-	    }
-	    trajectories[name].unique_states = unique_states;
+	    bBox = d3.select("#vis_" + name).node().getBoundingClientRect();                
+	    svg = d3.select("#vis_" + name).append("svg").attr("viewBox", [0,0,bBox.width,svg_height]).attr("id", "svg_" + name);
 	}        
 	
-	scale_x = d3.scaleLinear().range([margin.left, bBox.width - margin.right]).domain([0,data.length]);
-	scale_y = d3.scaleLinear().range([margin.top, svg_height - margin.bottom]).domain([d3.extent(trajectories[name].unique_states)[0], d3.extent(trajectories[name].unique_states)[1]]);
-	svg.selectAll("rect").data(data, function(d) { return d }).enter().append("rect").attr("x", function(d) { return scale_x(d['timestep']) })
-	    .attr("y", function(d) {                
-		return scale_y(d.id)})
-	    .attr("width", 5).attr("height", 5)
-	    .attr("fill", function(d) {
-		if(clustered_data != null) {
-		    return cluster_colors[d['cluster']];
-		} else {
-		    return hashStringToColor(d['number']);
-		}
-	    })
-	    .on('mouseover', function(event,d) {
-		d3.selectAll("rect").filter(function (dp) { return dp['number'] != d['number'] }).attr("opacity", "0.05");
-		tippy(this, {
-		    allowHTML: true,                    
-		    content: "<b>State number</b>: " + d['number'] + " <i>t</i>=" + d['timestep'] +
-                             "<br>There are <b>" + d['occurences'] + "</b> occurences of this state.",
-		    arrow: false,
-		    maxWidth: 'none',
-		});
-	    }).on('mouseout', function(event,d) {
-                d3.selectAll("rect").filter(function (dp) { return dp['number'] != d['number'] }).attr("opacity", "1.0");
-	   });
-	var xAxis = svg.append("g").call(d3.axisBottom().scale(scale_x));	
+	return [svg, bBox];
     }
-    
-    function draw_overview(name) {
-	var data = trajectories[name].overview;
-        var to_draw = []
-	var q = new Queue();
-	q.enqueue(data);
-	var max_depth = 0;
 
-	while (!q.isEmpty()) {
-	    curr_data = q.dequeue();	   
-	    to_draw.push(curr_data);
+    /* Draws the visualization according to the names array, which contains the names of every trajectory currently in use 
+     * If called with an empty array, has the hidden function of deleting everything, acting as a clear function.
+     * names - names of the trajectories to render
+     */
+    function draw_PCCA(names) { 
+	if(names.length == 0 || names === undefined) {
+	    if($('#svg_main').length) {
+		$("#svg_main").empty();
+	    }
+	    return;
+	}
+	
+	var dataList = [];
+	var count = 0;
+	var maxLength = -Number.MAX_SAFE_INTEGER;
 
-	    if (curr_data.l_child != null) {
-		q.enqueue(curr_data.l_child);		
-	    } 			    
-	    
-	    if (curr_data.r_child != null) {
-		q.enqueue(curr_data.r_child);
+	for (const name of names) {            
+	    var data = trajectories[name].sequence;            
+
+            if(data.length > maxLength) {
+                maxLength = data.length;
 	    }
 
-	    if (curr_data.l_child === null && curr_data.r_child === null) {
-		if (curr_data.depth > max_depth) {
-		    max_depth = curr_data.depth;
-		}
-	    }	
-	}
-
-        let [svg, bBox] = set_svg(name);
+            dataList.push({'name': name, 'data': data, 'y': count,
+			   'fuzzy_memberships': trajectories[name].fuzzy_memberships[trajectories[name].current_clustering]});
+	    count++;
+	}        
+       	
+        let [svg,bBox] = set_svg("main");
 	
-	scale_x = d3.scaleLinear().range([margin.left, bBox.width - margin.right]).domain([0,to_draw[0].end]);
-	scale_y = d3.scaleLinear().range([margin.top, svg_height - margin.bottom]).domain([0,max_depth]);
-	svg.selectAll("rect").data(to_draw, function(d) { return d }).enter().append("rect").attr("x", function(d) { return scale_x(d.start) })
-	    .attr("y", function(d) {return scale_y(d.depth)})
-	    .attr("width", function(d) { return scale_x(d.end) - scale_x(d.start) }).attr("height", 5)
-	    .attr("fill", function(d) { return hashStringToColor(d.winner)})
-	    .on('mouseover', function(event,d) {
-		d3.selectAll("rect").filter(function (dp) { return dp.winner != d.winner }).attr("opacity", "0.05");
-		tippy(this, {
-		    allowHTML: true,
-		    content: "<b>Most common state</b>: " + d.winner +
-			     "<br><b>Start</b>: " + d.start + " <b>End</b>: " + d.end + " <b>Sequence length</b>: " + (d.end-d.start) +
-			     "<br><b>Number of occurences at this level</b>: " + d.counts[d.winner],
-		    arrow: false,
-		    maxWidth: 'none',
-		});
-	    })
-	    .on('click', function(event,d) {
-		event.preventDefault();
-		$('#modal_container').html('');                	
-		var items = Object.keys(d.counts).map(function(key) {
-		    return [key, d.counts[key]];
-		});
+	var scale_x = d3.scaleLinear().range([margin.left, bBox.width - margin.right]).domain([0,maxLength]);
+	var scale_y = d3.scaleLinear().range([margin.top, svg_height - margin.bottom]).domain([0,dataList.length]);
 
-		items.sort(function(first, second) {
-		    return second[1] - first[1];
-		});
-                		                
-		var table = $('<table>').addClass("table table-sm");
-		var head = $('<thead class="thead-dark"><tr><th>State number</th><th>Count</th></tr></thead>');                
-		table.append(head);
-		var count = 0;
-		for(const item of items) {
-		    var row = $('<tr>');                    
-		    var name_cell = $('<td>').text(item[0]);
-		    var count_cell = $('<td>').text(item[1]);
-		    row.append(name_cell);
-		    row.append(count_cell);
-		    table.append(row);
-		    if(count > 10) {
-			break;
+	var tickNames = [];
+
+	//TODO add modal on state click, to show additional information if interested
+
+	for(const t of dataList) {            
+	    let g = svg.append("g").attr("id", "g_" + t.name);	
+	    tickNames.push(t.name);
+	    g.selectAll("rect").data(t.data, function(d) {return d}).enter().append("rect")
+		.attr("x", function(d) {                    
+		    return scale_x(d['timestep'])
+		})
+		.attr("y", function () {		
+		    return scale_y(t.y);
+		})
+		.attr("width",5).attr("height",5).attr("fill", function(d) {
+		    if(d['cluster'] == -1) {
+			return "black";
 		    }
-		    count++;
-		}				
-		
-		$('#modal_container').append(table);                
-		$('#modal_info').iziModal('open');
-	    })
-	    .on('mouseout', function(event,d) {				
-		d3.selectAll("rect").filter(function (dp) { return dp.winner != d.winner }).attr("opacity", "1.0");
-	    });
+		    return intToRGB(d['cluster']);
+		})
+	        .attr("run", function() { return t.name })
+		.attr("number", function(d) { return d['number'] })
+		.attr("timestep", function(d) { return d['timestep'] })
+		.attr("occurrences", function(d) { return d['occurrences'] })
+	        .attr("fuzzy_membership", function(d,i) {                                        
+		    return t.fuzzy_memberships[d['number']];
+		})
+	        .on('click', function(event,d) {
+		    //showLoadingIndicator("Generating Ovito image for state " + d['number']);
+		    /*generate_ovito_image(d['number']).then((data) => {
+			console.log(data);
+			var img = $('<img>').attr("src", 'data:image/png;base64,' + data);
+			$("#modal_container").append(img);
+		    }).catch((error) => {error_state(error);}).finally(closeLoadingIndicator());*/
+		    $("#modal_info").iziModal('setSubtitle', d['number']);
+		    $("#modal_info").iziModal('open');
+		})
+		.on('mouseover', function(event,d) {                                        
+		    var props = trajectories[t.name].properties;
+		    var propertyString = "";
+		    var perLine = 3;
+		    var count = 0;
+		    for(property of props) {
+			propertyString += "<b>" + property + "</b>: " + trajectories[t.name].sequence[d['timestep']][property] + " ";
+			count++;
+			if(count % perLine == 0) {
+			    propertyString + "<br>";
+			}
+		    }
+		    tippy(this, {
+			allowHTML: true,
+			content: "<b>Run</b>: " + t.name + " <i>t</i>=" + d['timestep'] +
+			    "<br><b>Cluster</b>: " + d['cluster'] +
+			    " <b>Fuzzy memberships</b>: " + $(this).attr("fuzzy_membership").toString() + 
+			    "<br>" + propertyString,
+			arrow: true,
+			maxWidth: 'none',
+		    });
+		});	    
+	}
 	
 	var xAxis = svg.append("g").call(d3.axisBottom().scale(scale_x));
-	//disable in detail mode
+
+	// reset zoom
 	svg.on('dblclick', function(event,d) {
 	    // zoom out on double click
-	    scale_x.domain([0,to_draw[0].end]);
-	    xAxis.transition().duration(500).call(d3.axisBottom(scale_x));
-	    svg.selectAll("rect").transition().duration(500)
-		.attr("x", function(d,i) { return scale_x(d.start) })
-		.attr("y", function(d) {return scale_y(d.depth)})
-		.attr("width", function(d) { return scale_x(d.end) - scale_x(d.start) });
+	    scale_x.domain([0,maxLength]);
+	    xAxis.call(d3.axisBottom(scale_x));
+	    svg.selectAll("rect")
+		.attr("x", function(d) { return scale_x(d['timestep']); });             
 	});
 
-	var brush = d3.brushX().extent([[0,0], [bBox.width, svg_height]]).on('end', function(e) {
-	    var extent = e.selection;
-	    
-	    if(!extent) {
-		scale_x.domain([0,to_draw[0].end]);
-		xAxis.transition().duration(500).call(d3.axisBottom(scale_x));
-	    } else {
-		d3.select("#svg_" + name).select('.brush').call(brush.move, null);
+	var z_brush = d3.brushX().extent([[0,0], [bBox.width, svg_height]]).on('end', function(e) {
+	    var extent = e.selection;                        
+	    if(extent) {                
+                d3.select("#svg_" + name).select('.brush').call(z_brush.move, null);
 		scale_x.domain([scale_x.invert(extent[0]), scale_x.invert(extent[1])]);
-		xAxis.transition().duration(500).call(d3.axisBottom(scale_x));
-		svg.selectAll("rect").transition().duration(500)
-		    .attr("x", function(d) { return scale_x(d.start) })
-		    .attr("y", function(d) {return scale_y(d.depth)})
-		    .attr("width", function(d) { return scale_x(d.end) - scale_x(d.start) });
-		d3.select(this).remove();
-		// remove all other brushes too
+		xAxis.call(d3.axisBottom(scale_x));
+		svg.selectAll("rect")
+		    .attr("x", function(d) { return scale_x(d['timestep']); });                  
+		d3.select(this).remove();                
 		$(".brush").remove();
-	    }
+	    }            
+	    d3.select(this).remove();            
+	    $(".brush").remove();
 	});
-	//TODO: zoom only shows up on last drawn graph
-	document.onkeyup = function(e) {
-	    if(e.key === "Control") {                
-		if ($(".brush").length) { $(".brush").remove(); }               
-		d3.select("#svg_" + name).append("g").attr("class", "brush").call(brush);
-	    }
-	}		
-    }
-        
-    function draw_PCCA(name) {        
-	var data = trajectories[name].sequence;
-	var clustered_data = trajectories[name].current_clustering;
-	//const threshold = $('#slider_threshold').val();	
-	//data = data.filter(function (d) { return d['n.occurences'] > threshold });                
-	cluster_colors = [];        
-	for(var i = 0; i < clustered_data.length; i++) {	    
-	    cluster_colors.push(intToRGB(i));	    
-	}
-        
-	for(var i = 0; i < data.length; i++) {
-	    for(var j = 0; j < clustered_data.length; j++) {
-		if(clustered_data[j].includes(data[i]['number'])) {
-		    data[i]['cluster'] = j;
+
+	// multiple path selection
+	var extents = [];
+	
+	var m_s_brush = d3.brush().extent([[0,0], [bBox.width, svg_height]]).on('end', function(e) {
+	    var extent = e.selection;                        
+	    if(extent) {
+		var curr_name = dataList[Math.round(scale_y.invert(extent[0][1]))].name;		
+		if (curr_name != null && curr_name != undefined) {
+		    var begin = trajectories[curr_name].sequence[Math.round(scale_x.invert(extent[0][0]))];
+		    var end = trajectories[curr_name].sequence[Math.round(scale_x.invert(extent[1][0]))];
+		    var xtent = {name:curr_name,begin:begin,end:end};
+		    extents.push(xtent);
 		}
+	    }            
+	});
+
+	// single path selection
+	var s_brush = d3.brush().extent([[0,0], [bBox.width, svg_height]]).on('end', function(e) {
+	    var extent = e.selection;                        
+	    if(extent) {                
+                var curr_name = dataList[Math.round(scale_y.invert(extent[0][1]))].name;		
+		if (curr_name != null && curr_name != undefined) {
+		    var begin = trajectories[curr_name].sequence[Math.round(scale_x.invert(extent[0][0]))];
+		    var end = trajectories[curr_name].sequence[Math.round(scale_x.invert(extent[1][0]))];                    
+		    $('#modal_path_selection').iziModal('setSubtitle', "State " + begin.number + " - " + "State " + end.number);
+		    $('#modal_path_selection_container').attr("data-start", begin.timestep);
+		    $('#modal_path_selection_container').attr("data-end", end.timestep);
+		    $('#modal_path_selection_container').attr("data-name", curr_name);
+		    $('#modal_path_selection').attr("data-izimodal-preventclose", "");
+		    $('#modal_path_selection').iziModal('open');                    
+		}                                
+	    }            
+	    d3.select(this).remove();            
+	    $(".brush").remove();
+	});
+
+	// controls
+	document.onkeyup = function(e) {
+	    if(e.key == "Control") {                
+		if ($(".brush").length) { $(".brush").remove(); }               
+		d3.select("#svg_main").append("g").attr("class", "brush").call(s_brush);
 	    }
-            if(data[i]['cluster'] == null) {
-		data[i]['cluster'] = -1;
+	    
+	    if(e.key == 'Z' || e.key == 'z') {
+		if ($(".brush").length) { $(".brush").remove(); }                
+		d3.select("#svg_main").append("g").attr("class", "brush").call(z_brush);
 	    }
-	}	        
+	    
+	    if(e.key == "Shift") {
+		d3.select("#svg_main").append("g").attr("class", "brush").call(m_s_brush);                
+	    }
+	    
+	    if(e.key == "S" || e.key == "s") {
+		if ($(".brush").length) { $(".brush").remove(); }
+		if(extents.length >= 2) {                    
+		    var x_select = $('#select_x_attributes');
+		    var y_select = $("#select_y_attributes");
+
+		    var propList = []
+		    for(var i = 0; i < extents.length; i++) {
+			propList.push(trajectories[extents[i]['name']].properties);
+		    }
+		    
+		    var cmn = intersection(propList); 
+
+		    x_select.append($('<option>').val('timestep').text('timestep'));
+                    y_select.append($('<option>').val('timestep').text('timestep'));
+		    
+		    for(const property of cmn) {
+			x_select.append($('<option>').val(property).text(property));
+			y_select.append($('<option>').val(property).text(property));
+		    }
+                    		    
+		    $('.similarity_select').each(function() {                        
+                        for(const extent of extents) {                            
+			    $(this).append($('<option>').val(JSON.stringify(extent)).text(`${extent['name']}: timesteps ${extent['begin']['timestep']} - ${extent['end']['timestep']}`));
+			}
+		    });	    
+		    
+		    $('#modal_comparison_container').attr("data-extents", JSON.stringify(extents));
+                    $('#modal_comparison').iziModal('open');
+		    
+		}
+		// clear extents array
+		extents = [];
+	    }	    	    
+	}	
+    }
+
+    /* Draws an xy plot within the specified modal. 
+     * Default is to draw Y values towards the top of the graph; reverse switches that so that
+     * the highest values are drawn towards the bottom of the graph.
+     * x_attribute - what X will be in the plot
+     * y_attribute - what Y will be in the plot
+     * sequence - sequence to draw, can be any length; the entire trajectory is not needed
+     * svgName - svg where the x-y plot should be drawn
+     * x_attributeList - if we're using an outside source (not in the database, calculated somewhere else) for the x attribute, pass it here (optional)
+     * y_attributeList - if we're using an outside source (not in the database, calculated somewhere else) for the y attribute, pass it here (optional)
+     * title - title for the graph (optional; defaults to x_attribute vs y_attribute)
+     * reverse - draw y values top to bottom (optional)
+     * path - draw lines between values (optional)
+     */
+    function draw_xy_plot(x_attribute, y_attribute, sequence, svgName, x_attributeList, y_attributeList, title, reverse, path) {        
+	let [svg,bBox] = set_svg(svgName);
+        
+	if(reverse == null) reverse = false;        
+        if(path == null) path = false;
+
+	if(x_attributeList == null) {
+	    x_attributeList = [];
+	    for(d of sequence) {
+		x_attributeList.push(d[x_attribute]);
+	    }
+	}        
 	
-        let [svg,bBox] = set_svg(name);
+	if(y_attributeList == null) {
+	    y_attributeList = [];
+	    for(d of sequence) {
+		y_attributeList.push(d[y_attribute]);
+	    }
+	}        
+
+	var xtent = d3.extent(x_attributeList)
+	var ytent = d3.extent(y_attributeList);        
+
+	var first = 0;
+	var last = 1;
+
+	if(reverse) {
+	    first = 1;
+	    last = 0;
+	}
+
+	// 1.25 for breathing room between axis and values
+        var scale_x = d3.scaleLinear().range([margin.left, bBox.width - margin.right]).domain([xtent[0],xtent[1]]);
+
+	var scale_y = d3.scaleLinear().range([svg_height - margin.bottom,margin.top]).domain([ytent[first],ytent[last]]);
 	
-	scale_x = d3.scaleLinear().range([margin.left, bBox.width - margin.right]).domain([0,data.length]);
-	scale_y = d3.scaleLinear().range([margin.top, svg_height - margin.bottom]).domain([clustered_data.length,-1]);
-	svg.selectAll("rect").data(data, function(d) {return d}).enter().append("rect")
-	    .attr("x", function(d,i) {return scale_x(i)}).attr("y", function (d) {		
-		return scale_y(d['cluster']);
-	    })
-	    .attr("width",1).attr("height",5).attr("fill", function(d) {
+        svg.selectAll("rect").data(sequence).enter().append("rect")
+
+	    .attr("x", function(d,i) {return scale_x(x_attributeList[i])})
+	    .attr("y", function(d, i) {return scale_y(y_attributeList[i])})
+	    .attr("index", function(d,i) {return i})
+	    .attr("width", 5).attr("height", 5)
+	    .attr("fill", function(d) {                
 		if(d['cluster'] == -1) {
 		    return "black";
 		}
-		return cluster_colors[d['cluster']];
-	    })
-	    .attr("number", function(d) { return d['number'] })
-	    .attr("timestep", function(d) { return d['timestep'] })
-	    .attr("occurences", function(d) { return d['occurences'] })
-	    .on('mouseover', function(event,d) {
-                d3.selectAll("rect").filter(function (dp) { return dp['number'] != d['number'] }).attr("opacity", "0.05");
+		return intToRGB(d['cluster']);
+	    }).on('mouseover', function(event, d) {                               
+		const i = event.currentTarget.getAttribute("index");                
 		tippy(this, {
 		    allowHTML: true,
-		    content: "<b>State number</b>: " + d['number'] + " <i>t</i>=" + d['timestep'] +
-			"<br><b>Cluster</b>: " + d['cluster'] +
-			"<br>There are <b>" + d['occurences'] + "</b> occurences of this state.",
+		    content: "<b>" + x_attribute + "</b>: " + x_attributeList[i] +
+			     "<br><b>" + y_attribute + "</b>: " + y_attributeList[i],
 		    arrow: true,
 		    maxWidth: 'none',
-		});
-	    })
-	    .on('mouseout', function(event,d) {
-                d3.selectAll("rect").filter(function (dp) { return dp['number'] != d['number'] }).attr("opacity", "1.0");
+		});		
 	    });
-	var xAxis = svg.append("g").call(d3.axisBottom().scale(scale_x));
-    }	
-	    
+        
+        if(path) {	    
+	    var datum = [];
+	    for(var i = 0; i < sequence.length; i++) {
+		const d = {x: x_attributeList[i], y: y_attributeList[i] };
+		datum.push(d);
+	    }
+            
+	    const line = d3.line()
+		  .x(d => scale_x(d.x))
+		  .y(d => scale_y(d.y))	
+		  .curve(d3.curveCatmullRom.alpha(0.5));
+	    svg.append('path').datum(datum).attr('d', line).attr("stroke","black").attr("fill","none");            
+        }        
+
+	// decorations
+
+	var yAxisPos = margin.left;	
+	var xAxisPos = svg_height - margin.bottom;
+	
+	var xAxis = svg.append("g").attr("transform", `translate(0,${xAxisPos})`).call(d3.axisBottom().scale(scale_x));
+	var yAxis = svg.append("g").attr("id", "yAxis"+svgName).attr("transform", `translate(${yAxisPos},0)`).call(d3.axisLeft().scale(scale_y));
+	
+	if(title == null || title == "") {
+	    title = x_attribute + " vs " + y_attribute;
+	}        
+	
+	svg.append("text")            
+	    .attr("x", bBox.width/2)
+	    .attr("y", margin.top)
+	    .attr("text-anchor", "middle")
+	    .style("font-size", "12px")
+	    .text(title);
+	
+    }
 });
-
-
