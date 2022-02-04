@@ -29,7 +29,7 @@ class CheckboxTable extends React.Component {
 	});
 
 	if(this.props.defaults) {
-	    this.setState({...this.state, clicked : this.props.defaults});                        
+	    this.setState({...this.state, clicked: this.props.defaults});                        
 	}
     }
     

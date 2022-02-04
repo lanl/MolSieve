@@ -19,13 +19,19 @@ class LoadRunModal extends React.Component {
 	super(props);        
 	this.state = {
 	    values: defaultValues.slice(),
-	    clicked: ['occurrences', 'number']            
+	    clicked: ['occurrences', 'number'],
+            name: null
 	};
     }
 
     pullClicked = (event) => {
-        this.state.clicked.push(event.target.value);
-        console.log(this.state);
+        this.state.clicked.push(event.target.value);        
+    }
+
+    load_trajectory = (e) => {        
+	this.props.closeFunc(e);
+	this.state.name = this.props.lastEvent.target.value;
+	this.props.load_trajectory(this.state);
     }
     
     onChange = (values) => {
@@ -38,7 +44,7 @@ class LoadRunModal extends React.Component {
 		state: { values },
 	    } = this;
 	    
-	    let name = this.props.lastEvent.target.value;
+	    let name = this.props.lastEvent.target.value;            
 	    let defaults = ['occurrences', 'number'];	    
 	    return (<Modal isOpen={this.props.isOpen}>
 			<br/>
@@ -65,7 +71,7 @@ class LoadRunModal extends React.Component {
 			</Slider>
 			<br/>
 			<CheckboxTable click={this.pullClicked} defaults={defaults} header="Properties" api_call={`/get_property_list?run=${name}`}></CheckboxTable>
-		    <button onClick={this.props.closeFunc}>Calculate</button> <button onClick={this.props.closeFunc}>Cancel</button></Modal>);
+		    <button onClick={this.load_trajectory}>Calculate</button> <button onClick={this.props.closeFunc}>Cancel</button></Modal>);
 	} else {
 	    return null;
 	}
