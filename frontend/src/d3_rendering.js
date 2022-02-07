@@ -1,6 +1,6 @@
 import React from "react";
 import * as d3 from "d3";
-import { set_svg, intToRGB } from "./myutils";
+import { intToRGB } from "./myutils";
 import tippy from "tippy.js";
 import "tippy.js/dist/tippy.css";
 
@@ -8,151 +8,169 @@ const widget_width = 500;
 const svg_height = widget_width - 100;
 const margin = { top: 20, bottom: 20, left: 40, right: 25 };
 
+let z_brush = null;
+
 class D3RenderDiv extends React.Component {
-  componentDidUpdate() {
-    this.draw_PCCA(Object.keys(this.props.trajectories));
-  }
 
-  draw_PCCA = (names) => {
-    if (names.length === 0 || names === undefined) {
-      if (!d3.select("#svg_main").empty()) {
-        d3.select("#svg_main").selectAll("*").remove();
-      }
-      return;
+    componentDidMount() {
+	document.addEventListener('keydown', this.handleKeyPress);
+    }
+    
+    componentDidUpdate() {
+        this.draw_PCCA(Object.keys(this.props.trajectories));
     }
 
-    var dataList = [];
-    var count = 0;
-    var maxLength = -Number.MAX_SAFE_INTEGER;
-
-    const trajectories = this.props.trajectories;
-
-    for (const name of names) {
-      var data = trajectories[name].sequence;
-
-      if (data.length > maxLength) {
-        maxLength = data.length;
-      }
-
-      dataList.push({
-        name: name,
-        data: data,
-        y: count,
-        fuzzy_memberships:
-          trajectories[name].fuzzy_memberships[
-            trajectories[name].current_clustering
-          ],
-      });
-      count++;
+    handleKeyPress = (e) => {
+	if(e.key === 'Z' || e.key === 'z') {
+	    if (z_brush != null) {
+		if (d3.select(".brush").length) { document.querySelector(".brush").remove(); }                
+		d3.select("#svg_main").append("g").attr("class", "brush").call(z_brush);
+	    }
+	}
     }
 
-    //let svg = d3.select(set_svg("main", widget_width, svg_height));
-    //console.log(svg);
-    let svg = d3
-      .select("#svg_main")
-      .attr("viewBox", [0, 0, widget_width, svg_height]);
+    draw_PCCA = (names) => {
+        if (names.length === 0 || names === undefined) {
+            if (!d3.select("#svg_main").empty()) {
+                d3.select("#svg_main").selectAll("*").remove();
+            }
+            return;
+        }
 
-    var scale_x = d3
-      .scaleLinear()
-      .range([margin.left, widget_width - margin.right])
-      .domain([0, maxLength]);
-    var scale_y = d3
-      .scaleLinear()
-      .range([margin.top, svg_height - margin.bottom])
-      .domain([0, dataList.length]);
+        var dataList = [];
+        var count = 0;
+        var maxLength = -Number.MAX_SAFE_INTEGER;
 
-    var tickNames = [];
+        const trajectories = this.props.trajectories;
 
-    //TODO add modal on state click, to show additional information if interested
+        for (const name of names) {
+            var data = trajectories[name].sequence;
 
-    for (const t of dataList) {
-      let g = svg.append("g").attr("id", "g_" + t.name);
-      tickNames.push(t.name);
-      g.selectAll("rect")
-        .data(t.data, function (d) {
-          return d;
-        })
-        .enter()
-        .append("rect")
-        .attr("x", function (d) {
-          return scale_x(d["timestep"]);
-        })
-        .attr("y", function () {
-          return scale_y(t.y);
-        })
-        .attr("width", 5)
-        .attr("height", 5)
-        .attr("fill", function (d) {
-          if (d["cluster"] == -1) {
-            return "black";
-          }
-          return intToRGB(d["cluster"]);
-        })
-        .attr("run", function () {
-          return t.name;
-        })
-        .attr("number", function (d) {
-          return d["number"];
-        })
-        .attr("timestep", function (d) {
-          return d["timestep"];
-        })
-        .attr("occurrences", function (d) {
-          return d["occurrences"];
-        })
-        .attr("fuzzy_membership", function (d, i) {
-          return t.fuzzy_memberships[d["number"]];
-        })
-        .on("click", function (event, d) {
-          //showLoadingIndicator("Generating Ovito image for state " + d['number']);
-          /*generate_ovito_image(d['number']).then((data) => {
+            if (data.length > maxLength) {
+                maxLength = data.length;
+            }
+
+            dataList.push({
+                name: name,
+                data: data,
+                y: count,
+                fuzzy_memberships:
+                    trajectories[name].fuzzy_memberships[
+                        trajectories[name].current_clustering
+                    ],
+            });
+            count++;
+        }
+
+        //let svg = d3.select(set_svg("main", widget_width, svg_height));
+        //console.log(svg);
+        let svg = d3
+            .select("#svg_main")
+            .attr("viewBox", [0, 0, widget_width, svg_height]);
+
+        var scale_x = d3
+            .scaleLinear()
+            .range([margin.left, widget_width - margin.right])
+            .domain([0, maxLength]);
+        var scale_y = d3
+            .scaleLinear()
+            .range([margin.top, svg_height - margin.bottom])
+            .domain([0, dataList.length]);
+
+        var tickNames = [];
+
+        //TODO add modal on state click, to show additional information if interested
+
+        for (const t of dataList) {
+            let g = svg.append("g").attr("id", "g_" + t.name);
+            tickNames.push(t.name);
+            g.selectAll("rect")
+                .data(t.data, function (d) {
+                    return d;
+                })
+                .enter()
+                .append("rect")
+                .attr("x", function (d) {
+                    return scale_x(d["timestep"]);
+                })
+                .attr("y", function () {
+                    return scale_y(t.y);
+                })
+                .attr("width", 5)
+                .attr("height", 5)
+                .attr("fill", function (d) {
+                    if (d["cluster"] == -1) {
+                        return "black";
+                    }
+                    return intToRGB(d["cluster"]);
+                })
+                .attr("run", function () {
+                    return t.name;
+                })
+                .attr("number", function (d) {
+                    return d["number"];
+                })
+                .attr("timestep", function (d) {
+                    return d["timestep"];
+                })
+                .attr("occurrences", function (d) {
+                    return d["occurrences"];
+                })
+                .attr("fuzzy_membership", function (d, i) {
+                    return t.fuzzy_memberships[d["number"]];
+                })
+                .on("click", function (event, d) {
+                    //showLoadingIndicator("Generating Ovito image for state " + d['number']);
+                    /*generate_ovito_image(d['number']).then((data) => {
 			console.log(data);
 			var img = document.querySelector('<img>').attr("src", 'data:image/png;base64,' + data);
 			document.querySelector("#modal_container").append(img);
 		    }).catch((error) => {error_state(error);}).finally(closeLoadingIndicator());*/
-          //		    document.querySelector("#modal_info").iziModal('setSubtitle', d['number']);
-          //		    document.querySelector("#modal_info").iziModal('open');
-        })
-        .on("mouseover", function (event, d) {
-          var props = trajectories[t.name].properties;
-          var propertyString = "";
-          var perLine = 3;
-          var count = 0;
-          for (const property of props) {
-            propertyString +=
-              "<b>" +
-              property +
-              "</b>: " +
-              trajectories[t.name].sequence[d["timestep"]][property] +
-              " ";
-            count++;
-            if (count % perLine === 0) {
-              propertyString += "<br>";
-            }
-          }
-          console.log(this);
-          tippy(this, {
-            allowHTML: true,
-            content:
-              "<b>Run</b>: " +
-              t.name +
-              " <i>t</i>=" +
-              d["timestep"] +
-              "<br><b>Cluster</b>: " +
-              d["cluster"] +
-              //" <b>Fuzzy memberships</b>: " + this.attr("fuzzy_membership").toString() +
-              "<br>" +
-              propertyString,
-            arrow: true,
-            maxWidth: "none",
-          });
-        });
-    }
+                    //		    document.querySelector("#modal_info").iziModal('setSubtitle', d['number']);
+                    //		    document.querySelector("#modal_info").iziModal('open');
+                })
+                .on("mouseover", function (event, d) {
+                    var props = trajectories[t.name].properties;
+                    var propertyString = "";
+                    var perLine = 3;
+                    var count = 0;
+                    for (const property of props) {
+                        propertyString +=
+                            "<b>" +
+                            property +
+                            "</b>: " +
+                            trajectories[t.name].sequence[d["timestep"]][
+                                property
+                            ] +
+                            " ";
+                        count++;
+                        if (count % perLine === 0) {
+                            propertyString += "<br>";
+                        }
+                    }
+                    tippy(this, {
+                        allowHTML: true,
+                        content:
+                            "<b>Run</b>: " +
+                            t.name +
+                            " <i>t</i>=" +
+                            d["timestep"] +
+                            "<br><b>Cluster</b>: " +
+                            d["cluster"] +
+                            " <b>Fuzzy memberships</b>: " +
+                            this.getAttribute("fuzzy_membership").toString() +
+                            "<br>" +
+                            propertyString,
+                        arrow: true,
+                        maxWidth: "none",
+                    });
+                });
+        }
 
-    var xAxis = svg.append("g").call(d3.axisBottom().scale(scale_x));
+        var xAxis = svg.append("g").call(d3.axisBottom().scale(scale_x));
 
-    // reset zoom
-    /*svg.on('dblclick', function(event,d) {
+        // reset zoom
+        svg.on('dblclick', function(event,d) {
 	    // zoom out on double click
 	    scale_x.domain([0,maxLength]);
 	    xAxis.call(d3.axisBottom(scale_x));
@@ -160,7 +178,7 @@ class D3RenderDiv extends React.Component {
 		.attr("x", function(d) { return scale_x(d['timestep']); });             
 	});
 
-	var z_brush = d3.brushX().extent([[0,0], [widget_width, svg_height]]).on('end', function(e) {
+	z_brush = d3.brushX().extent([[0,0], [widget_width, svg_height]]).on('end', function(e) {
 	    var extent = e.selection;                        
 	    if(extent) {                
                 d3.select("#svg_main").select('.brush').call(z_brush.move, null);
@@ -169,14 +187,14 @@ class D3RenderDiv extends React.Component {
 		svg.selectAll("rect")
 		    .attr("x", function(d) { return scale_x(d['timestep']); });                  
 		d3.select(this).remove();                
-		document.querySelector(".brush").remove();
+		d3.select(".brush").remove();
 	    }            
 	    d3.select(this).remove();            
-	    document.querySelector(".brush").remove();
-	});*/
+	    d3.select(".brush").remove();
+	});
 
-    // multiple path selection
-    /*var extents = [];
+        // multiple path selection
+        /*var extents = [];
 	
 	var m_s_brush = d3.brush().extent([[0,0], [bBox.width, svg_height]]).on('end', function(e) {
 	    var extent = e.selection;                        
@@ -211,19 +229,19 @@ class D3RenderDiv extends React.Component {
 	    document.querySelector(".brush").remove();
 	});*/
 
-    // controls
-    /*	document.onkeyup = function(e) {
+        // controls
+        /*	document.onkeyup = function(e) {
 	    /*if(e.key == "Control") {                
 		if (document.querySelector(".brush").length) { document.querySelector(".brush").remove(); }               
 		d3.select("#svg_main").append("g").attr("class", "brush").call(s_brush);
 	    }*/
 
-    /*if(e.key == 'Z' || e.key == 'z') {
+        /*if(e.key == 'Z' || e.key == 'z') {
 		if (document.querySelector(".brush").length) { document.querySelector(".brush").remove(); }                
 		d3.select("#svg_main").append("g").attr("class", "brush").call(z_brush);
 	    }*/
 
-    /*if(e.key == "Shift") {
+        /*if(e.key == "Shift") {
 		d3.select("#svg_main").append("g").attr("class", "brush").call(m_s_brush);                
 	    }
 	    
@@ -261,15 +279,71 @@ class D3RenderDiv extends React.Component {
 		// clear extents array
 		extents = [];
 		}*/
-  };
+    };
 
-  render() {
-    return (
-      <div>
-        <svg id="svg_main"></svg>
-      </div>
-    );
-  }
+    render() {
+	let trajectories = this.props.trajectories;
+        let runs = Object.keys(trajectories);        
+
+        if (runs.length > 0) {
+            var controls = runs.map(function (run, idx) {
+                return (
+                    <div key={idx}>
+                        <p>
+                            <b>{run}</b>
+                        </p>
+                        <input
+                            type="range"
+                            min="1"
+                            max="20"
+                            name="pcca_slider"
+                            value="2"
+                        />
+                        <label for="pcca_slider">X clusters</label>
+
+                        <input type="checkbox" name="chkbx_clustering_diff" />
+                        <label for="chkbx_clustering_diff">
+                            Show clustering difference
+                        </label>
+
+                        <input type="checkbox" name="chkbx_transition_filter" />
+                        <label for="chkbx_transition_filter">
+                            Filter transitions from dominant state?
+                        </label>
+
+                        <input
+                            type="range"
+                            min="1"
+                            max="100"
+                            name="slider_transition_filter"
+                            value="10"
+                        />
+                        <label for="slider_transition_filter">
+                            Size of window: 10%
+                        </label>
+
+                        <input type="checkbox" name="chkbx_fuzzy_membership" />
+                        <label for="chkbx_fuzzy_membership">
+                            Filter fuzzy memberships?
+                        </label>
+			{trajectories[run].properties.length > 0 &&
+                         <button>+ Add a new filter</button> &&
+			 <button>Generate x-y plot with attribute</button>}
+                    </div>
+                );
+            });
+            return (
+                <div style={{ display: "flex" }}>
+                    <svg id="svg_main"></svg>
+                    <div style={{ display: "flex", flexDirection: "column" }}>
+                        {controls}
+                    </div>
+                </div>
+            );
+        } else {
+            return null;
+        }
+    }
 }
 
 export default D3RenderDiv;
