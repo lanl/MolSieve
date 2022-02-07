@@ -5,10 +5,19 @@ import LoadRunModal from "./LoadRunModal";
 import Modal from "react-modal";
 import ReactLoading from "react-loading";
 import Trajectory from "./trajectory";
-import D3RenderDiv from "./d3_rendering"
+import D3RenderDiv from "./d3_rendering";
 
 const axios = require("axios").default;
 const RUN_MODAL = "run_modal";
+
+const smallModalStyle = {
+  content: {
+    textAlign: "center",
+    margin: "auto",
+    width: "25%",
+    height: "25%",
+  },
+};
 
 class App extends React.Component {
   constructor() {
@@ -18,7 +27,9 @@ class App extends React.Component {
       currentModal: null,
       lastEvent: null,
       trajectories: {},
+      loadingMessage: "Loading...",
     };
+    Modal.setAppElement("#root");
   }
 
   toggleModal = (key) => (event) => {
@@ -59,22 +70,23 @@ class App extends React.Component {
           new_traj.clusterings[idx] = clustered_data.sets[idx];
           new_traj.fuzzy_memberships[idx] =
             clustered_data.fuzzy_memberships[idx];
-        }        
+        }
         axios
           .get("/load_sequence", {
             params: { run: state.name, properties: state.clicked.toString() },
           })
-          .then((response) => {              
-              new_traj.sequence = response.data;
-              new_traj.properties = state.clicked;
-	      new_traj.calculate_unique_states();
-	      new_traj.set_cluster_info();	      	      
-	      let name = state.name;
-	      const new_trajectories = { ...this.state.trajectories, name : new_traj };
-	      this.setState({ isLoading: false,
-			      trajectories: new_trajectories});
-	      
-          });        
+          .then((response) => {
+            new_traj.sequence = response.data;
+            new_traj.properties = state.clicked;
+            new_traj.calculate_unique_states();
+            new_traj.set_cluster_info();
+            let name = state.name;
+            const new_trajectories = {
+              ...this.state.trajectories,
+              name: new_traj,
+            };
+            this.setState({ isLoading: false, trajectories: new_trajectories });
+          });
       })
       .catch((e) => {
         alert(e);
@@ -84,31 +96,39 @@ class App extends React.Component {
   render() {
     return (
       <div className="App">
-        <h1>Trajectory Visualization</h1>
-        <h2>powered by React.js</h2>
-        <p>
-          Press CTRL to toggle path selection brush. Press Z to toggle zoom
-          brush. Double click to reset zoom. Press SHIFT to toggle multiple path
-          selection. When you are finished with your selection, press S to open
-          the comparison dialog.
-        </p>
-        <CheckboxTable
-          defaults={[""]}
-          header="Runs"
-          api_call="/get_run_list"
-          click={this.toggleModal(RUN_MODAL)}
-        ></CheckboxTable>
-          <LoadRunModal          
+        <div style={{ margin: "1%" }}>
+          <h1>Trajectory Visualization</h1>
+          <h2>powered by React.js</h2>
+          <p>
+            Press CTRL to toggle path selection brush. Press Z to toggle zoom
+            brush. Double click to reset zoom. Press SHIFT to toggle multiple
+            path selection. When you are finished with your selection, press S
+            to open the comparison dialog.
+          </p>
+          <CheckboxTable
+            defaults={[""]}
+            header="Runs"
+            api_call="/get_run_list"
+            click={this.toggleModal(RUN_MODAL)}
+          ></CheckboxTable>
+          <D3RenderDiv trajectories={this.state.trajectories}></D3RenderDiv>
+        </div>
+        <LoadRunModal
           load_trajectory={this.load_trajectory}
           isOpen={this.state.currentModal === RUN_MODAL}
           lastEvent={this.state.lastEvent}
           closeFunc={this.toggleModal(RUN_MODAL)}
         />
-          <Modal              
-	      isOpen={this.state.isLoading}>
-          <ReactLoading type="spin" color="black" height="20%" width="20%" />
+        <Modal isOpen={this.state.isLoading} style={smallModalStyle}>
+          <h1>{this.state.loadingMessage}</h1>
+          <ReactLoading
+            className="CenteredSpinner"
+            type="spin"
+            color="black"
+            height="25%"
+            width="25%"
+          />
         </Modal>
-          <D3RenderDiv trajectories={this.state.trajectories}></D3RenderDiv>
       </div>
     );
   }

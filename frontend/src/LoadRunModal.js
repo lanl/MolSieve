@@ -7,9 +7,19 @@ import Modal from "react-modal";
 const domain = [2, 20];
 const defaultValues = [2, 4];
 
+const modalStyle = {
+  content: {
+    textAlign: "center",
+    margin: "auto",
+    width: "40%",
+    height: "75%",
+  },
+};
+
 const sliderStyle = {
   position: "relative",
   width: "75%",
+  margin: "auto",
 };
 
 class LoadRunModal extends React.Component {
@@ -44,8 +54,15 @@ class LoadRunModal extends React.Component {
 
       let name = this.props.lastEvent.target.value;
       let defaults = ["occurrences", "number"];
+
       return (
-        <Modal isOpen={this.props.isOpen}>
+        <Modal style={modalStyle} isOpen={this.props.isOpen}>
+          <h1>Clustering options for {name}</h1>
+          <p>
+            Select the cluster sizes that PCCA will try to cluster the data
+            into.
+          </p>
+          <b>{this.state.values.toString().replace(",", " - ")} clusters</b>
           <br />
           <br />
           <Slider
@@ -76,6 +93,7 @@ class LoadRunModal extends React.Component {
             </Handles>
           </Slider>
           <br />
+          <p>Select which properties you wish to analyze.</p>
           <CheckboxTable
             click={this.pullClicked}
             defaults={defaults}
