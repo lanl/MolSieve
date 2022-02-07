@@ -1,4 +1,7 @@
 // stolen from https://stackoverflow.com/questions/11120840/hash-string-into-rgb-color
+//import * as d3 from 'd3';
+import React from 'react';
+
 export function djb2(str){
     var hash = 5381;
     for (var i = 0; i < str.length; i++) {
@@ -63,6 +66,21 @@ export function intersection() {
 	}
     }
     return result;
+}
+
+export function set_svg(name, width, svg_height) {     
+    //var bBox = null;
+    
+//    if(document.querySelector('#svg_' + name).length) {
+	//document.querySelector("#svg_" + name).empty();
+	//bBox = d3.select("#vis_" + name).node().getBoundingClientRect();            
+//	svg = d3.select("#svg_" + name).attr("viewBox", [0,0,bBox.width,svg_height]);
+  //  } else {            
+	//bBox = d3.select("#vis_" + name).node().getBoundingClientRect();                
+    
+  //  }        
+    let svg = React.createElement('svg',{'viewBox': [0,0,width,svg_height]});
+    return svg;//, bBox];
 }
 
 
