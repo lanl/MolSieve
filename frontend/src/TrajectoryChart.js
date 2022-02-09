@@ -1,40 +1,67 @@
 import { useTrajectoryChartRender } from './hooks/useTrajectoryChartRender';
-import {React, useEffect} from 'react';
+import {React, useEffect, useState} from 'react';
 import * as d3 from 'd3';
 import { intToRGB } from "./myutils";
 import tippy from "tippy.js";
 import "tippy.js/dist/tippy.css";
-
+import SelectionModal from "./SelectionModal"
 
 const widget_width = 500;
 const svg_height = widget_width - 100;
 const margin = { top: 20, bottom: 20, left: 40, right: 25 };
-
-//    handleKeyPress = (e) => {
-	/*if(e.key === 'Z' || e.key === 'z') {
-	    if (z_brush != null) {
-		if (d3.select(".brush").length) { document.querySelector(".brush").remove(); }                
-		d3.select("#svg_main").append("g").attr("class", "brush").call(z_brush);
-	    }
-	}*/
-//    }
-
+const PATH_SELECTION_MODAL = 'path_selection';
 
 function TrajectoryChart({trajectories}) {
+    let [currentModal, setCurrentModal] = useState('');
+    let [extents, setExtents] = useState([]);
+    let [modalTitle, setModalTitle] = useState('');
+    
     let z_brush = null;
-    useKeyPress('z', () => {        
+    let s_brush = null;
+    let m_s_brush = null;    
+    
+    const zoom = () => {
 	if(z_brush != null) {
 	    if (d3.select('.brush').length) { d3.select(".select").remove(); }
 	    d3.select("#svg_main").append("g").attr("class", "brush").call(z_brush);
 	}        
-    });
+    }
+
+    const selection_brush = () => {
+	if(s_brush != null) {
+	    if (d3.select(".brush").length) { d3.select(".brush").remove(); }               
+	    d3.select("#svg_main").append("g").attr("class", "brush").call(s_brush);
+	}
+    }
+    
+    const multiple_selection_brush = () => {
+	if(m_s_brush != null) {
+	    d3.select("#svg_main").append("g").attr("class", "brush").call(m_s_brush);
+	}
+    }
+
+    const toggleModal = (key) => {
+	if(currentModal) {
+	    setCurrentModal();
+	    return;
+	}
+	setCurrentModal(key);
+    };
+
+    useKeyPress('z', zoom);
+    useKeyPress('Control', selection_brush);
+    useKeyPress('Shift', multiple_selection_brush);
+    
     const ref = useTrajectoryChartRender((svg) => {
-	        
+	//clear so we don't draw over-top and cause insane lag
+	if(!svg.empty()) {
+	    svg.selectAll('*').remove();
+	}
 	var dataList = [];
         var count = 0;
         var maxLength = -Number.MAX_SAFE_INTEGER;        
 
-        for (const [name,traj] of Object.entries(trajectories)) {
+        for (const name of Object.keys(trajectories)) {
             var data = trajectories[name].sequence;
 
             if (data.length > maxLength) {
@@ -52,13 +79,7 @@ function TrajectoryChart({trajectories}) {
             });
             count++;
         }
-
-        //let svg = d3.select(set_svg("main", widget_width, svg_height));
-        //console.log(svg);
-        /*let svg = d3
-            .select("#svg_main")
-            .attr("viewBox", [0, 0, widget_width, svg_height]);*/
-
+        
         var scale_x = d3
             .scaleLinear()
             .range([margin.left, widget_width - margin.right])
@@ -90,7 +111,7 @@ function TrajectoryChart({trajectories}) {
                 .attr("width", 5)
                 .attr("height", 5)
                 .attr("fill", function (d) {
-                    if (d["cluster"] == -1) {
+                    if (d["cluster"] === -1) {
                         return "black";
                     }
                     return intToRGB(d["cluster"]);
@@ -158,7 +179,7 @@ function TrajectoryChart({trajectories}) {
                 });
         }
 
-        var xAxis = svg.select(".x-axis").call(d3.axisBottom().scale(scale_x));
+        var xAxis = svg.append('g').call(d3.axisBottom().scale(scale_x));
 
         // reset zoom
         svg.on('dblclick', function(event,d) {
@@ -184,14 +205,12 @@ function TrajectoryChart({trajectories}) {
 	    d3.select(".brush").remove();
 	});
 
-        // multiple path selection
-        /*var extents = [];
-	
-	var m_s_brush = d3.brush().extent([[0,0], [bBox.width, svg_height]]).on('end', function(e) {
+        // multiple path selection	
+	m_s_brush = d3.brush().extent([[0,0], [widget_width, svg_height]]).on('end', function(e) {
 	    var extent = e.selection;                        
 	    if(extent) {
 		var curr_name = dataList[Math.round(scale_y.invert(extent[0][1]))].name;		
-		if (curr_name != null && curr_name != undefined) {
+		if (curr_name !== null && curr_name !== undefined) {
 		    var begin = trajectories[curr_name].sequence[Math.round(scale_x.invert(extent[0][0]))];
 		    var end = trajectories[curr_name].sequence[Math.round(scale_x.invert(extent[1][0]))];
 		    var xtent = {name:curr_name,begin:begin,end:end};
@@ -201,41 +220,26 @@ function TrajectoryChart({trajectories}) {
 	});
 
 	// single path selection
-	var s_brush = d3.brush().extent([[0,0], [bBox.width, svg_height]]).on('end', function(e) {
-	    var extent = e.selection;                        
+	s_brush = d3.brush().extent([[0,0], [widget_width, svg_height]]).on('end', function(e) {
+	    let extent = e.selection;                        
 	    if(extent) {                
-                var curr_name = dataList[Math.round(scale_y.invert(extent[0][1]))].name;		
-		if (curr_name != null && curr_name != undefined) {
-		    var begin = trajectories[curr_name].sequence[Math.round(scale_x.invert(extent[0][0]))];
-		    var end = trajectories[curr_name].sequence[Math.round(scale_x.invert(extent[1][0]))];                    
-		    document.querySelector('#modal_path_selection').iziModal('setSubtitle', "State " + begin.number + " - " + "State " + end.number);
-		    document.querySelector('#modal_path_selection_container').attr("data-start", begin.timestep);
-		    document.querySelector('#modal_path_selection_container').attr("data-end", end.timestep);
-		    document.querySelector('#modal_path_selection_container').attr("data-name", curr_name);
-		    document.querySelector('#modal_path_selection').attr("data-izimodal-preventclose", "");
-		    document.querySelector('#modal_path_selection').iziModal('open');                    
+                let curr_name = dataList[Math.round(scale_y.invert(extent[0][1]))].name;		
+		if (curr_name !== null && curr_name !== undefined) {
+		    let begin = trajectories[curr_name].sequence[Math.round(scale_x.invert(extent[0][0]))];
+		    let end = trajectories[curr_name].sequence[Math.round(scale_x.invert(extent[1][0]))];
+		    let xtent = {name:curr_name,begin:begin,end:end};
+		    
+		    setModalTitle(`Timesteps ${begin.timestep} - ${end.timestep}`);
+		    extents.push(xtent);
+		    toggleModal(PATH_SELECTION_MODAL);
 		}                                
-	    }            
-	    d3.select(this).remove();            
-	    document.querySelector(".brush").remove();
-	});*/
-
-        // controls
-        /*	document.onkeyup = function(e) {
-	    /*if(e.key == "Control") {                
-		if (document.querySelector(".brush").length) { document.querySelector(".brush").remove(); }               
-		d3.select("#svg_main").append("g").attr("class", "brush").call(s_brush);
-	    }*/
-
-        /*if(e.key == 'Z' || e.key == 'z') {
-		if (document.querySelector(".brush").length) { document.querySelector(".brush").remove(); }                
-		d3.select("#svg_main").append("g").attr("class", "brush").call(z_brush);
-	    }*/
-
-        /*if(e.key == "Shift") {
-		d3.select("#svg_main").append("g").attr("class", "brush").call(m_s_brush);                
 	    }
 	    
+            setExtents([]);
+	    d3.select(this).remove();            
+	    d3.select(".brush").remove();
+	});                         
+					 /*
 	    if(e.key == "S" || e.key == "s") {
 		if (document.querySelector(".brush").length) { document.querySelector(".brush").remove(); }
 		if(extents.length >= 2) {                    
@@ -271,10 +275,10 @@ function TrajectoryChart({trajectories}) {
 		extents = [];
 		}*/
     
-    }, [trajectories.length])
-    return(<svg id="svg_main" ref={ref} viewBox={[0, 0, widget_width, svg_height]}>
-	       <g className="x-axis"></g>
-	   </svg>);
+        }, [trajectories.length]);
+    
+    return(<div><svg id="svg_main" ref={ref} viewBox={[0, 0, widget_width, svg_height]}/>
+	   <SelectionModal title={modalTitle} isOpen={currentModal === PATH_SELECTION_MODAL} extents={extents} closeFunc={() => toggleModal(PATH_SELECTION_MODAL)} /></div>);
 }
 
 function useKeyPress(key, action) {

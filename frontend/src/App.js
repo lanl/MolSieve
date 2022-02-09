@@ -7,6 +7,8 @@ import ReactLoading from "react-loading";
 import Trajectory from "./trajectory";
 import D3RenderDiv from "./d3_rendering";
 
+//TODO use context to push down modalStyle
+
 const axios = require("axios").default;
 const RUN_MODAL = "run_modal";
 
@@ -15,7 +17,7 @@ const smallModalStyle = {
         textAlign: "center",
         margin: "auto",
         width: "25%",
-        height: "25%",
+        height: "30%",
     },
 };
 
@@ -34,13 +36,7 @@ class App extends React.Component {
 
     toggleModal = (key) => (event) => {
         if (this.state.currentModal) {
-            // unchecks the checkbox that toggled the modal, if applicable
-
-            let lastTarget = this.state.lastEvent.target;
-            if (lastTarget.type === "checkbox") {
-                lastTarget.checked = !lastTarget.checked;
-            }
-
+            // unchecks the checkbox that toggled the modal, if applicable            
             this.setState({
                 ...this.state,
                 currentModal: null,
@@ -132,10 +128,11 @@ class App extends React.Component {
                     ></D3RenderDiv>
                 </div>
                 <LoadRunModal
-                    load_trajectory={this.load_trajectory}
+                    runFunc={this.load_trajectory}
                     isOpen={this.state.currentModal === RUN_MODAL}
                     lastEvent={this.state.lastEvent}
                     closeFunc={this.toggleModal(RUN_MODAL)}
+		    onRequestClose={this.toggleModal(RUN_MODAL)}
                 />
                 <Modal isOpen={this.state.isLoading} style={smallModalStyle}>
                     <h1>{this.state.loadingMessage}</h1>

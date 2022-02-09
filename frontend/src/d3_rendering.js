@@ -1,23 +1,34 @@
 import React from "react";
-import TrajectoryChart from './TrajectoryChart';
-import * as d3 from "d3";
+import TrajectoryChart from "./TrajectoryChart";
+import XYPlotModal from "./XYPlotModal";
 
-class D3RenderDiv extends React.Component {    
+const XY_PLOT_MODAL = "xy-plot-modal";
 
-    componentDidMount() {
-	document.addEventListener('keydown', this.handleKeyPress);
+class D3RenderDiv extends React.Component {
+    constructor(props) {
+        super(props);
+        this.state = { currentModal: null, currentRun: null };
     }
+
+    toggleModal = (key) => {
+        if (this.state.currentModal) {
+            this.setState({
+                currentModal: null,                
+            });
+            return;
+        }        
+        this.setState({ currentModal: key });
+    };
+
     
-    
-    render() {
-	let trajectories = this.props.trajectories;        
-	//console.log(trajectories);
-        let runs = Object.keys(trajectories);
-        
-        if (runs.length > 0) {
-            var controls = runs.map(function (run, idx) {
+    renderControls = (trajectories,runs) => {
+	return (
+	    runs.map((run, idx) => {
                 return (
-                    <div key={idx} style={{display:'flex', flexDirection:'column'}}>
+                    <div
+                        key={idx}
+                        style={{ display: "flex", flexDirection: "column" }}
+                    >
                         <p>
                             <b>{run}</b>
                         </p>
@@ -27,19 +38,21 @@ class D3RenderDiv extends React.Component {
                             max="20"
                             name="pcca_slider"
                             defaultValue={trajectories[run].current_clustering}
-			    
                         />
-                        <label htmlFor="pcca_slider">{trajectories[run].current_clustering} clusters</label>
-			
-                        <input type="checkbox" name="chkbx_clustering_diff" />
+                        <label htmlFor="pcca_slider">
+                            {trajectories[run].current_clustering} clusters
+                        </label>
+
                         <label htmlFor="chkbx_clustering_diff">
                             Show clustering difference
                         </label>
+                        <input type="checkbox" name="chkbx_clustering_diff" />
 
-                        <input type="checkbox" name="chkbx_transition_filter" />
                         <label hmtlFor="chkbx_transition_filter">
                             Filter transitions from dominant state?
                         </label>
+
+                        <input type="checkbox" name="chkbx_transition_filter" />
 
                         <input
                             type="range"
@@ -56,15 +69,36 @@ class D3RenderDiv extends React.Component {
                         <label htmlFor="chkbx_fuzzy_membership">
                             Filter fuzzy memberships?
                         </label>
-			{trajectories[run].properties.length > 0 &&
-                         (<button>+ Add a new filter</button> &&
-			  <button>Generate x-y plot with attribute</button>)}
+                        <button>+ Add a new filter</button>
+                        <button data-run={run}
+				onClick={() => {                                   
+				    this.setState({ ...this.state, currentRun: run });  
+				    this.toggleModal(XY_PLOT_MODAL);				    
+                            }}
+                        >
+                            Generate x-y plot with attribute
+                        </button>
                     </div>
                 );
-            });
+	    }));
+    }
+
+    render() {
+        let trajectories = this.props.trajectories;
+        let runs = Object.keys(trajectories);        
+        if (runs.length > 0) {
+            var controls = this.renderControls(trajectories, runs);
             return (
                 <div style={{ display: "flex" }}>
-                    <TrajectoryChart trajectories={this.props.trajectories}></TrajectoryChart>
+                    <TrajectoryChart
+                        trajectories={this.props.trajectories}
+                    ></TrajectoryChart>
+                    <XYPlotModal
+                        closeFunc={() => this.toggleModal(null)}
+                        isOpen={this.state.currentModal === XY_PLOT_MODAL}
+                        trajectory={this.props.trajectories[this.state.currentRun]}
+			onRequestClose={() => this.toggleModal(null)}
+                    ></XYPlotModal>
                     <div style={{ display: "flex", flexDirection: "column" }}>
                         {controls}
                     </div>
@@ -74,6 +108,6 @@ class D3RenderDiv extends React.Component {
             return null;
         }
     }
-}
-
+} //trajectory={this.props.trajectories[this.state.currentRun]}
+//this.setState({currentRun: run})
 export default D3RenderDiv;
