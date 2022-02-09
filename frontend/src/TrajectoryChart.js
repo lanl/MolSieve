@@ -164,9 +164,7 @@ function TrajectoryChart({trajectories}) {
                         allowHTML: true,
                         content:
                             "<b>Run</b>: " +
-                            t.name +
-                            " <i>t</i>=" +
-                            d["timestep"] +
+                            t.name +                            
                             "<br><b>Cluster</b>: " +
                             d["cluster"] +
                             " <b>Fuzzy memberships</b>: " +

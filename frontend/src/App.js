@@ -87,8 +87,9 @@ class App extends React.Component {
                     .then((response) => {
                         new_traj.sequence = response.data;
                         new_traj.properties = state.clicked;
+			new_traj.properties.push('timestep');
                         new_traj.calculate_unique_states();
-                        new_traj.set_cluster_info();
+                        new_traj.set_cluster_info();			
                         const new_trajectories = {
                             ...this.state.trajectories,
                         };

@@ -2,6 +2,17 @@ import React from "react";
 import TrajectoryChart from "./TrajectoryChart";
 import XYPlotModal from "./XYPlotModal";
 
+
+const largeModalStyle = {
+    content: {
+	justifyContent: 'center',
+	textAlign: "center",
+	margin: 'auto',
+        width: "40%",
+        height: "80%",
+    },
+}
+
 const XY_PLOT_MODAL = "xy-plot-modal";
 
 class D3RenderDiv extends React.Component {
@@ -94,6 +105,8 @@ class D3RenderDiv extends React.Component {
                         trajectories={this.props.trajectories}
                     ></TrajectoryChart>
                     <XYPlotModal
+			title={`Scatter plot for ${this.state.currentRun}`}
+			style={largeModalStyle}
                         closeFunc={() => this.toggleModal(null)}
                         isOpen={this.state.currentModal === XY_PLOT_MODAL}
                         trajectory={this.props.trajectories[this.state.currentRun]}

@@ -2,28 +2,40 @@ import { useTrajectoryChartRender } from './hooks/useTrajectoryChartRender';
 import { intToRGB } from "./myutils";
 import tippy from "tippy.js";
 import "tippy.js/dist/tippy.css";
+import * as d3 from 'd3';
 
 const widget_width = 400;
 const svg_height = 400;
 const margin = { top: 20, bottom: 20, left: 40, right: 25 };
 
 function Scatterplot({data}) {
-    const ref = useTrajectoryChartRender((svg) => {        
-	console.log(data);
-	/*
+    const ref = useTrajectoryChartRender((svg) => {                
+	if(!svg.empty()) {
+	    svg.selectAll('*').remove();
+	}
+	
+	let x_attribute = data.x_attribute;
+	let y_attribute = data.y_attribute;
+	let x_attributeList = data.x_attributeList;
+	let y_attributeList = data.y_attributeList;
+	let reverse = data.reverse;
+	let path = data.path;
+	let sequence = data.trajectory.sequence;
+	let title = data.title;
+	
 	if(reverse == null) reverse = false;        
         if(path == null) path = false;
-
+	
 	if(x_attributeList == null) {
 	    x_attributeList = [];
-	    for(d of sequence) {
+	    for(const d of sequence) {
 		x_attributeList.push(d[x_attribute]);
 	    }
 	}        
 	
 	if(y_attributeList == null) {
 	    y_attributeList = [];
-	    for(d of sequence) {
+	    for(const d of sequence) {
 		y_attributeList.push(d[y_attribute]);
 	    }
 	}        
@@ -40,7 +52,7 @@ function Scatterplot({data}) {
 	}
 
 	// 1.25 for breathing room between axis and values
-        var scale_x = d3.scaleLinear().range([margin.left, bBox.width - margin.right]).domain([xtent[0],xtent[1]]);
+        var scale_x = d3.scaleLinear().range([margin.left, widget_width - margin.right]).domain([xtent[0],xtent[1]]);
 
 	var scale_y = d3.scaleLinear().range([svg_height - margin.bottom,margin.top]).domain([ytent[first],ytent[last]]);
 	
@@ -58,8 +70,8 @@ function Scatterplot({data}) {
 		const i = event.currentTarget.getAttribute("index");                
 		tippy(this, {
 		    allowHTML: true,
-		    content: "<b>" + x_attribute + "</b>: " + x_attributeList[i] +
-			     "<br><b>" + y_attribute + "</b>: " + y_attributeList[i],
+		    content: "<b>X: " + x_attribute + "</b>: " + x_attributeList[i] +
+			     "<br><b> Y: " + y_attribute + "</b>: " + y_attributeList[i],
 		    arrow: true,
 		    maxWidth: 'none',
 		});		
@@ -84,25 +96,25 @@ function Scatterplot({data}) {
 	var yAxisPos = margin.left;	
 	var xAxisPos = svg_height - margin.bottom;
 	
-	var xAxis = svg.append("g").attr("transform", `translate(0,${xAxisPos})`).call(d3.axisBottom().scale(scale_x));
-	var yAxis = svg.append("g").attr("id", "yAxis"+svgName).attr("transform", `translate(${yAxisPos},0)`).call(d3.axisLeft().scale(scale_y));
+	svg.append("g").attr("transform", `translate(0,${xAxisPos})`).call(d3.axisBottom().scale(scale_x));
+	svg.append("g").attr("transform", `translate(${yAxisPos},0)`).call(d3.axisLeft().scale(scale_y));
 	
 	if(title == null || title == "") {
 	    title = x_attribute + " vs " + y_attribute;
 	}        
 	
 	svg.append("text")            
-	    .attr("x", bBox.width/2)
+	    .attr("x", widget_width/2)
 	    .attr("y", margin.top)
 	    .attr("text-anchor", "middle")
 	    .style("font-size", "12px")
-	    .text(title);*/
+	    .text(title);
 	
     
 
     }, [data.x_attribute, data.y_attribute]);
 
-    return(<svg ref={ref} viewBox={[0,0, widget_width, svg_height]}></svg>)
+    return(<svg ref={ref} width="80%" height="75%" viewBox={[0,0, widget_width, svg_height]}></svg>)
     
 }
 
