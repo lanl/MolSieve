@@ -11,10 +11,11 @@ const svg_height = widget_width - 100;
 const margin = { top: 20, bottom: 20, left: 40, right: 25 };
 const PATH_SELECTION_MODAL = 'path_selection';
 
-function TrajectoryChart({trajectories}) {
+function TrajectoryChart({trajectories, runs}) {
+    console.log("rendering");
     let [currentModal, setCurrentModal] = useState('');
     let [extents, setExtents] = useState([]);
-    let [modalTitle, setModalTitle] = useState('');
+    let [modalTitle, setModalTitle] = useState('');    
     
     let z_brush = null;
     let s_brush = null;
@@ -40,6 +41,38 @@ function TrajectoryChart({trajectories}) {
 	}
     }
 
+    /** Build a dict of state number: clustering assignments
+     *  and then determine how many times the state changed clusters
+     */
+    const show_clustering_difference = (trajectory, svg) => {
+	var clustering_assignments = {};
+	var maxSize = -Number.MAX_SAFE_INTEGER;
+	// for some reason, an extra labels object is created at the end
+	for(var d of trajectory.unique_states) {
+	    var labels = new Set();
+	    for(var clustering of Object.values(trajectory.clusterings)) {
+		for(var i = 0; i < clustering.length; i++) {
+		    if(clustering[i].includes(d)) {
+			labels.add(i);
+		    }
+		}
+	    }
+	    maxSize = (labels.size > maxSize) ? labels.size : maxSize;		    
+	    clustering_assignments[d] = (labels);		    
+	}                             
+	
+	svg.select(`#g_${trajectory.name}`).selectAll("rect").attr("fill", function(d) {            
+	    var instability = clustering_assignments[d['number']].size / maxSize; 
+	    if(instability > 0.75) {
+		return "red";
+	    } else if(instability < 0.75 && instability > 0.5) {
+		return "yellow";
+	    } else {
+		return "green";
+	    }		    
+	});		    	
+    }
+
     const toggleModal = (key) => {
 	if(currentModal) {
 	    setCurrentModal();
@@ -57,6 +90,7 @@ function TrajectoryChart({trajectories}) {
 	if(!svg.empty()) {
 	    svg.selectAll('*').remove();
 	}
+	
 	var dataList = [];
         var count = 0;
         var maxLength = -Number.MAX_SAFE_INTEGER;        
@@ -76,6 +110,8 @@ function TrajectoryChart({trajectories}) {
                     trajectories[name].fuzzy_memberships[
                         trajectories[name].current_clustering
                     ],
+		unique_states: trajectories[name].unique_states,
+		clusterings: trajectories[name].clusterings
             });
             count++;
         }
@@ -175,8 +211,11 @@ function TrajectoryChart({trajectories}) {
                         maxWidth: "none",
                     });
                 });
-        }
 
+	    if(runs[t.name].show_clustering_difference) {
+		show_clustering_difference(t, svg);
+            }
+	}
         var xAxis = svg.append('g').call(d3.axisBottom().scale(scale_x));
 
         // reset zoom
@@ -236,7 +275,8 @@ function TrajectoryChart({trajectories}) {
             setExtents([]);
 	    d3.select(this).remove();            
 	    d3.select(".brush").remove();
-	});                         
+	});
+	
 					 /*
 	    if(e.key == "S" || e.key == "s") {
 		if (document.querySelector(".brush").length) { document.querySelector(".brush").remove(); }
@@ -273,7 +313,7 @@ function TrajectoryChart({trajectories}) {
 		extents = [];
 		}*/
     
-        }, [trajectories]);
+    });
     
     return(<div><svg id="svg_main" ref={ref} viewBox={[0, 0, widget_width, svg_height]}/>
 	   <SelectionModal title={modalTitle} isOpen={currentModal === PATH_SELECTION_MODAL} extents={extents} closeFunc={() => toggleModal(PATH_SELECTION_MODAL)} /></div>);

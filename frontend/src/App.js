@@ -153,11 +153,7 @@ class App extends React.Component {
 	    }
 	    
 	});
-    }
-			  
-			  
-			  
-
+    }			  			  			 
     load_trajectory = (state) => {
         this.load_PCCA(state)
             .then((new_traj) => {
@@ -199,10 +195,9 @@ class App extends React.Component {
                         api_call="/get_run_list"
                         click={this.toggleModal(RUN_MODAL)}
                     ></CheckboxTable>
-		     <D3RenderDiv
+		    <D3RenderDiv
                         trajectories={this.state.trajectories}
-                        recalculate_clustering={this.recalculate_clustering}
-			reset={this.state.reset}
+                        recalculate_clustering={this.recalculate_clustering}                        
                      ></D3RenderDiv>
                 </div>
                 <LoadRunModal

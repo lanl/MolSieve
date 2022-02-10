@@ -28,9 +28,7 @@ class Trajectory {
 	}
     }
 
-    /** Calculates a set of unique states in the sequence, as well as providing a mapping from
-     * state id to state number.     
-     */
+    /** Calculates a set of all the unique states in the sequence */
     calculate_unique_states() { 	
 	if (this.unique_states == null) {
 	    var unique_states = new Set();

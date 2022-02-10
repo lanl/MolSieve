@@ -18,7 +18,7 @@ const XY_PLOT_MODAL = "xy-plot-modal";
 class D3RenderDiv extends React.Component {
     constructor(props) {
         super(props);
-        this.state = { currentModal: null, currentRun: null, clusterings: {} };
+        this.state = { currentModal: null, currentRun: null, runs: {} };
     }
 
     toggleModal = (key) => {
@@ -35,21 +35,27 @@ class D3RenderDiv extends React.Component {
 	let runs = Object.keys(this.props.trajectories);        
         if (runs.length > 0) {
 	    for(var run of runs) {		
-		if(!Object.keys(this.state.clusterings).includes(run)) {                    
-		    let clusterings = {...this.state.clusterings}
-		    clusterings[run] = this.props.trajectories[run].current_clustering;
-		    this.setState({clusterings});                    
+		if(!Object.keys(this.state.runs).includes(run)) {                    
+		    let runs = {...this.state.runs}
+		    runs[run] = {};
+		    runs[run]['current_clustering'] = this.props.trajectories[run].current_clustering;
+		    runs[run]['show_clustering_difference'] = false;
+		    this.setState({runs});                    
 		}
 	    }
 	}
     }
 
+    updateRun = (run, attribute, value) => {        
+	let runs = {...this.state.runs};
+	runs[run][attribute] = value;
+	this.setState(runs);
+    }
+
     recalculate_clustering = async (run) => {        
-	var result = await this.props.recalculate_clustering({name: run, optimal: -1, clusters: this.state.clusterings[run], values: null});        
+	var result = await this.props.recalculate_clustering({name: run, optimal: -1, clusters: this.state.runs[run]['current_clustering'], values: null});        
 	if(!result) {
-	    let clusterings = {...this.state.clusterings}
-	    clusterings[run] = this.props.trajectories[run].current_clustering;
-	    this.setState({clusterings});
+	    this.updateRun(run, 'current_clustering', this.props.trajectories[run].current_clustering);            
 	}
     }        
     
@@ -63,7 +69,7 @@ class D3RenderDiv extends React.Component {
                     >
                         <p>
                             <b>{run}</b>
-                        </p>
+                        </p>			
                         <input
                             type="range"
                             min="2"
@@ -71,27 +77,27 @@ class D3RenderDiv extends React.Component {
                             name="pcca_slider"
 			    onMouseUp={() => { this.recalculate_clustering(run)}}			    
                             onChange={(e) => {
-				let clusterings = {...this.state.clusterings}
-				clusterings[run] = e.target.value;
-                                this.setState({clusterings});
+				this.updateRun(run, 'current_clustering', e.target.value);                                
 			    }}				      
-                            defaultValue={this.state.clusterings[run]}
+                            defaultValue={this.state.runs[run]['current_clustering']}
                         />
                         <label htmlFor="pcca_slider">
-                            {this.state.clusterings[run]} clusters
+                            {this.state.runs[run]['current_clustering']} clusters
                         </label>
-
+			<div>
                         <label htmlFor="chkbx_clustering_diff">
                             Show clustering difference
                         </label>
-                        <input type="checkbox" name="chkbx_clustering_diff" />
-
+                            <input type="checkbox" name="chkbx_clustering_diff" onChange={(e) => {
+				       this.updateRun(run, 'show_clustering_difference', e.target.checked) }} />
+			</div>
+			<div>
                         <label hmtlFor="chkbx_transition_filter">
                             Filter transitions from dominant state?
                         </label>
-
+			
                         <input type="checkbox" name="chkbx_transition_filter" />
-
+			</div>
                         <input
                             type="range"
                             min="1"
@@ -102,12 +108,13 @@ class D3RenderDiv extends React.Component {
                         <label htmlFor="slider_transition_filter">
                             Size of window: 10%
                         </label>
-
-                        <input type="checkbox" name="chkbx_fuzzy_membership" />
+			<div>
                         <label htmlFor="chkbx_fuzzy_membership">
                             Filter fuzzy memberships?
                         </label>
-                        <button>+ Add a new filter</button>
+			<input type="checkbox" name="chkbx_fuzzy_membership" />
+			</div>
+			<button>+ Add a new filter</button>			
                         <button data-run={run}
 				onClick={() => {                                   
 				    this.setState({ ...this.state, currentRun: run });  
@@ -121,14 +128,15 @@ class D3RenderDiv extends React.Component {
 	    }));
     }
 
-    render() {        
-        let runs = Object.keys(this.props.trajectories);        
+    render() {
+	let runs = Object.keys(this.state.runs);
         if (runs.length > 0) {
             var controls = this.renderControls(runs);
             return (
                 <div style={{ display: "flex" }}>
                     <TrajectoryChart
                         trajectories={this.props.trajectories}
+			runs={this.state.runs}
                     ></TrajectoryChart>
                     <XYPlotModal
 			title={`Scatter plot for ${this.state.currentRun}`}
@@ -137,10 +145,9 @@ class D3RenderDiv extends React.Component {
                         isOpen={this.state.currentModal === XY_PLOT_MODAL}
                         trajectory={this.props.trajectories[this.state.currentRun]}
 			onRequestClose={() => this.toggleModal(null)}
-                    ></XYPlotModal>
-                    <div style={{ display: "flex", flexDirection: "column" }}>
-                        {controls}
-                    </div>
+                    ></XYPlotModal>                    
+		    <div style={{ display: "flex", flexDirection: "column" }}>
+                         {controls}</div>
                 </div>
             );
         } else {
