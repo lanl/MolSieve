@@ -29,6 +29,8 @@ class LoadRunModal extends React.Component {
             values: defaultValues.slice(),
             clicked: ["occurrences", "number"],
             name: null,
+	    clusters: -1,
+	    optimal: 1
         };
     }
 

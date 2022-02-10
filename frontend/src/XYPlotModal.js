@@ -50,7 +50,7 @@ class XYPlotModal extends React.Component {
 			<select name="select_y_attribute" id="select_y_attribute" defaultValue={this.state.y_attribute} onChange={(e) => { this.setY(e) }}>{options}</select>
 		    <br/>
 			
-                       <Scatterplot data={{trajectory: this.props.trajectory,
+                       <Scatterplot data={{sequence: this.props.trajectory.sequence,
 					   x_attribute: this.state.x_attribute, 
 					   y_attribute: this.state.y_attribute}}></Scatterplot>
 			<br/>

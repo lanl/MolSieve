@@ -18,7 +18,7 @@ const XY_PLOT_MODAL = "xy-plot-modal";
 class D3RenderDiv extends React.Component {
     constructor(props) {
         super(props);
-        this.state = { currentModal: null, currentRun: null };
+        this.state = { currentModal: null, currentRun: null, clusterings: {} };
     }
 
     toggleModal = (key) => {
@@ -31,13 +31,34 @@ class D3RenderDiv extends React.Component {
         this.setState({ currentModal: key });
     };
 
+    componentDidUpdate() {
+	let runs = Object.keys(this.props.trajectories);        
+        if (runs.length > 0) {
+	    for(var run of runs) {		
+		if(!Object.keys(this.state.clusterings).includes(run)) {                    
+		    let clusterings = {...this.state.clusterings}
+		    clusterings[run] = this.props.trajectories[run].current_clustering;
+		    this.setState({clusterings});                    
+		}
+	    }
+	}
+    }
+
+    recalculate_clustering = async (run) => {        
+	var result = await this.props.recalculate_clustering({name: run, optimal: -1, clusters: this.state.clusterings[run], values: null});        
+	if(!result) {
+	    let clusterings = {...this.state.clusterings}
+	    clusterings[run] = this.props.trajectories[run].current_clustering;
+	    this.setState({clusterings});
+	}
+    }        
     
-    renderControls = (trajectories,runs) => {
+    renderControls = (runs) => {
 	return (
-	    runs.map((run, idx) => {
+	    runs.map((run) => {
                 return (
                     <div
-                        key={idx}
+                        key={run}
                         style={{ display: "flex", flexDirection: "column" }}
                     >
                         <p>
@@ -45,13 +66,19 @@ class D3RenderDiv extends React.Component {
                         </p>
                         <input
                             type="range"
-                            min="1"
+                            min="2"
                             max="20"
                             name="pcca_slider"
-                            defaultValue={trajectories[run].current_clustering}
+			    onMouseUp={() => { this.recalculate_clustering(run)}}			    
+                            onChange={(e) => {
+				let clusterings = {...this.state.clusterings}
+				clusterings[run] = e.target.value;
+                                this.setState({clusterings});
+			    }}				      
+                            defaultValue={this.state.clusterings[run]}
                         />
                         <label htmlFor="pcca_slider">
-                            {trajectories[run].current_clustering} clusters
+                            {this.state.clusterings[run]} clusters
                         </label>
 
                         <label htmlFor="chkbx_clustering_diff">
@@ -94,11 +121,10 @@ class D3RenderDiv extends React.Component {
 	    }));
     }
 
-    render() {
-        let trajectories = this.props.trajectories;
-        let runs = Object.keys(trajectories);        
+    render() {        
+        let runs = Object.keys(this.props.trajectories);        
         if (runs.length > 0) {
-            var controls = this.renderControls(trajectories, runs);
+            var controls = this.renderControls(runs);
             return (
                 <div style={{ display: "flex" }}>
                     <TrajectoryChart
@@ -121,6 +147,5 @@ class D3RenderDiv extends React.Component {
             return null;
         }
     }
-} //trajectory={this.props.trajectories[this.state.currentRun]}
-//this.setState({currentRun: run})
+} 
 export default D3RenderDiv;

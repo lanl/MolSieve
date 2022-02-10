@@ -20,7 +20,7 @@ function Scatterplot({data}) {
 	let y_attributeList = data.y_attributeList;
 	let reverse = data.reverse;
 	let path = data.path;
-	let sequence = data.trajectory.sequence;
+	let sequence = data.sequence;
 	let title = data.title;
 	
 	if(reverse == null) reverse = false;        

@@ -53,7 +53,7 @@ function TrajectoryChart({trajectories}) {
     useKeyPress('Shift', multiple_selection_brush);
     
     const ref = useTrajectoryChartRender((svg) => {
-	//clear so we don't draw over-top and cause insane lag
+	//clear so we don't draw over-top and cause insane lag        
 	if(!svg.empty()) {
 	    svg.selectAll('*').remove();
 	}
@@ -273,7 +273,7 @@ function TrajectoryChart({trajectories}) {
 		extents = [];
 		}*/
     
-        }, [trajectories.length]);
+        }, [trajectories]);
     
     return(<div><svg id="svg_main" ref={ref} viewBox={[0, 0, widget_width, svg_height]}/>
 	   <SelectionModal title={modalTitle} isOpen={currentModal === PATH_SELECTION_MODAL} extents={extents} closeFunc={() => toggleModal(PATH_SELECTION_MODAL)} /></div>);
