@@ -6,10 +6,8 @@ import Modal from "react-modal";
 import ReactLoading from "react-loading";
 import Trajectory from "./trajectory";
 import D3RenderDiv from "./d3_rendering";
-
+import { api_loadPCCA, api_loadSequence } from "./api";
 //TODO use context to push down modalStyle
-
-const axios = require("axios").default;
 const RUN_MODAL = "run_modal";
 
 const smallModalStyle = {
@@ -25,151 +23,133 @@ class App extends React.Component {
     constructor() {
         super();
         this.state = {
-            isLoading: false,	    
+            isLoading: false,
             currentModal: null,
-            lastEvent: null,
+            run: null,
             trajectories: {},
             loadingMessage: "Loading...",
         };
         Modal.setAppElement("#root");
     }
 
-    toggleModal = (key) => (event) => {
+    toggleModal = (key) => {
         if (this.state.currentModal) {
-            // unchecks the checkbox that toggled the modal, if applicable
             this.setState({
                 ...this.state,
                 currentModal: null,
-                lastEvent: null,
             });
             return;
         }
 
-        this.setState({ ...this.state, currentModal: key, lastEvent: event });
+        this.setState({ ...this.state, currentModal: key });
     };
 
-    load_PCCA = (state) => {
-        return new Promise((resolve, reject) => {
-            this.setState({
-                isLoading: true,
-                loadingMessage: `Calculating PCCA for ${state.name}...`,
-            });	                
-
-            if (state.values === null) {
-                state.values = [0, 0];
-            }
-            axios
-                .get("/pcca", {
-                    params: {
-                        run: state.name,
-                        clusters: state.clusters,
-                        optimal: state.optimal,
-                        m_min: state.values[0],
-                        m_max: state.values[1],
-                    },
-                })
-                .then((response) => {
-		    if(state.optimal === 1) {
-			var new_traj = new Trajectory();
-			var clustered_data = response.data;
-			new_traj.optimal_cluster_value =
-                            clustered_data.optimal_value;
-			new_traj.current_clustering = clustered_data.optimal_value;
-			new_traj.feasible_clusters =
-                            clustered_data.feasible_clusters;
-			for (var idx of new_traj.feasible_clusters) {
-                            new_traj.clusterings[idx] = clustered_data.sets[idx];
-                            new_traj.fuzzy_memberships[idx] =
-				clustered_data.fuzzy_memberships[idx];
-			}
-			resolve(new_traj);
-		    } else {
-			resolve(response.data);
-		    }
-
-                })
-                .catch((e) => {
-                    return reject(e);
-                });
+    selectRun = (e) => {
+        this.setState({
+            run: e.target.value,
+            currentModal: RUN_MODAL,
+            lastEvent: e,
         });
     };
 
-    load_sequence = (state, new_traj) => {
-        return new Promise((resolve, reject) => {
-            this.setState({
-                loadingMessage: `Loading sequence for ${state.name}...`,
-            });
-            axios
-                .get("/load_sequence", {
-                    params: {
-                        run: state.name,
-                        properties: state.clicked.toString(),
-                    },
-                })
-                .then((response) => {
-                    new_traj.sequence = response.data;
-		    new_traj.properties = [...state.clicked];
-		    new_traj.properties.push('timestep');
-                    return resolve(new_traj);
-                }).catch(e => {
-		    reject(e);
-		});
+    /** Wrapper for the backend call in api.js */
+    load_PCCA = (run, clusters, optimal, m_min, m_max, trajectory) => {
+        this.setState({
+            isLoading: true,
+            loadingMessage: `Calculating PCCA for ${run}...`,
         });
-        };
 
-    recalculate_clustering = (state) => {
-	// first check if the state has that clustering already calculated
-	return new Promise((resolve, reject) => {
-	    let current_traj = this.state.trajectories[state.name];        
-	    if(Object.keys(current_traj.clusterings).includes(state.clusters)) {                
-		const new_trajectories = {
-		    ...this.state.trajectories
-		};
-		new_trajectories[state.name].current_clustering = parseInt(state.clusters);
-		new_trajectories[state.name].set_cluster_info();
-		this.setState({trajectories: new_trajectories});
-		resolve(true);
-	    } else {
-		// if not, recalculate
-		this.load_PCCA(state).then((traj) => {                    
+        if (m_min === undefined) m_min = 0;
+        if (m_max === undefined) m_max = 0;
 
-		    const new_trajectories = {
-			...this.state.trajectories
-		    };
-		    const fuzzy_memberships = Object.assign(traj.fuzzy_memberships, new_trajectories[state.name].fuzzy_memberships);
-		    const clusterings = Object.assign(traj.sets, new_trajectories[state.name].clusterings);
-		    new_trajectories[state.name].current_clustering = parseInt(state.clusters);
-		    new_trajectories[state.name].fuzzy_memberships = fuzzy_memberships;
-		    new_trajectories[state.name].clusterings = clusterings;
-                    new_trajectories[state.name].set_cluster_info();
-		    
-		    this.setState({isLoading:false, trajectories: new_trajectories});                    
-		    resolve(true);
-		}).catch(e => {
-		    this.setState({isLoading: false});                
-		    alert(e.response.data.Error);
-		    resolve(false);
-		});
-	    }
-	    
-	});
-    }			  			  			 
-    load_trajectory = (state) => {
-        this.load_PCCA(state)
-            .then((new_traj) => {
-                this.load_sequence(state, new_traj).then((new_traj) => {
-		    // some final processing on trajectory		                        
-		    new_traj.calculate_unique_states();
-                    new_traj.set_cluster_info();
-                    const new_trajectories = {
-                        ...this.state.trajectories,
-                    };
-                    new_trajectories[state.name] = new_traj;
-                    this.setState({
-                        isLoading: false,
-                        trajectories: new_trajectories,
+        return api_loadPCCA(run, clusters, optimal, m_min, m_max, trajectory);
+    };
+
+    /** Wrapper for the backend call in api.js */
+    load_sequence = (run, properties, new_traj) => {
+        this.setState({
+            loadingMessage: `Loading sequence for ${run}...`,
+        });
+        return api_loadSequence(run, properties, new_traj);
+    };
+
+    /** Function called by the PCCA slider allocated for each run. Reruns the PCCA for however many clusters the user specifies
+     *  @param {string} run - Run to recalculate the clustering for
+     *  @param {number} clusters - Number of clusters to split the trajectory into.
+     */
+    recalculate_clustering = (run, clusters) => {
+        // first check if the state has that clustering already calculated
+        return new Promise((resolve, reject) => {
+            let current_traj = this.state.trajectories[run];
+            if (Object.keys(current_traj.clusterings).includes(clusters)) {
+                const new_trajectories = {
+                    ...this.state.trajectories,
+                };
+                new_trajectories[run].current_clustering = parseInt(clusters);
+                new_trajectories[run].set_cluster_info();
+                this.setState({ trajectories: new_trajectories });
+                resolve(true);
+            } else {
+                // if not, recalculate
+                this.load_PCCA(
+                    run,
+                    clusters,
+                    -1,
+                    0,
+                    0,
+                    this.state.trajectories[run]
+                )
+                    .then((traj) => {
+                        const new_trajectories = {
+                            ...this.state.trajectories,
+                        };
+                        new_trajectories[run] = traj;
+                        this.setState({
+                            isLoading: false,
+                            trajectories: new_trajectories,
+                        });
+                        resolve(true);
+                    })
+                    .catch((e) => {
+                        this.setState({ isLoading: false });
+                        alert(e.response.data.Error);
+                        reject(false);
                     });
-		});
+            }
+        });
+    };
+
+    /** Creates a new trajectory object and populates it with data from the database
+     * @param {string} run - Which run this trajectory object will correspond to
+     * @param {number} clusters - Number of clusters to cluster the trajectory into. Ignored if optimal = 1
+     * @param {number} optimal - Whether or not PCCA should try and find the optimal clustering between m_min and m_max
+     * @param {number} m_min - When running optimal clustering, minimal cluster size to try; ignored if optimal = -1
+     * @param {number} m_max - When running optimal clustering, maximum cluster size to try; ignored if optimal = -1
+     * @param {Array<String>} properties - Properties of the trajectory to retrieve
+     */
+    load_trajectory = (run, clusters, optimal, m_min, m_max, properties) => {
+        var new_traj = new Trajectory();
+        new_traj.properties = [...properties];
+
+        this.load_PCCA(run, clusters, optimal, m_min, m_max, new_traj)
+            .then((new_traj) => {
+                this.load_sequence(run, new_traj.properties, new_traj).then(
+                    (new_traj) => {
+                        // some final processing on trajectory
+                        new_traj.properties.push("timestep");
+                        new_traj.calculate_unique_states();
+                        new_traj.set_cluster_info();
+                        const new_trajectories = {
+                            ...this.state.trajectories,
+                        };
+                        new_trajectories[run] = new_traj;
+
+                        this.setState({
+                            isLoading: false,
+                            trajectories: new_trajectories,
+                        });
+                    }
+                );
             })
             .catch((e) => {
                 alert(e);
@@ -193,20 +173,25 @@ class App extends React.Component {
                         defaults={[""]}
                         header="Runs"
                         api_call="/get_run_list"
-                        click={this.toggleModal(RUN_MODAL)}
+                        click={(e) => {
+                            this.selectRun(e);
+                        }}
                     ></CheckboxTable>
-		    <D3RenderDiv
+                    <D3RenderDiv
                         trajectories={this.state.trajectories}
-                        recalculate_clustering={this.recalculate_clustering}                        
-                     ></D3RenderDiv>
+                        recalculate_clustering={this.recalculate_clustering}
+                    ></D3RenderDiv>
                 </div>
-                <LoadRunModal
-                    runFunc={this.load_trajectory}
-                    isOpen={this.state.currentModal === RUN_MODAL}
-                    lastEvent={this.state.lastEvent}
-                    closeFunc={this.toggleModal(RUN_MODAL)}
-                    onRequestClose={this.toggleModal(RUN_MODAL)}
-                />
+                {this.state.currentModal === RUN_MODAL && (
+                    <LoadRunModal
+                        run={this.state.run}
+                        runFunc={this.load_trajectory}
+                        isOpen={this.state.currentModal === RUN_MODAL}
+                        lastEvent={this.state.lastEvent}
+                        closeFunc={() => this.toggleModal(RUN_MODAL)}
+                        onRequestClose={() => this.toggleModal(RUN_MODAL)}
+                    />
+                )}
                 <Modal isOpen={this.state.isLoading} style={smallModalStyle}>
                     <h1>{this.state.loadingMessage}</h1>
                     <ReactLoading

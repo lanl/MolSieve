@@ -28,9 +28,9 @@ class LoadRunModal extends React.Component {
         this.state = {
             values: defaultValues.slice(),
             clicked: ["occurrences", "number"],
-            name: null,
-	    clusters: -1,
-	    optimal: 1
+            run: null,
+            clusters: -1,
+            optimal: 1,
         };
     }
 
@@ -39,19 +39,26 @@ class LoadRunModal extends React.Component {
     };
 
     closeFunc = (uncheck) => {
-	if(uncheck) {
-	    this.props.lastEvent.target.checked = false;
-	    
-	}	
-	this.props.closeFunc();
+        if (uncheck) {
+            this.props.lastEvent.target.checked = false;
+        }
+        this.props.closeFunc();
     };
+
+    componentDidMount() {
+        this.setState({ run: this.props.run });
+    }
 
     runFunc = () => {
         this.props.closeFunc(false);
-        this.state.name = this.props.lastEvent.target.value;        
-        this.props.runFunc(this.state);
-	//reset after everything is done
-	this.setState({clicked: ["occurrences", "number"]});
+        this.props.runFunc(
+            this.state.run,
+            -1,
+            1,
+            this.state.values[0],
+            this.state.values[1],
+            this.state.clicked
+        );
     };
 
     onChange = (values) => {
@@ -59,17 +66,20 @@ class LoadRunModal extends React.Component {
     };
 
     render() {
-        if (this.props.lastEvent) {
+        if (this.props.isOpen) {
             const {
                 state: { values },
             } = this;
 
-            let name = this.props.lastEvent.target.value;
             let defaults = ["occurrences", "number"];
 
             return (
-                <Modal style={modalStyle} isOpen={this.props.isOpen} onRequestClose={this.closeFunc}>
-                    <h1>Clustering options for {name}</h1>
+                <Modal
+                    style={modalStyle}
+                    isOpen={this.props.isOpen}
+                    onRequestClose={this.closeFunc}
+                >
+                    <h1>Clustering options for {this.props.run}</h1>
                     <p>
                         Select the cluster sizes that PCCA will try to cluster
                         the data into.
@@ -117,10 +127,16 @@ class LoadRunModal extends React.Component {
                         click={this.pullClicked}
                         defaults={defaults}
                         header="Properties"
-                        api_call={`/get_property_list?run=${name}`}
+                        api_call={`/get_property_list?run=${this.props.run}`}
                     ></CheckboxTable>
                     <button onClick={this.runFunc}>Calculate</button>
-                    <button onClick={this.closeFunc}>Cancel</button>
+                    <button
+                        onClick={() => {
+                            this.closeFunc(true);
+                        }}
+                    >
+                        Cancel
+                    </button>
                 </Modal>
             );
         } else {
