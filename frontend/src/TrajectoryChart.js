@@ -1,7 +1,7 @@
 import { useTrajectoryChartRender } from './hooks/useTrajectoryChartRender';
 import {React, useEffect, useState} from 'react';
 import * as d3 from 'd3';
-import { intToRGB } from "./myutils";
+import { intToRGB, mostOccurringElement} from "./myutils";
 import tippy from "tippy.js";
 import "tippy.js/dist/tippy.css";
 import SelectionModal from "./SelectionModal"
@@ -11,8 +11,7 @@ const svg_height = widget_width - 100;
 const margin = { top: 20, bottom: 20, left: 40, right: 25 };
 const PATH_SELECTION_MODAL = 'path_selection';
 
-function TrajectoryChart({trajectories, runs}) {
-    console.log("rendering");
+function TrajectoryChart({trajectories, runs, goRender}) {    
     let [currentModal, setCurrentModal] = useState('');
     let [extents, setExtents] = useState([]);
     let [modalTitle, setModalTitle] = useState('');    
@@ -39,6 +38,59 @@ function TrajectoryChart({trajectories, runs}) {
 	if(m_s_brush != null) {
 	    d3.select("#svg_main").append("g").attr("class", "brush").call(m_s_brush);
 	}
+    }
+
+    const transition_filter = (trajectory, slider_value, mode, svg) => {
+	const sequence = trajectory.data;
+	const clusters = trajectory.clusterings[trajectory.current_clustering];
+	      
+	var window;        
+	if(mode === "abs") {
+	    window = parseInt(slider_value);
+	}
+
+	
+	var min = Number.MAX_SAFE_INTEGER;        
+	var dominants = [];
+	
+	for(var i = 0; i < clusters.length; i++) {
+	    var clustered_data = sequence.filter(function(d) {                
+		if(d['cluster'] === i) {
+		    return d;
+		}
+	    }).map(function(d) {return d.number});
+	    
+	    
+	    if(clustered_data.length < min) {
+		min = clustered_data.length;
+	    }
+	    
+	    dominants[i] = mostOccurringElement(clustered_data);	               
+	}
+	
+	if(mode === "per") {
+	    const ws = slider_value / 100;
+	    window = Math.ceil(ws * min);	    
+	}
+	
+	var timesteps = [];        
+	var count;
+	
+	for(i = 0; i < sequence.length - window; i += window) {
+	    count = 0;
+	    
+	    for(var j = 0; j < window; j++) {                
+		if(sequence[i+j]['number']  === dominants[sequence[i+j]['cluster']]) {
+		    count++;		                        
+		}
+	    }
+	    for(var k = 0; k < window; k++) {
+		timesteps.push(count / window);
+	    }	                
+	}
+	svg.select(`#g_${trajectory.name}`).selectAll("rect").attr("opacity",function(d,i) {            
+	    return timesteps[i];
+	});
     }
 
     /** Build a dict of state number: clustering assignments
@@ -86,6 +138,7 @@ function TrajectoryChart({trajectories, runs}) {
     useKeyPress('Shift', multiple_selection_brush);
     
     const ref = useTrajectoryChartRender((svg) => {
+	console.log(goRender);
 	//clear so we don't draw over-top and cause insane lag        
 	if(!svg.empty()) {
 	    svg.selectAll('*').remove();
@@ -111,7 +164,8 @@ function TrajectoryChart({trajectories, runs}) {
                         trajectories[name].current_clustering
                     ],
 		unique_states: trajectories[name].unique_states,
-		clusterings: trajectories[name].clusterings
+		clusterings: trajectories[name].clusterings,
+		current_clustering: trajectories[name].current_clustering
             });
             count++;
         }
@@ -215,6 +269,10 @@ function TrajectoryChart({trajectories, runs}) {
 	    if(runs[t.name].show_clustering_difference) {
 		show_clustering_difference(t, svg);
             }
+
+	    if(runs[t.name].show_transition_filter) {                                
+		transition_filter(t, runs[t.name]['transition_filter_slider_value'], runs[t.name]['transition_filter_mode'], svg);
+	    }
 	}
         var xAxis = svg.append('g').call(d3.axisBottom().scale(scale_x));
 
@@ -313,7 +371,7 @@ function TrajectoryChart({trajectories, runs}) {
 		extents = [];
 		}*/
     
-    });
+    }, [trajectories, goRender]);
     
     return(<div><svg id="svg_main" ref={ref} viewBox={[0, 0, widget_width, svg_height]}/>
 	   <SelectionModal title={modalTitle} isOpen={currentModal === PATH_SELECTION_MODAL} extents={extents} closeFunc={() => toggleModal(PATH_SELECTION_MODAL)} /></div>);

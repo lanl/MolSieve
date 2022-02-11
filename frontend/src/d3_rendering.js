@@ -18,7 +18,7 @@ const XY_PLOT_MODAL = "xy-plot-modal";
 class D3RenderDiv extends React.Component {
     constructor(props) {
         super(props);
-        this.state = { currentModal: null, currentRun: null, runs: {} };
+        this.state = { currentModal: null, currentRun: null, runs: {}, goRender: 0 };
     }
 
     toggleModal = (key) => {
@@ -40,6 +40,9 @@ class D3RenderDiv extends React.Component {
 		    runs[run] = {};
 		    runs[run]['current_clustering'] = this.props.trajectories[run].current_clustering;
 		    runs[run]['show_clustering_difference'] = false;
+		    runs[run]['show_transition_filter'] = false;
+		    runs[run]['transition_filter_slider_value'] = 10;
+		    runs[run]['transition_filter_mode'] = 'per';
 		    this.setState({runs});                    
 		}
 	    }
@@ -54,14 +57,16 @@ class D3RenderDiv extends React.Component {
 
     recalculate_clustering = async (run) => {        
 	var result = await this.props.recalculate_clustering({name: run, optimal: -1, clusters: this.state.runs[run]['current_clustering'], values: null});        
-	if(!result) {
-	    this.updateRun(run, 'current_clustering', this.props.trajectories[run].current_clustering);            
+	if(!result) {            
+	    this.updateRun(run, 'current_clustering', this.props.trajectories[run].current_clustering);	    
+	} else {
+	    this.setState(prevState => { return {goRender: prevState.goRender + 1}});
 	}
     }        
     
     renderControls = (runs) => {
 	return (
-	    runs.map((run) => {
+	    runs.map((run) => {				
                 return (
                     <div
                         key={run}
@@ -89,25 +94,44 @@ class D3RenderDiv extends React.Component {
                             Show clustering difference
                         </label>
                             <input type="checkbox" name="chkbx_clustering_diff" onChange={(e) => {
-				       this.updateRun(run, 'show_clustering_difference', e.target.checked) }} />
+				       this.updateRun(run, 'show_clustering_difference', e.target.checked)
+				       this.setState(prevState => { return {goRender: prevState.goRender + 1}});                                       
+				   }} />
 			</div>
 			<div>
                         <label hmtlFor="chkbx_transition_filter">
                             Filter transitions from dominant state?
-                        </label>
-			
-                        <input type="checkbox" name="chkbx_transition_filter" />
-			</div>
+                        </label>			
+                            <input type="checkbox" name="chkbx_transition_filter" onChange={(e) => {
+				       this.updateRun(run, 'show_transition_filter', e.target.checked)
+                                       this.setState(prevState => { return {goRender: prevState.goRender + 1}});                                       
+				   }} />
+			<br/>
                         <input
                             type="range"
                             min="1"
-                            max="100"
+                            max={(this.state.runs[run]['transition_filter_mode'] === 'per') ? 100 : this.props.trajectories[run].sequence.length}
                             name="slider_transition_filter"
-                            defaultValue="10"
+			    onMouseUp={() => {
+				if(this.state.runs[run]['show_transition_filter']) {
+				    this.setState(prevState => { return {goRender: prevState.goRender + 1}}) }}}
+			    onChange= {(e) => this.updateRun(run, 'transition_filter_slider_value', e.target.value)}
+                            defaultValue={this.state.runs[run]['transition_filter_slider_value']}
                         />
+			<br/>
                         <label htmlFor="slider_transition_filter">
-                            Size of window: 10%
-                        </label>
+                            Size of window: {this.state.runs[run]['transition_filter_slider_value']}
+                            <select
+				onChange={(e) => {
+				    this.updateRun(run, 'transition_filter_mode', e.target.value)
+				    if(this.state.runs[run]['show_transition_filter']) {
+					this.setState(prevState => { return {goRender: prevState.goRender + 1}})
+				    }
+				}}					 				  					 
+				defaultValue={this.state.runs[run]['transition_filter_mode']}
+			    ><option value="per">% of smallest cluster</option><option value="abs">Number of timesteps</option></select>
+                        </label>			    
+			</div>
 			<div>
                         <label htmlFor="chkbx_fuzzy_membership">
                             Filter fuzzy memberships?
@@ -137,6 +161,7 @@ class D3RenderDiv extends React.Component {
                     <TrajectoryChart
                         trajectories={this.props.trajectories}
 			runs={this.state.runs}
+			goRender={this.state.goRender}
                     ></TrajectoryChart>
                     <XYPlotModal
 			title={`Scatter plot for ${this.state.currentRun}`}

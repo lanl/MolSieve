@@ -121,7 +121,7 @@ class App extends React.Component {
 	// first check if the state has that clustering already calculated
 	return new Promise((resolve, reject) => {
 	    let current_traj = this.state.trajectories[state.name];        
-	    if(Object.keys(current_traj.clusterings).includes(state.clusters)) {
+	    if(Object.keys(current_traj.clusterings).includes(state.clusters)) {                
 		const new_trajectories = {
 		    ...this.state.trajectories
 		};
