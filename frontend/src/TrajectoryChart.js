@@ -125,6 +125,34 @@ function TrajectoryChart({trajectories, runs, goRender}) {
 	});		    	
     }
 
+    const fuzzy_membership_filter = (trajectory,svg) => {
+	var current_membership_values = trajectory.fuzzy_memberships;
+	var extents = {};     
+	for(var i = 0; i < trajectory.current_clustering; i++) {		    
+	    var minMax = [Number.MAX_SAFE_INTEGER, Number.MIN_SAFE_INTEGER];
+	    extents[i] =  minMax;
+	}
+	
+	for(var j = 0; j < trajectory.data.length; j++) {
+	    var id = trajectory.data[j]['number'];            
+	    var cluster_membership = trajectory.data[j]['cluster'];            
+	    extents[cluster_membership][0] = Math.min(extents[cluster_membership][0], current_membership_values[id][cluster_membership]);
+	    extents[cluster_membership][1] = Math.max(extents[cluster_membership][1], current_membership_values[id][cluster_membership]);
+	}
+	
+	var scales = [];
+	for(var i = 0; i < trajectory.current_clustering; i++) {
+	    scales.push(d3.scaleLinear().range([0,0.5]).domain([extents[i][0], extents[i][1]]));
+	}                
+	        
+	svg.select(`#g_${trajectory.name}`).selectAll("rect").attr("opacity", function(d) {            
+	    var value = this.getAttributeNode("fuzzy_membership").nodeValue.split(",").map(Number);
+	    var scale_index = value.reduce((iMax, x, i, arr) => x > arr[iMax] ? i : iMax, 0);                    
+	    return scales[scale_index](Math.max.apply(Math, value));
+	});
+
+    }
+    
     const toggleModal = (key) => {
 	if(currentModal) {
 	    setCurrentModal();
@@ -272,6 +300,10 @@ function TrajectoryChart({trajectories, runs, goRender}) {
 
 	    if(runs[t.name].show_transition_filter) {                                
 		transition_filter(t, runs[t.name]['transition_filter_slider_value'], runs[t.name]['transition_filter_mode'], svg);
+	    }
+
+	    if(runs[t.name].show_fuzzy_membership_filter) {
+		fuzzy_membership_filter(t,svg);
 	    }
 	}
         var xAxis = svg.append('g').call(d3.axisBottom().scale(scale_x));

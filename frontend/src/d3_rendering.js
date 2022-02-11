@@ -41,6 +41,7 @@ class D3RenderDiv extends React.Component {
 		    runs[run]['current_clustering'] = this.props.trajectories[run].current_clustering;
 		    runs[run]['show_clustering_difference'] = false;
 		    runs[run]['show_transition_filter'] = false;
+		    runs[run]['show_fuzzy_membership_filter'] = false;
 		    runs[run]['transition_filter_slider_value'] = 10;
 		    runs[run]['transition_filter_mode'] = 'per';
 		    this.setState({runs});                    
@@ -136,7 +137,10 @@ class D3RenderDiv extends React.Component {
                         <label htmlFor="chkbx_fuzzy_membership">
                             Filter fuzzy memberships?
                         </label>
-			<input type="checkbox" name="chkbx_fuzzy_membership" />
+			    <input type="checkbox" name="chkbx_fuzzy_membership" onChange={(e) => {
+				       this.updateRun(run, 'show_fuzzy_membership_filter', e.target.checked);
+				       this.setState(prevState => { return {goRender: prevState.goRender + 1}});           
+				   }}/>
 			</div>
 			<button>+ Add a new filter</button>			
                         <button data-run={run}
