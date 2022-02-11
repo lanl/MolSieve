@@ -1,18 +1,10 @@
 import React from "react";
 import TrajectoryChart from "./TrajectoryChart";
 import XYPlotModal from "./XYPlotModal";
-
-const largeModalStyle = {
-    content: {
-        justifyContent: "center",
-        textAlign: "center",
-        margin: "auto",
-        width: "40%",
-        height: "80%",
-    },
-};
+import AddFilterModal from "./AddFilterModal"
 
 const XY_PLOT_MODAL = "xy-plot-modal";
+const ADD_FILTER_MODAL = "add-filter-modal";
 
 class D3RenderDiv extends React.Component {
     constructor(props) {
@@ -249,9 +241,11 @@ class D3RenderDiv extends React.Component {
                             }}
                         />
                     </div>
-                    <button>+ Add a new filter</button>
-                    <button
-                        data-run={run}
+                    <button onClick={() => {
+			this.setState({...this.state, currentRun: run});
+			this.toggleModal(ADD_FILTER_MODAL);
+		    }}>+ Add a new filter</button>
+                    <button                        
                         onClick={() => {
                             this.setState({ ...this.state, currentRun: run });
                             this.toggleModal(XY_PLOT_MODAL);
@@ -275,16 +269,21 @@ class D3RenderDiv extends React.Component {
                         runs={this.state.runs}
                         goRender={this.state.goRender}
                     ></TrajectoryChart>
-                    <XYPlotModal
-                        title={`Scatter plot for ${this.state.currentRun}`}
-                        style={largeModalStyle}
-                        closeFunc={() => this.toggleModal(null)}
-                        isOpen={this.state.currentModal === XY_PLOT_MODAL}
-                        trajectory={
-                            this.props.trajectories[this.state.currentRun]
-                        }
-                        onRequestClose={() => this.toggleModal(null)}
-                    ></XYPlotModal>
+		    {this.state.currentModal === ADD_FILTER_MODAL &&
+		     <AddFilterModal isOpen={this.state.currentModal === ADD_FILTER_MODAL}
+				     trajectory={this.props.trajectories[this.state.currentRun]}
+		     />		     
+		    }
+		    {this.state.currentModal === XY_PLOT_MODAL &&
+                     <XYPlotModal
+                         title={`Scatter plot for ${this.state.currentRun}`}       
+                         closeFunc={() => this.toggleModal(null)}
+                         isOpen={this.state.currentModal === XY_PLOT_MODAL}
+                         trajectory={
+                             this.props.trajectories[this.state.currentRun]
+                         }
+                         onRequestClose={() => this.toggleModal(null)}
+                     />}
                     <div style={{ display: "flex", flexDirection: "column" }}>
                         {controls}
                     </div>

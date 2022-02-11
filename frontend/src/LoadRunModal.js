@@ -3,18 +3,10 @@ import { Slider, Rail, Handles } from "react-compound-slider";
 import { SliderRail, Handle } from "./slider-components";
 import CheckboxTable from "./CheckboxTable";
 import Modal from "react-modal";
+import "./Modal.css"
 
 const domain = [2, 20];
 const defaultValues = [2, 4];
-
-const modalStyle = {
-    content: {
-        textAlign: "center",
-        margin: "auto",
-        width: "40%",
-        height: "75%",
-    },
-};
 
 const sliderStyle = {
     position: "relative",
@@ -75,9 +67,9 @@ class LoadRunModal extends React.Component {
 
             return (
                 <Modal
-                    style={modalStyle}
                     isOpen={this.props.isOpen}
                     onRequestClose={this.closeFunc}
+		    className="DefaultModal LargeModal"
                 >
                     <h1>Clustering options for {this.props.run}</h1>
                     <p>

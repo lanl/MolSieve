@@ -1,5 +1,6 @@
 import React from "react";
 import "./App.css";
+import "./Modal.css"
 import CheckboxTable from "./CheckboxTable";
 import LoadRunModal from "./LoadRunModal";
 import Modal from "react-modal";
@@ -7,17 +8,9 @@ import ReactLoading from "react-loading";
 import Trajectory from "./trajectory";
 import D3RenderDiv from "./d3_rendering";
 import { api_loadPCCA, api_loadSequence } from "./api";
+
 //TODO use context to push down modalStyle
 const RUN_MODAL = "run_modal";
-
-const smallModalStyle = {
-    content: {
-        textAlign: "center",
-        margin: "auto",
-        width: "25%",
-        height: "30%",
-    },
-};
 
 class App extends React.Component {
     constructor() {
@@ -99,7 +92,7 @@ class App extends React.Component {
                     0,
                     this.state.trajectories[run]
                 )
-                    .then((traj) => {
+                    .then((traj) => {			
                         const new_trajectories = {
                             ...this.state.trajectories,
                         };
@@ -192,7 +185,7 @@ class App extends React.Component {
                         onRequestClose={() => this.toggleModal(RUN_MODAL)}
                     />
                 )}
-                <Modal isOpen={this.state.isLoading} style={smallModalStyle}>
+                <Modal isOpen={this.state.isLoading} className="DefaultModal SmallModal">
                     <h1>{this.state.loadingMessage}</h1>
                     <ReactLoading
                         className="CenteredSpinner"

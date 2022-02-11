@@ -1,5 +1,6 @@
 import React from "react";
 import Modal from "react-modal";
+import './Modal.css'
 
 class SelectionModal extends React.Component {
 
@@ -9,7 +10,7 @@ class SelectionModal extends React.Component {
     
     render() {        
         if (this.props.isOpen) {
-            return <Modal isOpen={this.props.isOpen} onRequestClose={this.closeFunc}>
+            return <Modal className="DefaultModal SmallModal" isOpen={this.props.isOpen} onRequestClose={this.closeFunc}>
 		       <h1>{this.props.title}</h1>
 		       <label htmlFor="txt_path_neb">Number of images interpolated between points on NEB</label>
 		       <input type="number" min="0" name="txt_path_neb" defaultValue="0"/>
