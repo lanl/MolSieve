@@ -43,8 +43,8 @@ class D3RenderDiv extends React.Component {
 		    runs[run]['show_transition_filter'] = false;
 		    runs[run]['show_fuzzy_membership_filter'] = false;
 		    runs[run]['transition_filter_slider_value'] = 10;
-		    runs[run]['transition_filter_mode'] = 'per';
-		    this.setState({runs});                    
+		    runs[run]['transition_filter_mode'] = 'per';                    
+                    this.setState(prevState => { return {goRender: prevState.goRender + 1, runs:runs}});
 		}
 	    }
 	}

@@ -40,7 +40,8 @@ class LoadRunModal extends React.Component {
 
     closeFunc = (uncheck) => {
 	if(uncheck) {
-	    this.props.lastEvent.target.checked = false;	
+	    this.props.lastEvent.target.checked = false;
+	    
 	}	
 	this.props.closeFunc();
     };
@@ -49,6 +50,8 @@ class LoadRunModal extends React.Component {
         this.props.closeFunc(false);
         this.state.name = this.props.lastEvent.target.value;        
         this.props.runFunc(this.state);
+	//reset after everything is done
+	this.setState({clicked: ["occurrences", "number"]});
     };
 
     onChange = (values) => {

@@ -165,8 +165,7 @@ function TrajectoryChart({trajectories, runs, goRender}) {
     useKeyPress('Control', selection_brush);
     useKeyPress('Shift', multiple_selection_brush);
     
-    const ref = useTrajectoryChartRender((svg) => {
-	console.log(goRender);
+    const ref = useTrajectoryChartRender((svg) => {       
 	//clear so we don't draw over-top and cause insane lag        
 	if(!svg.empty()) {
 	    svg.selectAll('*').remove();
@@ -403,10 +402,11 @@ function TrajectoryChart({trajectories, runs, goRender}) {
 		extents = [];
 		}*/
     
-    }, [trajectories, goRender]);
+    }, [goRender]);
     
     return(<div><svg id="svg_main" ref={ref} viewBox={[0, 0, widget_width, svg_height]}/>
-	   <SelectionModal title={modalTitle} isOpen={currentModal === PATH_SELECTION_MODAL} extents={extents} closeFunc={() => toggleModal(PATH_SELECTION_MODAL)} /></div>);
+	       <SelectionModal title={modalTitle} isOpen={currentModal === PATH_SELECTION_MODAL} extents={extents} closeFunc={() => toggleModal(PATH_SELECTION_MODAL)} />
+	   </div>);
 }
 
 function useKeyPress(key, action) {

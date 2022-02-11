@@ -108,7 +108,7 @@ class App extends React.Component {
                 })
                 .then((response) => {
                     new_traj.sequence = response.data;
-		    new_traj.properties = state.clicked;
+		    new_traj.properties = [...state.clicked];
 		    new_traj.properties.push('timestep');
                     return resolve(new_traj);
                 }).catch(e => {
