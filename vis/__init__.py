@@ -47,6 +47,17 @@ def create_app(test_config=None):
     if not os.path.isfile(app.config["LAMMPS_PATH"]):
         raise FileNotFoundError("Error: LAMMPS binary not found at {lammps_path}".format(lammps_path=app.config["LAMMPS_PATH"]))
 
+    # could later use this as a cache feature
+    def loadTestJson(run, t):
+        try:
+            with open('vis/testing/{run}_{t}.json'.format(run=run,t=t), 'r') as f:                        
+                return f.read()
+        except EnvironmentError as e:
+            print(e)
+            print("Loading from database instead...")
+            return None
+                    
+    
     @app.errorhandler(neo4j.exceptions.ServiceUnavailable)
     def handle_service_not_available(error):
         response = {
@@ -56,6 +67,7 @@ def create_app(test_config=None):
                 'message': [str(x) for x in error.args]
             }
         }
+        print(response)
         return jsonify(response), 503
     
     @app.errorhandler(Exception)
@@ -67,6 +79,7 @@ def create_app(test_config=None):
                 'message': [str(x) for x in error.args]
             }
         }
+        print(response)
         return jsonify(response), 500
     
     @app.route('/')
@@ -104,6 +117,12 @@ def create_app(test_config=None):
     def load_sequence(): 
         run = request.args.get('run')
         properties = request.args.get('properties')
+        
+        if app.config['IMPATIENT']:
+            r = loadTestJson(run, 'sequence')
+            if r != None:
+                return r
+
         # id is technically not a property, so we have to include it here
         # everything else is dynamically loaded in
         node_attributes = [('id', 'first')]
@@ -211,6 +230,11 @@ def create_app(test_config=None):
         optimal = int(request.args.get('optimal'))
         driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687",
                                             auth=("neo4j", "secret"))
+        if app.config['IMPATIENT']:            
+            r = loadTestJson(run, 'optimal_pcca')            
+            if r != None:
+                return r                             
+            
         qb = querybuilder.Neo4jQueryBuilder(
             schema=[("State", run, "State", "ONE-TO-ONE"),
                     ("Atom", "PART_OF", "State", "MANY-TO-ONE")])

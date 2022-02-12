@@ -10,6 +10,8 @@ const XY_PLOT_MODAL = "xy-plot-modal";
 const ADD_FILTER_MODAL = "add-filter-modal";
 
 class D3RenderDiv extends React.Component {
+
+    //refactor such that goRender is unnecessary
     
     constructor(props) {
         super(props);
