@@ -13,8 +13,12 @@ class AddFilterModal extends React.Component {
 	};
     }
 
-    componentDidMount() {
-	console.log("add filter modal mounted");        
+    componentDidMount() {        
+	const properties = this.props.trajectory.properties;
+	this.setState({run: this.props.run,
+		       attribute: properties[0],
+		       filter_type: "MIN",
+		       properties: [...this.props.trajectory.properties]});        
     }
 
     addFilter = () => {
@@ -34,16 +38,23 @@ class AddFilterModal extends React.Component {
 	
 	return (<Modal className="DefaultModal SmallModal" onRequestClose={this.closeFunc} isOpen={this.props.isOpen}>
 		    <h1>{this.props.title}</h1>
-		    <label for="select_new_filter">Attribute </label>
-		    <select name="select_new_filter" defaultValue={this.props.trajectory.properties[0]}>{options}</select>
-		    <label for="select_new_filter_type">Filter type: </label>
-		    <select name="select_new_filter_type">
-			<option key="MIN" value="MIN">Show states with at least this quantity (min)</option>
-			<option key="MAX" value="MAX">Show states with at most this quantity (max)</option>
-			<option key="RANGE" value="RANGE">Show states with quantities between a range</option>
-		    </select>
-		    <button onClick={this.addFilter}>Create filter</button>
-		    <button onClick={this.closeFunc}>Cancel</button>
+		    <div style={{alignText: 'left', justifyContent: 'left'}}>
+			<label htmlFor="select_new_filter">Attribute: </label>
+			<select name="select_new_filter" defaultValue={this.props.trajectory.properties[0]}>{options}</select>
+			<br/>
+			<br/>			
+			<label htmlFor="select_new_filter_type">Filter type: </label>
+			<select name="select_new_filter_type" onChange={(e) => {this.setState({filter_type: e.target.value})}} defaultValue={this.state.filter_type}>
+			    <option key="MIN" value="MIN">Show states with at least this quantity (min)</option>
+			    <option key="MAX" value="MAX">Show states with at most this quantity (max)</option>
+			    <option key="RANGE" value="RANGE">Show states with quantities between a range</option>
+			</select>
+		    </div>
+		    <br/>
+		    <div>
+			<button onClick={this.addFilter} style={{margin: '5px'}}>Create filter</button>		    
+			<button onClick={this.closeFunc} style={{margin: '5px'}}>Cancel</button>
+		    </div>
 		</Modal>);
     }
 }

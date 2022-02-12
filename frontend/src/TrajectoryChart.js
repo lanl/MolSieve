@@ -303,6 +303,13 @@ function TrajectoryChart({trajectories, runs, goRender}) {
 
 	    if(runs[t.name].show_fuzzy_membership_filter) {
 		fuzzy_membership_filter(t,svg);
+	    }            
+
+	    if(Object.keys(runs[t.name].filters).length > 0) {
+		for(var k of Object.keys(runs[t.name].filters)) {
+		    let filter = runs[t.name].filters[k];                    
+		    filter.func(filter.attribute, t.name, svg, filter.value);
+		}
 	    }
 	}
         var xAxis = svg.append('g').call(d3.axisBottom().scale(scale_x));

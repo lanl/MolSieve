@@ -68,19 +68,35 @@ export function intersection() {
     return result;
 }
 
-export function set_svg(name, width, svg_height) {     
-    //var bBox = null;
-    
-//    if(document.querySelector('#svg_' + name).length) {
-	//document.querySelector("#svg_" + name).empty();
-	//bBox = d3.select("#vis_" + name).node().getBoundingClientRect();            
-//	svg = d3.select("#svg_" + name).attr("viewBox", [0,0,bBox.width,svg_height]);
-  //  } else {            
-	//bBox = d3.select("#vis_" + name).node().getBoundingClientRect();                
-    
-  //  }        
-    let svg = React.createElement('svg',{'viewBox': [0,0,width,svg_height]});
-    return svg;//, bBox];
+/** Gets the minimum value of the given property within the sequence.
+ * @param {string} property - the property you're interested in 
+ * @param {Array<Object>} sequence - the array of states to search through 
+ * @return {number} min value of property
+ * TODO: perhaps refactor to simply unique states would be faster
+ */
+export function getMinProperty(property, sequence) {
+    var min = Number.MAX_VALUE;        
+    for(var d of sequence) {            
+	if(d[property] < min) {
+	    min = d[property];
+	}
+    }
+    return min;
 }
 
+/** Gets the maximum value of the given property within the sequence.
+ * @param {string} property - the property you're interested in 
+ * @param {Array<Object>} sequence - the array of states to search through 
+ * @return {number} max value of property
+ * TODO: perhaps refactor to simply unique states would be faster
+ */
+export function getMaxProperty(property, sequence) {
+    var max = Number.MIN_VALUE;
+    for(var d of sequence) {
+	if(d[property] > max) {
+	    max = d[property];
+	}
+    }
+    return max;
+}
 

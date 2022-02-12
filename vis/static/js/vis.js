@@ -380,40 +380,7 @@ $('document').ready(function() {
 	//gather all the selects and begin work
     });
 
-    /** 
-     * Generic filter function that gets all states with at least val of property.
-     * @param {string} property - property to filter on
-     * @param {string} name - name of the trajectory 
-     * @param {number} val - min value
-     */
-    function filter_min_opacity(property, name, val) {        
-        d3.selectAll("rect").filter(function(d) {     
-	    return this.getAttributeNode("run").nodeValue == name && d[property] <= val;
-	}).attr("opacity", 0);	
-    }
 
-    /* Generic filter function that gets all states with at most val of property.
-     * property - property to filter on
-     * name - name of the trajectory 
-     * val - max value
-     */
-    function filter_max_opacity(property, name, val) {        
-	d3.selectAll("rect").filter(function(d,i) {            
-	    return this.getAttributeNode("run").nodeValue == name && d[property] >= val;
-	}).attr("opacity", 0);	
-    }
-    
-    /* Generic filter function that gets all states that are between val1 and val2 of the given property
-     * property - property to filter on
-     * name - name of the trajectory 
-     * val1 - min value
-     * val2 - max value
-     */    
-    function filter_range_opacity(property, name, val1, val2) {        
-	d3.selectAll("rect").filter(function(d,i) {            
-	    return this.getAttributeNode("run").nodeValue == name && (d[property] <= val1 || d[property] >= val2);
-	}).attr("opacity", 0);	
-    }
 
     // Application actually starts here
     showLoadingIndicator();    

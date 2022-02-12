@@ -315,37 +315,3 @@ function fuzzy_membership_filter(name) {
 	 return scales[scale_index](Math.max.apply(Math, value));
      });
 }
-
-// Section: Misc Calculations
-
-/* Gets the minimum value of the given property within the sequence.
- * property - the property you're interested in
- * name - name of the trajectory to search through
- * return: min value of property
- * TODO: perhaps refactor to simply unique states would be faster
- */
-function getMinProperty(property, name) {
-    var min = Number.MAX_VALUE;        
-    for(d of trajectories[name].sequence) {            
-	if(d[property] < min) {
-	    min = d[property];
-	}
-    }
-    return min;
-}
-
-/* Gets the maximum value of the given property within the sequence.
- * property - the property you're interested in
- * name - name of the trajectory to search through
- * return: max value of property
- * TODO: perhaps refactor to simply unique states would be faster
- */
-function getMaxProperty(property, name) {
-    var max = Number.MIN_VALUE;
-    for(d of trajectories[name].sequence) {
-	if(d[property] > max) {
-	    max = d[property];
-	}
-    }
-    return max;
-}

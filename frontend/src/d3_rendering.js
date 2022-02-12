@@ -2,11 +2,15 @@ import React from "react";
 import TrajectoryChart from "./TrajectoryChart";
 import XYPlotModal from "./XYPlotModal";
 import AddFilterModal from "./AddFilterModal"
+import {getMinProperty, getMaxProperty} from "./myutils.js"
+import {filter_min_opacity, filter_max_opacity, filter_range_opacity} from './Filters'
+import FilterComponent from "./FilterComponent";
 
 const XY_PLOT_MODAL = "xy-plot-modal";
 const ADD_FILTER_MODAL = "add-filter-modal";
 
 class D3RenderDiv extends React.Component {
+    
     constructor(props) {
         super(props);
         this.state = {
@@ -28,6 +32,7 @@ class D3RenderDiv extends React.Component {
     };
 
     componentDidUpdate() {
+	
         let runs = Object.keys(this.props.trajectories);
         if (runs.length > 0) {
             for (var run of runs) {
@@ -41,6 +46,7 @@ class D3RenderDiv extends React.Component {
                     runs[run]["show_fuzzy_membership_filter"] = false;
                     runs[run]["transition_filter_slider_value"] = 10;
                     runs[run]["transition_filter_mode"] = "per";
+		    runs[run]["filters"] = {};
                     this.setState((prevState) => {
                         return { goRender: prevState.goRender + 1, runs: runs };
                     });
@@ -72,6 +78,57 @@ class D3RenderDiv extends React.Component {
             });
         }
     };
+
+    propagateChange = (filter) => {
+        let runs = {...this.state.runs};                
+	let this_filter = runs[filter.run]['filters'][filter.id];	
+        
+	this_filter.value = filter.value;
+	this_filter.enabled = filter.enabled;
+	runs[filter.run]['filters'][filter.id] = this_filter;	
+	this.setState((prevState) => {
+	    return {goRender: prevState.goRender + 1, runs}
+	});
+    }
+
+    addFilter = (state) => {        
+	let runs = this.state.runs;
+	let run = runs[state.run];
+	let filters = run['filters'];
+	
+	const sequence = this.props.trajectories[state.run].sequence;
+
+	let func = null;
+	let filter_label = null;
+        
+	switch(state.filter_type) {
+	case "MIN":
+	    func = filter_min_opacity;
+	    filter_label = "At least";
+	    break;
+	case "MAX":
+	    func = filter_max_opacity;
+	    filter_label = "At most";
+	    break;
+	case "RANGE":
+	    func = filter_range_opacity;
+	    filter_label = "between";
+	    break;
+	default:
+	    alert("Unsupported filter type");
+	    filter_label = "Unknown filter";
+	    func = null;
+	    break;
+	}
+	
+	filters[`${state.attribute}_${state.filter_type}`] = {attribute: state.attribute, enabled: false, func: func, label: filter_label,
+		      extents: [getMinProperty(state.attribute, sequence),getMaxProperty(state.attribute, sequence)],
+		      value: getMinProperty(state.attribute, sequence), id: `${state.attribute}_${state.filter_type}`,
+		      isRange: state.filter_type === "RANGE"};
+	run.filters = filters;
+	runs[state.run] = run;        
+        this.setState({runs: runs});
+    }
 
     renderControls = (runs) => {
         return runs.map((run) => {
@@ -253,15 +310,19 @@ class D3RenderDiv extends React.Component {
                     >
                         Generate x-y plot with attribute
                     </button>
+		    {Object.keys(this.state.runs[run]['filters']).length > 0 && Object.keys(this.state.runs[run]['filters']).map((key,idx) => {                        
+			return (<FilterComponent key={idx} filter={this.state.runs[run]['filters'][key]} run={run} propagateChange={this.propagateChange}>
+				</FilterComponent>);
+		    })}
                 </div>
             );
         });
     };
-
+    
     render() {
         let runs = Object.keys(this.state.runs);
         if (runs.length > 0) {
-            var controls = this.renderControls(runs);
+            var controls = this.renderControls(runs);            
             return (
                 <div style={{ display: "flex" }}>
                     <TrajectoryChart
@@ -270,8 +331,14 @@ class D3RenderDiv extends React.Component {
                         goRender={this.state.goRender}
                     ></TrajectoryChart>
 		    {this.state.currentModal === ADD_FILTER_MODAL &&
-		     <AddFilterModal isOpen={this.state.currentModal === ADD_FILTER_MODAL}
-				     trajectory={this.props.trajectories[this.state.currentRun]}
+		     <AddFilterModal
+			 title={`Add filter for ${this.state.currentRun}`}
+			 isOpen={this.state.currentModal === ADD_FILTER_MODAL}
+			 trajectory={this.props.trajectories[this.state.currentRun]}
+			 closeFunc={() => { this.toggleModal(null)}}
+			 onRequestClose={() => this.toggleModal(null)}
+			 addFilter={this.addFilter}
+			 run={this.state.currentRun}
 		     />		     
 		    }
 		    {this.state.currentModal === XY_PLOT_MODAL &&
