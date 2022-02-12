@@ -1,7 +1,7 @@
 import { useTrajectoryChartRender } from './hooks/useTrajectoryChartRender';
 import {React, useEffect, useState} from 'react';
 import * as d3 from 'd3';
-import { intToRGB, mostOccurringElement} from "./myutils";
+import { intToRGB } from "./myutils";
 import tippy from "tippy.js";
 import "tippy.js/dist/tippy.css";
 import SelectionModal from "./SelectionModal"
@@ -38,119 +38,6 @@ function TrajectoryChart({trajectories, runs, goRender}) {
 	if(m_s_brush != null) {
 	    d3.select("#svg_main").append("g").attr("class", "brush").call(m_s_brush);
 	}
-    }
-
-    const transition_filter = (trajectory, slider_value, mode, svg) => {
-	const sequence = trajectory.data;
-	const clusters = trajectory.clusterings[trajectory.current_clustering];
-	      
-	var window;        
-	if(mode === "abs") {
-	    window = parseInt(slider_value);
-	}
-
-	
-	var min = Number.MAX_SAFE_INTEGER;        
-	var dominants = [];
-	
-	for(var i = 0; i < clusters.length; i++) {
-	    var clustered_data = sequence.filter(function(d) {                
-		if(d['cluster'] === i) {
-		    return d;
-		}
-	    }).map(function(d) {return d.number});
-	    
-	    
-	    if(clustered_data.length < min) {
-		min = clustered_data.length;
-	    }
-	    
-	    dominants[i] = mostOccurringElement(clustered_data);	               
-	}
-	
-	if(mode === "per") {
-	    const ws = slider_value / 100;
-	    window = Math.ceil(ws * min);	    
-	}
-	
-	var timesteps = [];        
-	var count;
-	
-	for(i = 0; i < sequence.length - window; i += window) {
-	    count = 0;
-	    
-	    for(var j = 0; j < window; j++) {                
-		if(sequence[i+j]['number']  === dominants[sequence[i+j]['cluster']]) {
-		    count++;		                        
-		}
-	    }
-	    for(var k = 0; k < window; k++) {
-		timesteps.push(count / window);
-	    }	                
-	}
-	svg.select(`#g_${trajectory.name}`).selectAll("rect").attr("opacity",function(d,i) {            
-	    return timesteps[i];
-	});
-    }
-
-    /** Build a dict of state number: clustering assignments
-     *  and then determine how many times the state changed clusters
-     */
-    const show_clustering_difference = (trajectory, svg) => {
-	var clustering_assignments = {};
-	var maxSize = -Number.MAX_SAFE_INTEGER;
-	// for some reason, an extra labels object is created at the end
-	for(var d of trajectory.unique_states) {
-	    var labels = new Set();
-	    for(var clustering of Object.values(trajectory.clusterings)) {
-		for(var i = 0; i < clustering.length; i++) {
-		    if(clustering[i].includes(d)) {
-			labels.add(i);
-		    }
-		}
-	    }
-	    maxSize = (labels.size > maxSize) ? labels.size : maxSize;		    
-	    clustering_assignments[d] = (labels);		    
-	}                             
-	
-	svg.select(`#g_${trajectory.name}`).selectAll("rect").attr("fill", function(d) {            
-	    var instability = clustering_assignments[d['number']].size / maxSize; 
-	    if(instability > 0.75) {
-		return "red";
-	    } else if(instability < 0.75 && instability > 0.5) {
-		return "yellow";
-	    } else {
-		return "green";
-	    }		    
-	});		    	
-    }
-
-    const fuzzy_membership_filter = (trajectory,svg) => {
-	var current_membership_values = trajectory.fuzzy_memberships;
-	var extents = {};     
-	for(var i = 0; i < trajectory.current_clustering; i++) {		    
-	    var minMax = [Number.MAX_SAFE_INTEGER, Number.MIN_SAFE_INTEGER];
-	    extents[i] =  minMax;
-	}
-	
-	for(var j = 0; j < trajectory.data.length; j++) {
-	    var id = trajectory.data[j]['number'];            
-	    var cluster_membership = trajectory.data[j]['cluster'];            
-	    extents[cluster_membership][0] = Math.min(extents[cluster_membership][0], current_membership_values[id][cluster_membership]);
-	    extents[cluster_membership][1] = Math.max(extents[cluster_membership][1], current_membership_values[id][cluster_membership]);
-	}
-	
-	var scales = [];
-	for(var i = 0; i < trajectory.current_clustering; i++) {
-	    scales.push(d3.scaleLinear().range([0,0.5]).domain([extents[i][0], extents[i][1]]));
-	}                
-	        
-	svg.select(`#g_${trajectory.name}`).selectAll("rect").attr("opacity", function(d) {            
-	    var value = this.getAttributeNode("fuzzy_membership").nodeValue.split(",").map(Number);
-	    var scale_index = value.reduce((iMax, x, i, arr) => x > arr[iMax] ? i : iMax, 0);                    
-	    return scales[scale_index](Math.max.apply(Math, value));
-	});
-
     }
     
     const toggleModal = (key) => {
@@ -292,23 +179,13 @@ function TrajectoryChart({trajectories, runs, goRender}) {
                         maxWidth: "none",
                     });
                 });
-
-	    if(runs[t.name].show_clustering_difference) {
-		show_clustering_difference(t, svg);
-            }
-
-	    if(runs[t.name].show_transition_filter) {                                
-		transition_filter(t, runs[t.name]['transition_filter_slider_value'], runs[t.name]['transition_filter_mode'], svg);
-	    }
-
-	    if(runs[t.name].show_fuzzy_membership_filter) {
-		fuzzy_membership_filter(t,svg);
-	    }            
-
+                        
 	    if(Object.keys(runs[t.name].filters).length > 0) {
 		for(var k of Object.keys(runs[t.name].filters)) {
-		    let filter = runs[t.name].filters[k];                    
-		    filter.func(filter.attribute, t.name, svg, filter.value);
+		    let filter = runs[t.name].filters[k];
+                    if(filter.enabled) {
+			filter.func(t, svg, filter.options);
+		    }
 		}
 	    }
 	}

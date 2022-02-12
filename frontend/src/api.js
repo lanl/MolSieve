@@ -20,9 +20,7 @@ export function api_loadSequence(run, properties, trajectory) {
             .then((response) => {
 		if(trajectory === undefined) {
                     return resolve(response.data);		    
-		}
-		console.log("Sequence:");
-		console.log(response.data);
+		}                                
 		trajectory.sequence = response.data;
                 return resolve(trajectory);
 
@@ -56,9 +54,7 @@ export function api_loadPCCA(run, clusters, optimal, m_min, m_max, trajectory) {
             .then((response) => {
 		if(optimal === 1) {
 		    var new_traj = (trajectory === undefined) ? new Trajectory() : trajectory;
-		    var clustered_data = response.data;
-		    console.log("PCCA:");
-		    console.log(clustered_data);
+		    var clustered_data = response.data;                        
 		    new_traj.optimal_cluster_value =
                         clustered_data.optimal_value;
 		    new_traj.current_clustering = clustered_data.optimal_value;
