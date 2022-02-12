@@ -16,10 +16,14 @@ class FilterComponent extends React.Component {
         
     }
 
-    propagateChange = (e) => {
+    checkAndPropagateChange = (e) => {
 	this.setState({enabled: e.target.checked}, () => {
 	    this.props.propagateChange(this.state);
 	});        
+    }
+
+    propagateChange = () => {
+	this.props.propagateChange(this.state);
     }
 
     setValue = (e) => {
@@ -62,7 +66,7 @@ class FilterComponent extends React.Component {
         const filter = this.props.filter;                        
 	return(<div>
 		   <input type="checkbox" name={filter.id} onChange={(e) => {
-			      this.propagateChange(e);
+			      this.checkAndPropagateChange(e);
 			  }} />
                    <label htmlFor={filter.id}>{filter.checkBoxLabel}</label>
 		   {this.props.render(this.state, this.getActions())}

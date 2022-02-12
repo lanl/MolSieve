@@ -11,7 +11,7 @@ const svg_height = widget_width - 100;
 const margin = { top: 20, bottom: 20, left: 40, right: 25 };
 const PATH_SELECTION_MODAL = 'path_selection';
 
-function TrajectoryChart({trajectories, runs, goRender}) {    
+function TrajectoryChart({trajectories, runs}) {    
     let [currentModal, setCurrentModal] = useState('');
     let [extents, setExtents] = useState([]);
     let [modalTitle, setModalTitle] = useState('');    
@@ -286,7 +286,7 @@ function TrajectoryChart({trajectories, runs, goRender}) {
 		extents = [];
 		}*/
     
-    }, [goRender]);
+    }, [trajectories, runs]);
     
     return(<div><svg id="svg_main" ref={ref} viewBox={[0, 0, widget_width, svg_height]}/>
 	       <SelectionModal title={modalTitle} isOpen={currentModal === PATH_SELECTION_MODAL} extents={extents} closeFunc={() => toggleModal(PATH_SELECTION_MODAL)} />

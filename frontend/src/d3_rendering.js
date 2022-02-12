@@ -28,16 +28,14 @@ const sliderStyle = {
     margin: "auto",
 };
 
-class D3RenderDiv extends React.Component {
-    //refactor such that goRender is unnecessary
+class D3RenderDiv extends React.Component {    
 
     constructor(props) {
         super(props);
         this.state = {
             currentModal: null,
             currentRun: null,
-            runs: {},
-            goRender: 0,
+            runs: {},            
         };
     }
 
@@ -99,13 +97,12 @@ class D3RenderDiv extends React.Component {
 
                     runs[run]["filters"] = filters;
 
-                    this.setState((prevState) => {
-                        return { goRender: prevState.goRender + 1, runs: runs };
-                    });
+                    this.setState({runs: runs });
                 }
             }
         }
     }
+    
 
     updateRun = (run, attribute, value) => {
         let runs = { ...this.state.runs };
@@ -124,10 +121,6 @@ class D3RenderDiv extends React.Component {
                 "current_clustering",
                 this.props.trajectories[run].current_clustering
             );
-        } else {
-            this.setState((prevState) => {
-                return { goRender: prevState.goRender + 1 };
-            });
         }
     };
 
@@ -141,11 +134,7 @@ class D3RenderDiv extends React.Component {
         this_filter.enabled = filter.enabled;
 
         runs[filter.run]["filters"][filter.id] = this_filter;
-        this.setState(
-            (prevState) => {
-                return { goRender: prevState.goRender + 1, runs };
-            }            
-        );
+        this.setState({runs});
     };
 
     addFilter = (state) => {
@@ -339,22 +328,19 @@ class D3RenderDiv extends React.Component {
                                                             step={1}
                                                             domain={domain}
                                                             onChange={(e) => {
-                                                                actions.setValues(
+                                                        
+							actions.setValues(
                                                                     e
-                                                                );
-                                                            }}
-                                                            onMouseUp={(e) => {
-                                                                actions.setValues(
-                                                                    e
-                                                                );
-                                                                if (
+                                                        );
+							        if (
                                                                     state.enabled
                                                                 ) {
-                                                                    actions.propagateChange(
-                                                                        e
+                                                                    
+                                                                    actions.propagateChange(                                                                        
                                                                     );
                                                                 }
-                                                            }}
+                                                        
+                                                            }}                                                            
                                                             values={
                                                                 state.options.val
                                                             }
@@ -463,8 +449,7 @@ class D3RenderDiv extends React.Component {
                 <div style={{ display: "flex" }}>
                     <TrajectoryChart
                         trajectories={this.props.trajectories}
-                        runs={this.state.runs}
-                        goRender={this.state.goRender}
+                        runs={this.state.runs}                        
                     ></TrajectoryChart>
                     {this.state.currentModal === ADD_FILTER_MODAL && (
                         <AddFilterModal
