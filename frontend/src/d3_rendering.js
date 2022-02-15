@@ -48,6 +48,7 @@ class D3RenderDiv extends React.Component {
     componentDidUpdate() {
         let runs = Object.keys(this.props.trajectories);
         if (runs.length > 0) {
+	    
             for (var run of runs) {
                 if (!Object.keys(this.state.runs).includes(run)) {
                     let runs = { ...this.state.runs };
@@ -365,17 +366,20 @@ class D3RenderDiv extends React.Component {
 
     render() {
         let runs = Object.keys(this.state.runs);
-        if (runs.length > 0) {
             var controls = this.renderControls(runs);
             return (
                 <Grid container spacing={1}>
                     <Grid item xs={10}>
-                        <TrajectoryChart
-                            trajectories={this.props.trajectories}
-                            runs={this.state.runs}
-                        ></TrajectoryChart>
+			{Object.keys(this.state.runs).length > 0 &&
+                         <TrajectoryChart
+                             trajectories={this.props.trajectories}
+                             runs={this.state.runs}
+                        ></TrajectoryChart> }
                     </Grid>
-                    {this.state.currentModal === ADD_FILTER_MODAL && (
+                    <Grid item xs={2}>
+                        {Object.keys(this.state.runs).length > 0 && controls}
+                    </Grid>
+		    {this.state.currentModal === ADD_FILTER_MODAL && (
                         <AddFilterModal
                             title={`Add filter for ${this.state.currentRun}`}
                             open={
@@ -402,14 +406,8 @@ class D3RenderDiv extends React.Component {
                             onRequestClose={() => this.toggleModal(null)}
                         />
                     )}
-                    <Grid item xs={2}>
-                        {controls}
-                    </Grid>
                 </Grid>
             );
-        } else {
-            return null;
-        }
     }
 }
 export default D3RenderDiv;

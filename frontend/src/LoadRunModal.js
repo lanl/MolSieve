@@ -64,7 +64,7 @@ class LoadRunModal extends React.Component {
                 <Dialog
 		    onBackdropClick={() => this.closeFunc(true)}
                     open={this.props.isOpen}
-		    fullWidth="true"
+		    fullWidth={true}
                     maxWidth="lg"
                 >
                     <DialogTitle>Clustering options for {this.props.run}</DialogTitle>

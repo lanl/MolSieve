@@ -1,15 +1,38 @@
+import {React, useEffect, useState, useRef} from 'react';
 import { useTrajectoryChartRender } from './hooks/useTrajectoryChartRender';
 import { intToRGB } from "./myutils";
 import tippy from "tippy.js";
 import "tippy.js/dist/tippy.css";
 import * as d3 from 'd3';
 
-const widget_width = 400;
-const svg_height = 400;
 const margin = { top: 20, bottom: 20, left: 40, right: 25 };
 
 function Scatterplot({data}) {
-    const ref = useTrajectoryChartRender((svg) => {                
+    const divRef = useRef();
+    const [width, setWidth] = useState();
+    const [height, setHeight] = useState();
+
+    const resize = () => {        
+	const newWidth = divRef.current.parentElement.clientWidth;
+	setWidth(newWidth);
+	
+	const newHeight = divRef.current.parentElement.clientHeight;
+	setHeight(newHeight);
+    };
+    
+    useEffect(() => {
+	resize();
+    }, [data]);
+
+    useEffect(() => {
+	window.addEventListener("resize", resize());
+    },[]);
+
+    const ref = useTrajectoryChartRender((svg) => {
+	if(height === undefined || width === undefined) {
+	    return;
+	}
+	
 	if(!svg.empty()) {
 	    svg.selectAll('*').remove();
 	}
@@ -52,9 +75,9 @@ function Scatterplot({data}) {
 	}
 
 	// 1.25 for breathing room between axis and values
-        var scale_x = d3.scaleLinear().range([margin.left, widget_width - margin.right]).domain([xtent[0],xtent[1]]);
+        var scale_x = d3.scaleLinear().range([margin.left, width - margin.right]).domain([xtent[0],xtent[1]]);
 
-	var scale_y = d3.scaleLinear().range([svg_height - margin.bottom,margin.top]).domain([ytent[first],ytent[last]]);
+	var scale_y = d3.scaleLinear().range([height - margin.bottom,margin.top]).domain([ytent[first],ytent[last]]);
 	
         svg.selectAll("rect").data(sequence).enter().append("rect")
 	    .attr("x", function(d,i) {return scale_x(x_attributeList[i])})
@@ -94,27 +117,26 @@ function Scatterplot({data}) {
 	// decorations
 
 	var yAxisPos = margin.left;	
-	var xAxisPos = svg_height - margin.bottom;
+	var xAxisPos = height - margin.bottom;
 	
 	svg.append("g").attr("transform", `translate(0,${xAxisPos})`).call(d3.axisBottom().scale(scale_x));
 	svg.append("g").attr("transform", `translate(${yAxisPos},0)`).call(d3.axisLeft().scale(scale_y));
 	
-	if(title == null || title == "") {
+	if(title === null || title === "") {
 	    title = x_attribute + " vs " + y_attribute;
 	}        
 	
 	svg.append("text")            
-	    .attr("x", widget_width/2)
+	    .attr("x", width/2)
 	    .attr("y", margin.top)
 	    .attr("text-anchor", "middle")
 	    .style("font-size", "12px")
 	    .text(title);
-	
+    }, [data.x_attribute, data.y_attribute, width, height]);
     
-
-    }, [data.x_attribute, data.y_attribute]);
-    //need to fix svg width and height in all visualizations
-    return(<svg ref={ref} width="80%" height="75%" viewBox={[0,0, widget_width, svg_height]}></svg>)
+    return(<div ref={divRef} width="100%" height="100%">
+	       {(width && height) && <svg ref={ref} viewBox={[0,0, width, height]}/>}
+	   </div>)
     
 }
 

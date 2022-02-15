@@ -12,7 +12,7 @@ class SelectionModal extends React.Component {
     }
     
     render() {        
-        if (this.props.isOpen) {
+        if (this.props.open) {
             return <Dialog open={this.props.open}
 		    onBackdropClick={() => this.closeFunc()}
 		   >

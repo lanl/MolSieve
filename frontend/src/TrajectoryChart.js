@@ -1,24 +1,42 @@
 import { useTrajectoryChartRender } from './hooks/useTrajectoryChartRender';
-import {React, useEffect, useState} from 'react';
+import {React, useEffect, useState, useRef} from 'react';
 import * as d3 from 'd3';
 import { intToRGB } from "./myutils";
 import tippy from "tippy.js";
 import "tippy.js/dist/tippy.css";
 import SelectionModal from "./SelectionModal"
 
-const widget_width = 500;
-const svg_height = widget_width - 100;
-const margin = { top: 20, bottom: 20, left: 40, right: 25 };
 const PATH_SELECTION_MODAL = 'path_selection';
+const margin = { top: 20, bottom: 20, left: 40, right: 25 };    
+
+let z_brush = null;
+let s_brush = null;
+let m_s_brush = null;    
 
 function TrajectoryChart({trajectories, runs}) {    
-    let [currentModal, setCurrentModal] = useState('');
+    let [currentModal, setCurrentModal] = useState();
     let [extents, setExtents] = useState([]);
-    let [modalTitle, setModalTitle] = useState('');    
+    let [modalTitle, setModalTitle] = useState('');
+
+    const divRef = useRef();
+    const [width, setWidth] = useState();
+    const [height, setHeight] = useState();
+
+    const resize = () => {        
+	const newWidth = divRef.current.parentElement.clientWidth;
+	setWidth(newWidth);
+	
+	const newHeight = divRef.current.parentElement.clientHeight;
+	setHeight(newHeight);
+    };
     
-    let z_brush = null;
-    let s_brush = null;
-    let m_s_brush = null;    
+    useEffect(() => {
+	resize();
+    }, [trajectories]);
+
+    useEffect(() => {
+	window.addEventListener("resize", resize());
+    },[]);        
     
     const zoom = () => {
 	if(z_brush != null) {
@@ -42,7 +60,7 @@ function TrajectoryChart({trajectories, runs}) {
     
     const toggleModal = (key) => {
 	if(currentModal) {
-	    setCurrentModal('');
+	    setCurrentModal();
 	    return;
 	}
 	setCurrentModal(key);
@@ -51,8 +69,11 @@ function TrajectoryChart({trajectories, runs}) {
     useKeyPress('z', zoom);
     useKeyPress('Control', selection_brush);
     useKeyPress('Shift', multiple_selection_brush);
-    
-    const ref = useTrajectoryChartRender((svg) => {       
+
+    const ref = useTrajectoryChartRender((svg) => {
+	if(height === undefined || width === undefined) {
+	    return;
+	}        
 	//clear so we don't draw over-top and cause insane lag        
 	if(!svg.empty()) {
 	    svg.selectAll('*').remove();
@@ -86,11 +107,11 @@ function TrajectoryChart({trajectories, runs}) {
         
         var scale_x = d3
             .scaleLinear()
-            .range([margin.left, widget_width - margin.right])
+            .range([margin.left, width - margin.right])
             .domain([0, maxLength]);
         var scale_y = d3
             .scaleLinear()
-            .range([margin.top, svg_height - margin.bottom])
+            .range([margin.top, height - margin.bottom])
             .domain([0, dataList.length]);
 
         var tickNames = [];
@@ -200,7 +221,7 @@ function TrajectoryChart({trajectories, runs}) {
 		.attr("x", function(d) { return scale_x(d['timestep']); });             
 	});
 
-	z_brush = d3.brushX().extent([[0,0], [widget_width, svg_height]]).on('end', function(e) {
+	z_brush = d3.brushX().extent([[0,0], [width, height]]).on('end', function(e) {
 	    var extent = e.selection;                        
 	    if(extent) {                
                 svg.select('.brush').call(z_brush.move, null);
@@ -216,7 +237,7 @@ function TrajectoryChart({trajectories, runs}) {
 	});
 
         // multiple path selection	
-	m_s_brush = d3.brush().extent([[0,0], [widget_width, svg_height]]).on('end', function(e) {
+	m_s_brush = d3.brush().extent([[0,0], [width, height]]).on('end', function(e) {
 	    var extent = e.selection;                        
 	    if(extent) {
 		var curr_name = dataList[Math.round(scale_y.invert(extent[0][1]))].name;		
@@ -230,18 +251,17 @@ function TrajectoryChart({trajectories, runs}) {
 	});
 
 	// single path selection
-	s_brush = d3.brush().extent([[0,0], [widget_width, svg_height]]).on('end', function(e) {
+	s_brush = d3.brush().extent([[0,0], [width, height]]).on('end', function(e) {
 	    let extent = e.selection;                        
 	    if(extent) {                
                 let curr_name = dataList[Math.round(scale_y.invert(extent[0][1]))].name;		
 		if (curr_name !== null && curr_name !== undefined) {
 		    let begin = trajectories[curr_name].sequence[Math.round(scale_x.invert(extent[0][0]))];
 		    let end = trajectories[curr_name].sequence[Math.round(scale_x.invert(extent[1][0]))];
-		    let xtent = {name:curr_name,begin:begin,end:end};
-		    
+		    let xtent = {name:curr_name,begin:begin,end:end};		    
 		    setModalTitle(`Timesteps ${begin.timestep} - ${end.timestep}`);
 		    extents.push(xtent);                    
-		    toggleModal(PATH_SELECTION_MODAL);
+		    toggleModal(PATH_SELECTION_MODAL);                    
 		}                                
 	    }
 	    
@@ -286,9 +306,10 @@ function TrajectoryChart({trajectories, runs}) {
 		extents = [];
 		}*/
     
-    }, [trajectories, runs]);
+    }, [trajectories, runs, width, height]);        
     
-    return(<div><svg id="svg_main" ref={ref} viewBox={[0, 0, widget_width, svg_height]}/>
+    return(<div ref={divRef} width="100%" height="100%">
+	       {(width && height) && <svg id="svg_main" ref={ref} viewBox={[0, 0, width, height]}/>}
 	       <SelectionModal title={modalTitle} open={currentModal === PATH_SELECTION_MODAL} extents={extents} closeFunc={() => toggleModal(PATH_SELECTION_MODAL)} />
 	   </div>);
 }
@@ -300,7 +321,7 @@ function useKeyPress(key, action) {
 	}
 	window.addEventListener('keyup', onKeyup);
 	return () => window.removeEventListener('keyup', onKeyup);
-    }, []);
+    });
 }
 
 export default TrajectoryChart;

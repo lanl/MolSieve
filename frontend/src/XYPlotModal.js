@@ -50,13 +50,13 @@ class XYPlotModal extends React.Component {
             <Dialog
 		onClose={this.closeFunc}
                 onBackdropClick={() => this.closeFunc()}
-                open={this.props.open}>    
+                open={this.props.open}
+		fullWidth={true}		
+	    >		
                 <DialogTitle>{this.props.title}</DialogTitle>
 		<DialogContent>
 		    <Stack spacing={2}>
-
 			<FormControl>
-
 			    <Select
 				name="select_x_attribute"
 				id="select_x_attribute"
@@ -81,18 +81,19 @@ class XYPlotModal extends React.Component {
                 >
                     {options}
                 </Select>
-			    <FormHelperText>Y attribute</FormHelperText>
-			    </FormControl>
+		<FormHelperText>Y attribute</FormHelperText>
+	</FormControl>
+	
+            <Scatterplot
+                data={{
+                    sequence: this.props.trajectory.sequence,
+                    x_attribute: this.state.x_attribute,
+                    y_attribute: this.state.y_attribute,
+                }}
+            />
+	
+	</Stack>
 
-
-                <Scatterplot
-                    data={{
-                        sequence: this.props.trajectory.sequence,
-                        x_attribute: this.state.x_attribute,
-                        y_attribute: this.state.y_attribute,
-                    }}
-                />
-		    </Stack>
 		</DialogContent>
 		<DialogActions>
                     <Button onClick={this.closeFunc}>Close</Button>
