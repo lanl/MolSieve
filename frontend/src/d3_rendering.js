@@ -12,8 +12,11 @@ import {
     filter_transitions,
 } from "./Filters";
 import FilterComponent from "./FilterComponent";
-import { Slider, Rail, Handles } from "react-compound-slider";
-import { SliderRail, Handle } from "./slider-components";
+import Slider from "@mui/material/Slider";
+
+import Grid from "@mui/material/Grid";
+import Stack from "@mui/material/Stack";
+import Button from "@mui/material/Button";
 
 const XY_PLOT_MODAL = "xy-plot-modal";
 const ADD_FILTER_MODAL = "add-filter-modal";
@@ -22,20 +25,13 @@ const RANGE_SLIDER = "range";
 const SLIDER = "slider";
 const TOGGLE = "toggle";
 
-const sliderStyle = {
-    position: "relative",
-    width: "75%",
-    margin: "auto",
-};
-
-class D3RenderDiv extends React.Component {    
-
+class D3RenderDiv extends React.Component {
     constructor(props) {
         super(props);
         this.state = {
             currentModal: null,
             currentRun: null,
-            runs: {},            
+            runs: {},
         };
     }
 
@@ -97,12 +93,11 @@ class D3RenderDiv extends React.Component {
 
                     runs[run]["filters"] = filters;
 
-                    this.setState({runs: runs });
+                    this.setState({ runs: runs });
                 }
             }
         }
     }
-    
 
     updateRun = (run, attribute, value) => {
         let runs = { ...this.state.runs };
@@ -134,7 +129,7 @@ class D3RenderDiv extends React.Component {
         this_filter.enabled = filter.enabled;
 
         runs[filter.run]["filters"][filter.id] = this_filter;
-        this.setState({runs});
+        this.setState({ runs });
     };
 
     addFilter = (state) => {
@@ -167,10 +162,13 @@ class D3RenderDiv extends React.Component {
                 break;
         }
 
-        let val = (state.filter_type === "MIN" || state.filter_type === "MAX") ? getMinProperty(state.attribute, sequence) : [
-                getMinProperty(state.attribute, sequence),
-                getMaxProperty(state.attribute, sequence),
-        ];
+        let val =
+            state.filter_type === "MIN" || state.filter_type === "MAX"
+                ? getMinProperty(state.attribute, sequence)
+                : [
+                      getMinProperty(state.attribute, sequence),
+                      getMaxProperty(state.attribute, sequence),
+                  ];
 
         let filter_type =
             state.filter_type === "MIN" || state.filter_type === "MAX"
@@ -201,21 +199,18 @@ class D3RenderDiv extends React.Component {
     renderControls = (runs) => {
         return runs.map((run) => {
             return (
-                <div
-                    key={run}
-                    style={{ display: "flex", flexDirection: "column" }}
-                >
-                    <p>
-                        <b>{run}</b>
-                    </p>
-                    <input
-                        type="range"
-                        min="2"
-                        max="20"
+                <Stack spacing={1} key={run}>
+                    <b>{run}</b>
+
+                    <Slider
+                        step={1}
+                        min={2}
+                        max={20}
                         name="pcca_slider"
-                        onMouseUp={() => {
+                        onChangeCommitted={() => {
                             this.recalculate_clustering(run);
                         }}
+			valueLabelDisplay="auto"
                         onChange={(e) => {
                             this.updateRun(
                                 run,
@@ -223,7 +218,7 @@ class D3RenderDiv extends React.Component {
                                 e.target.value
                             );
                         }}
-                        defaultValue={
+                        value={
                             this.state.runs[run]["current_clustering"]
                         }
                     />
@@ -243,7 +238,7 @@ class D3RenderDiv extends React.Component {
                                         filter={filter}
                                         run={run}
                                         propagateChange={this.propagateChange}
-                                        render={(state, actions) => {                                            
+                                        render={(state, actions) => {
                                             if (filter.type === TOGGLE) {
                                                 return (
                                                     <div>
@@ -251,155 +246,36 @@ class D3RenderDiv extends React.Component {
                                                             filter.children}
                                                     </div>
                                                 );
-                                            } else if (filter.type === SLIDER) {
+                                            } else {
                                                 let slider_label = null;
 
-                                                if (filter.options.property) {
-                                                    slider_label = (
-                                                        <label>
-                                                            {filter.sliderLabel}{" "}
-                                                            {state.options.val}{" "}
-                                                            {
-                                                                filter.options
-                                                                    .property
-                                                            }
-                                                        </label>
-                                                    );
+                                                if (filter.type === SLIDER) {
+						    if(filter.options.property) {
+							slider_label = (
+                                                            <label>
+								{filter.sliderLabel}{" "}
+								{state.options.val}{" "}
+								{
+                                                                    filter.options
+									.property
+								}
+                                                            </label>);
+						    } else {                                                        
+							    slider_label = (
+								<label>
+								    {state.options.val}
+								</label>
+							    );
+							}                                                   
                                                 } else {
                                                     slider_label = (
                                                         <label>
-                                                            {state.options.val}
-                                                        </label>
-                                                    );
-                                                }
-
-                                                return (
-                                                    <div>
-                                                        <input
-                                                            type="range"
-                                                            min={
-                                                                state
-                                                                    .extents[0]
-                                                            }
-                                                            max={
-                                                                state
-                                                                    .extents[1]
-                                                            }
-                                                            defaultValue={
-                                                                state.options
-                                                                    .val
-                                                            }
-                                                            onChange={(e) => {
-                                                                actions.setValue(
-                                                                    e
-                                                                );
-                                                            }}
-                                                            onMouseUp={(e) => {
-                                                                actions.setValue(
-                                                                    e
-                                                                );
-                                                                if (
-                                                                    state.enabled
-                                                                ) {
-                                                                    actions.propagateChange(
-                                                                        e
-                                                                    );
-                                                                }
-                                                            }}
-                                                        />
-							<br/>
-                                                        <label>
-                                                            {slider_label} {filter.children &&
-                                                            filter.children(
-                                                                actions.setMode
-                                                            )}
-                                                        </label>                                                        
-                                                    </div>
-                                                );
-                                            } else {
-                                                const domain = filter.extents;                                                
-                                                return (<div>
-							    <br/>
-						<Slider
-                                                            rootStyle={
-                                                                sliderStyle
-                                                            }
-                                                            mode={1}
-                                                            step={1}
-                                                            domain={domain}
-                                                            onChange={(e) => {
-                                                        
-							actions.setValues(
-                                                                    e
-                                                        );
-							        if (
-                                                                    state.enabled
-                                                                ) {
-                                                                    
-                                                                    actions.propagateChange(                                                                        
-                                                                    );
-                                                                }
-                                                        
-                                                            }}                                                            
-                                                            values={
-                                                                state.options.val
-                                                            }
-                                                            name="slider"
-                                                        >
-                                                            <Rail>
-                                                                {({
-                                                                    getRailProps,
-                                                                }) => (
-                                                                    <SliderRail
-                                                                        getRailProps={
-                                                                            getRailProps
-                                                                        }
-                                                                    />
-                                                                )}
-                                                            </Rail>
-                                                            <Handles>
-                                                                {({
-                                                                    handles,
-                                                                    activeHandleID,
-                                                                    getHandleProps,
-                                                                }) => (
-                                                                    <div className="slider-handles">
-                                                                        {handles.map(
-                                                                            (
-                                                                                handle
-                                                                            ) => (
-                                                                                <Handle
-                                                                                    key={
-                                                                                        handle.id
-                                                                                    }
-                                                                                    handle={
-                                                                                        handle
-                                                                                    }
-                                                                                    domain={
-                                                                                        domain
-                                                                                    }
-                                                                                    isActive={
-                                                                                        handle.id ===
-                                                                                        activeHandleID
-                                                                                    }
-                                                                                    getHandleProps={
-                                                                                        getHandleProps
-                                                                                    }
-                                                                                />
-                                                                            )
-                                                                        )}
-                                                                    </div>
-                                                                )}
-                                                            </Handles>
-                                                </Slider>
-							    <br/>
-                                                            <label>
-								{filter.sliderLabel}{" "}
+                                                            {filter.sliderLabel}{" "}
                                                             {
                                                                 state.options
                                                                     .val[0]
                                                             }{" "}
-								and {" "} 
+                                                            and{" "}
                                                             {
                                                                 state.options
                                                                     .val[1]
@@ -409,8 +285,53 @@ class D3RenderDiv extends React.Component {
                                                                     .property
                                                             }
                                                         </label>
-                                                        {filter.children &&
-                                                            filter.children}
+                                                    );
+						} 
+                                                const domain = filter.extents;
+                                                return (
+                                                    <div>
+                                                        <Slider
+                                                            min={domain[0]}
+                                                            max={domain[1]}
+                                                            step={1}
+                                                            onChangeCommitted={(
+                                                                e,
+                                                                v
+                                                            ) => {
+                                                                actions.setValues(
+                                                                    e,
+                                                                    v
+                                                                );
+                                                                if (
+                                                                    state.enabled
+                                                                ) {
+                                                                    actions.propagateChange();
+                                                                }
+                                                            }}
+                                                            onChange={(
+                                                                e,
+                                                                v
+                                                            ) => {
+                                                                actions.setValues(
+                                                                    e,
+                                                                    v
+                                                                );
+                                                            }}
+                                                            value={
+                                                                state.options
+                                                                    .val
+                                                            }
+                                                            valueLabelDisplay="auto"
+                                                            name="slider"
+                                                        />
+                                                        <br />
+                                                        <label>
+                                                            {slider_label}{" "}
+                                                            {filter.children &&
+                                                                filter.children(
+                                                                    actions.setMode
+                                                                )}
+                                                        </label>
                                                     </div>
                                                 );
                                             }
@@ -419,24 +340,25 @@ class D3RenderDiv extends React.Component {
                                 );
                             }
                         )}
-
-                    <button
-                        onClick={() => {
-                            this.setState({ ...this.state, currentRun: run });
-                            this.toggleModal(ADD_FILTER_MODAL);
-                        }}
-                    >
-                        + Add a new filter
-                    </button>
-                    <button
-                        onClick={() => {
-                            this.setState({ ...this.state, currentRun: run });
-                            this.toggleModal(XY_PLOT_MODAL);
-                        }}
-                    >
-                        Generate x-y plot with attribute
-                    </button>
-                </div>
+		    <Stack spacing={1}>
+			<Button variant="outlined"
+                            onClick={() => {
+				this.setState({ ...this.state, currentRun: run });
+				this.toggleModal(ADD_FILTER_MODAL);
+                            }}
+			>
+                            + Add a new filter
+			</Button>
+			<Button variant="outlined"
+                            onClick={() => {
+				this.setState({ ...this.state, currentRun: run });
+				this.toggleModal(XY_PLOT_MODAL);
+                            }}
+			>
+                            Generate x-y plot with attribute
+			</Button>
+		    </Stack>
+                </Stack>
             );
         });
     };
@@ -446,15 +368,17 @@ class D3RenderDiv extends React.Component {
         if (runs.length > 0) {
             var controls = this.renderControls(runs);
             return (
-                <div style={{ display: "flex" }}>
-                    <TrajectoryChart
-                        trajectories={this.props.trajectories}
-                        runs={this.state.runs}                        
-                    ></TrajectoryChart>
+                <Grid container spacing={1}>
+                    <Grid item xs={10}>
+                        <TrajectoryChart
+                            trajectories={this.props.trajectories}
+                            runs={this.state.runs}
+                        ></TrajectoryChart>
+                    </Grid>
                     {this.state.currentModal === ADD_FILTER_MODAL && (
                         <AddFilterModal
                             title={`Add filter for ${this.state.currentRun}`}
-                            isOpen={
+                            open={
                                 this.state.currentModal === ADD_FILTER_MODAL
                             }
                             trajectory={
@@ -463,7 +387,6 @@ class D3RenderDiv extends React.Component {
                             closeFunc={() => {
                                 this.toggleModal(null);
                             }}
-                            onRequestClose={() => this.toggleModal(null)}
                             addFilter={this.addFilter}
                             run={this.state.currentRun}
                         />
@@ -472,17 +395,17 @@ class D3RenderDiv extends React.Component {
                         <XYPlotModal
                             title={`Scatter plot for ${this.state.currentRun}`}
                             closeFunc={() => this.toggleModal(null)}
-                            isOpen={this.state.currentModal === XY_PLOT_MODAL}
+                            open={this.state.currentModal === XY_PLOT_MODAL}
                             trajectory={
                                 this.props.trajectories[this.state.currentRun]
                             }
                             onRequestClose={() => this.toggleModal(null)}
                         />
                     )}
-                    <div style={{ display: "flex", flexDirection: "column" }}>
+                    <Grid item xs={2}>
                         {controls}
-                    </div>
-                </div>
+                    </Grid>
+                </Grid>
             );
         } else {
             return null;

@@ -113,7 +113,7 @@ function Scatterplot({data}) {
     
 
     }, [data.x_attribute, data.y_attribute]);
-
+    //need to fix svg width and height in all visualizations
     return(<svg ref={ref} width="80%" height="75%" viewBox={[0,0, widget_width, svg_height]}></svg>)
     
 }

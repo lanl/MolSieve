@@ -1,6 +1,9 @@
 import React from "react";
-import Modal from "react-modal";
-import './Modal.css'
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from "@mui/material/DialogContent";
+import Button from '@mui/material/Button';
 
 class SelectionModal extends React.Component {
 
@@ -10,13 +13,19 @@ class SelectionModal extends React.Component {
     
     render() {        
         if (this.props.isOpen) {
-            return <Modal className="DefaultModal SmallModal" isOpen={this.props.isOpen} onRequestClose={this.closeFunc}>
-		       <h1>{this.props.title}</h1>
+            return <Dialog open={this.props.open}
+		    onBackdropClick={() => this.closeFunc()}
+		   >
+		       <DialogTitle>{this.props.title}</DialogTitle>
+		       <DialogContent>
 		       <label htmlFor="txt_path_neb">Number of images interpolated between points on NEB</label>
-		       <input type="number" min="0" name="txt_path_neb" defaultValue="0"/>
-		       <button>Calculate NEB on Path</button>
-		       <button onClick={this.closeFunc}>Cancel</button>
-		   </Modal>;
+			   <input type="number" min="0" name="txt_path_neb" defaultValue="0"/>
+		       </DialogContent>
+		       <DialogActions>
+			   <Button size="small" variant="contained">Calculate NEB on Path</Button>
+			   <Button size="small" variant="contained" color="error" onClick={this.closeFunc}>Cancel</Button>
+		       </DialogActions>
+		   </Dialog>;
         } else {
 	    return null;
         }

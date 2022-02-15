@@ -1,18 +1,16 @@
 import React from "react";
-import { Slider, Rail, Handles } from "react-compound-slider";
-import { SliderRail, Handle } from "./slider-components";
 import CheckboxTable from "./CheckboxTable";
-import Modal from "react-modal";
-import "./Modal.css"
+import Slider from '@mui/material/Slider'
+import Button from '@mui/material/Button';
+import DialogTitle from '@mui/material/DialogTitle';
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContentText from '@mui/material/DialogContentText';
+import DialogContent from "@mui/material/DialogContent";
+import Stack from "@mui/material/Stack"
 
 const domain = [2, 20];
 const defaultValues = [2, 4];
-
-const sliderStyle = {
-    position: "relative",
-    width: "75%",
-    margin: "auto",
-};
 
 class LoadRunModal extends React.Component {
     constructor(props) {
@@ -42,7 +40,7 @@ class LoadRunModal extends React.Component {
     }
 
     runFunc = () => {
-        this.props.closeFunc(false);
+        this.props.closeFunc(false);        
         this.props.runFunc(
             this.state.run,
             -1,
@@ -53,67 +51,41 @@ class LoadRunModal extends React.Component {
         );
     };
 
-    onChange = (values) => {
-        this.setState({ values });
-    };
+    onChange = (e,v) => {                
+        this.setState({ values: v });
+    };    
 
     render() {
-        if (this.props.isOpen) {
-            const {
-                state: { values },
-            } = this;
+        if (this.props.isOpen) {                       
 
             let defaults = ["occurrences", "number"];
 
             return (
-                <Modal
-                    isOpen={this.props.isOpen}
-                    onRequestClose={this.closeFunc}
-		    className="DefaultModal LargeModal"
+                <Dialog
+		    onBackdropClick={() => this.closeFunc(true)}
+                    open={this.props.isOpen}
+		    fullWidth="true"
+                    maxWidth="lg"
                 >
-                    <h1>Clustering options for {this.props.run}</h1>
-                    <p>
+                    <DialogTitle>Clustering options for {this.props.run}</DialogTitle>
+		    <DialogContent>
+                    <DialogContentText>
                         Select the cluster sizes that PCCA will try to cluster
                         the data into.
-                    </p>
-                    <b>
-                        {this.state.values.toString().replace(",", " - ")}{" "}
-                        clusters
-                    </b>
-                    <br />
-                    <br />
-                    <Slider
-                        rootStyle={sliderStyle}
-                        mode={1}
-                        step={1}
-                        domain={domain}
-                        onChange={this.onChange}
-                        values={values}
-                    >
-                        <Rail>
-                            {({ getRailProps }) => (
-                                <SliderRail getRailProps={getRailProps} />
-                            )}
-                        </Rail>
-                        <Handles>
-                            {({ handles, activeHandleID, getHandleProps }) => (
-                                <div className="slider-handles">
-                                    {handles.map((handle) => (
-                                        <Handle
-                                            key={handle.id}
-                                            handle={handle}
-                                            domain={domain}
-                                            isActive={
-                                                handle.id === activeHandleID
-                                            }
-                                            getHandleProps={getHandleProps}
-                                        />
-                                    ))}
-                                </div>
-                            )}
-                        </Handles>
-                    </Slider>
-                    <br />
+                    </DialogContentText>
+			<Stack spacing={2} direction="row" alignItems="center" justifyContent="center">
+			<Slider
+                            step={1}
+                            min={domain[0]}
+			    max={domain[1]}
+                            onChange={(e,v) => {this.onChange(e,v)}}
+			    valueLabelDisplay="auto"
+                            value={this.state.values}
+			/>
+			<b>
+                            {this.state.values.toString().replace(",", " - ")}{" "} clusters
+			</b>
+		    </Stack>
                     <p>Select which properties you wish to analyze.</p>
                     <CheckboxTable
                         click={this.pullClicked}
@@ -121,15 +93,18 @@ class LoadRunModal extends React.Component {
                         header="Properties"
                         api_call={`/get_property_list?run=${this.props.run}`}
                     ></CheckboxTable>
-                    <button onClick={this.runFunc}>Calculate</button>
-                    <button
+		    </DialogContent>
+		    <DialogActions>
+                    <Button size="small" variant="contained" onClick={this.runFunc}>Calculate</Button>
+		    <Button size="small" variant="contained" color="error"
                         onClick={() => {
                             this.closeFunc(true);
                         }}
                     >
                         Cancel
-                    </button>
-                </Modal>
+                    </Button>
+		    </DialogActions>
+                </Dialog>
             );
         } else {
             return null;

@@ -42,7 +42,7 @@ function TrajectoryChart({trajectories, runs}) {
     
     const toggleModal = (key) => {
 	if(currentModal) {
-	    setCurrentModal();
+	    setCurrentModal('');
 	    return;
 	}
 	setCurrentModal(key);
@@ -240,7 +240,7 @@ function TrajectoryChart({trajectories, runs}) {
 		    let xtent = {name:curr_name,begin:begin,end:end};
 		    
 		    setModalTitle(`Timesteps ${begin.timestep} - ${end.timestep}`);
-		    extents.push(xtent);
+		    extents.push(xtent);                    
 		    toggleModal(PATH_SELECTION_MODAL);
 		}                                
 	    }
@@ -289,7 +289,7 @@ function TrajectoryChart({trajectories, runs}) {
     }, [trajectories, runs]);
     
     return(<div><svg id="svg_main" ref={ref} viewBox={[0, 0, widget_width, svg_height]}/>
-	       <SelectionModal title={modalTitle} isOpen={currentModal === PATH_SELECTION_MODAL} extents={extents} closeFunc={() => toggleModal(PATH_SELECTION_MODAL)} />
+	       <SelectionModal title={modalTitle} open={currentModal === PATH_SELECTION_MODAL} extents={extents} closeFunc={() => toggleModal(PATH_SELECTION_MODAL)} />
 	   </div>);
 }
 

@@ -1,13 +1,13 @@
 import React from "react";
 import "./App.css";
-import "./Modal.css"
 import CheckboxTable from "./CheckboxTable";
 import LoadRunModal from "./LoadRunModal";
-import Modal from "react-modal";
-import ReactLoading from "react-loading";
+import LoadingModal from "./LoadingModal";
 import Trajectory from "./trajectory";
 import D3RenderDiv from "./d3_rendering";
 import { api_loadPCCA, api_loadSequence } from "./api";
+import Container from '@mui/material/Container';
+import Stack from '@mui/material/Stack';
 
 //TODO use context to push down modalStyle
 const RUN_MODAL = "run_modal";
@@ -21,8 +21,7 @@ class App extends React.Component {
             run: null,
             trajectories: {},
             loadingMessage: "Loading...",
-        };
-        Modal.setAppElement("#root");
+        };        
     }
 
     toggleModal = (key) => {
@@ -152,29 +151,33 @@ class App extends React.Component {
     render() {
         return (
             <div className="App">
-                <div style={{ margin: "1%" }}>
-                    <h1>Trajectory Visualization</h1>
-                    <h2>powered by React.js</h2>
-                    <p>
-                        Press CTRL to toggle path selection brush. Press Z to
-                        toggle zoom brush. Double click to reset zoom. Press
-                        SHIFT to toggle multiple path selection. When you are
-                        finished with your selection, press S to open the
-                        comparison dialog.
-                    </p>
-                    <CheckboxTable
-                        defaults={[""]}
-                        header="Runs"
-                        api_call="/get_run_list"
-                        click={(e) => {
-                            this.selectRun(e);
-                        }}
-                    ></CheckboxTable>
+                <Container maxWidth={false}>
+		    <Stack spacing={1}>
+			<div>
+			    <h1>Trajectory Visualization</h1>
+			    <h2>powered by React.js</h2>
+			    <p>
+				Press CTRL to toggle path selection brush. Press Z to
+				toggle zoom brush. Double click to reset zoom. Press
+				SHIFT to toggle multiple path selection. When you are
+				finished with your selection, press S to open the
+				comparison dialog.
+			    </p>
+			</div>
+			<CheckboxTable
+                            defaults={[""]}
+                            header="Run"
+                            api_call="/get_run_list"
+                            click={(e) => {
+				this.selectRun(e);
+                            }}
+			></CheckboxTable>
                     <D3RenderDiv
                         trajectories={this.state.trajectories}
                         recalculate_clustering={this.recalculate_clustering}
                     ></D3RenderDiv>
-                </div>
+		    </Stack>
+                </Container>
                 {this.state.currentModal === RUN_MODAL && (
                     <LoadRunModal
                         run={this.state.run}
@@ -185,16 +188,7 @@ class App extends React.Component {
                         onRequestClose={() => this.toggleModal(RUN_MODAL)}
                     />
                 )}
-                <Modal isOpen={this.state.isLoading} className="DefaultModal SmallModal">
-                    <h1>{this.state.loadingMessage}</h1>
-                    <ReactLoading
-                        className="CenteredSpinner"
-                        type="spin"
-                        color="black"
-                        height="25%"
-                        width="25%"
-                    />
-                </Modal>
+		<LoadingModal open={this.state.isLoading} title={this.state.loadingMessage} />
             </div>
         );
     }

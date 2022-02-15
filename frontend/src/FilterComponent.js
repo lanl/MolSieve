@@ -32,9 +32,9 @@ class FilterComponent extends React.Component {
 	this.setState({options});
     }
 
-    setValues = (e) => {
+    setValues = (_,v) => {
 	let options = this.state.options;        
-	options.val = e;
+	options.val = v;
 	this.setState({options});   
     }
 

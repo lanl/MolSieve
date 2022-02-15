@@ -1,6 +1,16 @@
 import React from "react";
 import ReactLoading from "react-loading";
 import "./App.css";
+import Table from '@mui/material/Table'
+import TableBody from '@mui/material/TableBody';
+import TableCell from '@mui/material/TableCell';
+import TableContainer from '@mui/material/TableContainer';
+import TableHead from '@mui/material/TableHead';
+import TableRow from '@mui/material/TableRow';
+import CircularProgress from '@mui/material/CircularProgress';
+import Paper from '@mui/material/Paper';
+import Box  from "@mui/material/Box";
+
 const axios = require("axios").default;
 
 class CheckboxTable extends React.Component {
@@ -40,42 +50,40 @@ class CheckboxTable extends React.Component {
   render() {
     const { isLoaded, items } = this.state;
     if (!isLoaded) {
-      return (
-        <ReactLoading
-          className="CenteredSpinner"
-          type="bars"
-          color="black"
-          height="5%"
-          width="5%"
-        />
+	return (
+	    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+		<CircularProgress color="grey" />
+	    </Box>
       );
     } else {
-      return (
-        <table>
-          <thead>
-            <tr>
-              <th>{this.props.header}</th>
-              <th>Load?</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((i) => (
-              <tr key={i}>
-                <td>{i}</td>
-                <td>
-                  <input
-                    onClick={this.click}
-                    type="checkbox"
-                    value={i}
-                    readOnly={this.props.defaults.includes(i)}
-                    disabled={this.props.defaults.includes(i)}
-                    defaultChecked={this.props.defaults.includes(i)}
-                  ></input>
-                </td>
-              </tr>
+	return (
+	    <TableContainer component={Paper}>
+		<Table size="small">
+		    <TableHead>
+			<TableRow>
+			    <TableCell>{this.props.header}</TableCell>
+			    <TableCell>Load?</TableCell>
+			</TableRow>
+		    </TableHead>
+		    <TableBody>
+			{items.map((i) => (
+			    <TableRow key={i}>
+				<TableCell>{i}</TableCell>
+				<TableCell>
+				    <input
+					onClick={this.click}
+					type="checkbox"
+					value={i}
+					readOnly={this.props.defaults.includes(i)}
+					disabled={this.props.defaults.includes(i)}
+					defaultChecked={this.props.defaults.includes(i)}
+				    ></input>
+				</TableCell>
+			    </TableRow>
             ))}
-          </tbody>
-        </table>
+		    </TableBody>
+		</Table>
+	    </TableContainer>
       );
     }
   }
