@@ -85,6 +85,26 @@ export function api_loadPCCA(run, clusters, optimal, m_min, m_max, trajectory) {
             });
     });
 }
+/** Ajax call to calculate the similarity between two paths
+ * @param {object} extents1 - Javascript object with name, the sequence object the path starts with, and the sequence object the path ends with
+ * @param {object} extents2 - Same as above
+ * @param {array} atom_attributes - Array of strings with atom attributes to be compared in similarity calculation
+ * @param {array} state_attributes - Array of string with state attributes to be compared in similarity calculation
+ * @return {number} similarity score
+ */
+export function api_calculate_path_similarity(e1,e2, state_attributes, atom_attributes) {
+    return new Promise(function(resolve, reject) {
+	axios.post('/calculate_path_similarity', JSON.stringify({'p1': JSON.parse(e1),
+								 'p2': JSON.parse(e2),
+								 'atom_attributes': atom_attributes,
+								 'state_attributes': state_attributes}),
+		   { headers: {'Content-Type':'application/json'}}).then((response) => {
+		       	    resolve(response.data);
+		   }).catch((e) => {
+		       reject(e);
+		   })
+    });
+}
 
 export function api_load_metadata(run, trajectory) {
     return new Promise(function(resolve,reject) {

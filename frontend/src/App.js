@@ -134,8 +134,7 @@ class App extends React.Component {
             .then((new_traj) => {
                 this.load_sequence(run, new_traj.properties, new_traj).then(
                     (new_traj) => {
-			this.load_metadata(run, new_traj).then((new_traj) => {
-			    console.log("in then")
+			this.load_metadata(run, new_traj).then((new_traj) => {                            
 			    // some final processing on trajectory
 			    new_traj.properties.push("timestep");
                             new_traj.calculate_unique_states();

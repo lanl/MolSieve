@@ -11,7 +11,9 @@ import FormHelperText from '@mui/material/FormHelperText';
 import FormControl from '@mui/material/FormControl';
 import Scatterplot from "../vis/Scatterplot.js";
 import {intersection} from "../api/myutils";
+import {api_calculate_path_similarity} from "../api/ajax"
 import Grid from "@mui/material/Grid";
+import { CircularProgress } from "@mui/material";
 
 class MultiplePathSelectionModal extends React.Component {
     constructor(props) {
@@ -32,6 +34,10 @@ class MultiplePathSelectionModal extends React.Component {
 		cmn: cmn,
                 x_attribute: cmn[0],
                 y_attribute: cmn[0],
+		extent1: JSON.stringify(this.props.extents[0]),
+		extent2: JSON.stringify(this.props.extents[1]),
+		similarity: null,
+		isLoading: false
             });
         }
     }
@@ -44,6 +50,18 @@ class MultiplePathSelectionModal extends React.Component {
         this.setState({ y_attribute: e.target.value });
     };
 
+    calculatePathSimilarity = () => {
+	this.setState({isLoading: true});
+
+	//TODO: set up options for state and atom attributes
+	//will it be another modal? hard to tell what's best
+	api_calculate_path_similarity(this.state.extent1, this.state.extent2, ['occurrences'], "").then((data) => {
+	    this.setState({isLoading: false,
+			   similarity: data});
+	});
+	
+    }
+    
     closeFunc = () => {
         this.props.closeFunc();
     };
@@ -51,15 +69,17 @@ class MultiplePathSelectionModal extends React.Component {
     render() {
 	if(this.props.open && this.state.cmn) {	    
             let properties = this.state.cmn;
-            var options_x = properties.map((property) => {
-		return <MenuItem key={property + "x"} value={property}>{property}</MenuItem>;
-            });
-	    var options_y = properties.map((property, i) => {
-		return <MenuItem key={property + "y"} value={property}>{property}</MenuItem>;
+            var options = properties.map((property) => {
+		return <MenuItem key={property} value={property}>{property}</MenuItem>;
             });
 
-	    var scatterplots = this.props.extents.map(extent => {
-				    return (<Grid key={`${extent.name} ${extent.begin.timestep} - ${extent.end.timestep}`} item xs>
+	    var extent_options = this.props.extents.map((extent,i) => {
+		return <MenuItem key={i} value={JSON.stringify(extent)}>
+		       {`${extent.name} ${extent.begin.timestep} - ${extent.end.timestep}`}</MenuItem>
+	    });
+
+	    var scatterplots = this.props.extents.map((extent,i) => {
+				    return (<Grid key={i} item xs>
 						<Scatterplot
 						    data={{
 							sequence: this.props.trajectories[extent.name].sequence.slice(extent.begin.timestep, extent.end.timestep + 1),
@@ -68,7 +88,20 @@ class MultiplePathSelectionModal extends React.Component {
 							title: `${extent.name} ${extent.begin.timestep} - ${extent.end.timestep}`
 						    }}/>
 					    </Grid>);
-	    });            
+	    });
+
+	    var similarityText = null;
+	    
+	    if(!this.state.similarity && !this.state.isLoading) {
+		similarityText = (<p>Select which two paths to compare and press "calculate path similarity."</p>);
+	    } else if (this.state.isLoading) {
+		similarityText = (<CircularProgress color="grey" />)
+	    } else {
+		let extent1 = JSON.parse(this.state.extent1);
+		let extent2 = JSON.parse(this.state.extent2);
+		similarityText = (<p>Similarity between {`${extent1.name} ${extent1.begin.timestep} - ${extent1.end.timestep}`}
+				  {" "} and {`${extent2.name} ${extent2.begin.timestep} - ${extent2.end.timestep}`} is {this.state.similarity} </p>);
+	    }
 	    
             return (
 		<Dialog
@@ -89,7 +122,7 @@ class MultiplePathSelectionModal extends React.Component {
 					this.setX(e);
 				    }}
 				>
-				    {options_x}
+				    {options}
 				</Select>
 				<FormHelperText>X attribute</FormHelperText>
 			    </FormControl>
@@ -101,10 +134,35 @@ class MultiplePathSelectionModal extends React.Component {
 					this.setY(e);
 				    }}
 				>
-				    {options_y}
+				    {options}
 				</Select>
 				<FormHelperText>Y attribute</FormHelperText>
 			    </FormControl>
+			    <Stack spacing={2} direction="column" alignItems="center" justifyContent="center" >
+				<Stack spacing={2} direction="row" alignItems="center" justifyContent="center">
+				    <FormControl>
+					<Select value={this.state.extent1}
+						onChange={(e) => {
+						    this.setState({extent1: e.target.value});
+						}}
+					>
+					    {extent_options}
+					</Select>
+					<FormHelperText>Path 1</FormHelperText>
+				    </FormControl>
+				    <FormControl>
+					<Select value={this.state.extent2}
+						onChange={(e) => {
+						    this.setState({extent2: e.target.value});
+						}}
+					>
+					    {extent_options}
+					</Select>
+					<FormHelperText>Path 2</FormHelperText>
+				    </FormControl>
+				</Stack>
+				{similarityText}
+			</Stack>
 			    <Grid direction="row" justifyContent="space-evenly" container spacing={2}>
 				{scatterplots}			
 			    </Grid>
@@ -112,6 +170,7 @@ class MultiplePathSelectionModal extends React.Component {
 			
 		    </DialogContent>
 		    <DialogActions>
+			<Button variant="contained" onClick={this.calculatePathSimilarity}>Calculate path similarity</Button>
 			<Button onClick={this.closeFunc}>Close</Button>
 		    </DialogActions>
 		</Dialog>
