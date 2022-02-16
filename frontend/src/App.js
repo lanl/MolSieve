@@ -5,7 +5,7 @@ import LoadRunModal from "./modals/LoadRunModal";
 import LoadingModal from "./modals/LoadingModal";
 import Trajectory from "./api/trajectory";
 import VisGrid from "./components/VisGrid";
-import { api_loadPCCA, api_loadSequence } from "./api/ajax";
+import { api_loadPCCA, api_loadSequence, api_load_metadata } from "./api/ajax";
 import Container from '@mui/material/Container';
 import Stack from '@mui/material/Stack';
 
@@ -63,6 +63,13 @@ class App extends React.Component {
             loadingMessage: `Loading sequence for ${run}...`,
         });
         return api_loadSequence(run, properties, new_traj);
+    };
+
+    load_metadata = (run, new_traj) => {
+	  this.setState({
+            loadingMessage: `Loading metadata for ${run}...`,
+          });        
+        return api_load_metadata(run, new_traj);
     };
 
     /** Function called by the PCCA slider allocated for each run. Reruns the PCCA for however many clusters the user specifies
@@ -127,25 +134,28 @@ class App extends React.Component {
             .then((new_traj) => {
                 this.load_sequence(run, new_traj.properties, new_traj).then(
                     (new_traj) => {
-                        // some final processing on trajectory
-                        new_traj.properties.push("timestep");
-                        new_traj.calculate_unique_states();
-                        new_traj.set_cluster_info();
-                        const new_trajectories = {
-                            ...this.state.trajectories,
-                        };
-                        new_trajectories[run] = new_traj;
-
-                        this.setState({
-                            isLoading: false,
-                            trajectories: new_trajectories,
-                        });
+			this.load_metadata(run, new_traj).then((new_traj) => {
+			    console.log("in then")
+			    // some final processing on trajectory
+			    new_traj.properties.push("timestep");
+                            new_traj.calculate_unique_states();
+                            new_traj.set_cluster_info();
+                            const new_trajectories = {
+				...this.state.trajectories,
+                            };
+                            new_trajectories[run] = new_traj;
+			    this.setState({
+				isLoading: false,
+				trajectories: new_trajectories,
+                            });
+			});
                     }
-                );
+                )
             })
             .catch((e) => {
                 alert(e);
             });
+	
     };
 
     render() {
@@ -157,11 +167,9 @@ class App extends React.Component {
 			    <h1>Trajectory Visualization</h1>
 			    <h2>powered by React.js</h2>
 			    <p>
-				Press CTRL to toggle path selection brush. Press Z to
-				toggle zoom brush. Double click to reset zoom. Press
-				SHIFT to toggle multiple path selection. When you are
-				finished with your selection, press S to open the
-				comparison dialog.
+				Press CTRL to toggle the path selection brush. Press Z to
+				toggle the zoom brush. Double click to reset zoom. Press
+				and hold SHIFT to select multiple paths.
 			    </p>
 			</div>
 			<CheckboxTable

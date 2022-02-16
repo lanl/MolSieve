@@ -17,8 +17,14 @@ import Grid from "@mui/material/Grid";
 import Stack from "@mui/material/Stack";
 import Button from "@mui/material/Button";
 
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from "@mui/material/DialogContent";
+
 const XY_PLOT_MODAL = "xy-plot-modal";
 const ADD_FILTER_MODAL = "add-filter-modal";
+const METADATA_MODAL = "metadata-modal";
 
 const RANGE_SLIDER = "range";
 const SLIDER = "slider";
@@ -200,8 +206,9 @@ class VisGrid extends React.Component {
         return runs.map((run) => {
             return (
                 <Stack spacing={1} key={run}>
-                    <b>{run}</b>
-
+                    <p onClick={() => {this.setState({currentRun: run}, () => {this.toggleModal(METADATA_MODAL);
+									       console.log(this.props.trajectories);
+									      } )}}><b>{run}</b></p>
                     <Slider
                         step={1}
                         min={2}
@@ -380,6 +387,20 @@ class VisGrid extends React.Component {
                             {Object.keys(this.state.runs).length > 0 && controls}
 			</Stack>
                     </Grid>
+
+		    {this.state.currentModal === METADATA_MODAL && (
+			<Dialog open={this.state.currentModal === METADATA_MODAL}			
+				onClose={this.toggleModal}
+				onBackdropClick={() => {this.toggleModal(null)}}
+			>
+			    <DialogTitle>Metadata for {this.state.currentRun}</DialogTitle>
+			    <DialogContent>{this.props.trajectories[this.state.currentRun].LAMMPSBootstrapScript}</DialogContent>
+			    <DialogActions>
+				<Button onClick={() => {this.toggleModal(null)}}>Close</Button>
+			    </DialogActions>
+			</Dialog>
+		    )}
+		    
 		    {this.state.currentModal === ADD_FILTER_MODAL && (
                         <AddFilterModal
                             title={`Add filter for ${this.state.currentRun}`}

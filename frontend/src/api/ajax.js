@@ -85,3 +85,18 @@ export function api_loadPCCA(run, clusters, optimal, m_min, m_max, trajectory) {
             });
     });
 }
+
+export function api_load_metadata(run, trajectory) {
+    return new Promise(function(resolve,reject) {
+	axios.get('/get_metadata', {params:{'run':run}}).then((response) => {
+	    if (trajectory === undefined) {
+		resolve(response.data);
+	    }            
+	    trajectory.raw = response.data.raw;
+	    trajectory.LAMMPSBootstrapScript = response.data.LAMMPSBootstrapScript;            
+	    return resolve(trajectory);
+	}).catch((e) => {
+	    reject(e);
+	});
+    });    
+}
