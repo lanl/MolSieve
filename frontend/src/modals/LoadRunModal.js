@@ -1,5 +1,5 @@
 import React from "react";
-import CheckboxTable from "./CheckboxTable";
+import CheckboxTable from "../components/CheckboxTable";
 import Slider from '@mui/material/Slider'
 import Button from '@mui/material/Button';
 import DialogTitle from '@mui/material/DialogTitle';

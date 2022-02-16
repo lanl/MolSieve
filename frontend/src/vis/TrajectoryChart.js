@@ -1,11 +1,11 @@
-import { useTrajectoryChartRender } from './hooks/useTrajectoryChartRender';
+import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
 import {React, useEffect, useState, useRef} from 'react';
 import * as d3 from 'd3';
-import { intToRGB } from "./myutils";
+import { intToRGB } from "../api/myutils";
 import tippy from "tippy.js";
 import "tippy.js/dist/tippy.css";
-import SelectionModal from "./SelectionModal"
-import MultiplePathSelectionModal from "./MultiplePathSelectionModal"
+import SelectionModal from "../modals/SelectionModal"
+import MultiplePathSelectionModal from "../modals/MultiplePathSelectionModal"
 
 const PATH_SELECTION_MODAL = 'path_selection';
 const MULTIPLE_PATH_SELECTION_MODAL = 'multiple_path_selection';

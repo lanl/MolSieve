@@ -9,7 +9,7 @@ import MenuItem from "@mui/material/MenuItem"
 import Button from "@mui/material/Button"
 import FormHelperText from '@mui/material/FormHelperText';
 import FormControl from '@mui/material/FormControl';
-import Scatterplot from "./Scatterplot.js";
+import Scatterplot from "../vis/Scatterplot.js";
 
 class XYPlotModal extends React.Component {
     constructor(props) {

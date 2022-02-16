@@ -1,11 +1,11 @@
 import React from "react";
-import "./App.css";
-import CheckboxTable from "./CheckboxTable";
-import LoadRunModal from "./LoadRunModal";
-import LoadingModal from "./LoadingModal";
-import Trajectory from "./trajectory";
-import D3RenderDiv from "./d3_rendering";
-import { api_loadPCCA, api_loadSequence } from "./api";
+import "./css/App.css";
+import CheckboxTable from "./components/CheckboxTable";
+import LoadRunModal from "./modals/LoadRunModal";
+import LoadingModal from "./modals/LoadingModal";
+import Trajectory from "./api/trajectory";
+import D3RenderDiv from "./components/VisGrid";
+import { api_loadPCCA, api_loadSequence } from "./api/ajax";
 import Container from '@mui/material/Container';
 import Stack from '@mui/material/Stack';
 

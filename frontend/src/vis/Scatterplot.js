@@ -1,6 +1,6 @@
 import {React, useEffect, useState, useRef} from 'react';
-import { useTrajectoryChartRender } from './hooks/useTrajectoryChartRender';
-import { intToRGB } from "./myutils";
+import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
+import { intToRGB } from "../api/myutils";
 import Box from '@mui/material/Box'
 import tippy from "tippy.js";
 import "tippy.js/dist/tippy.css";

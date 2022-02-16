@@ -1,6 +1,5 @@
 import React from "react";
-import ReactLoading from "react-loading";
-import "./App.css";
+import "../css/App.css";
 import Table from '@mui/material/Table'
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';

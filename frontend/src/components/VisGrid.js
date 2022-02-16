@@ -1,8 +1,8 @@
 import React from "react";
-import TrajectoryChart from "./TrajectoryChart";
-import XYPlotModal from "./XYPlotModal";
-import AddFilterModal from "./AddFilterModal";
-import { getMinProperty, getMaxProperty } from "./myutils.js";
+import TrajectoryChart from "../vis/TrajectoryChart";
+import XYPlotModal from "../modals/XYPlotModal";
+import AddFilterModal from "../modals/AddFilterModal";
+import { getMinProperty, getMaxProperty } from "../api/myutils.js";
 import {
     filter_min_opacity,
     filter_max_opacity,
@@ -10,10 +10,9 @@ import {
     filter_clustering_difference,
     filter_fuzzy_membership,
     filter_transitions,
-} from "./Filters";
-import FilterComponent from "./FilterComponent";
+} from "../api/filters";
+import FilterComponent from "../components/FilterComponent";
 import Slider from "@mui/material/Slider";
-
 import Grid from "@mui/material/Grid";
 import Stack from "@mui/material/Stack";
 import Button from "@mui/material/Button";
