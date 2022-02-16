@@ -16,7 +16,8 @@ let z_brush = null;
 let s_brush = null;
 let m_s_brush = null;    
 
-function TrajectoryChart({trajectories, runs}) {    
+function TrajectoryChart({trajectories, runs}) {
+    
     let [currentModal, setCurrentModal] = useState();
     let [extents, setExtents] = useState([]);
     let [modalTitle, setModalTitle] = useState('');
@@ -284,10 +285,10 @@ function TrajectoryChart({trajectories, runs}) {
 	    d3.select(".brush").remove();
 	});	
                     
-    }, [trajectories, runs, width, height]);        
+    }, [runs, width, height]);        
     
     return(<div ref={divRef} width="100%" height="100%">
-	       {(width && height) && <svg id="svg_main" ref={ref} viewBox={[0, 0, width, height]}/>}
+	       {(width && height && (Object.keys(trajectories).length === Object.keys(runs).length)) && <svg id="svg_main" ref={ref} viewBox={[0, 0, width, height]}/>}
 	       {currentModal === PATH_SELECTION_MODAL && <SelectionModal title={modalTitle} open={currentModal === PATH_SELECTION_MODAL} extents={extents} closeFunc={() => toggleModal(PATH_SELECTION_MODAL)} />}
 	       {currentModal === MULTIPLE_PATH_SELECTION_MODAL && <MultiplePathSelectionModal title={modalTitle} open={currentModal === MULTIPLE_PATH_SELECTION_MODAL}
 											      trajectories={trajectories}

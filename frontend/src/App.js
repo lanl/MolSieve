@@ -4,7 +4,7 @@ import CheckboxTable from "./components/CheckboxTable";
 import LoadRunModal from "./modals/LoadRunModal";
 import LoadingModal from "./modals/LoadingModal";
 import Trajectory from "./api/trajectory";
-import D3RenderDiv from "./components/VisGrid";
+import VisGrid from "./components/VisGrid";
 import { api_loadPCCA, api_loadSequence } from "./api/ajax";
 import Container from '@mui/material/Container';
 import Stack from '@mui/material/Stack';
@@ -172,10 +172,10 @@ class App extends React.Component {
 				this.selectRun(e);
                             }}
 			></CheckboxTable>
-                    <D3RenderDiv
+                    <VisGrid
                         trajectories={this.state.trajectories}
                         recalculate_clustering={this.recalculate_clustering}
-                    ></D3RenderDiv>
+                    />
 		    </Stack>
                 </Container>
                 {this.state.currentModal === RUN_MODAL && (

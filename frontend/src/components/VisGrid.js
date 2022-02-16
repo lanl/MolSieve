@@ -24,7 +24,7 @@ const RANGE_SLIDER = "range";
 const SLIDER = "slider";
 const TOGGLE = "toggle";
 
-class D3RenderDiv extends React.Component {
+class VisGrid extends React.Component {
     constructor(props) {
         super(props);
         this.state = {
@@ -376,7 +376,9 @@ class D3RenderDiv extends React.Component {
                         ></TrajectoryChart> }
                     </Grid>
                     <Grid item xs={2}>
-                        {Object.keys(this.state.runs).length > 0 && controls}
+			<Stack spacing={2}>
+                            {Object.keys(this.state.runs).length > 0 && controls}
+			</Stack>
                     </Grid>
 		    {this.state.currentModal === ADD_FILTER_MODAL && (
                         <AddFilterModal
@@ -409,4 +411,5 @@ class D3RenderDiv extends React.Component {
             );
     }
 }
-export default D3RenderDiv;
+
+export default VisGrid;
