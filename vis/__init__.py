@@ -46,7 +46,36 @@ def create_app(test_config=None):
     
     if not os.path.isfile(app.config["LAMMPS_PATH"]):
         raise FileNotFoundError("Error: LAMMPS binary not found at {lammps_path}".format(lammps_path=app.config["LAMMPS_PATH"]))
-        
+
+    # could later use this as a cache feature
+
+    def saveTestJson(run, t, j):
+        print(j)
+        print(type(j))
+        with open('vis/testing/{run}_{t}.json'.format(run=run,t=t), 'w') as f:              
+            json.dump(j,f, ensure_ascii=False, indent=4)
+              
+    def loadTestJson(run, t):
+        try:
+            with open('vis/testing/{run}_{t}.json'.format(run=run,t=t), 'r') as f:                        
+                return f.read()
+        except Exception as e:            
+            print("Loading from database instead...")
+            return None
+                    
+    
+    @app.errorhandler(neo4j.exceptions.ServiceUnavailable)
+    def handle_service_not_available(error):
+        response = {
+            'success': False,
+            'error': {
+                'type': error.__class__.__name__,
+                'message': [str(x) for x in error.args]
+            }
+        }
+        print(response)
+        return jsonify(response), 503
+    
     @app.errorhandler(Exception)
     def handle_exception(error):        
         response = {
@@ -56,6 +85,7 @@ def create_app(test_config=None):
                 'message': [str(x) for x in error.args]
             }
         }
+        print(response)
         return jsonify(response), 500
     
     @app.route('/')
@@ -93,6 +123,12 @@ def create_app(test_config=None):
     def load_sequence(): 
         run = request.args.get('run')
         properties = request.args.get('properties')
+        
+        if app.config['IMPATIENT']:
+            r = loadTestJson(run, 'sequence')
+            if r != None:
+                return r
+
         # id is technically not a property, so we have to include it here
         # everything else is dynamically loaded in
         node_attributes = [('id', 'first')]
@@ -114,15 +150,42 @@ def create_app(test_config=None):
         with driver.session() as session:
             session.run(oq.text)
             result = session.run(q.text)
-            j = jsonify(result.data())
+            j = result.data()
+            saveTestJson(run, 'sequence', j)
+            j = jsonify(j)
 
-        return j                                                                                                
+        return j
 
-    @app.route('/connect_to_db', methods=['GET'])
-    def connect_to_db():
+    @app.route('/get_property_list', methods=['GET'])
+    def get_property_list():
+        run = request.args.get('run')
         driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687",
                                             auth=("neo4j", "secret"))
-        j = {}
+        j = []
+        with driver.session() as session:
+            try:
+                """
+                NOTE: Technically, this would produce invalid properties if for some reason the database returns a state / atom
+                that has properties that are undefined everywhere else. A way to get around this is to have a "model" state / atom
+                that has properties that are guaranteed to be in each state / atom. It would make sense to update this "model" state / atom
+                whenever a query is run that affects the entire database, as they will be guaranteed to be correct.
+                """
+                                
+                result = session.run(
+                    "MATCH (n:State) with n LIMIT 1 UNWIND keys(n) as key RETURN DISTINCT key;"
+                )
+                j = [r[0] for r in result.values()]
+
+            except neo4j.exceptions.ServiceUnavailable as exception:
+                raise exception
+        
+        return jsonify(j)
+
+    @app.route('/get_run_list', methods=['GET'])
+    def get_run_list():
+        driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687",
+                                            auth=("neo4j", "secret"))
+        j = []
         with driver.session() as session:
             try:
                 # get all the types of relations between states - our runs!
@@ -133,26 +196,13 @@ def create_app(test_config=None):
                 for r in result.values():
                     runs.append(r[0])
                     trajectories.update({r[0] : Trajectory()})                    
-                j.update({'runs': runs})
-
-                """
-                NOTE: Technically, this would produce invalid properties if for some reason the database returns a state / atom
-                that has properties that are undefined everywhere else. A way to get around this is to have a "model" state / atom
-                that has properties that are guaranteed to be in each state / atom. It would make sense to update this "model" state / atom
-                whenever a query is run that affects the entire database, as they will be guaranteed to be correct.
-                """
-                
-                # gets the properties for states
-                result = session.run(
-                    "MATCH (n:State) with n LIMIT 1 UNWIND keys(n) as key RETURN DISTINCT key;"
-                )
-                j.update({'properties': [r[0] for r in result.values()]})
-
+                j = runs
+                                                                                                
                 # gets the properties for atoms
-                result = session.run(
-                    "MATCH (n:Atom) with n LIMIT 1 UNWIND keys(n) as key RETURN DISTINCT key;"                    
-                )
-                j.update({'atom_properties': [r[0] for r in result.values()]})
+                #result = session.run(
+                #    "MATCH (n:Atom) with n LIMIT 1 UNWIND keys(n) as key RETURN DISTINCT key;"                    
+                #)
+                #j.update({'atom_properties': [r[0] for r in result.values()]})
 
             except neo4j.exceptions.ServiceUnavailable as exception:
                 raise exception
@@ -188,6 +238,11 @@ def create_app(test_config=None):
         optimal = int(request.args.get('optimal'))
         driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687",
                                             auth=("neo4j", "secret"))
+        if app.config['IMPATIENT']:            
+            r = loadTestJson(run, 'optimal_pcca')
+            if r != None:
+                return r                             
+            
         qb = querybuilder.Neo4jQueryBuilder(
             schema=[("State", run, "State", "ONE-TO-ONE"),
                     ("Atom", "PART_OF", "State", "MANY-TO-ONE")])
@@ -249,6 +304,8 @@ def create_app(test_config=None):
         # j.update({'dominant_eigenvalues': gpcca.dominant_eigenvalues.tolist()})
         # j.update({'minChi': gpcca.minChi(m_min, m_max)})
 
+        saveTestJson(run, 'optimal_pcca', j)
+        
         return jsonify(j)
 
 
