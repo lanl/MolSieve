@@ -48,12 +48,18 @@ def create_app(test_config=None):
         raise FileNotFoundError("Error: LAMMPS binary not found at {lammps_path}".format(lammps_path=app.config["LAMMPS_PATH"]))
 
     # could later use this as a cache feature
+
+    def saveTestJson(run, t, j):
+        print(j)
+        print(type(j))
+        with open('vis/testing/{run}_{t}.json'.format(run=run,t=t), 'w') as f:              
+            json.dump(j,f, ensure_ascii=False, indent=4)
+              
     def loadTestJson(run, t):
         try:
             with open('vis/testing/{run}_{t}.json'.format(run=run,t=t), 'r') as f:                        
                 return f.read()
-        except EnvironmentError as e:
-            print(e)
+        except Exception as e:            
             print("Loading from database instead...")
             return None
                     
@@ -144,7 +150,9 @@ def create_app(test_config=None):
         with driver.session() as session:
             session.run(oq.text)
             result = session.run(q.text)
-            j = jsonify(result.data())
+            j = result.data()
+            saveTestJson(run, 'sequence', j)
+            j = jsonify(j)
 
         return j
 
@@ -231,7 +239,7 @@ def create_app(test_config=None):
         driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687",
                                             auth=("neo4j", "secret"))
         if app.config['IMPATIENT']:            
-            r = loadTestJson(run, 'optimal_pcca')            
+            r = loadTestJson(run, 'optimal_pcca')
             if r != None:
                 return r                             
             
@@ -296,6 +304,8 @@ def create_app(test_config=None):
         # j.update({'dominant_eigenvalues': gpcca.dominant_eigenvalues.tolist()})
         # j.update({'minChi': gpcca.minChi(m_min, m_max)})
 
+        saveTestJson(run, 'optimal_pcca', j)
+        
         return jsonify(j)
 
 

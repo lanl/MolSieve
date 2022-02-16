@@ -3,4 +3,4 @@ class Config(object):
     LAMMPS_PATH = '/home/frosty/Apps/lammps/install/bin/lmp'
     LD_LIBRARY_PATH = '/home/frosty/Apps/lammps/install/lib'
     LAMMPS_RUN = MPIRUN_COMMAND + ' ' + LAMMPS_PATH
-    IMPATIENT = False # serve json data stored locally; only rely on this for testing
+    IMPATIENT = True # serve json data stored locally; only rely on this for testing
