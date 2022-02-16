@@ -5,8 +5,11 @@ import { intToRGB } from "./myutils";
 import tippy from "tippy.js";
 import "tippy.js/dist/tippy.css";
 import SelectionModal from "./SelectionModal"
+import MultiplePathSelectionModal from "./MultiplePathSelectionModal"
 
 const PATH_SELECTION_MODAL = 'path_selection';
+const MULTIPLE_PATH_SELECTION_MODAL = 'multiple_path_selection';
+
 const margin = { top: 20, bottom: 20, left: 40, right: 25 };    
 
 let z_brush = null;
@@ -40,21 +43,31 @@ function TrajectoryChart({trajectories, runs}) {
     
     const zoom = () => {
 	if(z_brush != null) {
-	    if (d3.select('.brush').length) { d3.select(".select").remove(); }
+	    if (!d3.select('.brush').empty()) { d3.select(".select").remove(); }
 	    d3.select("#svg_main").append("g").attr("class", "brush").call(z_brush);
 	}        
     }
 
     const selection_brush = () => {
 	if(s_brush != null) {
-	    if (d3.select(".brush").length) { d3.select(".brush").remove(); }               
+	    if (!d3.select(".brush").empty()) { d3.select(".brush").remove(); }               
 	    d3.select("#svg_main").append("g").attr("class", "brush").call(s_brush);
 	}
     }
     
-    const multiple_selection_brush = () => {
+    const multiple_selection_brush = (e) => {        
 	if(m_s_brush != null) {
 	    d3.select("#svg_main").append("g").attr("class", "brush").call(m_s_brush);
+	}
+    }
+
+    const complete_multiple_selection = () => {                
+        if (!d3.selectAll(".brush").empty()) { d3.selectAll(".brush").remove(); }       
+	if (!d3.selectAll(".selection").empty()) { d3.selectAll(".selection").remove(); }
+
+	if(extents.length >= 2) {
+	    setModalTitle('Multiple Path Selection');
+	    setCurrentModal(MULTIPLE_PATH_SELECTION_MODAL);           
 	}
     }
     
@@ -68,7 +81,8 @@ function TrajectoryChart({trajectories, runs}) {
 
     useKeyPress('z', zoom);
     useKeyPress('Control', selection_brush);
-    useKeyPress('Shift', multiple_selection_brush);
+    useKeyPress('Shift', complete_multiple_selection);
+    useKeyDown('Shift', (e) => {multiple_selection_brush(e)});
 
     const ref = useTrajectoryChartRender((svg) => {
 	if(height === undefined || width === undefined) {
@@ -134,7 +148,7 @@ function TrajectoryChart({trajectories, runs}) {
                     return scale_y(t.y);
                 })
                 .attr("width", 5)
-                .attr("height", 5)
+                .attr("height", 25)
                 .attr("fill", function (d) {
                     if (d["cluster"] === -1) {
                         return "black";
@@ -213,7 +227,7 @@ function TrajectoryChart({trajectories, runs}) {
         var xAxis = svg.append('g').call(d3.axisBottom().scale(scale_x));
 
         // reset zoom
-        svg.on('dblclick', function(event,d) {
+        svg.on('dblclick', function() {
 	    // zoom out on double click
 	    scale_x.domain([0,maxLength]);
 	    xAxis.call(d3.axisBottom(scale_x));
@@ -237,7 +251,7 @@ function TrajectoryChart({trajectories, runs}) {
 	});
 
         // multiple path selection	
-	m_s_brush = d3.brush().extent([[0,0], [width, height]]).on('end', function(e) {
+	m_s_brush = d3.brush().keyModifiers(false).extent([[0,0], [width, height]]).on('end', function(e) {
 	    var extent = e.selection;                        
 	    if(extent) {
 		var curr_name = dataList[Math.round(scale_y.invert(extent[0][1]))].name;		
@@ -261,56 +275,23 @@ function TrajectoryChart({trajectories, runs}) {
 		    let xtent = {name:curr_name,begin:begin,end:end};		    
 		    setModalTitle(`Timesteps ${begin.timestep} - ${end.timestep}`);
 		    extents.push(xtent);                    
-		    toggleModal(PATH_SELECTION_MODAL);                    
+		    toggleModal(PATH_SELECTION_MODAL);
 		}                                
 	    }
 	    
             setExtents([]);
 	    d3.select(this).remove();            
 	    d3.select(".brush").remove();
-	});
-	
-					 /*
-	    if(e.key == "S" || e.key == "s") {
-		if (document.querySelector(".brush").length) { document.querySelector(".brush").remove(); }
-		if(extents.length >= 2) {                    
-		    var x_select = document.querySelector('#select_x_attributes');
-		    var y_select = document.querySelector("#select_y_attributes");
-
-		    var propList = []
-		    for(var i = 0; i < extents.length; i++) {
-			propList.push(trajectories[extents[i]['name']].properties);
-		    }
-		    
-		    var cmn = intersection(propList); 
-
-		    x_select.append(document.querySelector('<option>').val('timestep').text('timestep'));
-                    y_select.append(document.querySelector('<option>').val('timestep').text('timestep'));
-		    
-		    for(const property of cmn) {
-			x_select.append(document.querySelector('<option>').val(property).text(property));
-			y_select.append(document.querySelector('<option>').val(property).text(property));
-		    }
-                    		    
-		    document.querySelector('.similarity_select').each(function() {                        
-                        for(const extent of extents) {                            
-			    document.querySelector(this).append(document.querySelector('<option>').val(JSON.stringify(extent)).text(`document.querySelector{extent['name']}: timesteps document.querySelector{extent['begin']['timestep']} - document.querySelector{extent['end']['timestep']}`));
-			}
-		    });	    
-		    
-		    document.querySelector('#modal_comparison_container').attr("data-extents", JSON.stringify(extents));
-                    document.querySelector('#modal_comparison').iziModal('open');
-		    
-		}
-		// clear extents array
-		extents = [];
-		}*/
-    
+	});	
+                    
     }, [trajectories, runs, width, height]);        
     
     return(<div ref={divRef} width="100%" height="100%">
 	       {(width && height) && <svg id="svg_main" ref={ref} viewBox={[0, 0, width, height]}/>}
-	       <SelectionModal title={modalTitle} open={currentModal === PATH_SELECTION_MODAL} extents={extents} closeFunc={() => toggleModal(PATH_SELECTION_MODAL)} />
+	       {currentModal === PATH_SELECTION_MODAL && <SelectionModal title={modalTitle} open={currentModal === PATH_SELECTION_MODAL} extents={extents} closeFunc={() => toggleModal(PATH_SELECTION_MODAL)} />}
+	       {currentModal === MULTIPLE_PATH_SELECTION_MODAL && <MultiplePathSelectionModal title={modalTitle} open={currentModal === MULTIPLE_PATH_SELECTION_MODAL}
+											      trajectories={trajectories}
+											      extents={extents} closeFunc={() => toggleModal(MULTIPLE_PATH_SELECTION_MODAL)} />}
 	   </div>);
 }
 
@@ -319,8 +300,20 @@ function useKeyPress(key, action) {
 	function onKeyup(e) {
 	    if(e.key === key) action()
 	}
-	window.addEventListener('keyup', onKeyup);
+	window.addEventListener('keyup', onKeyup);	
 	return () => window.removeEventListener('keyup', onKeyup);
+    });
+}
+
+function useKeyDown(key, action) {
+    useEffect(() => {
+	function onKeydown(e) {
+	    if(!e.repeat) {
+		if(e.key === key) action(e);
+	    }	    
+	}
+	document.addEventListener('keydown', onKeydown);	
+	return () => document.removeEventListener('keydown', onKeydown);
     });
 }
 

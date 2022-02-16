@@ -1,6 +1,7 @@
 import {React, useEffect, useState, useRef} from 'react';
 import { useTrajectoryChartRender } from './hooks/useTrajectoryChartRender';
 import { intToRGB } from "./myutils";
+import Box from '@mui/material/Box'
 import tippy from "tippy.js";
 import "tippy.js/dist/tippy.css";
 import * as d3 from 'd3';
@@ -10,8 +11,8 @@ const margin = { top: 20, bottom: 20, left: 40, right: 25 };
 function Scatterplot({data}) {
     const divRef = useRef();
     const [width, setWidth] = useState();
-    const [height, setHeight] = useState();
-
+    const [height, setHeight] = useState();    
+    
     const resize = () => {        
 	const newWidth = divRef.current.parentElement.clientWidth;
 	setWidth(newWidth);
@@ -134,9 +135,9 @@ function Scatterplot({data}) {
 	    .text(title);
     }, [data.x_attribute, data.y_attribute, width, height]);
     
-    return(<div ref={divRef} width="100%" height="100%">
+    return(<Box ref={divRef} sx={{height: 300}}>
 	       {(width && height) && <svg ref={ref} viewBox={[0,0, width, height]}/>}
-	   </div>)
+	   </Box>)
     
 }
 
