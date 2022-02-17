@@ -9,8 +9,7 @@ import TableRow from "@mui/material/TableRow";
 import CircularProgress from "@mui/material/CircularProgress";
 import Paper from "@mui/material/Paper";
 import Box from "@mui/material/Box";
-import axios from 'axios'
-
+import axios from "axios";
 
 class CheckboxTable extends React.Component {
     constructor(props) {
@@ -28,7 +27,15 @@ class CheckboxTable extends React.Component {
             this.props.click(e);
         }
         // build list of clicked checkboxes
-        this.state.clicked.push(e.target.value);
+        if (e.target.checked) {
+            console.log("checked");
+            this.state.clicked.push(e.target.value);
+        } else {
+            this.state.clicked.splice(
+                this.state.clicked.indexOf(e.target.value),
+                1
+            );            	    
+        }        
     };
 
     componentDidMount() {
@@ -55,8 +62,7 @@ class CheckboxTable extends React.Component {
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                    }}
-                >
+                    }}>
                     <CircularProgress color="grey" />
                 </Box>
             );
@@ -87,8 +93,7 @@ class CheckboxTable extends React.Component {
                                             )}
                                             defaultChecked={this.props.defaults.includes(
                                                 i
-                                            )}
-                                        ></input>
+                                            )}></input>
                                     </TableCell>
                                 </TableRow>
                             ))}
