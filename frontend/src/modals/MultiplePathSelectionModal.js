@@ -93,7 +93,7 @@ class MultiplePathSelectionModal extends React.Component {
 
             var scatterplots = this.props.extents.map((extent, i) => {
                 return (
-                    <Grid key={i} item xs>
+                    <Grid key={i} item xs={6}>
                         <Scatterplot
                             data={{
                                 sequence: this.props.trajectories[
@@ -116,8 +116,8 @@ class MultiplePathSelectionModal extends React.Component {
             if (!this.state.similarity && !this.state.isLoading) {
                 similarityText = (
                     <p>
-                        Select which two paths to compare and press &quotcalculate
-                        path similarity.&quot
+                        Select which two paths to compare and press &quot;calculate
+                        path similarity.&quot;
                     </p>
                 );
             } else if (this.state.isLoading) {
