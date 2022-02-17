@@ -6,8 +6,8 @@ import LoadingModal from "./modals/LoadingModal";
 import Trajectory from "./api/trajectory";
 import VisGrid from "./components/VisGrid";
 import { api_loadPCCA, api_loadSequence, api_load_metadata } from "./api/ajax";
-import Container from '@mui/material/Container';
-import Stack from '@mui/material/Stack';
+import Container from "@mui/material/Container";
+import Stack from "@mui/material/Stack";
 
 //TODO use context to push down modalStyle
 const RUN_MODAL = "run_modal";
@@ -21,7 +21,7 @@ class App extends React.Component {
             run: null,
             trajectories: {},
             loadingMessage: "Loading...",
-        };        
+        };
     }
 
     toggleModal = (key) => {
@@ -53,7 +53,7 @@ class App extends React.Component {
 
         if (m_min === undefined) m_min = 0;
         if (m_max === undefined) m_max = 0;
-        
+
         return api_loadPCCA(run, clusters, optimal, m_min, m_max, trajectory);
     };
 
@@ -66,9 +66,9 @@ class App extends React.Component {
     };
 
     load_metadata = (run, new_traj) => {
-	  this.setState({
+        this.setState({
             loadingMessage: `Loading metadata for ${run}...`,
-          });        
+        });
         return api_load_metadata(run, new_traj);
     };
 
@@ -98,7 +98,7 @@ class App extends React.Component {
                     0,
                     this.state.trajectories[run]
                 )
-                    .then((traj) => {			
+                    .then((traj) => {
                         const new_trajectories = {
                             ...this.state.trajectories,
                         };
@@ -134,56 +134,56 @@ class App extends React.Component {
             .then((new_traj) => {
                 this.load_sequence(run, new_traj.properties, new_traj).then(
                     (new_traj) => {
-			this.load_metadata(run, new_traj).then((new_traj) => {                            
-			    // some final processing on trajectory
-			    new_traj.properties.push("timestep");
+                        this.load_metadata(run, new_traj).then((new_traj) => {
+                            // some final processing on trajectory
+                            new_traj.properties.push("timestep");
                             new_traj.calculate_unique_states();
                             new_traj.set_cluster_info();
                             const new_trajectories = {
-				...this.state.trajectories,
+                                ...this.state.trajectories,
                             };
                             new_trajectories[run] = new_traj;
-			    this.setState({
-				isLoading: false,
-				trajectories: new_trajectories,
+                            this.setState({
+                                isLoading: false,
+                                trajectories: new_trajectories,
                             });
-			});
+                        });
                     }
-                )
+                );
             })
             .catch((e) => {
                 alert(e);
             });
-	
     };
 
     render() {
         return (
             <div className="App">
                 <Container maxWidth={false}>
-		    <Stack spacing={1}>
-			<div>
-			    <h1>Trajectory Visualization</h1>
-			    <h2>powered by React.js</h2>
-			    <p>
-				Press CTRL to toggle the path selection brush. Press Z to
-				toggle the zoom brush. Double click to reset zoom. Press
-				and hold SHIFT to select multiple paths.
-			    </p>
-			</div>
-			<CheckboxTable
+                    <Stack spacing={1}>
+                        <div>
+                            <h1>Trajectory Visualization</h1>
+                            <h2>powered by React.js</h2>
+                            <p>
+                                Press CTRL to toggle the path selection brush.
+                                Press Z to toggle the zoom brush. Double click
+                                to reset zoom. Press and hold SHIFT to select
+                                multiple paths.
+                            </p>
+                        </div>
+                        <CheckboxTable
                             defaults={[""]}
                             header="Run"
                             api_call="/get_run_list"
                             click={(e) => {
-				this.selectRun(e);
+                                this.selectRun(e);
                             }}
-			></CheckboxTable>
-                    <VisGrid
-                        trajectories={this.state.trajectories}
-                        recalculate_clustering={this.recalculate_clustering}
-                    />
-		    </Stack>
+                        ></CheckboxTable>
+                        <VisGrid
+                            trajectories={this.state.trajectories}
+                            recalculate_clustering={this.recalculate_clustering}
+                        />
+                    </Stack>
                 </Container>
                 {this.state.currentModal === RUN_MODAL && (
                     <LoadRunModal
@@ -195,7 +195,10 @@ class App extends React.Component {
                         onRequestClose={() => this.toggleModal(RUN_MODAL)}
                     />
                 )}
-		<LoadingModal open={this.state.isLoading} title={this.state.loadingMessage} />
+                <LoadingModal
+                    open={this.state.isLoading}
+                    title={this.state.loadingMessage}
+                />
             </div>
         );
     }

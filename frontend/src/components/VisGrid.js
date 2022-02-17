@@ -17,9 +17,9 @@ import Grid from "@mui/material/Grid";
 import Stack from "@mui/material/Stack";
 import Button from "@mui/material/Button";
 
-import Dialog from '@mui/material/Dialog';
-import DialogTitle from '@mui/material/DialogTitle';
-import DialogActions from '@mui/material/DialogActions';
+import Dialog from "@mui/material/Dialog";
+import DialogTitle from "@mui/material/DialogTitle";
+import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 
 const XY_PLOT_MODAL = "xy-plot-modal";
@@ -53,7 +53,6 @@ class VisGrid extends React.Component {
     componentDidUpdate() {
         let runs = Object.keys(this.props.trajectories);
         if (runs.length > 0) {
-	    
             for (var run of runs) {
                 if (!Object.keys(this.state.runs).includes(run)) {
                     let runs = { ...this.state.runs };
@@ -206,9 +205,15 @@ class VisGrid extends React.Component {
         return runs.map((run) => {
             return (
                 <Stack spacing={1} key={run}>
-                    <p onClick={() => {this.setState({currentRun: run}, () => {this.toggleModal(METADATA_MODAL);
-									       console.log(this.props.trajectories);
-									      } )}}><b>{run}</b></p>
+                    <p
+                        onClick={() => {
+                            this.setState({ currentRun: run }, () => {
+                                this.toggleModal(METADATA_MODAL);   
+                            });
+                        }}
+                    >
+                        <b>{run}</b>
+                    </p>
                     <Slider
                         step={1}
                         min={2}
@@ -217,7 +222,7 @@ class VisGrid extends React.Component {
                         onChangeCommitted={() => {
                             this.recalculate_clustering(run);
                         }}
-			valueLabelDisplay="auto"
+                        valueLabelDisplay="auto"
                         onChange={(e) => {
                             this.updateRun(
                                 run,
@@ -225,9 +230,7 @@ class VisGrid extends React.Component {
                                 e.target.value
                             );
                         }}
-                        value={
-                            this.state.runs[run]["current_clustering"]
-                        }
+                        value={this.state.runs[run]["current_clustering"]}
                     />
                     <label htmlFor="pcca_slider">
                         {this.state.runs[run]["current_clustering"]} clusters
@@ -257,23 +260,37 @@ class VisGrid extends React.Component {
                                                 let slider_label = null;
 
                                                 if (filter.type === SLIDER) {
-						    if(filter.options.property) {
-							slider_label = (
+                                                    if (
+                                                        filter.options.property
+                                                    ) {
+                                                        slider_label = (
                                                             <label>
-								{filter.sliderLabel}{" "}
-								{state.options.val}{" "}
-								{
-                                                                    filter.options
-									.property
-								}
-                                                            </label>);
-						    } else {                                                        
-							    slider_label = (
-								<label>
-								    {state.options.val}
-								</label>
-							    );
-							}                                                   
+                                                                {
+                                                                    filter.sliderLabel
+                                                                }{" "}
+                                                                {
+                                                                    state
+                                                                        .options
+                                                                        .val
+                                                                }{" "}
+                                                                {
+                                                                    filter
+                                                                        .options
+                                                                        .property
+                                                                }
+                                                            </label>
+                                                        );
+                                                    } else {
+                                                        slider_label = (
+                                                            <label>
+                                                                {
+                                                                    state
+                                                                        .options
+                                                                        .val
+                                                                }
+                                                            </label>
+                                                        );
+                                                    }
                                                 } else {
                                                     slider_label = (
                                                         <label>
@@ -293,7 +310,7 @@ class VisGrid extends React.Component {
                                                             }
                                                         </label>
                                                     );
-						} 
+                                                }
                                                 const domain = filter.extents;
                                                 return (
                                                     <div>
@@ -347,24 +364,32 @@ class VisGrid extends React.Component {
                                 );
                             }
                         )}
-		    <Stack spacing={1}>
-			<Button variant="outlined"
+                    <Stack spacing={1}>
+                        <Button
+                            variant="outlined"
                             onClick={() => {
-				this.setState({ ...this.state, currentRun: run });
-				this.toggleModal(ADD_FILTER_MODAL);
+                                this.setState({
+                                    ...this.state,
+                                    currentRun: run,
+                                });
+                                this.toggleModal(ADD_FILTER_MODAL);
                             }}
-			>
+                        >
                             + Add a new filter
-			</Button>
-			<Button variant="outlined"
+                        </Button>
+                        <Button
+                            variant="outlined"
                             onClick={() => {
-				this.setState({ ...this.state, currentRun: run });
-				this.toggleModal(XY_PLOT_MODAL);
+                                this.setState({
+                                    ...this.state,
+                                    currentRun: run,
+                                });
+                                this.toggleModal(XY_PLOT_MODAL);
                             }}
-			>
+                        >
                             Generate x-y plot with attribute
-			</Button>
-		    </Stack>
+                        </Button>
+                    </Stack>
                 </Stack>
             );
         });
@@ -372,64 +397,79 @@ class VisGrid extends React.Component {
 
     render() {
         let runs = Object.keys(this.state.runs);
-            var controls = this.renderControls(runs);
-            return (
-                <Grid container spacing={1}>
-                    <Grid item xs={10}>
-			{Object.keys(this.state.runs).length > 0 &&
-                         <TrajectoryChart
-                             trajectories={this.props.trajectories}
-                             runs={this.state.runs}
-                        ></TrajectoryChart> }
-                    </Grid>
-                    <Grid item xs={2}>
-			<Stack spacing={2}>
-                            {Object.keys(this.state.runs).length > 0 && controls}
-			</Stack>
-                    </Grid>
-
-		    {this.state.currentModal === METADATA_MODAL && (
-			<Dialog open={this.state.currentModal === METADATA_MODAL}			
-				onClose={this.toggleModal}
-				onBackdropClick={() => {this.toggleModal(null)}}
-			>
-			    <DialogTitle>Metadata for {this.state.currentRun}</DialogTitle>
-			    <DialogContent>{this.props.trajectories[this.state.currentRun].LAMMPSBootstrapScript}</DialogContent>
-			    <DialogActions>
-				<Button onClick={() => {this.toggleModal(null)}}>Close</Button>
-			    </DialogActions>
-			</Dialog>
-		    )}
-		    
-		    {this.state.currentModal === ADD_FILTER_MODAL && (
-                        <AddFilterModal
-                            title={`Add filter for ${this.state.currentRun}`}
-                            open={
-                                this.state.currentModal === ADD_FILTER_MODAL
-                            }
-                            trajectory={
-                                this.props.trajectories[this.state.currentRun]
-                            }
-                            closeFunc={() => {
-                                this.toggleModal(null);
-                            }}
-                            addFilter={this.addFilter}
-                            run={this.state.currentRun}
-                        />
-                    )}
-                    {this.state.currentModal === XY_PLOT_MODAL && (
-                        <XYPlotModal
-                            title={`Scatter plot for ${this.state.currentRun}`}
-                            closeFunc={() => this.toggleModal(null)}
-                            open={this.state.currentModal === XY_PLOT_MODAL}
-                            trajectory={
-                                this.props.trajectories[this.state.currentRun]
-                            }
-                            onRequestClose={() => this.toggleModal(null)}
-                        />
+        var controls = this.renderControls(runs);
+        return (
+            <Grid container spacing={1}>
+                <Grid item xs={10}>
+                    {Object.keys(this.state.runs).length > 0 && (
+                        <TrajectoryChart
+                            trajectories={this.props.trajectories}
+                            runs={this.state.runs}
+                        ></TrajectoryChart>
                     )}
                 </Grid>
-            );
+                <Grid item xs={2}>
+                    <Stack spacing={2}>
+                        {Object.keys(this.state.runs).length > 0 && controls}
+                    </Stack>
+                </Grid>
+
+                {this.state.currentModal === METADATA_MODAL && (
+                    <Dialog
+                        open={this.state.currentModal === METADATA_MODAL}
+                        onClose={this.toggleModal}
+                        onBackdropClick={() => {
+                            this.toggleModal(null);
+                        }}
+                    >
+                        <DialogTitle>
+                            Metadata for {this.state.currentRun}
+                        </DialogTitle>
+                        <DialogContent>
+                            {
+                                this.props.trajectories[this.state.currentRun]
+                                    .LAMMPSBootstrapScript
+                            }
+                        </DialogContent>
+                        <DialogActions>
+                            <Button
+                                onClick={() => {
+                                    this.toggleModal(null);
+                                }}
+                            >
+                                Close
+                            </Button>
+                        </DialogActions>
+                    </Dialog>
+                )}
+
+                {this.state.currentModal === ADD_FILTER_MODAL && (
+                    <AddFilterModal
+                        title={`Add filter for ${this.state.currentRun}`}
+                        open={this.state.currentModal === ADD_FILTER_MODAL}
+                        trajectory={
+                            this.props.trajectories[this.state.currentRun]
+                        }
+                        closeFunc={() => {
+                            this.toggleModal(null);
+                        }}
+                        addFilter={this.addFilter}
+                        run={this.state.currentRun}
+                    />
+                )}
+                {this.state.currentModal === XY_PLOT_MODAL && (
+                    <XYPlotModal
+                        title={`Scatter plot for ${this.state.currentRun}`}
+                        closeFunc={() => this.toggleModal(null)}
+                        open={this.state.currentModal === XY_PLOT_MODAL}
+                        trajectory={
+                            this.props.trajectories[this.state.currentRun]
+                        }
+                        onRequestClose={() => this.toggleModal(null)}
+                    />
+                )}
+            </Grid>
+        );
     }
 }
 
