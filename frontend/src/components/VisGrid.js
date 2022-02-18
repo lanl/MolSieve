@@ -76,10 +76,11 @@ class VisGrid extends React.Component {
                         extents: [1, 100],
                         options: { val: 10, selectVal: "per" },
                         id: `transitions`,
-                        children: (action) => (
+                        children: (actions) => (
                             <select
                                 onChange={(e) => {
-                                    action(e);
+                                    actions.setMode(e);
+                                    actions.propagateChange();
                                 }}
                             >
                                 <option value="per">% of window</option>
@@ -352,9 +353,7 @@ class VisGrid extends React.Component {
                                                         <label>
                                                             {slider_label}{" "}
                                                             {filter.children &&
-                                                                filter.children(
-                                                                    actions.setMode
-                                                                )}
+                                                             filter.children(actions)}
                                                         </label>
                                                     </div>
                                                 );

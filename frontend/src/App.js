@@ -168,7 +168,7 @@ class App extends React.Component {
                                 Press CTRL to toggle the path selection brush.
                                 Press Z to toggle the zoom brush. Double click
                                 to reset zoom. Press and hold SHIFT to select
-                                multiple paths.
+                                multiple paths. Press S to toggle state highlighting.
                             </p>
                         </div>
                         <CheckboxTable
