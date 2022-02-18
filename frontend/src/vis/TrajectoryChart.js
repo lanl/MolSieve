@@ -7,8 +7,8 @@ import "tippy.js/dist/tippy.css";
 import SelectionModal from "../modals/SelectionModal";
 import MultiplePathSelectionModal from "../modals/MultiplePathSelectionModal";
 
-const PATH_SELECTION_MODAL = "path_selection";
-const MULTIPLE_PATH_SELECTION_MODAL = "multiple_path_selection";
+const PATH_SELECTION = "path_selection";
+const MULTIPLE_PATH_SELECTION = "multiple_path_selection";
 
 const margin = { top: 20, bottom: 20, left: 40, right: 25 };
 
@@ -18,12 +18,30 @@ let m_s_brush = null;
 
 function TrajectoryChart({ trajectories, runs }) {
     let [currentModal, setCurrentModal] = useState();
+
+    const toggleModal = (key) => {
+        if (currentModal) {
+            setCurrentModal();
+            return;
+        }
+        setCurrentModal(key);
+    };
+
     let [extents, setExtents] = useState([]);
+    let [actionCompleted, setActionCompleted] = useState('');
     let [modalTitle, setModalTitle] = useState("");
 
+    let [stateHighlight, setStateHighlight] = useState(false);
+
+    const toggleStateHighlight = () => {        
+        setStateHighlight(prev => !prev);        
+    }
+
+    useKeyDown("s", toggleStateHighlight);
+    
     const divRef = useRef();
     const [width, setWidth] = useState();
-    const [height, setHeight] = useState();
+    const [height, setHeight] = useState();    
 
     const resize = () => {
         const newWidth = divRef.current.parentElement.clientWidth;
@@ -39,8 +57,9 @@ function TrajectoryChart({ trajectories, runs }) {
 
     useEffect(() => {
         window.addEventListener("resize", resize());
-    }, []);
+    }, []);    
 
+    
     const zoom = () => {
         if (z_brush != null) {
             if (!d3.select(".brush").empty()) {
@@ -55,20 +74,25 @@ function TrajectoryChart({ trajectories, runs }) {
 
     const selection_brush = () => {
         if (s_brush != null) {
-            if (!d3.select(".brush").empty()) {
-                d3.select(".brush").remove();
+            if (!d3.selectAll(".brush").empty()) {
+                d3.selectAll(".brush").remove();
             }
+            
             d3.select("#svg_main")
-                .append("g")
+                .append("g")                
                 .attr("class", "brush")
                 .call(s_brush);
         }
     };
 
+    useKeyDown("z", zoom);
+    useKeyDown("Control", selection_brush);
+
     const multiple_selection_brush = () => {
-        if (m_s_brush != null) {
+        if (m_s_brush != null) {            
+            
             d3.select("#svg_main")
-                .append("g")
+                .append("g")                
                 .attr("class", "brush")
                 .call(m_s_brush);
         }
@@ -78,31 +102,30 @@ function TrajectoryChart({ trajectories, runs }) {
         if (!d3.selectAll(".brush").empty()) {
             d3.selectAll(".brush").remove();
         }
-        if (!d3.selectAll(".selection").empty()) {
-            d3.selectAll(".selection").remove();
-        }
+        
+        setModalTitle("Multiple Path Selection");
+        setActionCompleted(MULTIPLE_PATH_SELECTION);                        
 
-        if (extents.length >= 2) {
-            setModalTitle("Multiple Path Selection");
-            setCurrentModal(MULTIPLE_PATH_SELECTION_MODAL);
-        }
     };
 
-    const toggleModal = (key) => {
-        if (currentModal) {
-            setCurrentModal();
-            return;
-        }
-        setCurrentModal(key);
-    };
+    useKeyDown("Shift", multiple_selection_brush);
+    useKeyUp("Shift", complete_multiple_selection);
 
-    useKeyPress("z", zoom);
-    useKeyPress("Control", selection_brush);
-    useKeyPress("Shift", complete_multiple_selection);
-    useKeyDown("Shift", (e) => {
-        multiple_selection_brush(e);
-    });
-
+    
+    useEffect(() => {
+        switch(actionCompleted) {
+        case MULTIPLE_PATH_SELECTION:
+            if(extents.length < 2) break;
+            toggleModal(actionCompleted);
+            break;
+        case PATH_SELECTION:
+            toggleModal(actionCompleted);            
+            break;            
+        default:
+            break;
+        }        
+    }, [actionCompleted]);        
+    
     const ref = useTrajectoryChartRender(
         (svg) => {
             if (height === undefined || width === undefined) {
@@ -167,7 +190,7 @@ function TrajectoryChart({ trajectories, runs }) {
                     .attr("y", function () {
                         return scale_y(t.y);
                     })
-                    .attr("width", 5)
+                    .attr("width", 1)
                     .attr("height", 25)
                     .attr("fill", function (d) {
                         if (d["cluster"] === -1) {
@@ -235,6 +258,16 @@ function TrajectoryChart({ trajectories, runs }) {
                             arrow: true,
                             maxWidth: "none",
                         });
+
+                        //TODO make this bind as an effect instead of inside the function
+                        if(stateHighlight) {                            
+                            d3.selectAll("rect").filter(function (dp) {                                
+                                return dp['id'] != d['id'] }).attr("opacity", "0.05");
+                        }                        
+                    }).on('mouseout', function(_,d) {
+                        if(stateHighlight) {
+                            d3.selectAll("rect").filter(function (dp) { return dp['id'] != d['id'] }).attr("opacity", "1.0");
+                        }
                     });
 
                 if (Object.keys(runs[t.name].filters).length > 0) {
@@ -260,6 +293,7 @@ function TrajectoryChart({ trajectories, runs }) {
 
             z_brush = d3
                 .brushX()
+                .keyModifiers(false)
                 .extent([
                     [0, 0],
                     [width, height],
@@ -275,9 +309,7 @@ function TrajectoryChart({ trajectories, runs }) {
                         xAxis.call(d3.axisBottom(scale_x));
                         svg.selectAll("rect").attr("x", function (d) {
                             return scale_x(d["timestep"]);
-                        });
-                        d3.select(this).remove();
-                        d3.select(".brush").remove();
+                        });                        
                     }
                     d3.select(this).remove();
                     d3.select(".brush").remove();
@@ -293,6 +325,7 @@ function TrajectoryChart({ trajectories, runs }) {
                 ])
                 .on("end", function (e) {
                     var extent = e.selection;
+
                     if (extent) {
                         var curr_name =
                             dataList[Math.round(scale_y.invert(extent[0][1]))]
@@ -311,7 +344,9 @@ function TrajectoryChart({ trajectories, runs }) {
                                 begin: begin,
                                 end: end,
                             };
-                            extents.push(xtent);
+                            
+                            setExtents(prev => [...prev, xtent]);
+
                         }
                     }
                 });
@@ -319,6 +354,7 @@ function TrajectoryChart({ trajectories, runs }) {
             // single path selection
             s_brush = d3
                 .brush()
+                .keyModifiers(false)
                 .extent([
                     [0, 0],
                     [width, height],
@@ -345,18 +381,16 @@ function TrajectoryChart({ trajectories, runs }) {
                             };
                             setModalTitle(
                                 `Timesteps ${begin.timestep} - ${end.timestep}`
-                            );
-                            extents.push(xtent);
-                            toggleModal(PATH_SELECTION_MODAL);
+                            );                            
+                            setExtents([...extents,xtent]);                            
+                            setActionCompleted(PATH_SELECTION);                            
                         }
-                    }
-
-                    setExtents([]);
+                    }                    
                     d3.select(this).remove();
                     d3.select(".brush").remove();
                 });
         },
-        [runs, width, height]
+        [runs, width, height, stateHighlight]
     );
 
     return (
@@ -371,47 +405,53 @@ function TrajectoryChart({ trajectories, runs }) {
                         viewBox={[0, 0, width, height]}
                     />
                 )}
-            {currentModal === PATH_SELECTION_MODAL && (
+            {currentModal === PATH_SELECTION && (
                 <SelectionModal
                     title={modalTitle}
-                    open={currentModal === PATH_SELECTION_MODAL}
+                    open={currentModal === PATH_SELECTION}
                     extents={extents}
-                    closeFunc={() => toggleModal(PATH_SELECTION_MODAL)}
+                    closeFunc={() => {                        
+                        setExtents([]);
+                        setActionCompleted('');
+                        toggleModal(PATH_SELECTION)}}
                 />
             )}
-            {currentModal === MULTIPLE_PATH_SELECTION_MODAL && (
+            {currentModal === MULTIPLE_PATH_SELECTION && (
                 <MultiplePathSelectionModal
                     title={modalTitle}
-                    open={currentModal === MULTIPLE_PATH_SELECTION_MODAL}
+                    open={currentModal === MULTIPLE_PATH_SELECTION}
                     trajectories={trajectories}
                     extents={extents}
-                    closeFunc={() => toggleModal(MULTIPLE_PATH_SELECTION_MODAL)}
+                    closeFunc={() => {                        
+			setExtents([]);
+                        setActionCompleted('');
+			toggleModal(MULTIPLE_PATH_SELECTION)}}
                 />
             )}
         </div>
     );
 }
 
-function useKeyPress(key, action) {
+function useKeyUp(key, action) {
     useEffect(() => {
         function onKeyup(e) {
             if (e.key === key) action();
         }
         window.addEventListener("keyup", onKeyup);
         return () => window.removeEventListener("keyup", onKeyup);
-    });
+    }, []);
 }
 
 function useKeyDown(key, action) {
     useEffect(() => {
         function onKeydown(e) {
             if (!e.repeat) {
-                if (e.key === key) action(e);
+                if (e.key === key) action();
             }
         }
-        document.addEventListener("keydown", onKeydown);
-        return () => document.removeEventListener("keydown", onKeydown);
-    });
+        window.addEventListener("keydown", onKeydown);
+        return () => window.removeEventListener("keydown", onKeydown);
+    }, []);
 }
 
 export default TrajectoryChart;
