@@ -9,7 +9,6 @@ import { api_loadPCCA, api_loadSequence, api_load_metadata } from "./api/ajax";
 import Container from "@mui/material/Container";
 import Stack from "@mui/material/Stack";
 
-//TODO use context to push down modalStyle
 const RUN_MODAL = "run_modal";
 
 class App extends React.Component {

@@ -16,7 +16,7 @@ let z_brush = null;
 let s_brush = null;
 let m_s_brush = null;
 
-function TrajectoryChart({ trajectories, runs }) {
+function TrajectoryChart({ trajectories, runs, loadingCallback }) {
     let [currentModal, setCurrentModal] = useState();
 
     const toggleModal = (key) => {
@@ -110,7 +110,6 @@ function TrajectoryChart({ trajectories, runs }) {
     useKeyDown("Shift", multiple_selection_brush);
     useKeyUp("Shift", complete_multiple_selection);
 
-    
     useEffect(() => {
         switch(actionCompleted) {
         case MULTIPLE_PATH_SELECTION:
@@ -123,7 +122,7 @@ function TrajectoryChart({ trajectories, runs }) {
         default:
             break;
         }        
-    }, [actionCompleted]);        
+    }, [actionCompleted]);    
     
     const ref = useTrajectoryChartRender(
         (svg) => {            
@@ -387,7 +386,8 @@ function TrajectoryChart({ trajectories, runs }) {
                     }                    
                     d3.select(this).remove();
                     d3.select(".brush").remove();
-                });            
+                });
+            loadingCallback();
         },
         [runs, width, height, stateHighlight, trajectories]
     );

@@ -23,15 +23,13 @@ import DialogContent from "@mui/material/DialogContent";
 
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
-import ListItemButton from '@mui/material/ListItemButton';
-import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
 import ListSubheader from '@mui/material/ListSubheader';
 import Divider from '@mui/material/Divider';
 
 import Drawer from "@mui/material/Drawer";
 import Box from "@mui/material/Box";
-//import Container from "@mui/material/Box";
+import LoadingModal from "../modals/LoadingModal";
 
 const XY_PLOT_MODAL = "xy-plot-modal";
 const ADD_FILTER_MODAL = "add-filter-modal";
@@ -48,7 +46,8 @@ class VisGrid extends React.Component {
             currentModal: null,
             currentRun: null,
             runs: {},
-            drawerOpen: false
+            drawerOpen: false,
+            isLoading: false
         };
     }
 
@@ -62,6 +61,10 @@ class VisGrid extends React.Component {
         this.setState({ currentModal: key });
     };
 
+    chartFinishedLoading = () => {
+        this.setState({ isLoading: false});
+    }
+    
     componentDidUpdate() {
         let runs = Object.keys(this.props.trajectories);
         if (runs.length > 0) {
@@ -111,7 +114,7 @@ class VisGrid extends React.Component {
 
                     runs[run]["filters"] = filters;
 
-                    this.setState({ runs: runs });
+                    this.setState({ runs: runs, isLoading: true });
                 }
             }
         }
@@ -147,7 +150,7 @@ class VisGrid extends React.Component {
         this_filter.enabled = filter.enabled;
 
         runs[filter.run]["filters"][filter.id] = this_filter;
-        this.setState({ runs });
+        this.setState({ runs: runs, isLoading: true });
     };
 
     addFilter = (state) => {
@@ -439,10 +442,14 @@ class VisGrid extends React.Component {
                             }}>Close</Button>
                 </Drawer>
 
+                <LoadingModal
+                    open={this.state.isLoading}
+                    title="Rendering..."/>
             {safe && (
                 <TrajectoryChart
                     trajectories={this.props.trajectories}
                     runs={this.state.runs}
+                    loadingCallback={this.chartFinishedLoading}
                 ></TrajectoryChart>
             )}
 
