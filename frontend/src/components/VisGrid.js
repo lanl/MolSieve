@@ -421,23 +421,25 @@ class VisGrid extends React.Component {
 
     render() {
         let runs = Object.keys(this.state.runs);
-        var controls = this.renderControls(runs);
+        let trajs = Object.keys(this.props.trajectories);
+        let safe = (runs.length === trajs.length && runs.length > 0 && trajs.length > 0) ? true : false;                
+        var controls = this.renderControls(runs);        
+        
         return(
             <Box sx={{ height: '100%' }}>
-
-                {Object.keys(this.state.runs).length > 0 && (
+                {safe && (
                 <Button sx={{ float: 'right' }} onClick={() => {
                             this.toggleDrawer();
                         }}><MenuIcon /></Button>)}
 
                 <Drawer anchor="right" variant="persistent" onClose={this.toggleDrawer} open={this.state.drawerOpen}>
-                    {Object.keys(this.state.runs).length > 0 && controls}
+                    {safe && controls}
                     <Button color="error" variant="contained" onClick={() => {
                                 this.toggleDrawer();
                             }}>Close</Button>
                 </Drawer>
 
-            {Object.keys(this.state.runs).length > 0 && (
+            {safe && (
                 <TrajectoryChart
                     trajectories={this.props.trajectories}
                     runs={this.state.runs}

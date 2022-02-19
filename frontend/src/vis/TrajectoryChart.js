@@ -58,7 +58,6 @@ function TrajectoryChart({ trajectories, runs }) {
     useEffect(() => {
         window.addEventListener("resize", resize());
     }, []);    
-
     
     const zoom = () => {
         if (z_brush != null) {
@@ -127,7 +126,7 @@ function TrajectoryChart({ trajectories, runs }) {
     }, [actionCompleted]);        
     
     const ref = useTrajectoryChartRender(
-        (svg) => {
+        (svg) => {            
             if (height === undefined || width === undefined) {
                 return;
             }
@@ -388,13 +387,13 @@ function TrajectoryChart({ trajectories, runs }) {
                     }                    
                     d3.select(this).remove();
                     d3.select(".brush").remove();
-                });
+                });            
         },
-        [runs, width, height, stateHighlight] // need trajectories to be a dependency, but need it to wait on runs for it to work
+        [runs, width, height, stateHighlight, trajectories]
     );
 
     return (
-        <div ref={divRef} width="100%" height="100%">
+        <div ref={divRef} width="100%" height="100%">            
             {width &&
              height &&
              Object.keys(trajectories).length ===
