@@ -147,6 +147,11 @@ class MultiplePathSelectionModal extends React.Component {
                     <DialogTitle>{this.props.title}</DialogTitle>
                     <DialogContent>
                         <Stack spacing={2} direction="column">
+
+                            <Stack
+                                    spacing={2}
+                                    direction="row"
+                                >
                             <FormControl>
                                 <Select
                                     name="select_x_attribute"
@@ -171,17 +176,16 @@ class MultiplePathSelectionModal extends React.Component {
                                 </Select>
                                 <FormHelperText>Y attribute</FormHelperText>
                             </FormControl>
+                            </Stack>
+                            <p>Select which attributes to render in the X-Y plot.</p>
                             <Stack
                                 spacing={2}
                                 direction="column"
-                                alignItems="center"
-                                justifyContent="center"
                             >
                                 <Stack
                                     spacing={2}
                                     direction="row"
-                                    alignItems="center"
-                                    justifyContent="center"
+
                                 >
                                     <FormControl>
                                         <Select

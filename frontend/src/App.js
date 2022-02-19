@@ -159,7 +159,7 @@ class App extends React.Component {
     render() {
         return (
             <div className="App">
-                <Container maxWidth={false}>
+                <Container maxWidth={false} sx={{height: '100%'}}>
                     <Stack spacing={1}>
                         <div>
                             <h1>Trajectory Visualization</h1>
@@ -179,12 +179,14 @@ class App extends React.Component {
                                 this.selectRun(e);
                             }}
                         ></CheckboxTable>
-                        <VisGrid
-                            trajectories={this.state.trajectories}
-                            recalculate_clustering={this.recalculate_clustering}
-                        />
+                        <br/>
                     </Stack>
+                    <VisGrid
+                        trajectories={this.state.trajectories}
+                        recalculate_clustering={this.recalculate_clustering}
+                        />
                 </Container>
+
                 {this.state.currentModal === RUN_MODAL && (
                     <LoadRunModal
                         run={this.state.run}

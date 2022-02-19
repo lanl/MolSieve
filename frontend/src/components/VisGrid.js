@@ -13,14 +13,25 @@ import {
 } from "../api/filters";
 import FilterComponent from "../components/FilterComponent";
 import Slider from "@mui/material/Slider";
-import Grid from "@mui/material/Grid";
-import Stack from "@mui/material/Stack";
 import Button from "@mui/material/Button";
+import MenuIcon from '@mui/icons-material/Menu';
 
 import Dialog from "@mui/material/Dialog";
 import DialogTitle from "@mui/material/DialogTitle";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
+
+import List from '@mui/material/List';
+import ListItem from '@mui/material/ListItem';
+import ListItemButton from '@mui/material/ListItemButton';
+import ListItemIcon from '@mui/material/ListItemIcon';
+import ListItemText from '@mui/material/ListItemText';
+import ListSubheader from '@mui/material/ListSubheader';
+import Divider from '@mui/material/Divider';
+
+import Drawer from "@mui/material/Drawer";
+import Box from "@mui/material/Box";
+//import Container from "@mui/material/Box";
 
 const XY_PLOT_MODAL = "xy-plot-modal";
 const ADD_FILTER_MODAL = "add-filter-modal";
@@ -37,6 +48,7 @@ class VisGrid extends React.Component {
             currentModal: null,
             currentRun: null,
             runs: {},
+            drawerOpen: false
         };
     }
 
@@ -205,16 +217,18 @@ class VisGrid extends React.Component {
     renderControls = (runs) => {
         return runs.map((run) => {
             return (
-                <Stack spacing={1} key={run}>
-                    <p
-                        onClick={() => {
-                            this.setState({ currentRun: run }, () => {
-                                this.toggleModal(METADATA_MODAL);   
-                            });
-                        }}
-                    >
-                        <b>{run}</b>
-                    </p>
+                <List key={run}>
+                    <ListSubheader color="primary">{run}{" "}
+                        <Button size="small" variant="outlined"
+                            onClick={() => {
+                                this.setState({ currentRun: run }, () => {
+                                    this.toggleModal(METADATA_MODAL);   
+                                });
+                            }}>
+                        Display metadata
+                        </Button>
+                    </ListSubheader>                    
+                    <ListItem>
                     <Slider
                         step={1}
                         min={2}
@@ -233,10 +247,12 @@ class VisGrid extends React.Component {
                         }}
                         value={this.state.runs[run]["current_clustering"]}
                     />
-                    <label htmlFor="pcca_slider">
-                        {this.state.runs[run]["current_clustering"]} clusters
-                    </label>
 
+                    </ListItem>
+                    <ListItem>
+                        <ListItemText secondary={this.state.runs[run]["current_clustering"] + " clusters"}>                            
+                        </ListItemText>
+                    </ListItem>
                     {Object.keys(this.state.runs[run]["filters"]).length > 0 &&
                         Object.keys(this.state.runs[run]["filters"]).map(
                             (key, idx) => {
@@ -244,8 +260,8 @@ class VisGrid extends React.Component {
                                     this.state.runs[run]["filters"][key];
 
                                 return (
+                                    <ListItem key={idx}>
                                     <FilterComponent
-                                        key={idx}
                                         filter={filter}
                                         run={run}
                                         propagateChange={this.propagateChange}
@@ -359,12 +375,13 @@ class VisGrid extends React.Component {
                                                 );
                                             }
                                         }}
-                                    />
+                                    /></ListItem>
                                 );
                             }
                         )}
-                    <Stack spacing={1}>
+                    <ListItem>
                         <Button
+                            size="small"
                             variant="outlined"
                             onClick={() => {
                                 this.setState({
@@ -374,9 +391,12 @@ class VisGrid extends React.Component {
                                 this.toggleModal(ADD_FILTER_MODAL);
                             }}
                         >
-                            + Add a new filter
+                            Add a new filter
                         </Button>
+                    </ListItem>
+                    <ListItem>
                         <Button
+                            size="small"
                             variant="outlined"
                             onClick={() => {
                                 this.setState({
@@ -388,86 +408,97 @@ class VisGrid extends React.Component {
                         >
                             Generate x-y plot with attribute
                         </Button>
-                    </Stack>
-                </Stack>
+                    </ListItem>
+                    <Divider />
+                </List>
             );
         });
     };
 
+    toggleDrawer() {
+        this.setState({ drawerOpen: !this.state.drawerOpen});
+    }
+
     render() {
         let runs = Object.keys(this.state.runs);
         var controls = this.renderControls(runs);
-        return (
-            <Grid container spacing={1}>
-                <Grid item xs={10}>
-                    {Object.keys(this.state.runs).length > 0 && (
-                        <TrajectoryChart
-                            trajectories={this.props.trajectories}
-                            runs={this.state.runs}
-                        ></TrajectoryChart>
-                    )}
-                </Grid>
-                <Grid item xs={2}>
-                    <Stack spacing={2}>
-                        {Object.keys(this.state.runs).length > 0 && controls}
-                    </Stack>
-                </Grid>
+        return(
+            <Box sx={{ height: '100%' }}>
 
-                {this.state.currentModal === METADATA_MODAL && (
-                    <Dialog
-                        open={this.state.currentModal === METADATA_MODAL}
-                        onClose={this.toggleModal}
-                        onBackdropClick={() => {
-                            this.toggleModal(null);
-                        }}
-                    >
-                        <DialogTitle>
-                            Metadata for {this.state.currentRun}
-                        </DialogTitle>
-                        <DialogContent>
-                            {
-                                this.props.trajectories[this.state.currentRun]
-                                    .LAMMPSBootstrapScript
-                            }
-                        </DialogContent>
-                        <DialogActions>
-                            <Button
-                                onClick={() => {
-                                    this.toggleModal(null);
-                                }}
-                            >
-                                Close
-                            </Button>
-                        </DialogActions>
-                    </Dialog>
-                )}
+                {Object.keys(this.state.runs).length > 0 && (
+                <Button sx={{ float: 'right' }} onClick={() => {
+                            this.toggleDrawer();
+                        }}><MenuIcon /></Button>)}
 
-                {this.state.currentModal === ADD_FILTER_MODAL && (
-                    <AddFilterModal
-                        title={`Add filter for ${this.state.currentRun}`}
-                        open={this.state.currentModal === ADD_FILTER_MODAL}
-                        trajectory={
+                <Drawer anchor="right" variant="persistent" onClose={this.toggleDrawer} open={this.state.drawerOpen}>
+                    {Object.keys(this.state.runs).length > 0 && controls}
+                    <Button color="error" variant="contained" onClick={() => {
+                                this.toggleDrawer();
+                            }}>Close</Button>
+                </Drawer>
+
+            {Object.keys(this.state.runs).length > 0 && (
+                <TrajectoryChart
+                    trajectories={this.props.trajectories}
+                    runs={this.state.runs}
+                ></TrajectoryChart>
+            )}
+
+            {this.state.currentModal === METADATA_MODAL && (
+                <Dialog
+                    open={this.state.currentModal === METADATA_MODAL}
+                    onClose={this.toggleModal}
+                    onBackdropClick={() => {
+                        this.toggleModal(null);
+                    }}
+                >
+                    <DialogTitle>
+                        Metadata for {this.state.currentRun}
+                    </DialogTitle>
+                    <DialogContent>
+                        {
                             this.props.trajectories[this.state.currentRun]
+                                .LAMMPSBootstrapScript
                         }
-                        closeFunc={() => {
-                            this.toggleModal(null);
-                        }}
-                        addFilter={this.addFilter}
-                        run={this.state.currentRun}
-                    />
-                )}
-                {this.state.currentModal === XY_PLOT_MODAL && (
-                    <XYPlotModal
-                        title={`Scatter plot for ${this.state.currentRun}`}
-                        closeFunc={() => this.toggleModal(null)}
-                        open={this.state.currentModal === XY_PLOT_MODAL}
-                        trajectory={
-                            this.props.trajectories[this.state.currentRun]
-                        }
-                        onRequestClose={() => this.toggleModal(null)}
-                    />
-                )}
-            </Grid>
+                    </DialogContent>
+                    <DialogActions>
+                        <Button
+                            onClick={() => {
+                                this.toggleModal(null);
+                            }}
+                        >
+                            Close
+                        </Button>
+                    </DialogActions>
+                </Dialog>
+            )}
+
+            {this.state.currentModal === ADD_FILTER_MODAL && (
+                <AddFilterModal
+                    title={`Add filter for ${this.state.currentRun}`}
+                    open={this.state.currentModal === ADD_FILTER_MODAL}
+                    trajectory={
+                        this.props.trajectories[this.state.currentRun]
+                    }
+                    closeFunc={() => {
+                        this.toggleModal(null);
+                    }}
+                    addFilter={this.addFilter}
+                    run={this.state.currentRun}
+                />
+            )}
+            {this.state.currentModal === XY_PLOT_MODAL && (
+                <XYPlotModal
+                    title={`Scatter plot for ${this.state.currentRun}`}
+                    closeFunc={() => this.toggleModal(null)}
+                    open={this.state.currentModal === XY_PLOT_MODAL}
+                    trajectory={
+                        this.props.trajectories[this.state.currentRun]
+                    }
+                    onRequestClose={() => this.toggleModal(null)}
+                />
+            )}
+        </Box>
         );
     }
 }

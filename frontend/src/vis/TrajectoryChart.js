@@ -390,16 +390,16 @@ function TrajectoryChart({ trajectories, runs }) {
                     d3.select(".brush").remove();
                 });
         },
-        [runs, width, height, stateHighlight]
+        [runs, width, height, stateHighlight] // need trajectories to be a dependency, but need it to wait on runs for it to work
     );
 
     return (
         <div ref={divRef} width="100%" height="100%">
             {width &&
-                height &&
-                Object.keys(trajectories).length ===
-                    Object.keys(runs).length && (
-                    <svg
+             height &&
+             Object.keys(trajectories).length ===
+             Object.keys(runs).length && (
+                 <svg
                         id="svg_main"
                         ref={ref}
                         viewBox={[0, 0, width, height]}

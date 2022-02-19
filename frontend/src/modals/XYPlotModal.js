@@ -58,7 +58,9 @@ class XYPlotModal extends React.Component {
             >
                 <DialogTitle>{this.props.title}</DialogTitle>
                 <DialogContent>
-                    <Stack spacing={2}>
+                    <Stack spacing={2} alignItems="center" justifyContent="center" >
+                        <p>Select which attributes to render in the X-Y plot.</p>
+                        <Stack spacing={2} direction="row" alignItems="center" justifyContent="center">
                         <FormControl>
                             <Select
                                 name="select_x_attribute"
@@ -85,7 +87,7 @@ class XYPlotModal extends React.Component {
                             </Select>
                             <FormHelperText>Y attribute</FormHelperText>
                         </FormControl>
-
+                        </Stack>
                         <Scatterplot
                             data={{
                                 sequence: this.props.trajectory.sequence,
