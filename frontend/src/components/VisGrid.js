@@ -61,8 +61,8 @@ class VisGrid extends React.Component {
         this.setState({ currentModal: key });
     };
 
-    chartFinishedLoading = () => {
-        this.setState({ isLoading: false});
+    chartFinishedLoading = () => {        
+        this.setState({ isLoading: false });
     }
     
     componentDidUpdate() {

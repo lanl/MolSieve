@@ -1,5 +1,5 @@
 import Trajectory from "./trajectory";
-const axios = require("axios").default;
+import axios from 'axios';
 
 /**
  * Ajax query to the backend to retrieve the sequence for a trajectory, given

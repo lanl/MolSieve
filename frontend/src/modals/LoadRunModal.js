@@ -8,9 +8,34 @@ import DialogActions from "@mui/material/DialogActions";
 import DialogContentText from "@mui/material/DialogContentText";
 import DialogContent from "@mui/material/DialogContent";
 import Stack from "@mui/material/Stack";
+import Tabs from '@mui/material/Tabs';
+import Tab from '@mui/material/Tab';
+import Box from '@mui/material/Box';
+import PreprocessingTab from './PreprocessingTab';
 
 const domain = [2, 20];
 const defaultValues = [2, 4];
+
+
+function TabPanel(props) {
+  const { children, value, index, ...other } = props;
+
+  return (
+    <div
+      role="tabpanel"
+      hidden={value !== index}
+      id={`simple-tabpanel-${index}`}
+      aria-labelledby={`simple-tab-${index}`}
+      {...other}
+    >
+      {value === index && (
+        <Box sx={{ p: 3 }}>
+          {children}
+        </Box>
+      )}
+    </div>
+  );
+}
 
 class LoadRunModal extends React.Component {
     constructor(props) {
@@ -21,6 +46,7 @@ class LoadRunModal extends React.Component {
             run: null,
             clusters: -1,
             optimal: 1,
+            tabIdx: 0
         };
     }
 
@@ -67,8 +93,13 @@ class LoadRunModal extends React.Component {
                     maxWidth="lg"
                 >
                     <DialogTitle>
-                        Clustering options for {this.props.run}
+                        {this.props.run}                        
+                        <Tabs value={this.state.tabIdx} onChange={(_,v) => { this.setState({tabIdx: v})}}>
+                            <Tab label="Optimal Clustering" />
+                            <Tab label="Preprocessing" />
+                        </Tabs>
                     </DialogTitle>
+                    <TabPanel value={this.state.tabIdx} index={0}>
                     <DialogContent>
                         <DialogContentText>
                             Select the cluster sizes that PCCA will try to
@@ -113,10 +144,6 @@ class LoadRunModal extends React.Component {
                         >
                             Calculate
                         </Button>
-			<Button size="small"
-				variant="contained"
-				color="secondary"
-			>Additional Preprocessing</Button>
                         <Button
                             size="small"
                             variant="contained"
@@ -128,6 +155,10 @@ class LoadRunModal extends React.Component {
                             Cancel
                         </Button>
                     </DialogActions>
+                    </TabPanel>
+                    <TabPanel value={this.state.tabIdx} index={1}>
+                        <PreprocessingTab run={this.props.run}/>
+                    </TabPanel>
                 </Dialog>
             );
         } else {

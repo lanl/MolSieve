@@ -93,7 +93,7 @@ class XYPlotModal extends React.Component {
                                 sequence: this.props.trajectory.sequence,
                                 x_attribute: this.state.x_attribute,
                                 y_attribute: this.state.y_attribute,
-                            }}
+                            }}                            
                         />
                     </Stack>
                 </DialogContent>

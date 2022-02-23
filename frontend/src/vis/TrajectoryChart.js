@@ -61,9 +61,10 @@ function TrajectoryChart({ trajectories, runs, loadingCallback }) {
     
     const zoom = () => {
         if (z_brush != null) {
-            if (!d3.select(".brush").empty()) {
-                d3.select(".select").remove();
+            if (!d3.selectAll(".brush").empty()) {
+                d3.selectAll(".brush").remove();
             }
+            
             d3.select("#svg_main")
                 .append("g")
                 .attr("class", "brush")
@@ -88,8 +89,7 @@ function TrajectoryChart({ trajectories, runs, loadingCallback }) {
     useKeyDown("Control", selection_brush);
 
     const multiple_selection_brush = () => {
-        if (m_s_brush != null) {            
-            
+        if (m_s_brush != null) {                      
             d3.select("#svg_main")
                 .append("g")                
                 .attr("class", "brush")
@@ -104,7 +104,6 @@ function TrajectoryChart({ trajectories, runs, loadingCallback }) {
         
         setModalTitle("Multiple Path Selection");
         setActionCompleted(MULTIPLE_PATH_SELECTION);                        
-
     };
 
     useKeyDown("Shift", multiple_selection_brush);
@@ -287,7 +286,7 @@ function TrajectoryChart({ trajectories, runs, loadingCallback }) {
                 svg.selectAll("rect").attr("x", function (d) {
                     return scale_x(d["timestep"]);
                 });
-            });
+            });            
 
             z_brush = d3
                 .brushX()
@@ -307,11 +306,14 @@ function TrajectoryChart({ trajectories, runs, loadingCallback }) {
                         xAxis.call(d3.axisBottom(scale_x));
                         svg.selectAll("rect").attr("x", function (d) {
                             return scale_x(d["timestep"]);
-                        });                        
+                        });
+                        svg.selectAll("rect").attr("stroke", "none");
                     }
                     d3.select(this).remove();
                     d3.select(".brush").remove();
                 });
+
+
 
             // multiple path selection
             m_s_brush = d3

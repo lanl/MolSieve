@@ -8,7 +8,7 @@ import * as d3 from "d3";
 
 const margin = { top: 20, bottom: 20, left: 40, right: 25 };
 
-function Scatterplot({ data }) {
+function Scatterplot({ data, loadingCallback }) {
     const divRef = useRef();
     const [width, setWidth] = useState();
     const [height, setHeight] = useState();
@@ -167,6 +167,10 @@ function Scatterplot({ data }) {
                 .attr("text-anchor", "middle")
                 .style("font-size", "12px")
                 .text(title);
+
+            if(loadingCallback !== undefined) {
+                loadingCallback();
+            }
         },
         [data.x_attribute, data.y_attribute, width, height]
     );

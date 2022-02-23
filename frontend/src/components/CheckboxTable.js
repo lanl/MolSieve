@@ -27,8 +27,7 @@ class CheckboxTable extends React.Component {
             this.props.click(e);
         }
         // build list of clicked checkboxes
-        if (e.target.checked) {
-            console.log("checked");
+        if (e.target.checked) {            
             this.state.clicked.push(e.target.value);
         } else {
             this.state.clicked.splice(
