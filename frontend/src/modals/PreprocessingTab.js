@@ -11,7 +11,7 @@ import FormControlLabel from '@mui/material/FormControlLabel';
 import FormControl from '@mui/material/FormControl';
 import Select from "@mui/material/Select";
 import MenuItem from "@mui/material/MenuItem";
-
+import CircularProgress from "@mui/material/CircularProgress";
 import axios from 'axios';
 
 const OVITO = 'ovito_modifier';
@@ -23,10 +23,31 @@ class PreprocessingTab extends React.Component {
         this.state = {
             run: this.props.run,
             steps: [],
-            newStep: OVITO
+            newStep: OVITO,
+            isLoading: false,
+            response: ''
         }
     }
 
+    runSteps = () => {
+        if (this.state.steps.length > 0) {
+            this.setState({isLoading: true, response: ''});
+            let steps = this.state.steps.map(step => {
+                return {'type': step['type'], 'value': step['value']};
+            });
+            
+            let data = {'steps': steps, 'run': this.state.run};
+            
+            axios.post('/run_preprocessing', JSON.stringify(data)).then((response) => {
+                this.setState({isLoading: false, response: response.data});
+            }).catch((error) => {
+                this.setState({isLoading: false, response: error});
+            });
+        } else {
+            alert("Need to have at least one preprocessing step to run!");
+        }
+    }
+    
     addStep = () => {
         switch(this.state.newStep) {
         case OVITO:
@@ -57,7 +78,8 @@ class PreprocessingTab extends React.Component {
             return (<ListItem key={idx}><h2>{`${idx + 1}. `}</h2>{step.render}</ListItem>);
         }): null;
         
-        return (<Box><DialogContent>
+        return (<Box>
+                    <DialogContent>
                         <List>
                             {steps}
                             <ListItem key={this.state.steps.length + 1}>
@@ -70,9 +92,11 @@ class PreprocessingTab extends React.Component {
                                 <Button variant="contained" size="small" onClick={() => {this.addStep()}}>Add new preprocessing step</Button>
                             </ListItem>
                         </List>
-                    </DialogContent>
+                        {this.state.isLoading && <CircularProgress/>}
+                        {!this.state.isLoading &&<p>{this.state.response}</p>}
+                    </DialogContent>                                       
             <DialogActions>
-                <Button size="small" variant="contained" color="secondary">Run preprocessing steps</Button>
+                <Button size="small" variant="contained" onClick={() => {this.runSteps()}} color="secondary">Run preprocessing steps</Button>
                 <Button size="small" variant="contained">Cancel</Button>
             </DialogActions></Box>);
     }

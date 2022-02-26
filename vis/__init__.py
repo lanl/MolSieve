@@ -1,4 +1,6 @@
 import os
+#os.environ['DISPLAY'] = ''
+os.environ['OVITO_THREAD_COUNT']='1'
 import json
 from flask import (render_template, Flask, jsonify, request)
 import neomd
@@ -9,13 +11,14 @@ from PIL import Image
 import io, sys
 from pydivsufsort import divsufsort, kasai, most_frequent_substrings, sa_search
 import jsonpickle
+import pickle
 import pygpcca as gp
 import base64
 
 from .epoch import Epoch, calculate_epoch
 from .config import Config
 from .trajectory import Trajectory
-from .utils import metadata_to_parameters, get_atom_type
+from .utils import *
 
 trajectories = {}
 
@@ -38,7 +41,7 @@ def create_app(test_config=None):
     app = Flask(__name__, instance_relative_config=True)
                 
     app.config.from_object(Config())
-                    
+
     if not os.path.isdir(app.config["LD_LIBRARY_PATH"]):
         raise FileNotFoundError("Error: {LD_LIBRARY_PATH} does not exist.".format(LD_LIBRARY_PATH=app.config["LD_LIBRARY_PATH"]))
 
@@ -49,21 +52,51 @@ def create_app(test_config=None):
 
     # could later use this as a cache feature
 
-    def saveTestJson(run, t, j):
-        print(j)
-        print(type(j))
-        with open('vis/testing/{run}_{t}.json'.format(run=run,t=t), 'w') as f:              
-            json.dump(j,f, ensure_ascii=False, indent=4)
-              
-    def loadTestJson(run, t):
-        try:
-            with open('vis/testing/{run}_{t}.json'.format(run=run,t=t), 'r') as f:                        
-                return f.read()
-        except Exception as e:            
-            print("Loading from database instead...")
-            return None
-                    
-    
+    def getMetadata(run, getJson=False):
+        """
+        Gets the metadata of a run. If the metadata has not been loaded yet, loads it into memory. There is an option
+        to return a JSON string that can be passed back to the front-end.
+
+        :param string run: Run to retrieve metadata for
+        :param bool getJson: Whether or not to return a JSON string with the metadata information.
+
+        :returns: a dict of metadata parameters and optionally a JSON string with the metadata information.
+        """
+        if run not in trajectories:
+            trajectories.update({run: Trajectory()})
+        
+        if getJson or trajectories[run].metadata is None:
+            j = {}            
+            driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687",
+                                            auth=("neo4j", "secret"))
+            with driver.session() as session:
+                try:
+                    result = session.run(
+                        "MATCH (n:Metadata {{run: {run} }}) RETURN n".format(run='"' +  run +'"'))
+                    record = result.single()
+                    for n in record.values():
+                        for key,value in n.items():                        
+                            if key == "LAMMPSBootstrapScript":
+                                params = metadata_to_parameters(value)
+                                cmds = metadata_to_cmds(value)
+                                trajectories[run].metadata = {'parameters': params, 'cmds': cmds}                                
+                            j.update({key:value})                    
+                except neo4j.exceptions.ServiceUnavailable as exception:
+                    raise exception
+
+                if getJson:
+                    return trajectories[run].metadata, j
+                else:
+                    return trajectories[run].metadata                               
+        else:
+            return trajectories[run].metadata
+
+    def getSequence(run):
+        """TODO: Unfinished"""
+        if run not in trajectories:
+            trajectories.update({run: Trajectory()})
+        
+        
     @app.errorhandler(neo4j.exceptions.ServiceUnavailable)
     def handle_service_not_available(error):
         response = {
@@ -96,6 +129,45 @@ def create_app(test_config=None):
     def get_ovito_modifiers():
         return jsonify(neomd.utils.return_ovito_modifiers())
 
+    @app.route('/run_preprocessing', methods=['POST'])
+    def run_preprocessing():
+        driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687", auth=("neo4j", "secret"))        
+        data = request.get_json(force=True)        
+        
+        run = data['run']
+        steps = data['steps']
+
+        qb = querybuilder.Neo4jQueryBuilder(
+            [('State', data['run'], 'State', 'ONE-TO-ONE'),
+             ('Atom', 'PART_OF', 'State', 'MANY-TO-ONE')])        
+
+        state_atom_dict = None
+
+        if app.config['IMPATIENT']:
+            state_atom_dict = loadTestPickle(run, 'state_atom_dict')
+        else:
+            q = qb.generate_trajectory(run,
+                                       "ASC", ['RELATION', 'timestep'],
+                                       node_attributes=[],
+                                       relation_attributes=[],
+                                       include_atoms=True)        
+
+            print(q.text)
+            
+            state_atom_dict = converter.query_to_ASE(driver, q, get_atom_type(getMetadata(run)), False)
+
+            print("done with query to ase")
+            saveTestPickle(run, 'state_atom_dict', state_atom_dict)
+            
+        for step in steps:
+            if step['type'] == 'ovito_modifier':
+                os.environ['DISPLAY'] = ''
+                calculator.apply_ovito_pipeline_modifer(driver, state_atom_dict, qb, analysisType=step['value'])                
+            else:
+                raise NotImplementedError()
+    
+        return 'Ran preprocessing steps'
+    
     @app.route('/calculate_path_similarity', methods=['POST'])
     def calculate_path_similarity():        
         extents = request.get_json(force=True)        
@@ -136,6 +208,7 @@ def create_app(test_config=None):
             properties = properties.split(',')
             for prop in properties:
                 node_attributes.append((prop, 'first'))
+                
         driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687",
                                             auth=("neo4j", "secret"))
         qb = querybuilder.Neo4jQueryBuilder(
@@ -146,6 +219,7 @@ def create_app(test_config=None):
                                    "ASC", ['RELATION', 'timestep'],
                                    node_attributes=node_attributes,
                                    relation_attributes=['timestep'])
+        
         oq = qb.generate_get_occurrences(run)
         with driver.session() as session:
             session.run(oq.text)
@@ -213,20 +287,8 @@ def create_app(test_config=None):
     def get_metadata():
         driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687",
                                             auth=("neo4j", "secret"))
-        j = {}
         run = request.args.get('run')
-        with driver.session() as session:
-            try:
-                result = session.run(
-                    "MATCH (n:Metadata {{run: {run} }}) RETURN n".format(run='"' +  run +'"'))
-                record = result.single()
-                for n in record.values():
-                    for key,value in n.items():                        
-                        if key == "LAMMPSBootstrapScript" and trajectories is not None and trajectories[run] is not None:                            
-                            trajectories[run].metadata = metadata_to_parameters(value)
-                        j.update({key:value})                    
-            except neo4j.exceptions.ServiceUnavailable as exception:
-                raise exception
+        metadata, j = getMetadata(run, getJson=True)
         
         return jsonify(j)
 
@@ -240,6 +302,7 @@ def create_app(test_config=None):
                                             auth=("neo4j", "secret"))
         if app.config['IMPATIENT']:            
             r = loadTestJson(run, 'optimal_pcca')
+            # TODO read JSON into cache trajectories dictionary
             if r != None:
                 return r                             
             
@@ -358,12 +421,8 @@ def create_app(test_config=None):
     def calculate_neb_on_path():
         run = request.args.get('run')
         start = request.args.get('start')
-        end = request.args.get('end')
-        atomType = request.args.get('atomType')
-        interpolate = int(request.args.get('interpolate'))
-        potential_path = request.args.get('potential_path')
-        pair_coeff = request.args.get('pair_coeff')
-        pair_style = request.args.get('pair_style')
+        end = request.args.get('end')        
+        interpolate = int(request.args.get('interpolate'))                        
         
         driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687",
                                             auth=("neo4j", "secret"))
@@ -378,27 +437,19 @@ def create_app(test_config=None):
         end = str(int(end) + 1)
         q = qb.generate_get_path(start,end,run,'timestep')
 
-        if atomType == None or atomType == '':
-            atomType = get_atom_type(trajectories[run].metadata)
-
-        if potential_path == None or potential_path == '':
-            potential_path = calculator.retrieve_potentials_file(driver,run)            
-
-        if pair_coeff == None or pair_coeff == '' or pair_style == None or pair_style == "":
-            metadata = trajectories[run].metadata
-        else:
-            metadata = {}
-            metadata.update({"pair_coeff": [pair_coeff.replace("_", " ")]})
-            metadata.update({"pair_style": pair_style})                            
-            
+        metadata = getMetadata(run)               
+        atomType = get_atom_type(metadata['parameters'])
         state_atom_dict, relationList = converter.query_to_ASE(driver, q, atomType, True)        
         
-        ef_list, de_list = calculator.calculate_neb_on_path(driver, state_atom_dict, relationList,
-                                                            qb, run, metadata, ASE_LAMMPSRUN_COMMAND_PATH=app.config["LAMMPS_RUN"],
-                                                            interpolate=interpolate, LAMMPS_POTENTIALS=potential_path)                       
+        ef_list, de_list = calculator.calculate_neb_on_path(state_atom_dict,
+                                                            relationList,
+                                                            run,
+                                                            metadata['cmds'],
+                                                            interpolate=interpolate)                       
 
         j = {}
         j.update({"ef_list":ef_list})
         j.update({"de_list":de_list})
         return jsonify(j)
+    
     return app
