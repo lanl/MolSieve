@@ -31,6 +31,8 @@ function Scatterplot({ data, loadingCallback }) {
 
     const ref = useTrajectoryChartRender(
         (svg) => {
+            console.log("drawing"); 
+            
             if (height === undefined || width === undefined) {
                 return;
             }
@@ -172,7 +174,7 @@ function Scatterplot({ data, loadingCallback }) {
                 loadingCallback();
             }
         },
-        [data.x_attribute, data.y_attribute, width, height]
+        [data.x_attribute, data.y_attribute, data.x_attributeList, data.y_attributeList, width, height]
     );
 
     return (

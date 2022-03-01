@@ -128,6 +128,7 @@ export function api_calculate_path_similarity(
     });
 }
 
+//TODO: add comment
 export function api_load_metadata(run, trajectory) {
     return new Promise(function (resolve, reject) {
         axios
@@ -142,6 +143,18 @@ export function api_load_metadata(run, trajectory) {
                 return resolve(trajectory);
             })
             .catch((e) => {
+                reject(e);
+            });
+    });
+}
+
+export function api_calculate_NEB(run, start, end, interpolate) {
+    return new Promise(function (resolve, reject) {
+        axios.get("/calculate_neb_on_path", { params: { run: run, start: start, end: end, interpolate: interpolate}})
+            .then((response) => {
+                //TODO: can add saddlepoint and other calculations here
+                resolve(response.data);
+            }).catch((e) => {
                 reject(e);
             });
     });

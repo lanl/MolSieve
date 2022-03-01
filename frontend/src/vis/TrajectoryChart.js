@@ -410,6 +410,7 @@ function TrajectoryChart({ trajectories, runs, loadingCallback }) {
                 <SelectionModal
                     title={modalTitle}
                     open={currentModal === PATH_SELECTION}
+                    trajectories={trajectories}
                     extents={extents}
                     closeFunc={() => {                        
                         setExtents([]);

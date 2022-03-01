@@ -1,5 +1,4 @@
 import os
-#os.environ['DISPLAY'] = ''
 os.environ['OVITO_THREAD_COUNT']='1'
 import json
 from flask import (render_template, Flask, jsonify, request)
@@ -423,10 +422,10 @@ def create_app(test_config=None):
         end = request.args.get('end')        
         interpolate = int(request.args.get('interpolate'))
 
-        if app.config['IMPATIENT']:
-            r = loadTestJson('nano_pt', 'energies')
-            if r is not None:
-                return r
+        # if app.config['IMPATIENT']:
+        #     r = loadTestJson('nano_pt', 'energies')
+        #     if r is not None:
+        #         return r
             
         driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687",
                                             auth=("neo4j", "secret"))
@@ -434,11 +433,6 @@ def create_app(test_config=None):
         qb = querybuilder.Neo4jQueryBuilder(
             schema=[("State", run, "State", "ONE-TO-ONE"),
                     ("Atom", "PART_OF", "State", "MANY-TO-ONE")])
-
-        # hack at the end here so that the final node in the sequence is filled out
-        # saves the trouble of modifying query_to_ASE + generate_get_path
-        # needs to be fixed in the future though
-        end = str(int(end) + 1)
 
         q = qb.generate_get_path(start, end, run, 'timestep')
 
