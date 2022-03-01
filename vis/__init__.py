@@ -244,7 +244,7 @@ def create_app(test_config=None):
                 """
                                 
                 result = session.run(
-                    "MATCH (n:State) with n LIMIT 1 UNWIND keys(n) as key RETURN DISTINCT key;"
+                    "MATCH (n:State)-[:{run}]-(:State) with n LIMIT 1 UNWIND keys(n) as key RETURN DISTINCT key;".format(run=run)
                 )
                 j = [r[0] for r in result.values()]
 

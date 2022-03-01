@@ -58,7 +58,7 @@ class XYPlotModal extends React.Component {
             >
                 <DialogTitle>{this.props.title}</DialogTitle>
                 <DialogContent>
-                    <Stack spacing={2} alignItems="center" justifyContent="center" >
+                    <Stack spacing={2} alignItems="center" justifyContent="center">
                         <p>Select which attributes to render in the X-Y plot.</p>
                         <Stack spacing={2} direction="row" alignItems="center" justifyContent="center">
                         <FormControl>

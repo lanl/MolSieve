@@ -415,7 +415,8 @@ function TrajectoryChart({ trajectories, runs, loadingCallback }) {
                     closeFunc={() => {                        
                         setExtents([]);
                         setActionCompleted('');
-                        toggleModal(PATH_SELECTION)}}
+                        toggleModal(PATH_SELECTION)
+                    }}
                 />
             )}
             {currentModal === MULTIPLE_PATH_SELECTION && (
@@ -424,10 +425,11 @@ function TrajectoryChart({ trajectories, runs, loadingCallback }) {
                     open={currentModal === MULTIPLE_PATH_SELECTION}
                     trajectories={trajectories}
                     extents={extents}
-                    closeFunc={() => {                        
+                    closeFunc={() => {                       
 			setExtents([]);
                         setActionCompleted('');
-			toggleModal(MULTIPLE_PATH_SELECTION)}}
+			toggleModal(MULTIPLE_PATH_SELECTION)
+                    }}
                 />
             )}
         </div>

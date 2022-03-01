@@ -69,35 +69,36 @@ class SelectionModal extends React.Component {
                 <Dialog
                     open={this.props.open}
                     onBackdropClick={() => this.closeFunc()}
-                    fullWidth={true}
-                >
+                    fullWidth={true}>
                     <DialogTitle>{this.props.title}</DialogTitle>
-                    <DialogContent>
-                        <Stack direction="row">
-                            <label htmlFor="txt_path_neb">
-                            Number of images interpolated between points on NEB:
-                            </label>
-                            <input
-                                type="number"
-                                min="1"
-                                name="txt_path_neb"
-                                defaultValue={this.state.interpolate}
-                                onChange={(e) => {                                
-                                    this.setState({interpolate: e.target.value});
-                                }}
-                            />
-                        </Stack>
+                    <DialogContent style={{height: '400px'}}>
+                        <Stack spacing={2} alignItems="center" justifyContent="center">
+                            <Stack direction="row">
+                                <label htmlFor="txt_path_neb">
+                                    Number of images interpolated between points on NEB:
+                                </label>
+                                <input
+                                    type="number"
+                                    min="1"
+                                    name="txt_path_neb"
+                                    defaultValue={this.state.interpolate}
+                                    onChange={(e) => {                                
+                                        this.setState({interpolate: e.target.value});
+                                    }}
+                                />
+                            </Stack>
                         
                         {!this.state.isLoading &&
-                        <Scatterplot
-                            data={{
-                                sequence: this.state.drawSequence,
-                                x_attribute: 'timestep',
-                                y_attribute: 'energies',
-                                y_attributeList: this.state.energies,
-                                path: true
-                            }} />}
-                        {this.state.isLoading && <CircularProgress style={{alignContent: 'center',justifyContent: 'center'}}/>}
+                         <Scatterplot
+                             data={{
+                                 sequence: this.state.drawSequence,
+                                 x_attribute: 'timestep',
+                                 y_attribute: 'energies',
+                                 y_attributeList: this.state.energies,
+                                 path: true
+                             }} />}
+                            {this.state.isLoading && <CircularProgress color="grey" style={{alignContent: 'center', justifyContent: 'center'}}/>}
+                        </Stack>
                     </DialogContent>
                     <DialogActions>
                         <Button onClick={() => {
