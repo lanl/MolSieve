@@ -19,18 +19,17 @@ def metadata_to_parameters(raw_metadata):
             parameters.update({firstWord: rest})
     return parameters
 
-def metadata_to_cmds(raw_metadata):
+def metadata_to_cmds(metadata_dict):
     """
     Converts metadata to commands to use for LAMMPSLib's lmpcmds parameters.
 
-    :param raw_metadata: The raw metadata string to convert.
+    :param raw_metadata: The metadata dict to convert.
 
     :returns: The metadata as a list.
     """
     parameters = []
-    for line in raw_metadata.splitlines():
-        if line != '':
-            parameters.append(line)
+    parameters.append("pair_style {rest}".format(rest=metadata_dict["pair_style"]))
+    parameters.append("pair_coeff {rest}".format(rest=metadata_dict["pair_coeff"][0]))
     return parameters
 
 def get_atom_type(parameters):

@@ -78,7 +78,7 @@ def create_app(test_config=None):
                         for key,value in n.items():                        
                             if key == "LAMMPSBootstrapScript":
                                 params = metadata_to_parameters(value)
-                                cmds = metadata_to_cmds(value)
+                                cmds = metadata_to_cmds(params)
                                 trajectories[run].metadata = {'parameters': params, 'cmds': cmds}                                
                             j.update({key:value})                    
                 except neo4j.exceptions.ServiceUnavailable as exception:
@@ -151,17 +151,12 @@ def create_app(test_config=None):
                                        node_attributes=[],
                                        relation_attributes=[],
                                        include_atoms=True)        
-
-            print(q.text)
             
-            state_atom_dict = converter.query_to_ASE(driver, q, get_atom_type(getMetadata(run)), False)
-
-            print("done with query to ase")
+            state_atom_dict = converter.query_to_ASE(driver, qb, q, get_atom_type(getMetadata(run)), False)
             saveTestPickle(run, 'state_atom_dict', state_atom_dict)
             
         for step in steps:
             if step['type'] == 'ovito_modifier':
-                os.environ['DISPLAY'] = ''
                 calculator.apply_ovito_pipeline_modifer(driver, state_atom_dict, qb, analysisType=step['value'])                
             else:
                 raise NotImplementedError()
@@ -215,12 +210,16 @@ def create_app(test_config=None):
             [('State', run, 'State', 'ONE-TO-ONE'),
              ('Atom', 'PART_OF', 'State', 'MANY-TO-ONE')])
 
+        
+        
         q = qb.generate_trajectory(run,
                                    "ASC", ['RELATION', 'timestep'],
                                    node_attributes=node_attributes,
                                    relation_attributes=['timestep'])
-        
+
+        # place this into one function
         oq = qb.generate_get_occurrences(run)
+        oq2 = qb.generate_calculate_many_to_one_count("PART_OF")
         with driver.session() as session:
             session.run(oq.text)
             result = session.run(q.text)
@@ -383,7 +382,7 @@ def create_app(test_config=None):
                     ("Atom", "PART_OF", "State", "MANY-TO-ONE")])
         
         q = qb.generate_get_node('State', ("number", number), 'PART_OF')               
-        state_atom_dict = converter.query_to_ASE(driver, q, get_atom_type(trajectories[run].metadata), False)        
+        state_atom_dict = converter.query_to_ASE(driver, qb, q, get_atom_type(trajectories[run].metadata), False)        
         qimg = None
         for atoms in state_atom_dict.values():            
             qimg = visualizations.render_ASE(atoms)        
@@ -422,8 +421,13 @@ def create_app(test_config=None):
         run = request.args.get('run')
         start = request.args.get('start')
         end = request.args.get('end')        
-        interpolate = int(request.args.get('interpolate'))                        
-        
+        interpolate = int(request.args.get('interpolate'))
+
+        if app.config['IMPATIENT']:
+            r = loadTestJson('nano_pt', 'energies')
+            if r is not None:
+                return r
+            
         driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687",
                                             auth=("neo4j", "secret"))
         
@@ -435,21 +439,25 @@ def create_app(test_config=None):
         # saves the trouble of modifying query_to_ASE + generate_get_path
         # needs to be fixed in the future though
         end = str(int(end) + 1)
-        q = qb.generate_get_path(start,end,run,'timestep')
 
-        metadata = getMetadata(run)               
-        atomType = get_atom_type(metadata['parameters'])
-        state_atom_dict, relationList = converter.query_to_ASE(driver, q, atomType, True)        
+        q = qb.generate_get_path(start, end, run, 'timestep')
+
+        metadata = getMetadata(run)
+        atomType = get_atom_type(metadata['parameters'])        
         
-        ef_list, de_list = calculator.calculate_neb_on_path(state_atom_dict,
+        state_atom_dict, relationList = converter.query_to_ASE(driver, qb, q, atomType, True)        
+        
+        energies = calculator.calculate_neb_on_path(state_atom_dict,
                                                             relationList,
                                                             run,
+                                                            atomType,
                                                             metadata['cmds'],
                                                             interpolate=interpolate)                       
 
-        j = {}
-        j.update({"ef_list":ef_list})
-        j.update({"de_list":de_list})
+        j = {'energies': energies}
+
+        saveTestJson('nano_pt', 'energies', j)        
+                
         return jsonify(j)
     
     return app
