@@ -10,32 +10,11 @@ import DialogContent from "@mui/material/DialogContent";
 import Stack from "@mui/material/Stack";
 import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
-import Box from '@mui/material/Box';
+import {TabPanel} from "../api/myutils";
 import PreprocessingTab from './PreprocessingTab';
 
 const domain = [2, 20];
 const defaultValues = [2, 4];
-
-
-function TabPanel(props) {
-  const { children, value, index, ...other } = props;
-
-  return (
-    <div
-      role="tabpanel"
-      hidden={value !== index}
-      id={`simple-tabpanel-${index}`}
-      aria-labelledby={`simple-tab-${index}`}
-      {...other}
-    >
-      {value === index && (
-        <Box sx={{ p: 3 }}>
-          {children}
-        </Box>
-      )}
-    </div>
-  );
-}
 
 class LoadRunModal extends React.Component {
     constructor(props) {
@@ -50,8 +29,8 @@ class LoadRunModal extends React.Component {
         };
     }
 
-    pullClicked = (event) => {
-        this.state.clicked.push(event.target.value);
+    pullClicked = (_, clicked) => {
+        this.setState({clicked: [...clicked]});
     };
 
     closeFunc = (uncheck) => {

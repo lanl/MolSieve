@@ -10,16 +10,30 @@ import Button from "@mui/material/Button";
 import FormHelperText from "@mui/material/FormHelperText";
 import FormControl from "@mui/material/FormControl";
 import Scatterplot from "../vis/Scatterplot.js";
+import CircularProgress from "@mui/material/CircularProgress";
+import Grid from "@mui/material/Grid";
 import { intersection } from "../api/myutils";
 import { api_calculate_path_similarity } from "../api/ajax";
-import Grid from "@mui/material/Grid";
-import { CircularProgress } from "@mui/material";
+import CheckboxTable from "../components/CheckboxTable";
+
+import Tabs from '@mui/material/Tabs';
+import Tab from '@mui/material/Tab';
+import {TabPanel} from "../api/myutils";
+
 
 class MultiplePathSelectionModal extends React.Component {
     constructor(props) {
         super(props);
-        this.state = { cmn: null, x_attribute: null, y_attribute: null };
+        this.state = { cmn: null, x_attribute: null, y_attribute: null, tabIdx: 0, atomProperties: [], stateProperties: [] };
     }
+
+    addAtomProperty = (_, clicked) => {
+        this.setState({atomProperties: [...clicked]});
+    };
+
+    addStateProperty = (_, clicked) => {
+        this.setState({stateProperties: [...clicked]});
+    };
 
     componentDidMount() {
         var propList = [];
@@ -55,17 +69,23 @@ class MultiplePathSelectionModal extends React.Component {
 
     calculatePathSimilarity = () => {
         this.setState({ isLoading: true });
-
-        //TODO: set up options for state and atom attributes
-        //will it be another modal? hard to tell what's best
-        api_calculate_path_similarity(
-            this.state.extent1,
-            this.state.extent2,
-            ["occurrences"],
-            ""
-        ).then((data) => {
-            this.setState({ isLoading: false, similarity: data });
-        });
+        console.log(this.state);
+        if(this.state.stateProperties.length === 0 && this.state.atomProperties.length === 0) {
+            alert("Please choose some properties to calculate the path similarity with!");
+            this.setState({isLoading: false});
+        } else {            
+            api_calculate_path_similarity(
+                this.state.extent1,
+                this.state.extent2,
+                this.state.stateProperties,
+                this.state.atomProperties
+            ).then((data) => {
+                this.setState({ isLoading: false, similarity: data });
+            }).catch((error) => {
+                alert(error);
+                this.setState({ isLoading: false});
+            });
+        }
     };
 
     closeFunc = () => {
@@ -115,10 +135,7 @@ class MultiplePathSelectionModal extends React.Component {
 
             if (!this.state.similarity && !this.state.isLoading) {
                 similarityText = (
-                    <p>
-                        Select which two paths to compare and press &quot;calculate
-                        path similarity.&quot;
-                    </p>
+                    <p></p>
                 );
             } else if (this.state.isLoading) {
                 similarityText = <CircularProgress color="grey" />;
@@ -144,49 +161,74 @@ class MultiplePathSelectionModal extends React.Component {
                     fullWidth={true}
                     maxWidth="lg"
                 >
-                    <DialogTitle>{this.props.title}</DialogTitle>
-                    <DialogContent>
-                        <Stack spacing={2} direction="column">
-
-                            <Stack
-                                    spacing={2}
-                                    direction="row"
-                                >
-                            <FormControl>
-                                <Select
-                                    name="select_x_attribute"
-                                    value={this.state.x_attribute}
-                                    onChange={(e) => {
-                                        this.setX(e);
-                                    }}
-                                >
-                                    {options}
-                                </Select>
-                                <FormHelperText>X attribute</FormHelperText>
-                            </FormControl>
-                            <FormControl>
-                                <Select
-                                    name="select_y_attribute"
-                                    value={this.state.y_attribute}
-                                    onChange={(e) => {
-                                        this.setY(e);
-                                    }}
-                                >
-                                    {options}
-                                </Select>
-                                <FormHelperText>Y attribute</FormHelperText>
-                            </FormControl>
-                            </Stack>
-                            <p>Select which attributes to render in the X-Y plot.</p>
-                            <Stack
-                                spacing={2}
-                                direction="column"
-                            >
+                    <DialogTitle>{this.props.title}
+                        <Tabs value={this.state.tabIdx} onChange={(_,v) => { this.setState({tabIdx: v})}}>
+                            <Tab label="X-Y Plots" disabled={this.state.isLoading} />
+                            <Tab label="Path Similarity" disabled={this.state.isLoading}/>
+                            <Tab label="Kolmogorov-Smirnov Test" disabled={this.state.isLoading}  />
+                        </Tabs>
+                    </DialogTitle>
+                    <TabPanel value={this.state.tabIdx} index={0}>
+                        <DialogContent>
+                            <Stack spacing={2} direction="column">
+                                <p>Select which attributes to render in the X-Y plots.</p>
                                 <Stack
                                     spacing={2}
                                     direction="row"
-
                                 >
+                                    <FormControl>
+                                        <Select
+                                            name="select_x_attribute"
+                                            value={this.state.x_attribute}
+                                            onChange={(e) => {
+                                                this.setX(e);
+                                            }}
+                                        >
+                                            {options}
+                                        </Select>
+                                        <FormHelperText>X attribute</FormHelperText>
+                                    </FormControl>
+                                    <FormControl>
+                                        <Select
+                                            name="select_y_attribute"
+                                            value={this.state.y_attribute}
+                                            onChange={(e) => {
+                                                this.setY(e);
+                                            }}
+                                        >
+                                            {options}
+                                        </Select>
+                                        <FormHelperText>Y attribute</FormHelperText>
+                                    </FormControl>
+                                </Stack>
+
+                                <Stack
+                                    spacing={2}
+                                    direction="column"
+                                >
+                                </Stack>
+                                <Grid
+                                    direction="row"
+                                    justifyContent="space-evenly"
+                                    container
+                                    spacing={2}
+                                >
+                                    {scatterplots}
+                                </Grid>
+                            </Stack>                            
+                        </DialogContent>
+                        <DialogActions>
+                            <Button onClick={this.closeFunc} disabled={this.state.isLoading}>Close</Button>
+                        </DialogActions>
+                    </TabPanel>
+                    <TabPanel value={this.state.tabIdx} index={1}>                        
+                        <DialogContent>
+                            <Stack
+                            spacing={2}>
+                                <p>Select which two paths to compare.</p>
+                                <Stack
+                                    spacing={2}
+                                    direction="row">
                                     <FormControl>
                                         <Select
                                             value={this.state.extent1}
@@ -194,8 +236,7 @@ class MultiplePathSelectionModal extends React.Component {
                                                 this.setState({
                                                     extent1: e.target.value,
                                                 });
-                                            }}
-                                        >
+                                            }}>
                                             {extent_options}
                                         </Select>
                                         <FormHelperText>Path 1</FormHelperText>
@@ -214,27 +255,22 @@ class MultiplePathSelectionModal extends React.Component {
                                         <FormHelperText>Path 2</FormHelperText>
                                     </FormControl>
                                 </Stack>
+                                <CheckboxTable header="State properties" items={this.state.cmn} click={this.addStateProperty} />                                
+                                <CheckboxTable header="Atom properties" api_call={`/get_atom_properties`} click={this.addAtomProperty} />
                                 {similarityText}
                             </Stack>
-                            <Grid
-                                direction="row"
-                                justifyContent="space-evenly"
-                                container
-                                spacing={2}
+                        </DialogContent>
+                        <DialogActions>
+                            <Button
+                                variant="contained"
+                                onClick={this.calculatePathSimilarity}
+                                disabled={this.state.isLoading}
                             >
-                                {scatterplots}
-                            </Grid>
-                        </Stack>
-                    </DialogContent>
-                    <DialogActions>
-                        <Button
-                            variant="contained"
-                            onClick={this.calculatePathSimilarity}
-                        >
-                            Calculate path similarity
-                        </Button>
-                        <Button onClick={this.closeFunc}>Close</Button>
-                    </DialogActions>
+                                Calculate path similarity
+                            </Button>
+                            <Button onClick={this.closeFunc} disabled={this.state.isLoading}>Close</Button>
+                        </DialogActions>
+                    </TabPanel>
                 </Dialog>
             );
         } else {

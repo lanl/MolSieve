@@ -253,6 +253,24 @@ def create_app(test_config=None):
         
         return jsonify(j)
 
+
+    @app.route('/get_atom_properties', methods=['GET'])
+    def get_atom_properties():
+        driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687",
+                                            auth=("neo4j", "secret"))
+        j = []
+        with driver.session() as session:
+            try:
+                result = session.run(
+                    "MATCH (n:Atom) WITH n LIMIT 1 UNWIND keys(n) as key RETURN DISTINCT key;"                    
+                )
+                j = [r[0] for r in result.values()]
+            except neo4j.exceptions.ServiceUnavailable as exception:
+                raise exception                
+
+        return jsonify(j)
+
+
     @app.route('/get_run_list', methods=['GET'])
     def get_run_list():
         driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687",
@@ -269,13 +287,6 @@ def create_app(test_config=None):
                     runs.append(r[0])
                     trajectories.update({r[0] : Trajectory()})                    
                 j = runs
-                                                                                                
-                # gets the properties for atoms
-                #result = session.run(
-                #    "MATCH (n:Atom) with n LIMIT 1 UNWIND keys(n) as key RETURN DISTINCT key;"                    
-                #)
-                #j.update({'atom_properties': [r[0] for r in result.values()]})
-
             except neo4j.exceptions.ServiceUnavailable as exception:
                 raise exception
         

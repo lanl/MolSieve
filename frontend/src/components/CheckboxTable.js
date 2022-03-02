@@ -23,31 +23,40 @@ class CheckboxTable extends React.Component {
     }
 
     click = (e) => {
-        if (this.props.click) {
-            this.props.click(e);
-        }
         // build list of clicked checkboxes
-        if (e.target.checked) {            
-            this.state.clicked.push(e.target.value);
+        if (e.target.checked) {
+            this.setState({clicked: [...this.state.clicked, e.target.value]}, () => {
+                if (this.props.click) {
+                    this.props.click(e, this.state.clicked);
+                }
+            });            
         } else {
-            this.state.clicked.splice(
-                this.state.clicked.indexOf(e.target.value),
-                1
-            );            	    
+            let newClicked = [...this.state.clicked];
+            newClicked.splice(newClicked.indexOf(e.target.value), 1);
+            this.setState({clicked: newClicked}, () => {
+                if (this.props.click) {
+                    this.props.click(e, this.state.clicked);
+                }
+            });            
         }        
     };
 
     componentDidMount() {
-        axios
-            .get(this.props.api_call)
-            .then((response) => {
-                this.setState({ isLoaded: true, items: response.data });
-            })
-            .catch((e) => {
-                alert(e);
-            });
+        console.log(this.props.api_call);
+        if(this.props.api_call !== undefined && this.props.api_call !== '') {
+            axios
+                .get(this.props.api_call)
+                .then((response) => {
+                    this.setState({ isLoaded: true, items: response.data });
+                })
+                .catch((e) => {
+                    alert(e);
+                });
+        } else {
+            this.setState({isLoaded: true, items: this.props.items});
+        }
 
-        if (this.props.defaults) {
+        if (this.props.defaults !== undefined) {
             this.setState({ ...this.state, clicked: this.props.defaults });
         }
     }
@@ -66,6 +75,11 @@ class CheckboxTable extends React.Component {
                 </Box>
             );
         } else {
+            let defaults = this.props.defaults;
+            if(this.props.defaults === undefined) {
+                defaults = [];
+            }
+            
             return (
                 <TableContainer component={Paper}>
                     <Table size="small">
@@ -84,13 +98,13 @@ class CheckboxTable extends React.Component {
                                             onClick={this.click}
                                             type="checkbox"
                                             value={i}
-                                            readOnly={this.props.defaults.includes(
+                                            readOnly={defaults.includes(
                                                 i
                                             )}
-                                            disabled={this.props.defaults.includes(
+                                            disabled={defaults.includes(
                                                 i
                                             )}
-                                            defaultChecked={this.props.defaults.includes(
+                                            defaultChecked={defaults.includes(
                                                 i
                                             )}></input>
                                     </TableCell>
