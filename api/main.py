@@ -18,7 +18,6 @@ from .config import config
 from .trajectory import Trajectory
 from .utils import *
 
-
 os.environ['OVITO_THREAD_COUNT'] = '1'
 os.environ['DISPLAY'] = ''
 
@@ -82,8 +81,6 @@ async def generate_ovito_image(number: str):
 
     state_atom_dict = converter.query_to_ASE(driver, qb, q, 'Pt', False)        
 
-    print(state_atom_dict)
-
     qimg = None
 
     for atoms in state_atom_dict.values():            
@@ -94,8 +91,11 @@ async def generate_ovito_image(number: str):
     img.save(rawBytes, "PNG")
     rawBytes.seek(0)
     img_base64 = base64.b64encode(rawBytes.read())
-        
-    return {'image': str(img_base64)}
+
+    image_string = str(img_base64)
+    image_string = image_string.removesuffix("'")
+    image_string = image_string.removeprefix("b'")
+    return {'image': image_string}
 
 
 @app.post('/run_preprocessing')
@@ -111,7 +111,6 @@ async def run_preprocessing(data: dict):
 
     state_atom_dict = None
     
-
     if config.IMPATIENT:
         state_atom_dict = loadTestPickle(run, 'state_atom_dict')
     else:    
@@ -126,7 +125,18 @@ async def run_preprocessing(data: dict):
     for step in steps:        
         if step['type'] == 'ovito_modifier':
             new_attributes = calculator.apply_ovito_pipeline_modifier(state_atom_dict, analysisType=step['value'])
-            #TODO: push to database
+            q = None
+            with driver.session() as session:
+                tx = session.begin_transaction()
+                for state_number, data in new_attributes.items():
+                    if q is None:
+                        q = qb.generate_update_entity(data, 
+                                                      'State', 
+                                                      'number', 
+                                                      'NODE')
+                        data.update({'number': state_number})
+                    tx.run(q.text, data)
+                tx.commit()
         else:
             raise NotImplementedError()
 
@@ -304,7 +314,7 @@ def pcca(run: str, clusters: int, optimal: int, m_min: int, m_max: int):
                                         auth=("neo4j", "secret"))
     if config.IMPATIENT:            
         r = loadTestJson(run, 'optimal_pcca')
-        # TODO read JSON into cache trajectories dictionary
+        print(type(r))
         if r != None:
             return r                             
 

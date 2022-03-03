@@ -45,7 +45,7 @@ def saveTestPickle(run, t, j):
     :param t: type of sequence you're saving
     :param j: dictionary to save
     """                
-    with open('vis/testing/{run}_{t}.pickle'.format(run=run,t=t), 'wb') as f:
+    with open('api/testing/{run}_{t}.pickle'.format(run=run,t=t), 'wb') as f:
         pickle.dump(j,f)
 
 
@@ -59,7 +59,7 @@ def loadTestPickle(run, t):
     """                
 
     try:
-        with open('vis/testing/{run}_{t}.pickle'.format(run=run,t=t), 'rb') as f:                        
+        with open('api/testing/{run}_{t}.pickle'.format(run=run,t=t), 'rb') as f:                        
             return pickle.load(f)
     except Exception as e:            
         print("Loading from database instead...")
@@ -74,7 +74,7 @@ def saveTestJson(run, t, j):
     :param t: type of sequence you're saving
     :param j: dictionary to save
         """                
-    with open('vis/testing/{run}_{t}.json'.format(run=run,t=t), 'w') as f:              
+    with open('api/testing/{run}_{t}.json'.format(run=run,t=t), 'w') as f:              
         json.dump(j,f, ensure_ascii=False, indent=4)
 
 
@@ -89,8 +89,8 @@ def loadTestJson(run, t):
 
     """
     try:
-        with open('vis/testing/{run}_{t}.json'.format(run=run,t=t), 'r') as f:                        
-            return f.read()
+        with open('api/testing/{run}_{t}.json'.format(run=run,t=t), 'r') as f:                        
+            return json.loads(f.read())
     except Exception as e:            
         print("Loading from database instead...")
         return None

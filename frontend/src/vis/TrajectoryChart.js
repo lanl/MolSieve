@@ -6,9 +6,11 @@ import tippy from "tippy.js";
 import "tippy.js/dist/tippy.css";
 import SelectionModal from "../modals/SelectionModal";
 import MultiplePathSelectionModal from "../modals/MultiplePathSelectionModal";
+import SingleStateModal from "../modals/SingleStateModal";
 
 const PATH_SELECTION = "path_selection";
 const MULTIPLE_PATH_SELECTION = "multiple_path_selection";
+const SINGLE_STATE = "single_state";
 
 const margin = { top: 20, bottom: 20, left: 40, right: 25 };
 
@@ -30,7 +32,8 @@ function TrajectoryChart({ trajectories, runs, loadingCallback }) {
     let [extents, setExtents] = useState([]);
     let [actionCompleted, setActionCompleted] = useState('');
     let [modalTitle, setModalTitle] = useState("");
-
+    let [currentState, setCurrentState] = useState(null);
+    
     let [stateHighlight, setStateHighlight] = useState(false);
 
     const toggleStateHighlight = () => {        
@@ -117,7 +120,11 @@ function TrajectoryChart({ trajectories, runs, loadingCallback }) {
             break;
         case PATH_SELECTION:
             toggleModal(actionCompleted);            
-            break;            
+            break;
+        case SINGLE_STATE:
+            console.log(actionCompleted);
+            toggleModal(actionCompleted);
+            break;
         default:
             break;
         }        
@@ -210,16 +217,11 @@ function TrajectoryChart({ trajectories, runs, loadingCallback }) {
                     .attr("fuzzy_membership", function (d) {
                         return t.fuzzy_memberships[d["number"]];
                     })
-                    //.on("click", function (event, d) {
-                        //showLoadingIndicator("Generating Ovito image for state " + d['number']);
-                        /*generate_ovito_image(d['number']).then((data) => {
-			console.log(data);
-			var img = document.querySelector('<img>').attr("src", 'data:image/png;base64,' + data);
-			document.querySelector("#modal_container").append(img);
-		    }).catch((error) => {error_state(error);}).finally(closeLoadingIndicator());*/
-                        //		    document.querySelector("#modal_info").iziModal('setSubtitle', d['number']);
-                        //		    document.querySelector("#modal_info").iziModal('open');
-                    //})
+                    .on("click", function (_, d) {
+                        setCurrentState(d);
+                        setActionCompleted(SINGLE_STATE);                            
+                        //toggleModal(SINGLE_STATE);                                             
+                    })
                     .on("mouseover", function (_, d) {
                         var props = trajectories[t.name].properties;
                         var propertyString = "";
@@ -405,7 +407,18 @@ function TrajectoryChart({ trajectories, runs, loadingCallback }) {
                         ref={ref}
                         viewBox={[0, 0, width, height]}
                     />
-                )}
+             )}
+            {currentModal === SINGLE_STATE && (
+                <SingleStateModal
+                    open={currentModal === SINGLE_STATE}
+                    state={currentState}
+                    closeFunc={() => {
+                        setCurrentState(null);
+                        setActionCompleted('');
+                        toggleModal(SINGLE_STATE)
+                    }}
+                />
+            )}
             {currentModal === PATH_SELECTION && (
                 <SelectionModal
                     title={modalTitle}

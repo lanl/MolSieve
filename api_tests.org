@@ -1,28 +1,28 @@
 * Introduction
 Use this file to test the API provided by the server using the emacs plugin [[https://github.com/federicotdn/verb][verb]]. If you don't use emacs, you can use the curl commands provided as well.
 * NEB Calculation :verb:
-get http://localhost:5000/calculate_neb_on_path?run=nano_pt&start=12990&end=12994&atomType=Pt&interpolate=3&potential_path=/home/frosty/Programs/Python/d3_trajectory_visualization/voter-pt.eam&pair_coeff=*_*_voter-pt.eam_Pt&pair_style=eam/alloy
+get http://localhost:8000/calculate_neb_on_path?run=nano_pt&start=12990&end=12994&atomType=Pt&interpolate=3&potential_path=/home/frosty/Programs/Python/d3_trajectory_visualization/voter-pt.eam&pair_coeff=*_*_voter-pt.eam_Pt&pair_style=eam/alloy
 
 #+begin_src
 curl http://localhost:5000/calculate_neb_on_path\?run\=nano\_pt\&start\=300\&end\=305\&atomType=\Pt
 #+end_src
 * Retrieve Metadata :verb:
-get http://localhost:5000/get_metadata?run=nano_pt
+get http://localhost:8000/get_metadata?run=nano_pt
 
 #+begin_src
 curl http://localhost:5000/get_metadata\?run\=nano\_pt
 #+end_src
 * Get Ovito Modifiers :verb:
-get http://localhost:5000/get_ovito_modifiers
+get http://localhost:8000/get_ovito_modifiers
 
 * Calculate Path Similarity (same paths) :verb:
-post http://localhost:5000/calculate_path_similarity
+post http://localhost:8000/calculate_path_similarity
 Content-Type: application/json; charset:utf-8
 
 {"p1":{"name":"nano_pt","begin":{"id":1032,"number":"12216852921993855014","occurences":13,"timestep":6191,"cluster":0},"end":{"id":862,"number":"5419842963031009506","occurences":628,"timestep":8633,"cluster":0}},"p2":{"name":"nano_pt","begin":{"id":1032,"number":"12216852921993855014","occurences":13,"timestep":6191,"cluster":0},"end":{"id":862,"number":"5419842963031009506","occurences":628,"timestep":8633,"cluster":0}}}
 
 * Calculate Path Similarity (different paths) :verb:
-post http://localhost:5000/calculate_path_similarity
+post http://localhost:8000/calculate_path_similarity
 Content-Type: application/json; charset:utf-8
 
 {"p1":{"name":"nano_pt","begin":{"id":754,"number":"15025947465516488321","occurrences":6,"timestep":2411,"cluster":0},"end":{"id":926,"number":"1695773802313665016","occurrences":11,"timestep":3044,"cluster":0}},"p2":{"name":"nano_pt","begin":{"id":795,"number":"15478955440139495228","occurrences":570,"timestep":5816,"cluster":0},"end":{"id":794,"number":"3065390515775272085","occurrences":1261,"timestep":7109,"cluster":0}},"atom_attributes":"","state_attributes":["occurrences"]}

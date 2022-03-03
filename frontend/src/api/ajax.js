@@ -184,9 +184,19 @@ export function api_calculate_NEB(run, start, end, interpolate) {
             .then((response) => {
                 //TODO: can add saddlepoint and other calculations here
                 resolve(response.data);
-            }).catch((e) => {
-                console.log(e);
+            }).catch((e) => {                
                 reject(e);
             });
+    });
+}
+
+//TODO: add comment
+export function api_generate_ovito_image(number) {
+    return new Promise(function (resolve, reject) {
+        axios.get("/generate_ovito_image", {params: {'number': number}}).then((response) => {
+            resolve(response.data);
+        }).catch((e) => {
+            reject(e);
+        });
     });
 }
