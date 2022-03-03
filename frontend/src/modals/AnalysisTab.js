@@ -17,15 +17,29 @@ import axios from 'axios';
 const OVITO = 'ovito_modifier';
 const PYTHON = 'python_script';
 
-class PreprocessingTab extends React.Component {
+class AnalysisTab extends React.Component {
     constructor(props) {
         super(props);
+
+        let pathStart = null;
+        let pathEnd = null;
+
+        if(this.props.pathStart !== undefined) {
+            pathStart = this.props.pathStart;
+        }
+
+        if(this.props.pathEnd !== undefined) {
+            pathEnd = this.props.pathEnd;
+        }
+        
         this.state = {
             run: this.props.run,
             steps: [],
             newStep: OVITO,
             isLoading: false,
-            response: ''
+            response: '',
+            pathStart: pathStart,
+            pathEnd: pathEnd
         }
     }
 
@@ -33,18 +47,20 @@ class PreprocessingTab extends React.Component {
         if (this.state.steps.length > 0) {
             this.setState({isLoading: true, response: ''});
             let steps = this.state.steps.map(step => {
-                return {'type': step['type'], 'value': step['value']};
+                return {'analysisType': step['type'], 'value': step['value']};
             });
-            
-            let data = {'steps': steps, 'run': this.state.run};
-            
-            axios.post('/run_preprocessing', JSON.stringify(data)).then((response) => {
+            console.log(steps);
+            console.log(this.state);
+            axios.post('/run_analysis', steps, {params: {
+                run: this.state.run, pathStart: this.state.pathStart,
+                pathEnd: this.state.pathEnd
+            }}).then((response) => {
                 this.setState({isLoading: false, response: response.data});
             }).catch((error) => {
                 this.setState({isLoading: false, response: error});
             });
         } else {
-            alert("Need to have at least one preprocessing step to run!");
+            alert("Need to have at least one analysis step to run!");
         }
     }
     
@@ -68,7 +84,7 @@ class PreprocessingTab extends React.Component {
         case PYTHON:
             break;
         default:
-            alert("Unknown preprocessing step!");
+            alert("Unknown analysis step!");
             return;
         }
     }
@@ -89,18 +105,19 @@ class PreprocessingTab extends React.Component {
                                         <FormControlLabel value={PYTHON} control={<Radio />} label="Python Script" />                                    
                                     </RadioGroup>
                                 </FormControl>
-                                <Button variant="contained" size="small" onClick={() => {this.addStep()}}>Add new preprocessing step</Button>
+                                <Button variant="contained" size="small" onClick={() => {this.addStep()}}>Add new analysis step</Button>
                             </ListItem>
                         </List>
                         {this.state.isLoading && <CircularProgress/>}
                         {!this.state.isLoading &&<p>{this.state.response}</p>}
                     </DialogContent>                                       
             <DialogActions>
-                <Button size="small" variant="contained" onClick={() => {this.runSteps()}} color="secondary">Run preprocessing steps</Button>
-                <Button size="small" variant="contained">Cancel</Button>
-            </DialogActions></Box>);
+                <Button size="small" disabled={this.state.isLoading} variant="contained" onClick={() => {this.runSteps()}} color="secondary">Run analysis steps</Button>
+                <Button size="small" disabled={this.state.isLoading} variant="contained" onClick={() => {this.props.closeFunc()}}>Cancel</Button>
+            </DialogActions>
+                </Box>);
     }
     
 }
 
-export default PreprocessingTab;
+export default AnalysisTab;

@@ -1,10 +1,12 @@
+from fastapi import FastAPI
+from pydantic import BaseModel, BaseSettings
+from typing import Optional, Dict, List
+
 import neo4j
 import ovito
 import neomd
 from neomd import querybuilder, converter, calculator, query, visualizations
 import os
-from fastapi import FastAPI
-from pydantic import BaseModel, BaseSettings
 from scipy import stats
 import pygpcca as gp
 import numpy as np
@@ -17,6 +19,14 @@ import base64
 from .config import config
 from .trajectory import Trajectory
 from .utils import *
+
+class AnalysisStep(BaseModel):
+    analysisType: str
+    value: str
+
+class AnalysisRequest(BaseModel):        
+    pathStart: Optional[str] = None
+    pathEnd: Optional[str] = None
 
 os.environ['OVITO_THREAD_COUNT'] = '1'
 os.environ['DISPLAY'] = ''
@@ -98,33 +108,47 @@ async def generate_ovito_image(number: str):
     return {'image': image_string}
 
 
-@app.post('/run_preprocessing')
-async def run_preprocessing(data: dict):
+@app.post('/run_analysis')
+async def run_analysis(steps: List[AnalysisStep], run: str, pathStart: int = None, pathEnd: int = None):
     driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687", auth=("neo4j", "secret"))
-
-    run = data['run']
-    steps = data['steps']
+        
+    print(steps)
+    print(run)
+    print(pathStart)
+    print(pathEnd)
 
     qb = querybuilder.Neo4jQueryBuilder(
-        [('State', data['run'], 'State', 'ONE-TO-ONE'),
+        [('State', run, 'State', 'ONE-TO-ONE'),
          ('Atom', 'PART_OF', 'State', 'MANY-TO-ONE')])        
 
     state_atom_dict = None
-    
-    if config.IMPATIENT:
-        state_atom_dict = loadTestPickle(run, 'state_atom_dict')
-    else:    
-        q = qb.generate_trajectory(run,
+
+    if pathStart is None or pathEnd is None:
+        if config.IMPATIENT:
+            state_atom_dict = loadTestPickle(run, 'state_atom_dict')
+        else:
+            q = qb.generate_trajectory(run,
                                "ASC", ['RELATION', 'timestep'],
                                node_attributes=[],
                                relation_attributes=[],
                                include_atoms=True)                
-        state_atom_dict = converter.query_to_ASE(driver, qb, q, get_atom_type(getMetadata(run)), False)
-        saveTestPickle(run, 'state_atom_dict', state_atom_dict)
+            state_atom_dict = converter.query_to_ASE(driver, qb, q, get_atom_type(getMetadata(run)['parameters']), False)
+            saveTestPickle(run, 'state_atom_dict', state_atom_dict)
+    else:
+        if pathStart == pathEnd:
+            q = qb.generate_get_node('State', ('timestep', pathStart), 'PART_OF')
+            state_atom_dict = converter.query_to_ASE(driver, qb, q, get_atom_type(getMetadata(run)['parameters']), False)
+        else:
+            q = qb.generate_get_path(pathStart, pathEnd, run, 'timestep')
+            state_atom_dict = converter.query_to_ASE(driver, qb, q, get_atom_type(getMetadata(run)['parameters']), False)
 
-    for step in steps:        
-        if step['type'] == 'ovito_modifier':
-            new_attributes = calculator.apply_ovito_pipeline_modifier(state_atom_dict, analysisType=step['value'])
+    # TODO: Server-sent event to notify atoms have been converted
+
+    results = {}
+    for idx, step in enumerate(steps):
+        if step.analysisType == 'ovito_modifier':
+            new_attributes = calculator.apply_ovito_pipeline_modifier(state_atom_dict, analysisType=step.value)
+            #TODO: Event that notifies pipeline has been applied
             q = None
             with driver.session() as session:
                 tx = session.begin_transaction()
@@ -134,13 +158,15 @@ async def run_preprocessing(data: dict):
                                                       'State', 
                                                       'number', 
                                                       'NODE')
-                        data.update({'number': state_number})
+                    data.update({'number': state_number})
                     tx.run(q.text, data)
                 tx.commit()
+            results.update({idx: new_attributes})
+            #TODO: Notify user that everything has been written to the database
         else:
             raise NotImplementedError()
 
-    return 'Ran preprocessing steps'
+    return str(results)
 
 @app.post('/perform_KS_Test')
 def perform_KSTest(data: dict):
@@ -313,8 +339,7 @@ def pcca(run: str, clusters: int, optimal: int, m_min: int, m_max: int):
     driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687",
                                         auth=("neo4j", "secret"))
     if config.IMPATIENT:            
-        r = loadTestJson(run, 'optimal_pcca')
-        print(type(r))
+        r = loadTestJson(run, 'optimal_pcca')        
         if r != None:
             return r                             
 

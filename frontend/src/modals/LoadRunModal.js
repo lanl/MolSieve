@@ -11,7 +11,7 @@ import Stack from "@mui/material/Stack";
 import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
 import {TabPanel} from "../api/myutils";
-import PreprocessingTab from './PreprocessingTab';
+import AnalysisTab from './AnalysisTab';
 
 const domain = [2, 20];
 const defaultValues = [2, 4];
@@ -76,7 +76,7 @@ class LoadRunModal extends React.Component {
                         {this.props.run}                        
                         <Tabs value={this.state.tabIdx} onChange={(_,v) => { this.setState({tabIdx: v})}}>
                             <Tab label="Optimal Clustering" />
-                            <Tab label="Preprocessing" />
+                            <Tab label="Analysis" />
                         </Tabs>
                     </DialogTitle>
                     <TabPanel value={this.state.tabIdx} index={0}>
@@ -137,7 +137,9 @@ class LoadRunModal extends React.Component {
                     </DialogActions>
                     </TabPanel>
                     <TabPanel value={this.state.tabIdx} index={1}>
-                        <PreprocessingTab run={this.props.run}/>
+                        <AnalysisTab run={this.props.run} closeFunc={() => {
+                                         this.closeFunc(true);
+                                     }}/>
                     </TabPanel>
                 </Dialog>
             );

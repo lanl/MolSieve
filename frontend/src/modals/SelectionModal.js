@@ -8,6 +8,11 @@ import Stack from "@mui/material/Stack";
 import CircularProgress from "@mui/material/CircularProgress";
 import {api_calculate_NEB} from "../api/ajax";
 import Scatterplot from "../vis/Scatterplot";
+import Tabs from '@mui/material/Tabs';
+import Tab from '@mui/material/Tab';
+import {TabPanel} from "../api/myutils";
+import AnalysisTab from './AnalysisTab';
+
 
 class SelectionModal extends React.Component {
 
@@ -22,9 +27,13 @@ class SelectionModal extends React.Component {
         this.state = {
             interpolate: 1,
             energies: [],
+            run: currentRun,
+            start: start,
+            end: end,
             sequence: this.props.trajectories[currentRun].sequence.slice(start, end + 1),
             drawSequence: [],
-            isLoading: false
+            isLoading: false,
+            tabIdx: 0
         }
     }
 
@@ -73,8 +82,14 @@ class SelectionModal extends React.Component {
                     open={this.props.open}
                     onBackdropClick={() => this.closeFunc()}
                     fullWidth={true}>
-                    <DialogTitle>{this.props.title}</DialogTitle>
-                    <DialogContent style={{height: '400px'}}>
+                    <DialogTitle>{this.props.title}
+                        <Tabs value={this.state.tabIdx} onChange={(_,v) => {this.setState({tabIdx: v})}}>
+                            <Tab label="NEB"/>
+                            <Tab label="Analysis"/>
+                        </Tabs>
+                    </DialogTitle>
+                    <TabPanel value={this.state.tabIdx} index={0}>
+                        <DialogContent style={{height: '400px'}}>
                         <Stack spacing={2} alignItems="center" justifyContent="center">
                             <Stack direction="row">
                                 <label htmlFor="txt_path_neb">
@@ -118,6 +133,15 @@ class SelectionModal extends React.Component {
                             Cancel
                         </Button>
                     </DialogActions>
+                    </TabPanel>
+                    <TabPanel value={this.state.tabIdx} index={1}>
+                        <AnalysisTab run={this.state.run}                                    
+                                     pathStart={this.state.start}
+                                     pathEnd={this.state.end}
+                                     closeFunc={() => {
+                                         this.closeFunc(true);
+                                     }} />
+                    </TabPanel>
                 </Dialog>
             );
         } else {
