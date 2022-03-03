@@ -130,7 +130,7 @@ def create_app(test_config=None):
         return jsonify(neomd.utils.return_ovito_modifiers())
 
     @app.route('/run_preprocessing', methods=['POST'])
-    def run_preprocessing():
+    async def run_preprocessing():
         driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687", auth=("neo4j", "secret"))        
         data = request.get_json(force=True)        
         
@@ -154,10 +154,10 @@ def create_app(test_config=None):
             
             state_atom_dict = converter.query_to_ASE(driver, qb, q, get_atom_type(getMetadata(run)), False)
             saveTestPickle(run, 'state_atom_dict', state_atom_dict)
-            
+        
         for step in steps:
             if step['type'] == 'ovito_modifier':
-                calculator.apply_ovito_pipeline_modifer(driver, state_atom_dict, qb, analysisType=step['value'])                
+                calculator.apply_ovito_pipeline_modifier(state_atom_dict, analysisType=step['value'])                
             else:
                 raise NotImplementedError()
     

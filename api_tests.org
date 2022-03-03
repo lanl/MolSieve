@@ -28,8 +28,10 @@ Content-Type: application/json; charset:utf-8
 {"p1":{"name":"nano_pt","begin":{"id":754,"number":"15025947465516488321","occurrences":6,"timestep":2411,"cluster":0},"end":{"id":926,"number":"1695773802313665016","occurrences":11,"timestep":3044,"cluster":0}},"p2":{"name":"nano_pt","begin":{"id":795,"number":"15478955440139495228","occurrences":570,"timestep":5816,"cluster":0},"end":{"id":794,"number":"3065390515775272085","occurrences":1261,"timestep":7109,"cluster":0}},"atom_attributes":"","state_attributes":["occurrences"]}
 
 * Calculate Ovito Pipeline Modifier :verb:
-post http://localhost:5000/run_preprocessing
+post http://localhost:8000/run_preprocessing
 Content-Type: application/json; charset:utf-8
 
 {"steps": [{"type": "ovito_modifier", "value": "AcklandJonesModifier"}], "run": "nano_pt"}
 
+* Get Ovito Image :verb:
+get http://localhost:8000/generate_ovito_image/17758426787395080545
