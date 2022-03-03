@@ -35,7 +35,7 @@ class App extends React.Component {
         this.setState({ ...this.state, currentModal: key });
     };
 
-    selectRun = (e) => {
+    selectRun = (e) => {         
         this.setState({
             run: e.target.value,
             currentModal: RUN_MODAL,
@@ -186,20 +186,21 @@ class App extends React.Component {
                         />
                 </Container>
 
-                {this.state.currentModal === RUN_MODAL && (
-                    <LoadRunModal
-                        run={this.state.run}
-                        runFunc={this.load_trajectory}
-                        isOpen={this.state.currentModal === RUN_MODAL}
-                        lastEvent={this.state.lastEvent}
-                        closeFunc={() => this.toggleModal(RUN_MODAL)}
-                        onRequestClose={() => this.toggleModal(RUN_MODAL)}
-                    />
-                )}
-                <LoadingModal
+                {this.state.currentModal === RUN_MODAL &&
+                 (<LoadRunModal
+                    run={this.state.run}
+                    runFunc={this.load_trajectory}
+                    isOpen={this.state.currentModal === RUN_MODAL}
+                    lastEvent={this.state.lastEvent}
+                    closeFunc={() => this.toggleModal(RUN_MODAL)}
+                    onRequestClose={() => this.toggleModal(RUN_MODAL)}
+                  />)
+                }
+                
+                {this.state.isLoading && <LoadingModal
                     open={this.state.isLoading}
                     title={this.state.loadingMessage}
-                />
+                                        />}
             </div>
         );
     }

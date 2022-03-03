@@ -14,35 +14,69 @@ import axios from "axios";
 class CheckboxTable extends React.Component {
     constructor(props) {
         super(props);
+
+        let allowOnlyOneSelected = false;
+        let clickedType = [];
+
+        if(this.props.allowOnlyOneSelected !== undefined) {
+            allowOnlyOneSelected = this.props.allowOnlyOneSelected;
+        } 
+        
+        if (allowOnlyOneSelected) {
+            clickedType = "";
+        }
+        
         this.state = {
             isLoaded: false,
             items: [],
             click: () => void 0,
-            clicked: [],
+            clicked: clickedType,
+            allowOnlyOneSelected: allowOnlyOneSelected,
+            lastClicked: null
         };
     }
 
     click = (e) => {
+        
         // build list of clicked checkboxes
-        if (e.target.checked) {
-            this.setState({clicked: [...this.state.clicked, e.target.value]}, () => {
-                if (this.props.click) {
-                    this.props.click(e, this.state.clicked);
+        if(this.state.allowOnlyOneSelected) {
+            if (e.target.checked) {
+                if(this.state.lastClicked) {
+                    let chk = this.state.lastClicked;
+                    chk.checked = false;
                 }
-            });            
+                
+                this.setState({clicked: e.target.value, lastClicked: e.target}, () => {
+                    if (this.props.click) {
+                        this.props.click(e, this.state.clicked);
+                    }});
+            } else {
+                this.setState({clicked: ""}, () => {
+                    if (this.props.click) {
+                        this.props.click(e, this.state.clicked);
+                    }});
+            }
+                        
         } else {
-            let newClicked = [...this.state.clicked];
-            newClicked.splice(newClicked.indexOf(e.target.value), 1);
-            this.setState({clicked: newClicked}, () => {
-                if (this.props.click) {
-                    this.props.click(e, this.state.clicked);
-                }
-            });            
-        }        
+            if (e.target.checked) {
+                this.setState({clicked: [...this.state.clicked, e.target.value]}, () => {
+                    if (this.props.click) {
+                        this.props.click(e, this.state.clicked);
+                    }
+                });            
+            } else {
+                let newClicked = [...this.state.clicked];
+                newClicked.splice(newClicked.indexOf(e.target.value), 1);
+                this.setState({clicked: newClicked}, () => {
+                    if (this.props.click) {
+                        this.props.click(e, this.state.clicked);
+                    }
+                });            
+            }
+        }
     };
 
     componentDidMount() {
-        console.log(this.props.api_call);
         if(this.props.api_call !== undefined && this.props.api_call !== '') {
             axios
                 .get(this.props.api_call)
@@ -57,7 +91,7 @@ class CheckboxTable extends React.Component {
         }
 
         if (this.props.defaults !== undefined) {
-            this.setState({ ...this.state, clicked: this.props.defaults });
+            this.setState({ clicked: this.props.defaults });
         }
     }
 

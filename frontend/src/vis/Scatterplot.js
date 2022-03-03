@@ -30,8 +30,7 @@ function Scatterplot({ data, loadingCallback }) {
     }, []);
 
     const ref = useTrajectoryChartRender(
-        (svg) => {
-            console.log("drawing"); 
+        (svg) => {            
             
             if (height === undefined || width === undefined) {
                 return;

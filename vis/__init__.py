@@ -13,6 +13,7 @@ import jsonpickle
 import pickle
 import pygpcca as gp
 import base64
+from scipy import stats
 
 from .epoch import Epoch, calculate_epoch
 from .config import Config
@@ -161,6 +162,49 @@ def create_app(test_config=None):
                 raise NotImplementedError()
     
         return 'Ran preprocessing steps'
+
+    @app.route('/perform_KS_Test', methods=['POST'])
+    def perform_KSTest():
+        data = request.get_json(force=True)        
+
+        cdf = data['cdf']
+        rvs = data['rvs']
+        prop = data['property']
+
+        driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687", auth=("neo4j", "secret"))
+
+        rvs_run = rvs['name']
+        rvs_start = rvs['begin']['timestep']
+        rvs_end = rvs['end']['timestep']
+        
+        rvs_qb = querybuilder.Neo4jQueryBuilder(
+            [('State', rvs_run, 'State', 'ONE-TO-ONE'),
+             ('Atom', 'PART_OF', 'State', 'MANY-TO-ONE')]) 
+        
+        q = rvs_qb.generate_get_path(rvs_start, rvs_end, rvs_run, 'timestep', include_atoms=False)                
+        rvs_df = neomd.converter.query_to_df(driver, q)
+        rvs_final = rvs_df[prop].to_numpy()        
+
+        cdf_final = None
+        
+        if(type(data['cdf']) is dict):
+            cdf_run = cdf['name']
+            cdf_start = cdf['begin']['timestep']
+            cdf_end = cdf['end']['timestep']
+            
+            cdf_qb = querybuilder.Neo4jQueryBuilder(
+                [('State', cdf_run, 'State', 'ONE-TO-ONE'),
+                 ('Atom', 'PART_OF', 'State', 'MANY-TO-ONE')]) 
+            
+            q = cdf_qb.generate_get_path(cdf_start, cdf_end, cdf_run, 'timestep', include_atoms=False)                
+            cdf_df = neomd.converter.query_to_df(driver, q)
+            cdf_final = cdf_df[prop].to_numpy()            
+        else:
+            cdf_final = cdf
+            
+        statistic, pvalue = stats.kstest(rvs_final, cdf_final)        
+            
+        return jsonify({'statistic': statistic, 'pvalue': pvalue})
     
     @app.route('/calculate_path_similarity', methods=['POST'])
     def calculate_path_similarity():        

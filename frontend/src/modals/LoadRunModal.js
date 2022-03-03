@@ -45,7 +45,8 @@ class LoadRunModal extends React.Component {
     }
 
     runFunc = () => {
-        this.props.closeFunc(false);
+        this.closeFunc(false);
+        
         this.props.runFunc(
             this.state.run,
             -1,
@@ -69,7 +70,7 @@ class LoadRunModal extends React.Component {
                     onBackdropClick={() => this.closeFunc(true)}
                     open={this.props.isOpen}
                     fullWidth={true}
-                    maxWidth="lg"
+                    maxWidth="lg"                    
                 >
                     <DialogTitle>
                         {this.props.run}                        
@@ -113,7 +114,7 @@ class LoadRunModal extends React.Component {
                             defaults={defaults}
                             header="Properties"
                             api_call={`/get_property_list?run=${this.props.run}`}
-                        ></CheckboxTable>
+                        />
                     </DialogContent>
                     <DialogActions>
                         <Button

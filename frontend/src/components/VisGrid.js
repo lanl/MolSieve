@@ -442,9 +442,9 @@ class VisGrid extends React.Component {
                             }}>Close</Button>
                 </Drawer>
 
-                <LoadingModal
-                    open={this.state.isLoading}
-                    title="Rendering..."/>
+                {this.state.isLoading && <LoadingModal
+                                           open={this.state.isLoading}
+                                           title="Rendering..."/> }
             {safe && (
                 <TrajectoryChart
                     trajectories={this.props.trajectories}

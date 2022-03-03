@@ -13,7 +13,7 @@ import Scatterplot from "../vis/Scatterplot.js";
 import CircularProgress from "@mui/material/CircularProgress";
 import Grid from "@mui/material/Grid";
 import { intersection } from "../api/myutils";
-import { api_calculate_path_similarity } from "../api/ajax";
+import { api_calculate_path_similarity, api_performKSTest } from "../api/ajax";
 import CheckboxTable from "../components/CheckboxTable";
 
 import Tabs from '@mui/material/Tabs';
@@ -24,9 +24,13 @@ import {TabPanel} from "../api/myutils";
 class MultiplePathSelectionModal extends React.Component {
     constructor(props) {
         super(props);
-        this.state = { cmn: null, x_attribute: null, y_attribute: null, tabIdx: 0, atomProperties: [], stateProperties: [] };
+        this.state = { cmn: null, x_attribute: null, y_attribute: null, tabIdx: 0, atomProperties: [], stateProperties: [], ksProperty: ""};
     }
 
+    setKSProperty = (_, clicked) => {        
+        this.setState({ksProperty: clicked});
+    }
+    
     addAtomProperty = (_, clicked) => {
         this.setState({atomProperties: [...clicked]});
     };
@@ -53,6 +57,8 @@ class MultiplePathSelectionModal extends React.Component {
                 y_attribute: cmn[0],
                 extent1: JSON.stringify(this.props.extents[0]),
                 extent2: JSON.stringify(this.props.extents[1]),
+                rvs: JSON.stringify(this.props.extents[0]),
+                cdf: JSON.stringify(this.props.extents[1]),
                 similarity: null,
                 isLoading: false,
             });
@@ -68,8 +74,7 @@ class MultiplePathSelectionModal extends React.Component {
     };
 
     calculatePathSimilarity = () => {
-        this.setState({ isLoading: true });
-        console.log(this.state);
+        this.setState({ isLoading: true });        
         if(this.state.stateProperties.length === 0 && this.state.atomProperties.length === 0) {
             alert("Please choose some properties to calculate the path similarity with!");
             this.setState({isLoading: false});
@@ -86,6 +91,26 @@ class MultiplePathSelectionModal extends React.Component {
                 this.setState({ isLoading: false});
             });
         }
+    };
+
+    performKSTest = () => {
+        this.setState({ isLoading: true });
+
+        if(this.state.ksProperty !== "") {
+        
+            console.log(this.state);
+            api_performKSTest(this.state.rvs, this.state.cdf, this.state.ksProperty).then((data) => {
+                this.setState({ isLoading: false, ksTest: data});
+            }).catch((error) => {
+                alert(error);
+                this.setState({isLoading: false});
+            });
+
+        } else {
+            alert("Please select a property to perform the KS test with.")
+            this.setState({isLoading : false});
+        }
+       
     };
 
     closeFunc = () => {
@@ -152,6 +177,17 @@ class MultiplePathSelectionModal extends React.Component {
                     </p>
                 );
             }
+
+            var ksTestText = null;
+
+            if(!this.state.ksTest && !this.state.isLoading) {
+                ksTestText = (<p></p>);
+            } else if (this.state.isLoading) {
+                ksTestText = (<CircularProgress color="grey"/>);
+            } else {
+                ksTestText = (<p>Statistic: {`${this.state.ksTest['statistic']}`}; <br/>
+                                 P-value: {`${this.state.ksTest['pvalue']}`}</p>);
+            }            
 
             return (
                 <Dialog
@@ -264,6 +300,53 @@ class MultiplePathSelectionModal extends React.Component {
                             <Button
                                 variant="contained"
                                 onClick={this.calculatePathSimilarity}
+                                disabled={this.state.isLoading}
+                            >
+                                Calculate path similarity
+                            </Button>
+                            <Button onClick={this.closeFunc} disabled={this.state.isLoading}>Close</Button>
+                        </DialogActions>
+                    </TabPanel>
+                    <TabPanel value={this.state.tabIdx} index={2}>
+                        <p>Please choose how the test should be performed.</p>
+                        <Stack
+                            spacing={2}
+                            direction="row">
+                            <FormControl>
+                                <Select
+                                    value={this.state.rvs}
+                                    onChange={(e) => {
+                                        this.setState({
+                                            rvs: e.target.value,
+                                        });
+                                    }}>
+                                    {extent_options}
+                                </Select>
+                                <FormHelperText>rvs</FormHelperText>
+                            </FormControl>
+                            <FormControl>
+                                <Select
+                                    value={this.state.cdf}
+                                    onChange={(e) => {
+                                        this.setState({
+                                            cdf: e.target.value,
+                                        });
+                                    }}
+                                >
+                                    {extent_options}
+                                    <MenuItem key='norm' value='norm'>
+                                        norm
+                                    </MenuItem>
+                                </Select>
+                                <FormHelperText>cdf</FormHelperText>                                    
+                            </FormControl>
+                        </Stack>
+                        <CheckboxTable header="State properties" items={this.state.cmn} allowOnlyOneSelected click={this.setKSProperty} />
+                        {ksTestText}
+                        <DialogActions>
+                            <Button
+                                variant="contained"
+                                onClick={this.performKSTest}
                                 disabled={this.state.isLoading}
                             >
                                 Calculate path similarity

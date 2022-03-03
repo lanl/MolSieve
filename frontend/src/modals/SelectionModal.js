@@ -52,9 +52,12 @@ class SelectionModal extends React.Component {
                 for (var e of energyList) {
                     unpackedEnergies.push(e);
                 }
-            });
+            })
             
             this.setState({energies: unpackedEnergies, drawSequence: drawSequence, isLoading: false}, () => {console.log(this.state)});
+        }).catch((e) => {            
+            alert(e);
+            this.setState({isLoading: false});
         });        
         
     }

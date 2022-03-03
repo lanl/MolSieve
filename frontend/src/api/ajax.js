@@ -128,6 +128,35 @@ export function api_calculate_path_similarity(
     });
 }
 
+
+//TODO: add comment
+export function api_performKSTest(rvs, cdf, property) {
+    return new Promise(function (resolve, reject) {
+
+        let processedCdf = null;        
+        try {
+            processedCdf = JSON.parse(cdf);            
+        } catch(e) {
+            processedCdf = cdf;
+        }        
+        
+        axios.post("/perform_KS_Test",
+                   JSON.stringify({
+                       rvs: JSON.parse(rvs),
+                       cdf: processedCdf,
+                       property: property                       
+                   }),
+                   {headers: { "Content-Type": "application/json"} }
+                  ).then((response) => {
+                      resolve(response.data);
+                  }).catch((e) => {
+                      reject(e);
+                  });
+    });
+}
+
+
+
 //TODO: add comment
 export function api_load_metadata(run, trajectory) {
     return new Promise(function (resolve, reject) {
@@ -148,6 +177,7 @@ export function api_load_metadata(run, trajectory) {
     });
 }
 
+//TODO: add comment
 export function api_calculate_NEB(run, start, end, interpolate) {
     return new Promise(function (resolve, reject) {
         axios.get("/calculate_neb_on_path", { params: { run: run, start: start, end: end, interpolate: interpolate}})
@@ -155,6 +185,7 @@ export function api_calculate_NEB(run, start, end, interpolate) {
                 //TODO: can add saddlepoint and other calculations here
                 resolve(response.data);
             }).catch((e) => {
+                console.log(e);
                 reject(e);
             });
     });
