@@ -35,3 +35,6 @@ Content-Type: application/json; charset:utf-8
 
 * Get Ovito Image :verb:
 get http://localhost:8000/generate_ovito_image/17758426787395080545
+
+* Get Ovito Modifiers :verb:
+get http://localhost:8000/get_ovito_modifiers
