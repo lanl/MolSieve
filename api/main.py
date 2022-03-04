@@ -74,6 +74,10 @@ def getMetadata(run, getJson=False):
     else:
         return trajectories[run].metadata
 
+@app.get('/get_scipy_distributions')
+def get_scipy_distributions():
+    return getScipyDistributions()
+    
 @app.get('/get_ovito_modifiers')
 def get_ovito_modifiers():
     return neomd.utils.return_ovito_modifiers()
@@ -111,12 +115,7 @@ async def generate_ovito_image(number: str):
 @app.post('/run_analysis')
 async def run_analysis(steps: List[AnalysisStep], run: str, pathStart: int = None, pathEnd: int = None):
     driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687", auth=("neo4j", "secret"))
-        
-    print(steps)
-    print(run)
-    print(pathStart)
-    print(pathEnd)
-
+    
     qb = querybuilder.Neo4jQueryBuilder(
         [('State', run, 'State', 'ONE-TO-ONE'),
          ('Atom', 'PART_OF', 'State', 'MANY-TO-ONE')])        

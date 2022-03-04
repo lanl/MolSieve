@@ -8,11 +8,9 @@ import Stack from "@mui/material/Stack";
 import FormControl from "@mui/material/FormControl";
 import FormHelperText from "@mui/material/FormHelperText";
 import Select from "@mui/material/Select";
-import MenuItem from "@mui/material/MenuItem";
+import AjaxSelect from "../components/AjaxSelect";
 import {api_performKSTest} from "../api/ajax";
 import CheckboxTable from "../components/CheckboxTable";
-
-//import axios from 'axios';
 
 class KSTestTab extends React.Component {
     constructor(props) {
@@ -30,12 +28,17 @@ class KSTestTab extends React.Component {
         this.setState({ksProperty: clicked});
     }
 
+    setCDF = (v) => {
+        this.setState({
+            cdf: v
+        });
+    }
+
     closeFunc = () => {
         this.props.closeFunc();
     };
 
-
-    performKSTest = () => {
+    performKSTest = () => {        
         this.setState({ isLoading: true });
 
         if(this.state.ksProperty !== "") {            
@@ -52,7 +55,6 @@ class KSTestTab extends React.Component {
         }
        
     };
-
 
     render() {
         var ksTestText = null;
@@ -86,19 +88,11 @@ class KSTestTab extends React.Component {
                                 <FormHelperText>rvs</FormHelperText>
                             </FormControl>
                             <FormControl>
-                                <Select
-                                    value={this.state.cdf}
-                                    onChange={(e) => {
-                                        this.setState({
-                                            cdf: e.target.value,
-                                        });
-                                    }}
-                                >
+                                <AjaxSelect change={this.setCDF}
+                                            defaultValue={this.state.cdf}
+                                            api_call='get_scipy_distributions'>
                                     {this.props.cdf !== undefined && this.props.cdf}
-                                    <MenuItem key='norm' value='norm'>
-                                        norm
-                                    </MenuItem>
-                                </Select>
+                                </AjaxSelect>                       
                                 <FormHelperText>cdf</FormHelperText>                                    
                             </FormControl>
                         </Stack>
