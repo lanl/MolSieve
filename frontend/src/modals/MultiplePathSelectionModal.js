@@ -13,22 +13,18 @@ import Scatterplot from "../vis/Scatterplot.js";
 import CircularProgress from "@mui/material/CircularProgress";
 import Grid from "@mui/material/Grid";
 import { intersection } from "../api/myutils";
-import { api_calculate_path_similarity, api_performKSTest } from "../api/ajax";
+import { api_calculate_path_similarity } from "../api/ajax";
 import CheckboxTable from "../components/CheckboxTable";
 
 import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
 import {TabPanel} from "../api/myutils";
-
+import KSTestTab from "./KSTestTab";
 
 class MultiplePathSelectionModal extends React.Component {
     constructor(props) {
         super(props);
-        this.state = { cmn: null, x_attribute: null, y_attribute: null, tabIdx: 0, atomProperties: [], stateProperties: [], ksProperty: ""};
-    }
-
-    setKSProperty = (_, clicked) => {        
-        this.setState({ksProperty: clicked});
+        this.state = { cmn: null, x_attribute: null, y_attribute: null, tabIdx: 0, atomProperties: [], stateProperties: []};
     }
     
     addAtomProperty = (_, clicked) => {
@@ -93,25 +89,6 @@ class MultiplePathSelectionModal extends React.Component {
         }
     };
 
-    performKSTest = () => {
-        this.setState({ isLoading: true });
-
-        if(this.state.ksProperty !== "") {
-        
-            console.log(this.state);
-            api_performKSTest(this.state.rvs, this.state.cdf, this.state.ksProperty).then((data) => {
-                this.setState({ isLoading: false, ksTest: data});
-            }).catch((error) => {
-                alert(error);
-                this.setState({isLoading: false});
-            });
-
-        } else {
-            alert("Please select a property to perform the KS test with.")
-            this.setState({isLoading : false});
-        }
-       
-    };
 
     closeFunc = () => {
         this.props.closeFunc();
@@ -178,17 +155,6 @@ class MultiplePathSelectionModal extends React.Component {
                 );
             }
 
-            var ksTestText = null;
-
-            if(!this.state.ksTest && !this.state.isLoading) {
-                ksTestText = (<p></p>);
-            } else if (this.state.isLoading) {
-                ksTestText = (<CircularProgress color="grey"/>);
-            } else {
-                ksTestText = (<p>Statistic: {`${this.state.ksTest['statistic']}`}; <br/>
-                                 P-value: {`${this.state.ksTest['pvalue']}`}</p>);
-            }            
-
             return (
                 <Dialog
                     onClose={this.closeFunc}
@@ -198,10 +164,10 @@ class MultiplePathSelectionModal extends React.Component {
                     maxWidth="lg"
                 >
                     <DialogTitle>{this.props.title}
-                        <Tabs value={this.state.tabIdx} onChange={(_,v) => { this.setState({tabIdx: v})}}>
+                        <Tabs value={this.state.tabIdx} onChange={(_, v) => { this.setState({ tabIdx: v }) }}>
                             <Tab label="X-Y Plots" disabled={this.state.isLoading} />
-                            <Tab label="Path Similarity" disabled={this.state.isLoading}/>
-                            <Tab label="Kolmogorov-Smirnov Test" disabled={this.state.isLoading}  />
+                            <Tab label="Path Similarity" disabled={this.state.isLoading} />
+                            <Tab label="Kolmogorov-Smirnov Test" disabled={this.state.isLoading} />
                         </Tabs>
                     </DialogTitle>
                     <TabPanel value={this.state.tabIdx} index={0}>
@@ -251,16 +217,16 @@ class MultiplePathSelectionModal extends React.Component {
                                 >
                                     {scatterplots}
                                 </Grid>
-                            </Stack>                            
+                            </Stack>
                         </DialogContent>
                         <DialogActions>
                             <Button onClick={this.closeFunc} disabled={this.state.isLoading}>Close</Button>
                         </DialogActions>
                     </TabPanel>
-                    <TabPanel value={this.state.tabIdx} index={1}>                        
+                    <TabPanel value={this.state.tabIdx} index={1}>
                         <DialogContent>
                             <Stack
-                            spacing={2}>
+                                spacing={2}>
                                 <p>Select which two paths to compare.</p>
                                 <Stack
                                     spacing={2}
@@ -291,7 +257,7 @@ class MultiplePathSelectionModal extends React.Component {
                                         <FormHelperText>Path 2</FormHelperText>
                                     </FormControl>
                                 </Stack>
-                                <CheckboxTable header="State properties" items={this.state.cmn} click={this.addStateProperty} />                                
+                                <CheckboxTable header="State properties" items={this.state.cmn} click={this.addStateProperty} />
                                 <CheckboxTable header="Atom properties" api_call={`/get_atom_properties`} click={this.addAtomProperty} />
                                 {similarityText}
                             </Stack>
@@ -308,51 +274,7 @@ class MultiplePathSelectionModal extends React.Component {
                         </DialogActions>
                     </TabPanel>
                     <TabPanel value={this.state.tabIdx} index={2}>
-                        <p>Please choose how the test should be performed.</p>
-                        <Stack
-                            spacing={2}
-                            direction="row">
-                            <FormControl>
-                                <Select
-                                    value={this.state.rvs}
-                                    onChange={(e) => {
-                                        this.setState({
-                                            rvs: e.target.value,
-                                        });
-                                    }}>
-                                    {extent_options}
-                                </Select>
-                                <FormHelperText>rvs</FormHelperText>
-                            </FormControl>
-                            <FormControl>
-                                <Select
-                                    value={this.state.cdf}
-                                    onChange={(e) => {
-                                        this.setState({
-                                            cdf: e.target.value,
-                                        });
-                                    }}
-                                >
-                                    {extent_options}
-                                    <MenuItem key='norm' value='norm'>
-                                        norm
-                                    </MenuItem>
-                                </Select>
-                                <FormHelperText>cdf</FormHelperText>                                    
-                            </FormControl>
-                        </Stack>
-                        <CheckboxTable header="State properties" items={this.state.cmn} allowOnlyOneSelected click={this.setKSProperty} />
-                        {ksTestText}
-                        <DialogActions>
-                            <Button
-                                variant="contained"
-                                onClick={this.performKSTest}
-                                disabled={this.state.isLoading}
-                            >
-                                Calculate path similarity
-                            </Button>
-                            <Button onClick={this.closeFunc} disabled={this.state.isLoading}>Close</Button>
-                        </DialogActions>
+                        <KSTestTab closeFunc={this.closeFunc} cdf={extent_options} rvs={extent_options} rvsDefault={JSON.stringify(this.props.extents[0])} stateProperties={this.state.cmn} />
                     </TabPanel>
                 </Dialog>
             );

@@ -1,5 +1,6 @@
 import pickle
 import json
+import scipy.stats
 
 def metadata_to_parameters(raw_metadata):
     """
@@ -94,3 +95,17 @@ def loadTestJson(run, t):
     except Exception as e:            
         print("Loading from database instead...")
         return None
+
+def getScipyDistributions():
+    modifiers = []
+    for name, value in inspect.getmembers(scipy.stats, inspect.isclass):
+        # keep it simple for now, assume there's no special parameters.
+        # just push it into the pipeline
+        modifiers.append(name)
+
+#        print(globals()[value].__name__)
+#        sig = inspect.getfullargspec(globals()[name].__init__)
+#        print(sig)
+#        modifiers.update({name:sig.parameters})
+    return modifiers
+

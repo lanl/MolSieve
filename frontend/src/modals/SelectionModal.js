@@ -12,7 +12,8 @@ import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
 import {TabPanel} from "../api/myutils";
 import AnalysisTab from './AnalysisTab';
-
+import KSTestTab from "./KSTestTab";
+import MenuItem from "@mui/material/MenuItem";
 
 class SelectionModal extends React.Component {
 
@@ -76,16 +77,27 @@ class SelectionModal extends React.Component {
     };
 
     render() {
+
+        var extent_options = this.props.extents.map((extent, i) => {
+            return (
+                <MenuItem key={i} value={JSON.stringify(extent)}>
+                    {`${extent.name} ${extent.begin.timestep} - ${extent.end.timestep}`}
+                </MenuItem>
+            );
+        });        
+        
         if (this.props.open) {
             return (
                 <Dialog
                     open={this.props.open}
                     onBackdropClick={() => this.closeFunc()}
+                    maxWidth="lg"
                     fullWidth={true}>
                     <DialogTitle>{this.props.title}
                         <Tabs value={this.state.tabIdx} onChange={(_,v) => {this.setState({tabIdx: v})}}>
                             <Tab label="NEB"/>
                             <Tab label="Analysis"/>
+                            <Tab label="Kolmogorov-Smirnov Test"/>
                         </Tabs>
                     </DialogTitle>
                     <TabPanel value={this.state.tabIdx} index={0}>
@@ -141,6 +153,9 @@ class SelectionModal extends React.Component {
                                      closeFunc={() => {
                                          this.closeFunc(true);
                                      }} />
+                    </TabPanel>
+                    <TabPanel value={this.state.tabIdx} index={2}>
+                        <KSTestTab closeFunc={this.closeFunc} rvs={extent_options} currentRun={this.state.run} rvsDefault={JSON.stringify(this.props.extents[0])} />
                     </TabPanel>
                 </Dialog>
             );
