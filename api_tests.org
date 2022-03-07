@@ -38,3 +38,6 @@ get http://localhost:8000/generate_ovito_image/17758426787395080545
 
 * Get Ovito Modifiers :verb:
 get http://localhost:8000/get_ovito_modifiers
+
+* Get Ovito animation :verb:
+get http://localhost:8000/generate_ovito_animation?run=nano_pt&start=300&end=400

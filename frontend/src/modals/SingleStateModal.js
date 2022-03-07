@@ -12,20 +12,23 @@ import TableContainer from "@mui/material/TableContainer";
 import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
 import Paper from "@mui/material/Paper";
+import CircularProgress from "@mui/material/CircularProgress";
+import Box from "@mui/material/Box";
 
 class SingleStateModal extends React.Component {
     constructor(props) {
         super(props);
-        this.state = { trajectoryState : this.props.state, imgSrc: "" };
+        this.state = { trajectoryState : this.props.state, isLoaded: false };
         this.imgRef = React.createRef();
     }
 
     componentDidMount = () => {
         api_generate_ovito_image(this.state.trajectoryState.number)
             .then((response) => {                
-                const imageData = 'data:image/png;base64,' + response.image;                
-                this.imgRef.current.setAttribute("src", imageData);
-                console.log(this.state);
+                const imageData = 'data:image/png;base64,' + response.image;
+                this.setState({isLoaded: true}, () => {
+                    this.imgRef.current.setAttribute("src", imageData);
+                });
             })
             .catch((e) => { alert(e);})        
     }
@@ -52,8 +55,19 @@ class SingleStateModal extends React.Component {
                     onBackdropClick={() => this.closeFunc()}                    
                 >
                 <DialogTitle>State {this.state.trajectoryState.number}</DialogTitle>
-                    <DialogContent>
-                        <img ref={this.imgRef} />
+                    <DialogContent style={{alignContent: 'center', alignItems: 'center', justifyContent:'center'}}>
+                        {this.state.isLoaded && 
+                         <img ref={this.imgRef} />
+                        }
+                                            <Box
+                        sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                        }}
+                    >
+                                                {!this.state.isLoaded && <CircularProgress color="grey"/>}
+                                            </Box>
                         <br/>
                         <TableContainer component={Paper}>
                             <Table size="small">

@@ -111,6 +111,36 @@ async def generate_ovito_image(number: str):
     image_string = image_string.removeprefix("b'")
     return {'image': image_string}
 
+@app.get('/generate_ovito_animation')
+async def generate_ovito_animation(run: str, start: str, end: str):            
+        
+    driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687",
+                                            auth=("neo4j", "secret"))
+
+    qb = querybuilder.Neo4jQueryBuilder(
+        schema=[("State", run, "State", "ONE-TO-ONE"),
+                    ("Atom", "PART_OF", "State", "MANY-TO-ONE")])
+        
+    q = qb.generate_get_path(start, end, run, 'timestep')
+
+    metadata = getMetadata(run)
+    atomType = get_atom_type(metadata['parameters'])        
+
+    state_atom_dict = neomd.converter.query_to_ASE(driver, qb, q, atomType)
+
+    output_path = neomd.visualizations.render_ASE_list(state_atom_dict)
+
+    video_string = ""
+    with open(output_path, "rb") as video:
+        video_base64 = base64.b64encode(video.read())
+
+        video_string = str(video_base64)
+        video_string = video_string.removesuffix("'")
+        video_string = video_string.removeprefix("b'")
+
+    os.remove(output_path)
+
+    return {'video': video_string}
 
 @app.post('/run_analysis')
 async def run_analysis(steps: List[AnalysisStep], run: str, pathStart: int = None, pathEnd: int = None):
@@ -405,21 +435,6 @@ def pcca(run: str, clusters: int, optimal: int, m_min: int, m_max: int):
 
     return j
 
-@app.get('/generate_ovito_animation')
-def generate_ovito_animation(run: str, start: str, end: str):            
-        
-    driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687",
-                                            auth=("neo4j", "secret"))
-
-    qb = querybuilder.Neo4jQueryBuilder(
-        schema=[("State", run, "State", "ONE-TO-ONE"),
-                    ("Atom", "PART_OF", "State", "MANY-TO-ONE")])
-        
-    q = qb.generate_get_path(start,end)
-
-    # TODO: start with modifying neomd to return the correct path
-    # once that is done, figure out how to get images from the backend
-    # and pass in the sequence
 
 @app.get('/calculate_neb_on_path')
 def calculate_neb_on_path(run: str, start: str, end: str, interpolate: int):                
