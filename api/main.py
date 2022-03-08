@@ -113,7 +113,7 @@ async def generate_ovito_image(number: str):
 
 @app.get('/generate_ovito_animation')
 async def generate_ovito_animation(run: str, start: int, end: int):            
-        
+    
     driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687",
                                             auth=("neo4j", "secret"))
 

@@ -15,6 +15,7 @@ import Grid from "@mui/material/Grid";
 import { intersection } from "../api/myutils";
 import { api_calculate_path_similarity } from "../api/ajax";
 import CheckboxTable from "../components/CheckboxTable";
+import AjaxVideo from "../components/AjaxVideo";
 
 import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
@@ -155,6 +156,18 @@ class MultiplePathSelectionModal extends React.Component {
                 );
             }
 
+            //could use more spacing between the videos
+            let ajaxVideos = this.props.extents.map((extent, idx) => {
+                const start = extent['begin']['timestep'];
+                const end = extent['end']['timestep'];
+                
+                return (<Grid key={idx} item xs={6}>
+                            <p>{`${extent.name} ${extent.begin.timestep} - ${extent.end.timestep}`}</p>
+                            <AjaxVideo run={extent['name']} start={start} end={end}/>
+                        </Grid>);
+            });
+                      
+
             return (
                 <Dialog
                     onClose={this.closeFunc}
@@ -165,12 +178,37 @@ class MultiplePathSelectionModal extends React.Component {
                 >
                     <DialogTitle>{this.props.title}
                         <Tabs value={this.state.tabIdx} onChange={(_, v) => { this.setState({ tabIdx: v }) }}>
+                            <Tab label="Info" disabled={this.state.isLoading} />
                             <Tab label="X-Y Plots" disabled={this.state.isLoading} />
                             <Tab label="Path Similarity" disabled={this.state.isLoading} />
                             <Tab label="Kolmogorov-Smirnov Test" disabled={this.state.isLoading} />
                         </Tabs>
                     </DialogTitle>
                     <TabPanel value={this.state.tabIdx} index={0}>
+                        <DialogContent>
+                            <Grid
+                                direction="row"
+                                justifyContent="space-evenly"
+                                container
+                                spacing={2}
+                                >
+                                {ajaxVideos}
+                            </Grid>
+
+                            </DialogContent>
+                        <DialogActions>
+                            <Button
+                            size="small"
+                            variant="contained"
+                            color="error"
+                            onClick={this.closeFunc}
+                        >
+                            Cancel
+                        </Button>
+                        </DialogActions>
+                    </TabPanel>
+
+                    <TabPanel value={this.state.tabIdx} index={1}>
                         <DialogContent>
                             <Stack spacing={2} direction="column">
                                 <p>Select which attributes to render in the X-Y plots.</p>
@@ -223,7 +261,7 @@ class MultiplePathSelectionModal extends React.Component {
                             <Button onClick={this.closeFunc} disabled={this.state.isLoading}>Close</Button>
                         </DialogActions>
                     </TabPanel>
-                    <TabPanel value={this.state.tabIdx} index={1}>
+                    <TabPanel value={this.state.tabIdx} index={2}>
                         <DialogContent>
                             <Stack
                                 spacing={2}>
@@ -273,7 +311,7 @@ class MultiplePathSelectionModal extends React.Component {
                             <Button onClick={this.closeFunc} disabled={this.state.isLoading}>Close</Button>
                         </DialogActions>
                     </TabPanel>
-                    <TabPanel value={this.state.tabIdx} index={2}>
+                    <TabPanel value={this.state.tabIdx} index={3}>
                         <KSTestTab closeFunc={this.closeFunc} cdf={extent_options} rvs={extent_options} rvsDefault={JSON.stringify(this.props.extents[0])} stateProperties={this.state.cmn} />
                     </TabPanel>
                 </Dialog>

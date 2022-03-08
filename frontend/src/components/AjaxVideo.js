@@ -5,9 +5,7 @@ import CircularProgress from "@mui/material/CircularProgress";
 class AjaxVideo extends React.Component {
     constructor(props) {
         super(props);
-
-        this.videoRef = React.createRef();
-        
+        this.videoRef = React.createRef();        
         this.state = {
             isLoaded: false,            
         }
