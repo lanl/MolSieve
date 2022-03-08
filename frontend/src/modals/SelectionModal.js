@@ -14,6 +14,8 @@ import {TabPanel} from "../api/myutils";
 import AnalysisTab from './AnalysisTab';
 import KSTestTab from "./KSTestTab";
 import MenuItem from "@mui/material/MenuItem";
+import AjaxVideo from "../components/AjaxVideo";
+import Box from "@mui/material/Box";
 
 class SelectionModal extends React.Component {
 
@@ -95,12 +97,34 @@ class SelectionModal extends React.Component {
                     fullWidth={true}>
                     <DialogTitle>{this.props.title}
                         <Tabs value={this.state.tabIdx} onChange={(_,v) => {this.setState({tabIdx: v})}}>
+                            <Tab label="Info"/>
                             <Tab label="NEB"/>
                             <Tab label="Analysis"/>
                             <Tab label="Kolmogorov-Smirnov Test"/>
                         </Tabs>
                     </DialogTitle>
                     <TabPanel value={this.state.tabIdx} index={0}>
+                        <DialogContent>
+                            <Box sx={{
+                                     display: "flex",
+                                     alignItems: "center",
+                                     justifyContent: "center"
+                                 }}>
+                                <AjaxVideo run={this.state.run} start={this.state.start} end={this.state.end}/>
+                            </Box>
+                            </DialogContent>
+                        <DialogActions>
+                            <Button
+                            size="small"
+                            variant="contained"
+                            color="error"
+                            onClick={this.closeFunc}
+                        >
+                            Cancel
+                        </Button>
+                        </DialogActions>
+                    </TabPanel>
+                    <TabPanel value={this.state.tabIdx} index={1}>
                         <DialogContent style={{height: '400px'}}>
                         <Stack spacing={2} alignItems="center" justifyContent="center">
                             <Stack direction="row">
@@ -146,7 +170,7 @@ class SelectionModal extends React.Component {
                         </Button>
                     </DialogActions>
                     </TabPanel>
-                    <TabPanel value={this.state.tabIdx} index={1}>
+                    <TabPanel value={this.state.tabIdx} index={2}>
                         <AnalysisTab run={this.state.run}                                    
                                      pathStart={this.state.start}
                                      pathEnd={this.state.end}
@@ -154,7 +178,7 @@ class SelectionModal extends React.Component {
                                          this.closeFunc(true);
                                      }} />
                     </TabPanel>
-                    <TabPanel value={this.state.tabIdx} index={2}>
+                    <TabPanel value={this.state.tabIdx} index={3}>
                         <KSTestTab closeFunc={this.closeFunc} rvs={extent_options} currentRun={this.state.run} rvsDefault={JSON.stringify(this.props.extents[0])} />
                     </TabPanel>
                 </Dialog>

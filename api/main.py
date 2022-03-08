@@ -112,7 +112,7 @@ async def generate_ovito_image(number: str):
     return {'image': image_string}
 
 @app.get('/generate_ovito_animation')
-async def generate_ovito_animation(run: str, start: str, end: str):            
+async def generate_ovito_animation(run: str, start: int, end: int):            
         
     driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687",
                                             auth=("neo4j", "secret"))
@@ -126,17 +126,13 @@ async def generate_ovito_animation(run: str, start: str, end: str):
     metadata = getMetadata(run)
     atomType = get_atom_type(metadata['parameters'])        
 
-    state_atom_dict = neomd.converter.query_to_ASE(driver, qb, q, atomType)
-
-    output_path = neomd.visualizations.render_ASE_list(state_atom_dict)
-
+    state_atom_dict = neomd.converter.query_to_ASE(driver, qb, q, atomType, dictKey=('Relation', 'timestep'))
+    
+    output_path = neomd.visualizations.render_ASE_list(state_atom_dict.values(), list(state_atom_dict.keys()))
+        
     video_string = ""
     with open(output_path, "rb") as video:
-        video_base64 = base64.b64encode(video.read())
-
-        video_string = str(video_base64)
-        video_string = video_string.removesuffix("'")
-        video_string = video_string.removeprefix("b'")
+        video_string = base64.b64encode(video.read())                                
 
     os.remove(output_path)
 

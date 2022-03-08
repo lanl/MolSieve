@@ -17,8 +17,7 @@ class AjaxSelect extends React.Component {
 
     componentDidMount() {
         if(!this.state.isLoaded) {
-            axios.get(this.props.api_call).then((response)=> {
-                
+            axios.get(this.props.api_call).then((response)=> {                
                 this.setState({data: response.data.map((r) => {
                     return r;
                 }), isLoaded: true});
