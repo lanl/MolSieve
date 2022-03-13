@@ -44,8 +44,14 @@ class SelectionModal extends React.Component {
             drawSequence: [],
             isLoading: false,
             tabIdx: 0,
-            maxSteps: 2500
+            maxSteps: 2500,
+            sse: ''
         }
+    }
+
+    parseSSE = (data) => {
+        alert(data);
+        this.setState({sse: data})
     }
 
     calculateNEB = () => {        
@@ -53,6 +59,10 @@ class SelectionModal extends React.Component {
         const run = extents["name"];
         const start = parseInt(extents["begin"]["timestep"]);
         const end = parseInt(extents["end"]["timestep"]);
+
+        const ss = new EventSource('/stream');
+
+        ss.onmessage = (e) => this.parseSSE(e.data);
         
         api_calculate_NEB(run, start, end, this.state.interpolate, this.state.maxSteps).then((data) => {
             let drawSequence = [];
@@ -75,8 +85,10 @@ class SelectionModal extends React.Component {
             })
             
             this.setState({energies: unpackedEnergies, drawSequence: drawSequence, isLoading: false});
+            ss.close();
         }).catch((e) => {            
             alert(e);
+            ss.close();
             this.setState({isLoading: false});
         });        
         
@@ -169,7 +181,8 @@ class SelectionModal extends React.Component {
                             {this.state.isLoading && <CircularProgress color="grey" style={{alignContent: 'center', justifyContent: 'center'}}/>}
                         </Stack>
                     </DialogContent>
-                    <DialogActions>
+                        <DialogActions>
+                            <p>{this.state.sse}</p>
                         <Button onClick={() => {
                                     this.setState({isLoading: true});
                                     this.calculateNEB()

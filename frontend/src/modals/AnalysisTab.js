@@ -12,7 +12,9 @@ import FormControl from '@mui/material/FormControl';
 import Select from "@mui/material/Select";
 import MenuItem from "@mui/material/MenuItem";
 import CircularProgress from "@mui/material/CircularProgress";
+import Checkbox from '@mui/material/Checkbox';
 import axios from 'axios';
+
 
 const OVITO = 'ovito_modifier';
 const PYTHON = 'python_script';
@@ -39,7 +41,9 @@ class AnalysisTab extends React.Component {
             isLoading: false,
             response: '',
             pathStart: pathStart,
-            pathEnd: pathEnd
+            pathEnd: pathEnd,
+            displayResults: true,
+            saveResults: true
         }
     }
 
@@ -48,12 +52,11 @@ class AnalysisTab extends React.Component {
             this.setState({isLoading: true, response: ''});
             let steps = this.state.steps.map(step => {
                 return {'analysisType': step['type'], 'value': step['value']};
-            });
-            console.log(steps);
-            console.log(this.state);
+            });            
             axios.post('/run_analysis', steps, {params: {
                 run: this.state.run, pathStart: this.state.pathStart,
-                pathEnd: this.state.pathEnd
+                pathEnd: this.state.pathEnd, displayResults: this.state.displayResults,
+                saveResults: this.state.saveResults
             }}).then((response) => {
                 this.setState({isLoading: false, response: response.data});
             }).catch((error) => {
@@ -67,7 +70,7 @@ class AnalysisTab extends React.Component {
     addStep = () => {
         switch(this.state.newStep) {
         case OVITO:
-            axios.get('/get_ovito_modifiers').then((response) => {
+            axios.get('/get_ovito_modifiers').then((response) => {                
                 let index = this.state.steps.length;
                 let options = response.data.map((val, idx) => (<MenuItem key={idx} value={val}>{val}</MenuItem>));
                 let select = (<Select defaultValue='AcklandJonesModifier' onChange={(e) => {
@@ -75,7 +78,7 @@ class AnalysisTab extends React.Component {
                                           let step = steps[index];
                                           step['value'] = e.target.value;
                                           steps[index] = step;
-                                          this.setState(steps, console.log(this.state));  
+                                          this.setState(steps);  
                                       }}>{options}</Select>)
                 let newStep = {'type': OVITO, 'value': 'AcklandJonesModifier', 'render': select};
                 this.setState({steps: [...this.state.steps, newStep]});                
@@ -97,7 +100,19 @@ class AnalysisTab extends React.Component {
         return (<Box>
                     <DialogContent>
                         <List>
-                            {steps}
+                            <ListItem key={-1}>
+                                <FormControl>
+                                    <FormControlLabel control={<Checkbox checked={this.state.displayResults}
+                                                                 onChange={(e) => {this.setState({
+                                                                     displayResults: e.target.checked
+                                                                 })}}/>} label="Display results"/>
+                                    <FormControlLabel control={<Checkbox checked={this.state.saveResults}
+                                                                 onChange={(e) => {this.setState({
+                                                                     saveResults: e.target.checked
+                                                                 })}}
+                                                       />} label="Save results to database"/>
+                                </FormControl>
+                                </ListItem>
                             <ListItem key={this.state.steps.length + 1}>
                                 <FormControl>
                                     <RadioGroup row value={this.state.newStep} onChange={(e) => {this.setState({newStep: e.target.value})}}>
@@ -107,14 +122,15 @@ class AnalysisTab extends React.Component {
                                 </FormControl>
                                 <Button variant="contained" size="small" onClick={() => {this.addStep()}}>Add new analysis step</Button>
                             </ListItem>
+                            {steps}
                         </List>
                         {this.state.isLoading && <CircularProgress/>}
-                        {!this.state.isLoading &&<p>{this.state.response}</p>}
+                        {!this.state.isLoading  && <p>{this.state.response}</p>}
                     </DialogContent>                                       
-            <DialogActions>
-                <Button size="small" disabled={this.state.isLoading} variant="contained" onClick={() => {this.runSteps()}} color="secondary">Run analysis steps</Button>
-                <Button size="small" disabled={this.state.isLoading} variant="contained" onClick={() => {this.props.closeFunc()}}>Cancel</Button>
-            </DialogActions>
+                    <DialogActions>
+                        <Button size="small" disabled={this.state.isLoading} variant="contained" onClick={() => {this.runSteps()}} color="secondary">Run analysis steps</Button>
+                        <Button size="small" disabled={this.state.isLoading} variant="contained" onClick={() => {this.props.closeFunc()}}>Cancel</Button>
+                    </DialogActions>
                 </Box>);
     }
     

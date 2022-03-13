@@ -1,7 +1,7 @@
 * Introduction
 Use this file to test the API provided by the server using the emacs plugin [[https://github.com/federicotdn/verb][verb]]. If you don't use emacs, you can use the curl commands provided as well.
 * NEB Calculation :verb:
-get http://localhost:8000/calculate_neb_on_path?run=nano_pt&start=12990&end=12994&atomType=Pt&interpolate=3&potential_path=/home/frosty/Programs/Python/d3_trajectory_visualization/voter-pt.eam&pair_coeff=*_*_voter-pt.eam_Pt&pair_style=eam/alloy
+get http://localhost:8000/calculate_neb_on_path?run=nano_pt&start=12990&end=12994&interpolate=1&maxSteps=1000
 
 #+begin_src
 curl http://localhost:5000/calculate_neb_on_path\?run\=nano\_pt\&start\=300\&end\=305\&atomType=\Pt

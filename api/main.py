@@ -1,4 +1,5 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+import asyncio
 from pydantic import BaseModel, BaseSettings
 from typing import Optional, Dict, List
 
@@ -10,6 +11,11 @@ import os
 from scipy import stats
 import pygpcca as gp
 import numpy as np
+
+from sse_starlette.sse import EventSourceResponse
+
+from timeit import default_timer as timer
+from datetime import timedelta
 
 # image rendering
 from PIL import Image
@@ -139,7 +145,7 @@ async def generate_ovito_animation(run: str, start: int, end: int):
     return {'video': video_string}
 
 @app.post('/run_analysis')
-async def run_analysis(steps: List[AnalysisStep], run: str, pathStart: int = None, pathEnd: int = None):
+async def run_analysis(steps: List[AnalysisStep], run: str, pathStart: int = None, pathEnd: int = None, displayResults: bool = True, saveResults: bool = True):
     driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687", auth=("neo4j", "secret"))
     
     qb = querybuilder.Neo4jQueryBuilder(
@@ -148,6 +154,8 @@ async def run_analysis(steps: List[AnalysisStep], run: str, pathStart: int = Non
 
     state_atom_dict = None
 
+    start = timer()
+    
     if pathStart is None or pathEnd is None:
         if config.IMPATIENT:
             state_atom_dict = loadTestPickle(run, 'state_atom_dict')
@@ -157,15 +165,15 @@ async def run_analysis(steps: List[AnalysisStep], run: str, pathStart: int = Non
                                node_attributes=[],
                                relation_attributes=[],
                                include_atoms=True)                
-            state_atom_dict = converter.query_to_ASE(driver, qb, q, get_atom_type(getMetadata(run)['parameters']), False)
+            state_atom_dict = converter.query_to_ASE(driver, qb, q, get_atom_type(getMetadata(run)['parameters']))
             saveTestPickle(run, 'state_atom_dict', state_atom_dict)
     else:
         if pathStart == pathEnd:
             q = qb.generate_get_node('State', ('timestep', pathStart), 'PART_OF')
-            state_atom_dict = converter.query_to_ASE(driver, qb, q, get_atom_type(getMetadata(run)['parameters']), False)
+            state_atom_dict = converter.query_to_ASE(driver, qb, q, get_atom_type(getMetadata(run)['parameters']))
         else:
             q = qb.generate_get_path(pathStart, pathEnd, run, 'timestep')
-            state_atom_dict = converter.query_to_ASE(driver, qb, q, get_atom_type(getMetadata(run)['parameters']), False)
+            state_atom_dict = converter.query_to_ASE(driver, qb, q, get_atom_type(getMetadata(run)['parameters']))
 
     # TODO: Server-sent event to notify atoms have been converted
 
@@ -174,25 +182,30 @@ async def run_analysis(steps: List[AnalysisStep], run: str, pathStart: int = Non
         if step.analysisType == 'ovito_modifier':
             new_attributes = calculator.apply_ovito_pipeline_modifier(state_atom_dict, analysisType=step.value)
             #TODO: Event that notifies pipeline has been applied
-            q = None
-            with driver.session() as session:
-                tx = session.begin_transaction()
-                for state_number, data in new_attributes.items():
-                    if q is None:
-                        q = qb.generate_update_entity(data, 
+            if saveResults:
+                q = None
+                with driver.session() as session:
+                    tx = session.begin_transaction()
+                    for state_number, data in new_attributes.items():
+                        if q is None:
+                            q = qb.generate_update_entity(data, 
                                                       'State', 
                                                       'number', 
                                                       'NODE')
-                    data.update({'number': state_number})
-                    tx.run(q.text, data)
-                tx.commit()
-            results.update({idx: new_attributes})
+                        data.update({'number': state_number})
+                        tx.run(q.text, data)
+                    tx.commit()
+            if displayResults:
+                results.update({idx: new_attributes})
             #TODO: Notify user that everything has been written to the database
         else:
             raise NotImplementedError()
 
-    return str(results)
+    end = timer()
+    results.update({'info': 'Finished analysis in {time} seconds.'.format(time=timedelta(seconds=end-start))})
 
+    return str(results)
+    
 @app.post('/perform_KS_Test')
 def perform_KSTest(data: dict):
 
@@ -432,8 +445,49 @@ def pcca(run: str, clusters: int, optimal: int, m_min: int, m_max: int):
     return j
 
 
+async def count(count):
+    count += 1
+    return count
+
+async def event_generator(request: Request):
+    previous_status = None
+    count = 0    
+
+    while True:
+        if await request.is_disconnected():
+            print('request d/c')
+            break
+
+        if previous_status and previous_status == 'complete':
+            print('state changed to completed')
+            yield {
+                "event": "end",
+                "data": ""
+            }
+            break
+
+        current_status = await count(previous_status)
+
+        if previous_status != current_status:
+            print('new status: ' + current_status)
+            yield {
+                "event": "update",
+                "id": "message_id",
+                "retry": 15000,
+                "data": str(current_status)
+            }
+            previous_status = current_status
+            #current_status += 1
+
+        #await asyncio.sleep(1)
+
+@app.get('/stream')
+async def message_stream(request: Request):
+    e_gen = event_generator(request)
+    return EventSourceResponse(e_gen)
+
 @app.get('/calculate_neb_on_path')
-def calculate_neb_on_path(run: str, start: str, end: str, interpolate: int, maxSteps: int):                
+async def calculate_neb_on_path(run: str, start: str, end: str, interpolate: int, maxSteps: int):                
 
     driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687",
                                         auth=("neo4j", "secret"))
@@ -447,16 +501,44 @@ def calculate_neb_on_path(run: str, start: str, end: str, interpolate: int, maxS
     metadata = getMetadata(run)
     atomType = get_atom_type(metadata['parameters'])        
 
+    
+    # converting atoms...
+#    current_status = 'converting atoms'
+    
     state_atom_dict, relationList = converter.query_to_ASE(driver, qb, q, atomType, getRelationList=True)        
 
-    energies = calculator.calculate_neb_on_path(state_atom_dict,
-                                                        relationList,
-                                                        run,
-                                                        atomType,
-                                                        metadata['cmds'],
-                                                        interpolate=interpolate,
-                                                maxSteps=maxSteps)                       
+    # calculating NEB...    
+#    current_status = 'calculating NEB'
+    
+    energyList = []                
+    if interpolate < 0:
+        interpolate = 0
 
-    j = {'energies': energies}    
+    for idx, relation in enumerate(relationList):
+        if idx < len(relationList) - 1:
+            skip = False
+
+            for prop in relation['properties']:
+                if prop[0] == 'symmetry':
+                    print("Detected symmetry in transition between {start} and {end}, skipping...".format(start=relation['start']['number'], end=relation['end']['number']))
+                    skip = True                            
+             
+            if skip:
+                energyVal = energyList[-1][-1] if len(energyList) > 0 else 0                                    
+                energyList.append([energyVal for x in range(interpolate + 1)])
+                continue
+
+            # between state x and y...
+            #current_status = 'calculating NEB btwn ' + relation['start']['number'] + ' and an end state'
+            energies = calculator.calculate_neb_for_pair(state_atom_dict[relation['start']['number']], state_atom_dict[relation['end']['number']], run, atomType, metadata['cmds'], interpolate, maxSteps)
+
+            if idx < len(relationList) - 2:
+                energies.pop()
+                
+            energyList.append(energies)                                                                                            
+
+    #current_status = 'complete'
+    
+    j = {'energies': energyList}    
 
     return j
