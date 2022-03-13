@@ -15,7 +15,7 @@ import AnalysisTab from './AnalysisTab';
 import KSTestTab from "./KSTestTab";
 import MenuItem from "@mui/material/MenuItem";
 import AjaxVideo from "../components/AjaxVideo";
-import Box from "@mui/material/Box";
+import SelectionVis from "../vis/SelectionVis";
 
 class SelectionModal extends React.Component {
 
@@ -34,6 +34,7 @@ class SelectionModal extends React.Component {
             start: start,
             end: end,
             sequence: this.props.trajectories[currentRun].sequence.slice(start, end + 1),
+            totalSequence: this.props.trajectories[currentRun].sequence,
             drawSequence: [],
             isLoading: false,
             tabIdx: 0
@@ -66,7 +67,7 @@ class SelectionModal extends React.Component {
                 }
             })
             
-            this.setState({energies: unpackedEnergies, drawSequence: drawSequence, isLoading: false}, () => {console.log(this.state)});
+            this.setState({energies: unpackedEnergies, drawSequence: drawSequence, isLoading: false});
         }).catch((e) => {            
             alert(e);
             this.setState({isLoading: false});
@@ -105,13 +106,17 @@ class SelectionModal extends React.Component {
                     </DialogTitle>
                     <TabPanel value={this.state.tabIdx} index={0}>
                         <DialogContent>
-                            <Box sx={{
-                                     display: "flex",
-                                     alignItems: "center",
-                                     justifyContent: "center"
-                                 }}>
-                                <AjaxVideo run={this.state.run} start={this.state.start} end={this.state.end}/>
-                            </Box>
+                            <Stack sx={{alignItems: 'center', justifyContent:'center'}}>
+                                    <SelectionVis
+                                    data={{
+                                        run: this.state.run,
+                                        start: this.state.start,
+                                        end: this.state.end,
+                                        sequence: this.state.totalSequence
+                                    }}
+                                />
+                                    <AjaxVideo run={this.state.run} start={this.state.start} end={this.state.end}/>
+                                </Stack>                        
                             </DialogContent>
                         <DialogActions>
                             <Button
