@@ -14,7 +14,8 @@ import MenuItem from "@mui/material/MenuItem";
 import CircularProgress from "@mui/material/CircularProgress";
 import Checkbox from '@mui/material/Checkbox';
 import axios from 'axios';
-
+import {DataGrid} from '@mui/x-data-grid';
+import Stack from "@mui/material/Stack";
 
 const OVITO = 'ovito_modifier';
 const PYTHON = 'python_script';
@@ -39,7 +40,7 @@ class AnalysisTab extends React.Component {
             steps: [],
             newStep: OVITO,
             isLoading: false,
-            response: '',
+            response: null,
             pathStart: pathStart,
             pathEnd: pathEnd,
             displayResults: true,
@@ -96,6 +97,31 @@ class AnalysisTab extends React.Component {
         var steps = (this.state.steps.length > 0) ? this.state.steps.map((step, idx) => {
             return (<ListItem key={idx}><h2>{`${idx + 1}. `}</h2>{step.render}</ListItem>);
         }): null;
+
+        var dataGrids = (this.state.response !== null) ? Object.keys(this.state.response).map((response, idx) => {
+            
+            const data = Object.values(this.state.response[response]);
+                       
+            let rows =  [];
+            let columns = [];
+            let rowCount = 0;
+
+            for(let key of Object.keys(data[0])) {
+                columns.push({'field': key, 'headerName': key, 'flex': 1});
+            }
+            
+            for(let state of data) {
+                let row = Object.assign({}, state);                
+                row['id'] = rowCount;
+                rows.push(row);
+                rowCount++;
+            }
+            
+            if(response === 'info') {
+                return null;
+            }
+            return (<Stack key={idx} sx={{'height': 350}}><h1>Step {idx + 1}</h1><DataGrid rows={rows} columns={columns}/></Stack>)
+        }) : null;        
         
         return (<Box>
                     <DialogContent>
@@ -125,7 +151,8 @@ class AnalysisTab extends React.Component {
                             {steps}
                         </List>
                         {this.state.isLoading && <CircularProgress/>}
-                        {!this.state.isLoading  && <p>{this.state.response}</p>}
+                        {(!this.state.isLoading && dataGrids !== null && this.state.displayResults) && <Box>{dataGrids}</Box>}
+                        {(!this.state.isLoading && this.state.response !== null) && <p>{this.state.response['info']}</p>}
                     </DialogContent>                                       
                     <DialogActions>
                         <Button size="small" disabled={this.state.isLoading} variant="contained" onClick={() => {this.runSteps()}} color="secondary">Run analysis steps</Button>

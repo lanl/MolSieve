@@ -204,7 +204,7 @@ async def run_analysis(steps: List[AnalysisStep], run: str, pathStart: int = Non
     end = timer()
     results.update({'info': 'Finished analysis in {time} seconds.'.format(time=timedelta(seconds=end-start))})
 
-    return str(results)
+    return results
     
 @app.post('/perform_KS_Test')
 def perform_KSTest(data: dict):
