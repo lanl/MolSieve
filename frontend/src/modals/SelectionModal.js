@@ -20,7 +20,13 @@ import SelectionVis from "../vis/SelectionVis";
 class SelectionModal extends React.Component {
 
     constructor(props) {
-        super(props);        
+        super(props);
+
+        if(Object.keys(this.props.extents.length) > 0) {
+            alert("Too many extents selected...");
+            this.props.closeFunc();
+        }
+        
         const extents = this.props.extents[0];
 
         const currentRun = extents["name"];
@@ -33,8 +39,7 @@ class SelectionModal extends React.Component {
             run: currentRun,
             start: start,
             end: end,
-            sequence: this.props.trajectories[currentRun].sequence.slice(start, end + 1),
-            totalSequence: this.props.trajectories[currentRun].sequence,
+            sequence: this.props.trajectories[currentRun].sequence.slice(start, end + 1),                        
             drawSequence: [],
             isLoading: false,
             tabIdx: 0
@@ -109,10 +114,9 @@ class SelectionModal extends React.Component {
                             <Stack sx={{alignItems: 'center', justifyContent:'center'}}>
                                     <SelectionVis
                                     data={{
-                                        run: this.state.run,
-                                        start: this.state.start,
-                                        end: this.state.end,
-                                        sequence: this.state.totalSequence
+                                            extents: this.props.extents,
+                                            sequence: this.props.trajectories[this.state.run].sequence,
+                                            run: this.state.run
                                     }}
                                 />
                                     <AjaxVideo run={this.state.run} start={this.state.start} end={this.state.end}/>

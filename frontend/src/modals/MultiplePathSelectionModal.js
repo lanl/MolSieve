@@ -10,6 +10,7 @@ import Button from "@mui/material/Button";
 import FormHelperText from "@mui/material/FormHelperText";
 import FormControl from "@mui/material/FormControl";
 import Scatterplot from "../vis/Scatterplot.js";
+import SelectionVis from "../vis/SelectionVis";
 import CircularProgress from "@mui/material/CircularProgress";
 import Grid from "@mui/material/Grid";
 import { intersection } from "../api/myutils";
@@ -114,6 +115,28 @@ class MultiplePathSelectionModal extends React.Component {
                 );
             });
 
+            
+            var extentGroups = {};
+            
+            for(let extent of this.props.extents) {
+                if(Object.keys(extentGroups).includes(extent['name'])) {
+                    extentGroups[extent['name']].push(extent);
+                } else {
+                    extentGroups[extent['name']] = [extent];
+                }                
+            }            
+
+            var selectionVisualizations = Object.keys(extentGroups).map((extentGroup, i) => {
+                return(
+                    <SelectionVis key={i}
+                                  data={{
+                                      run: extentGroup,
+                                      extents: extentGroups[extentGroup],
+                                      sequence: this.props.trajectories[extentGroup].sequence
+                                  }}
+                    />);                    
+            });                        
+
             var scatterplots = this.props.extents.map((extent, i) => {
                 return (
                     <Grid key={i} item xs={6}>
@@ -186,6 +209,9 @@ class MultiplePathSelectionModal extends React.Component {
                     </DialogTitle>
                     <TabPanel value={this.state.tabIdx} index={0}>
                         <DialogContent>
+                            <Stack>
+                                {selectionVisualizations}
+                            </Stack>
                             <Grid
                                 direction="row"
                                 justifyContent="space-evenly"
@@ -194,7 +220,6 @@ class MultiplePathSelectionModal extends React.Component {
                                 >
                                 {ajaxVideos}
                             </Grid>
-
                             </DialogContent>
                         <DialogActions>
                             <Button

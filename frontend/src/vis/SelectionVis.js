@@ -41,9 +41,7 @@ function SelectionVis({data, loadingCallback}) {
                 svg.selectAll("*").remove();
             }
 
-
-            // stolen from https://www.visualcinnamon.com/2016/06/glow-filter-d3-visualization/
-            
+            // stolen from https://www.visualcinnamon.com/2016/06/glow-filter-d3-visualization/            
             // Container for the gradients
             var defs = svg.append("defs");
 
@@ -59,11 +57,11 @@ function SelectionVis({data, loadingCallback}) {
                 .attr("in","coloredBlur");
             feMerge.append("feMergeNode")
                 .attr("in","SourceGraphic");            
-                        
-            let start = data.start;
-            let end = data.end;            
+                       
+            let extents = Object.values(data.extents);            
+            
             let sequence = data.sequence;           
-            let run = data.run;
+            let run = data.run;            
             
             var scale_x = d3.scaleLinear()
                 .range([margin.left, width - margin.right])
@@ -76,21 +74,9 @@ function SelectionVis({data, loadingCallback}) {
                 .attr("x", function(_, i) {
                     return scale_x(i);
                 })
-                .attr("y", function(_, i) {
-                    if(i >= start && i <= end) {
-                        return height * 0.1;
-                    } else {
-                        return height * 0.1 + 5;
-                    }
-                })
+                .attr("y", height * 0.2 + 5)                                   
                 .attr("width", 5)
-                .attr("height", function(_, i) {
-                    if(i >= start && i <= end) {
-                        return 20;
-                    } else {
-                        return 10;
-                    }                    
-                })
+                .attr("height", 10)                
                 .attr("fill", function(d) {
                     if (d["cluster"] == -1) {
                         return "black";
@@ -99,14 +85,23 @@ function SelectionVis({data, loadingCallback}) {
                 })
 
             svg.selectAll("rect")
-                .filter(function(d) {                    
-                    return d['timestep'] >= start && d['timestep'] <= end;
-                }).filter(function(d) {
-                    return d;
+                .filter(function(d) {
+                    for(var extent of extents) {                        
+                        if(d['timestep'] >= extent['begin']['timestep'] && d['timestep'] <= extent['end']['timestep']) {
+                            return true;
+                        }
+                    }
+                    return false;
                 })
+                .attr("height", 20)
+                .attr("y", height * 0.2)            
                 .style("filter", "url(#glow)");
                                     
-            let title = `${run}: ${start} - ${end}`;
+            let title = `${run}: `;
+
+            for(let extent of extents) {
+                title += `${extent['begin']['timestep']} - ${extent['end']['timestep']} `
+            }
 
             svg.append("text")
                 .attr("x", width / 2)
