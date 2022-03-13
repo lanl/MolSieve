@@ -178,9 +178,9 @@ export function api_load_metadata(run, trajectory) {
 }
 
 //TODO: add comment
-export function api_calculate_NEB(run, start, end, interpolate) {
+export function api_calculate_NEB(run, start, end, interpolate, maxSteps) {
     return new Promise(function (resolve, reject) {
-        axios.get("/calculate_neb_on_path", { params: { run: run, start: start, end: end, interpolate: interpolate}})
+        axios.get("/calculate_neb_on_path", { params: { run: run, start: start, end: end, interpolate: interpolate, maxSteps: maxSteps}})
             .then((response) => {
                 //TODO: can add saddlepoint and other calculations here
                 resolve(response.data);

@@ -433,7 +433,7 @@ def pcca(run: str, clusters: int, optimal: int, m_min: int, m_max: int):
 
 
 @app.get('/calculate_neb_on_path')
-def calculate_neb_on_path(run: str, start: str, end: str, interpolate: int):                
+def calculate_neb_on_path(run: str, start: str, end: str, interpolate: int, maxSteps: int):                
 
     driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687",
                                         auth=("neo4j", "secret"))
@@ -447,14 +447,15 @@ def calculate_neb_on_path(run: str, start: str, end: str, interpolate: int):
     metadata = getMetadata(run)
     atomType = get_atom_type(metadata['parameters'])        
 
-    state_atom_dict, relationList = converter.query_to_ASE(driver, qb, q, atomType, True)        
+    state_atom_dict, relationList = converter.query_to_ASE(driver, qb, q, atomType, getRelationList=True)        
 
     energies = calculator.calculate_neb_on_path(state_atom_dict,
                                                         relationList,
                                                         run,
                                                         atomType,
                                                         metadata['cmds'],
-                                                        interpolate=interpolate)                       
+                                                        interpolate=interpolate,
+                                                maxSteps=maxSteps)                       
 
     j = {'energies': energies}    
 

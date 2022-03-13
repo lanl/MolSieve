@@ -16,6 +16,7 @@ import KSTestTab from "./KSTestTab";
 import MenuItem from "@mui/material/MenuItem";
 import AjaxVideo from "../components/AjaxVideo";
 import SelectionVis from "../vis/SelectionVis";
+import TextField from "@mui/material/TextField";
 
 class SelectionModal extends React.Component {
 
@@ -42,7 +43,8 @@ class SelectionModal extends React.Component {
             sequence: this.props.trajectories[currentRun].sequence.slice(start, end + 1),                        
             drawSequence: [],
             isLoading: false,
-            tabIdx: 0
+            tabIdx: 0,
+            maxSteps: 2500
         }
     }
 
@@ -52,7 +54,7 @@ class SelectionModal extends React.Component {
         const start = parseInt(extents["begin"]["timestep"]);
         const end = parseInt(extents["end"]["timestep"]);
         
-        api_calculate_NEB(run, start, end, this.state.interpolate).then((data) => {
+        api_calculate_NEB(run, start, end, this.state.interpolate, this.state.maxSteps).then((data) => {
             let drawSequence = [];
             let gap = 1 / this.state.interpolate;
             
@@ -136,20 +138,24 @@ class SelectionModal extends React.Component {
                     <TabPanel value={this.state.tabIdx} index={1}>
                         <DialogContent style={{height: '400px'}}>
                         <Stack spacing={2} alignItems="center" justifyContent="center">
-                            <Stack direction="row">
-                                <label htmlFor="txt_path_neb">
-                                    Number of images interpolated between points on NEB:
-                                </label>
-                                <input
+
+                                <TextField
+                                    label="Number of images interpolated between points on NEB:"
+                                    fullWidth
                                     type="number"
-                                    min="1"
-                                    name="txt_path_neb"
+                                    inputProps={{ inputMode: 'numeric', pattern: '[0-9]*', min: 1 }}
                                     defaultValue={this.state.interpolate}
-                                    onChange={(e) => {                                
-                                        this.setState({interpolate: e.target.value});
-                                    }}
+                                    onChange={(e) => {this.setState({interpolate: e.target.value})}}
                                 />
-                            </Stack>
+
+                                <TextField
+                                    fullWidth
+                                    label="Maximum number of optimization steps"
+                                    type="number"
+                                    inputProps={{ inputMode: 'numeric', pattern: '[0-9]*', min: 1 }}
+                                    defaultValue={this.state.maxSteps}
+                                    onChange={(e) => {this.setState({maxSteps: e.target.value})}}
+                               />                        
                         
                         {!this.state.isLoading &&
                          <Scatterplot
@@ -165,8 +171,9 @@ class SelectionModal extends React.Component {
                     </DialogContent>
                     <DialogActions>
                         <Button onClick={() => {
-                                           this.setState({isLoading: true});
-                                           this.calculateNEB()}} size="small" variant="contained">
+                                    this.setState({isLoading: true});
+                                    this.calculateNEB()
+                                }} size="small" variant="contained">
                             Calculate NEB on Path
                         </Button>
                         <Button
