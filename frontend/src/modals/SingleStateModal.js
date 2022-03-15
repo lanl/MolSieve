@@ -17,7 +17,7 @@ import Box from "@mui/material/Box";
 
 class SingleStateModal extends React.Component {
     constructor(props) {
-        super(props);
+        super(props);        
         this.state = { trajectoryState : this.props.state, isLoaded: false };
         this.imgRef = React.createRef();
     }

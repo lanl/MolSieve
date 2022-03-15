@@ -92,14 +92,15 @@ def get_ovito_modifiers():
 async def generate_ovito_image(number: str):
     driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687",
                                         auth=("neo4j", "secret"))
-    
+
+    # relation agnostic
     qb = querybuilder.Neo4jQueryBuilder(
-        schema=[("State", "nano_pt", "State", "ONE-TO-ONE"),
+        schema=[("State", '', "State", "ONE-TO-ONE"),
                 ("Atom", "PART_OF", "State", "MANY-TO-ONE")])
     
     q = qb.generate_get_node('State', ("number", number), 'PART_OF')               
 
-    state_atom_dict = converter.query_to_ASE(driver, qb, q, 'Pt', False)        
+    state_atom_dict = converter.query_to_ASE(driver, qb, q, 'Pt', getRelationList=False)        
 
     qimg = None
 
@@ -132,14 +133,13 @@ async def generate_ovito_animation(run: str, start: int, end: int):
     metadata = getMetadata(run)
     atomType = get_atom_type(metadata['parameters'])        
 
-    state_atom_dict = neomd.converter.query_to_ASE(driver, qb, q, atomType, dictKey=('Relation', 'timestep'))
-    
-    output_path = neomd.visualizations.render_ASE_list(state_atom_dict.values(), list(state_atom_dict.keys()))
+    attr_atom_dict = neomd.converter.query_to_ASE(driver, qb, q, atomType, dictKey=('Relation', 'timestep'))
+
+    output_path = neomd.visualizations.render_ASE_list(attr_atom_dict.values(), list(attr_atom_dict.keys()))
         
     video_string = ""
     with open(output_path, "rb") as video:
         video_string = base64.b64encode(video.read())                                
-
     os.remove(output_path)
 
     return {'video': video_string}
@@ -161,12 +161,13 @@ async def run_analysis(steps: List[AnalysisStep], run: str, pathStart: int = Non
             state_atom_dict = loadTestPickle(run, 'state_atom_dict')
         else:
             q = qb.generate_trajectory(run,
-                               "ASC", ['RELATION', 'timestep'],
+                               "ASC",
+                                       ['RELATION', 'timestep'],
                                node_attributes=[],
                                relation_attributes=[],
                                include_atoms=True)                
             state_atom_dict = converter.query_to_ASE(driver, qb, q, get_atom_type(getMetadata(run)['parameters']))
-            saveTestPickle(run, 'state_atom_dict', state_atom_dict)
+            saveTestPickle(run, 'state_atom_dict', state_atom_dict)            
     else:
         if pathStart == pathEnd:
             q = qb.generate_get_node('State', ('timestep', pathStart), 'PART_OF')
@@ -175,8 +176,7 @@ async def run_analysis(steps: List[AnalysisStep], run: str, pathStart: int = Non
             q = qb.generate_get_path(pathStart, pathEnd, run, 'timestep')
             state_atom_dict = converter.query_to_ASE(driver, qb, q, get_atom_type(getMetadata(run)['parameters']))
 
-    # TODO: Server-sent event to notify atoms have been converted
-
+    # TODO: Server-sent event to notify atoms have been converted        
     results = {}
     for idx, step in enumerate(steps):
         if step.analysisType == 'ovito_modifier':
@@ -291,8 +291,6 @@ def load_sequence(run: str, properties: str):
     qb = querybuilder.Neo4jQueryBuilder(
         [('State', run, 'State', 'ONE-TO-ONE'),
          ('Atom', 'PART_OF', 'State', 'MANY-TO-ONE')])
-
-
 
     q = qb.generate_trajectory(run,
                                "ASC", ['RELATION', 'timestep'],
@@ -487,7 +485,7 @@ async def message_stream(request: Request):
     return EventSourceResponse(e_gen)
 
 @app.get('/calculate_neb_on_path')
-async def calculate_neb_on_path(run: str, start: str, end: str, interpolate: int, maxSteps: int):                
+async def calculate_neb_on_path(run: str, start: str, end: str, interpolate: int, maxSteps: int, fmax: float):                
 
     driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687",
                                         auth=("neo4j", "secret"))
@@ -530,7 +528,7 @@ async def calculate_neb_on_path(run: str, start: str, end: str, interpolate: int
 
             # between state x and y...
             #current_status = 'calculating NEB btwn ' + relation['start']['number'] + ' and an end state'
-            energies = calculator.calculate_neb_for_pair(state_atom_dict[relation['start']['number']], state_atom_dict[relation['end']['number']], run, atomType, metadata['cmds'], interpolate, maxSteps)
+            energies = calculator.calculate_neb_for_pair(state_atom_dict[relation['start']['number']], state_atom_dict[relation['end']['number']], run, atomType, metadata['cmds'], interpolate, maxSteps, fmax)
 
             if idx < len(relationList) - 2:
                 energies.pop()

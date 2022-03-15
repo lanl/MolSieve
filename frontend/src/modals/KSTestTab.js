@@ -111,7 +111,7 @@ class KSTestTab extends React.Component {
                                 onClick={this.performKSTest}
                                 disabled={this.state.isLoading}
                             >
-                                Calculate path similarity
+                                Perform KS Test
                             </Button>
                             <Button onClick={this.closeFunc} disabled={this.state.isLoading}>Close</Button>
                         </DialogActions>

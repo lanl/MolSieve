@@ -48,20 +48,23 @@ class AnalysisTab extends React.Component {
         }
     }
 
-    runSteps = () => {
+    runSteps = () => {        
         if (this.state.steps.length > 0) {
-            this.setState({isLoading: true, response: ''});
+            this.setState({isLoading: true});
+            
             let steps = this.state.steps.map(step => {
                 return {'analysisType': step['type'], 'value': step['value']};
-            });            
+            });
+            
             axios.post('/run_analysis', steps, {params: {
                 run: this.state.run, pathStart: this.state.pathStart,
                 pathEnd: this.state.pathEnd, displayResults: this.state.displayResults,
                 saveResults: this.state.saveResults
             }}).then((response) => {
                 this.setState({isLoading: false, response: response.data});
-            }).catch((error) => {
-                this.setState({isLoading: false, response: error});
+            }).catch((e) => {
+                alert(e);
+                this.setState({isLoading: false});
             });
         } else {
             alert("Need to have at least one analysis step to run!");
@@ -96,9 +99,9 @@ class AnalysisTab extends React.Component {
     render() {
         var steps = (this.state.steps.length > 0) ? this.state.steps.map((step, idx) => {
             return (<ListItem key={idx}><h2>{`${idx + 1}. `}</h2>{step.render}</ListItem>);
-        }): null;
-
-        var dataGrids = (this.state.response !== null) ? Object.keys(this.state.response).map((response, idx) => {
+        }): null;        
+        
+        var dataGrids = (this.state.response !== null ? Object.keys(this.state.response).map((response, idx) => {
             
             const data = Object.values(this.state.response[response]);
                        
@@ -121,7 +124,7 @@ class AnalysisTab extends React.Component {
                 return null;
             }
             return (<Stack key={idx} sx={{'height': 350}}><h1>Step {idx + 1}</h1><DataGrid rows={rows} columns={columns}/></Stack>)
-        }) : null;        
+        }) : null);        
         
         return (<Box>
                     <DialogContent>

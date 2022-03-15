@@ -116,7 +116,7 @@ function SelectionVis({data, loadingCallback}) {
         });
 
     return (
-        <Box ref={divRef} sx={{ height: 150 }}>
+        <Box ref={divRef}>
             {width && height && (
                 <svg ref={ref} viewBox={[0, 0, width, height]} />
             )}

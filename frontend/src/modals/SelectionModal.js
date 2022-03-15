@@ -17,6 +17,8 @@ import MenuItem from "@mui/material/MenuItem";
 import AjaxVideo from "../components/AjaxVideo";
 import SelectionVis from "../vis/SelectionVis";
 import TextField from "@mui/material/TextField";
+import "../css/App.css";
+
 
 class SelectionModal extends React.Component {
 
@@ -40,11 +42,12 @@ class SelectionModal extends React.Component {
             run: currentRun,
             start: start,
             end: end,
-            sequence: this.props.trajectories[currentRun].sequence.slice(start, end + 1),                        
+            sequence: this.props.trajectories[currentRun].sequence.slice(start, end + 1),     
             drawSequence: [],
             isLoading: false,
             tabIdx: 0,
             maxSteps: 2500,
+            fmax: 0.01,
             sse: ''
         }
     }
@@ -60,11 +63,11 @@ class SelectionModal extends React.Component {
         const start = parseInt(extents["begin"]["timestep"]);
         const end = parseInt(extents["end"]["timestep"]);
 
-        const ss = new EventSource('/stream');
+        //const ss = new EventSource('/stream');
 
-        ss.onmessage = (e) => this.parseSSE(e.data);
+        //ss.onmessage = (e) => this.parseSSE(e.data);
         
-        api_calculate_NEB(run, start, end, this.state.interpolate, this.state.maxSteps).then((data) => {
+        api_calculate_NEB(run, start, end, this.state.interpolate, this.state.maxSteps, this.state.fmax).then((data) => {
             let drawSequence = [];
             let gap = 1 / this.state.interpolate;
             
@@ -85,10 +88,10 @@ class SelectionModal extends React.Component {
             })
             
             this.setState({energies: unpackedEnergies, drawSequence: drawSequence, isLoading: false});
-            ss.close();
+            //ss.close();
         }).catch((e) => {            
             alert(e);
-            ss.close();
+            //ss.close();
             this.setState({isLoading: false});
         });        
         
@@ -100,6 +103,11 @@ class SelectionModal extends React.Component {
 
     render() {
 
+
+        
+        if (this.props.open) {
+
+            
         var extent_options = this.props.extents.map((extent, i) => {
             return (
                 <MenuItem key={i} value={JSON.stringify(extent)}>
@@ -107,35 +115,37 @@ class SelectionModal extends React.Component {
                 </MenuItem>
             );
         });        
-        
-        if (this.props.open) {
+
+            let extent = this.props.extents[0];
+            
             return (
                 <Dialog
                     open={this.props.open}
                     onBackdropClick={() => this.closeFunc()}
                     maxWidth="lg"
                     fullWidth={true}>
-                    <DialogTitle>{this.props.title}
+                    <DialogTitle sx={{'height': 150}}>Single Path Selection: {`${extent.name} ${extent.begin.timestep} - ${extent.end.timestep}`}
+                        
                         <Tabs value={this.state.tabIdx} onChange={(_,v) => {this.setState({tabIdx: v})}}>
                             <Tab label="Info"/>
                             <Tab label="NEB"/>
                             <Tab label="Analysis"/>
                             <Tab label="Kolmogorov-Smirnov Test"/>
                         </Tabs>
+                        
+                        <SelectionVis
+                            data={{
+                                extents: this.props.extents,
+                                sequence: this.props.trajectories[this.state.run].sequence,
+                                run: this.state.run
+                            }}
+                        />
+                        
                     </DialogTitle>
                     <TabPanel value={this.state.tabIdx} index={0}>
-                        <DialogContent>
-                            <Stack sx={{alignItems: 'center', justifyContent:'center'}}>
-                                    <SelectionVis
-                                    data={{
-                                            extents: this.props.extents,
-                                            sequence: this.props.trajectories[this.state.run].sequence,
-                                            run: this.state.run
-                                    }}
-                                />
-                                    <AjaxVideo run={this.state.run} start={this.state.start} end={this.state.end}/>
-                                </Stack>                        
-                            </DialogContent>
+                        <DialogContent sx={{display:'flex', alignItems:'center', justifyContent:'center'}}>
+                            <AjaxVideo run={this.state.run} start={this.state.start} end={this.state.end} />
+                        </DialogContent>
                         <DialogActions>
                             <Button
                             size="small"
@@ -151,6 +161,7 @@ class SelectionModal extends React.Component {
                         <DialogContent style={{height: '400px'}}>
                         <Stack spacing={2} alignItems="center" justifyContent="center">
 
+                            <h2>{parseInt(this.state.end) - parseInt(this.state.start) + " steps"}</h2>
                                 <TextField
                                     label="Number of images interpolated between points on NEB:"
                                     fullWidth
@@ -168,7 +179,16 @@ class SelectionModal extends React.Component {
                                     defaultValue={this.state.maxSteps}
                                     onChange={(e) => {this.setState({maxSteps: e.target.value})}}
                                />                        
-                        
+
+                            <TextField
+                                    fullWidth
+                                    label="fmax"
+                                    type="number"
+                                    inputProps={{ inputMode: 'numeric', pattern: '[0-9]*', min: 1e-10, step:0.01 }}
+                                    defaultValue={this.state.fmax}
+                                    onChange={(e) => {this.setState({fmax: e.target.value})}}
+                               />                        
+
                         {!this.state.isLoading &&
                          <Scatterplot
                              data={{
