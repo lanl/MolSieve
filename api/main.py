@@ -62,10 +62,10 @@ def getMetadata(run, getJson=False):
         with driver.session() as session:
             try:
                 result = session.run(
-                    "MATCH (n:Metadata {{run: {run} }}) RETURN n".format(run='"' +  run +'"'))
+                    "MATCH (n:Metadata {{run: '{run}' }}) RETURN n".format(run=run))
                 record = result.single()
                 for n in record.values():
-                    for key,value in n.items():                        
+                    for key,value in n.items():                                                                                
                         if key == "LAMMPSBootstrapScript":
                             params = metadata_to_parameters(value)
                             cmds = metadata_to_cmds(params)
@@ -163,10 +163,9 @@ async def run_analysis(steps: List[AnalysisStep], run: str, pathStart: int = Non
         else:
             q = qb.generate_trajectory(run,
                                "ASC",
-                                       ['RELATION', 'timestep'],
-                               node_attributes=[],
-                               relation_attributes=[],
-                               include_atoms=True)                
+                               ('relation', 'timestep'),                               
+                               include_atoms=True,
+                               ase_mode=True)                
             state_atom_dict = converter.query_to_ASE(driver, qb, q, get_atom_type(getMetadata(run)['parameters']))
             saveTestPickle(run, 'state_atom_dict', state_atom_dict)            
     else:
@@ -294,15 +293,21 @@ def load_sequence(run: str, properties: str):
          ('Atom', 'PART_OF', 'State', 'MANY-TO-ONE')])
 
     q = qb.generate_trajectory(run,
-                               "ASC", ['RELATION', 'timestep'],
+                               "ASC", ('relation', 'timestep'),
                                node_attributes=node_attributes,
                                relation_attributes=['timestep'])
-
-    # place this into one function
-    oq = qb.generate_get_occurrences(run)
-    oq2 = qb.generate_calculate_many_to_one_count("PART_OF")
+        
+    run_md = get_metadata(run)
+            
     with driver.session() as session:
-        session.run(oq.text)
+        if "occurrences" not in run_md.keys():
+            oq = qb.generate_get_occurrences(run)
+            session.run(oq.text)
+            
+        if "AtomCount" not in run_md.keys():
+            oq2 = qb.generate_calculate_many_to_one_count("PART_OF", saveMetadata=True,run=run)
+            session.run(oq2.text)
+
         result = session.run(q.text)
         j = result.data()
         saveTestJson(run, 'sequence', j)
@@ -355,9 +360,10 @@ def get_run_list():
             # gets rid of ugly syntax on js side - puts everything in one array; probably a better more elegant way to do this
             runs = []
             for r in result.values():
-                runs.append(r[0])
-                trajectories.update({r[0] : Trajectory()})                    
-                j = runs
+                if r[0] != 'NEB':
+                    runs.append(r[0])
+                    trajectories.update({r[0] : Trajectory()})                    
+            j = runs
         except neo4j.exceptions.ServiceUnavailable as exception:
             raise exception
         
@@ -383,8 +389,10 @@ def pcca(run: str, clusters: int, optimal: int, m_min: int, m_max: int):
     qb = querybuilder.Neo4jQueryBuilder(
         schema=[("State", run, "State", "ONE-TO-ONE"),
                 ("Atom", "PART_OF", "State", "MANY-TO-ONE")])
+
     m, idx_to_state_number = calculator.calculate_transition_matrix(
         driver, qb, run=run, discrete=True)
+    
     gpcca = gp.GPCCA(np.array(m), z='LM', method='brandts')
     j = {}
     sets = {}

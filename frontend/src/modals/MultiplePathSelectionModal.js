@@ -17,6 +17,7 @@ import { intersection } from "../api/myutils";
 import { api_calculate_path_similarity } from "../api/ajax";
 import CheckboxTable from "../components/CheckboxTable";
 import AjaxVideo from "../components/AjaxVideo";
+import AnalysisTab from "../modals/AnalysisTab";
 
 import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
@@ -189,7 +190,20 @@ class MultiplePathSelectionModal extends React.Component {
                             <AjaxVideo run={extent['name']} start={start} end={end}/>
                         </Grid>);
             });
-                      
+
+            let analysisTabs = this.props.extents.map((extent, idx) => {                
+                return <Tab  key={idx+4} label={`Analysis for ${extent.name}: ${extent.begin.timestep} - ${extent.end.timestep}`}/>
+            });
+
+            let analysisTabsContent = this.props.extents.map((extent, idx) => {
+                return (<TabPanel value={this.state.tabIdx} key={idx+4} index={idx+4}>
+                            <AnalysisTab run={extent.name} pathStart={extent['begin']['timestep']}
+                                         pathEnd={extent['end']['timestep']}
+                                         closeFunc={() => {
+                                             this.closeFunc(true);
+                                         }} />                                                                     
+                        </TabPanel>)
+            });
 
             return (
                 <Dialog
@@ -197,21 +211,20 @@ class MultiplePathSelectionModal extends React.Component {
                     onBackdropClick={() => this.closeFunc()}
                     open={this.props.open}
                     fullWidth={true}
-                    maxWidth="lg"
+                    maxWidth="xl"
                 >
-                    <DialogTitle>{this.props.title}
-                        <Tabs value={this.state.tabIdx} onChange={(_, v) => { this.setState({ tabIdx: v }) }}>
-                            <Tab label="Info" disabled={this.state.isLoading} />
-                            <Tab label="X-Y Plots" disabled={this.state.isLoading} />
-                            <Tab label="Path Similarity" disabled={this.state.isLoading} />
-                            <Tab label="Kolmogorov-Smirnov Test" disabled={this.state.isLoading} />
-                        </Tabs>
+                    <DialogTitle sx={{height:125}}>{this.props.title}
+                            <Tabs value={this.state.tabIdx} onChange={(_, v) => { this.setState({ tabIdx: v }) }}>
+                                <Tab label="Info" disabled={this.state.isLoading} />
+                                <Tab label="X-Y Plots" disabled={this.state.isLoading} />
+                                <Tab label="Path Similarity" disabled={this.state.isLoading} />
+                                <Tab label="Kolmogorov-Smirnov Test" disabled={this.state.isLoading} />
+                                {analysisTabs}
+                            </Tabs>
+                            {selectionVisualizations}
                     </DialogTitle>
                     <TabPanel value={this.state.tabIdx} index={0}>
-                        <DialogContent>
-                            <Stack>
-                                {selectionVisualizations}
-                            </Stack>
+                        <DialogContent>                                                            
                             <Grid
                                 direction="row"
                                 justifyContent="space-evenly"
@@ -339,6 +352,7 @@ class MultiplePathSelectionModal extends React.Component {
                     <TabPanel value={this.state.tabIdx} index={3}>
                         <KSTestTab closeFunc={this.closeFunc} cdf={extent_options} rvs={extent_options} rvsDefault={JSON.stringify(this.props.extents[0])} stateProperties={this.state.cmn} />
                     </TabPanel>
+                    {analysisTabsContent}
                 </Dialog>
             );
         } else {

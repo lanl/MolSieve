@@ -108,8 +108,7 @@ function SelectionVis({data, loadingCallback}) {
                 .attr("y", margin.top)
                 .attr("text-anchor", "middle")
                 .style("font-size", "12px")
-                .text(title);
-
+                .text(title);            
             if(loadingCallback !== undefined) {
                 loadingCallback();
             }
