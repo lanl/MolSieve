@@ -8,6 +8,13 @@ import SelectionModal from "../modals/SelectionModal";
 import MultiplePathSelectionModal from "../modals/MultiplePathSelectionModal";
 import SingleStateModal from "../modals/SingleStateModal";
 
+import Menu from '@mui/material/Menu';
+import MenuItem from '@mui/material/MenuItem';
+import ListItemText from '@mui/material/ListItemText';
+import ListItemIcon from '@mui/material/ListItemIcon';
+import Checkbox from '@mui/material/Checkbox';
+
+
 const PATH_SELECTION = "path_selection";
 const MULTIPLE_PATH_SELECTION = "multiple_path_selection";
 const SINGLE_STATE = "single_state";
@@ -29,6 +36,24 @@ function TrajectoryChart({ trajectories, runs, loadingCallback }) {
         setCurrentModal(key);
     };
 
+    const [contextMenu, setContextMenu] = useState(null);
+
+    const openContext = (event) => {
+        event.preventDefault();
+        setContextMenu(
+            contextMenu === null
+                ? {
+                    mouseX: event.clientX - 2,
+                    mouseY: event.clientY - 4,
+                }
+            : null,
+        );
+    };
+
+    const closeContext = () => {
+        setContextMenu(null);
+    }
+
     let [extents, setExtents] = useState([]);
     let [actionCompleted, setActionCompleted] = useState('');
     let [modalTitle, setModalTitle] = useState("");
@@ -38,9 +63,7 @@ function TrajectoryChart({ trajectories, runs, loadingCallback }) {
 
     const toggleStateHighlight = () => {        
         setStateHighlight(prev => !prev);        
-    }
-
-    useKeyDown("s", toggleStateHighlight);
+    }    
     
     const divRef = useRef();
     const [width, setWidth] = useState();
@@ -397,7 +420,7 @@ function TrajectoryChart({ trajectories, runs, loadingCallback }) {
     );
 
     return (
-        <div ref={divRef} width="100%" height="100%">            
+        <div onContextMenu={openContext} ref={divRef} width="100%" height="100%">            
             {width &&
              height &&
              Object.keys(trajectories).length ===
@@ -408,6 +431,25 @@ function TrajectoryChart({ trajectories, runs, loadingCallback }) {
                         viewBox={[0, 0, width, height]}
                     />
              )}
+            <Menu
+                open={contextMenu !== null}
+                onClose={closeContext}
+                anchorReference="anchorPosition"
+                anchorPosition={
+                     contextMenu !== null
+                     ? { top: contextMenu.mouseY, left: contextMenu.mouseX }
+                     : undefined
+                }
+            >
+                <MenuItem>
+                    <ListItemIcon>
+                        <Checkbox
+                            onChange={() => {toggleStateHighlight()}}
+                            checked={stateHighlight}/>
+                    </ListItemIcon>
+                    <ListItemText>Toggle state highlighting</ListItemText>
+                </MenuItem>
+            </Menu>
             {currentModal === SINGLE_STATE && (
                 <SingleStateModal
                     open={currentModal === SINGLE_STATE}

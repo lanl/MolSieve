@@ -559,9 +559,8 @@ async def calculate_neb_on_path(run: str, start: str, end: str, interpolate: int
                     q = '''MATCH (a:State),
                                  (b:State)
                            WHERE a.number = '{state_n1}' AND b.number = '{state_n2}'
-                           MERGE (a)-[:NEB {{ timestep: {timestep}, interpolate: {interpolate},
-                                              maxSteps: {maxSteps}, fmax: {fmax},
-                                              energies: '{energies}', run: '{run}' }}, ]->(b);                    
+                           MERGE (a)-[:NEB {{timestep: {timestep}, interpolate: {interpolate},
+                                              maxSteps: {maxSteps}, fmax: {fmax}, energies: '{energies}', run: '{run}' }}]->(b);                    
                         '''.format(state_n1=r['start']['number'],
                                    state_n2=r['end']['number'],
                                    run=run,
