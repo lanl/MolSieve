@@ -11,6 +11,7 @@ import os
 from scipy import stats
 import pygpcca as gp
 import numpy as np
+import json
 
 from sse_starlette.sse import EventSourceResponse
 
@@ -133,7 +134,7 @@ async def generate_ovito_animation(run: str, start: int, end: int):
     metadata = getMetadata(run)
     atomType = get_atom_type(metadata['parameters'])        
 
-    attr_atom_dict = neomd.converter.query_to_ASE(driver, qb, q, atomType, dictKey=('Relation', 'timestep'))
+    attr_atom_dict = neomd.converter.query_to_ASE(driver, qb, q, atomType, dictKey=('relation', 'timestep'))
 
     output_path = neomd.visualizations.render_ASE_list(attr_atom_dict.values(), list(attr_atom_dict.keys()))
         
@@ -191,7 +192,7 @@ async def run_analysis(steps: List[AnalysisStep], run: str, pathStart: int = Non
                             q = qb.generate_update_entity(data, 
                                                       'State', 
                                                       'number', 
-                                                      'NODE')
+                                                      'node')
                         data.update({'number': state_number})
                         tx.run(q.text, data)
                     tx.commit()
@@ -485,7 +486,7 @@ async def message_stream(request: Request):
     return EventSourceResponse(e_gen)
 
 @app.get('/calculate_neb_on_path')
-async def calculate_neb_on_path(run: str, start: str, end: str, interpolate: int, maxSteps: int, fmax: float):                
+async def calculate_neb_on_path(run: str, start: str, end: str, interpolate: int = 3, maxSteps: int = 2500, fmax: float = 0.01, saveResults: bool = True):                
 
     driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687",
                                         auth=("neo4j", "secret"))
@@ -498,13 +499,12 @@ async def calculate_neb_on_path(run: str, start: str, end: str, interpolate: int
 
     metadata = getMetadata(run)
     atomType = get_atom_type(metadata['parameters'])        
-
     
     # converting atoms...
-#    current_status = 'converting atoms'
+    # current_status = 'converting atoms'
     
-    state_atom_dict, relationList = converter.query_to_ASE(driver, qb, q, atomType, getRelationList=True)        
-
+    attr_atom_dict, relationList = converter.query_to_ASE(driver, qb, q, atomType, getRelationList=True)                
+    
     # calculating NEB...    
 #    current_status = 'calculating NEB'
     
@@ -528,13 +528,39 @@ async def calculate_neb_on_path(run: str, start: str, end: str, interpolate: int
 
             # between state x and y...
             #current_status = 'calculating NEB btwn ' + relation['start']['number'] + ' and an end state'
-            energies = calculator.calculate_neb_for_pair(state_atom_dict[relation['start']['number']], state_atom_dict[relation['end']['number']], run, atomType, metadata['cmds'], interpolate, maxSteps, fmax)
+            energies = calculator.calculate_neb_for_pair(attr_atom_dict[relation['start']['number']], attr_atom_dict[relation['end']['number']], run, atomType, metadata['cmds'], interpolate, maxSteps, fmax)
 
             if idx < len(relationList) - 2:
                 energies.pop()
                 
-            energyList.append(energies)                                                                                            
+            energyList.append(energies)
 
+        if saveResults:
+            # update by timestep            
+            q = None
+            
+            with driver.session() as session:
+                tx = session.begin_transaction()
+                for idx, energies in enumerate(energyList):
+                    r = relationList[idx]
+                    timestep = ''
+                    for prop in r['properties']:
+                        if prop[0] == 'timestep':
+                            timestep = prop[1]
+                    
+                    q = '''MATCH (a:State),
+                                 (b:State)
+                           WHERE a.number = '{state_n1}' AND b.number = '{state_n2}'
+                           MERGE (a)-[:NEB {{timestep: {timestep}, interpolate: {interpolate},
+                                              maxSteps: {maxSteps}, fmax: {fmax}, energies: '{energies}' }}]->(b);                    
+                        '''.format(state_n1=r['start']['number'],
+                                   state_n2=r['end']['number'],
+                                   timestep=timestep, interpolate=interpolate, maxSteps=maxSteps, fmax=fmax, energies=json.dumps(energies))
+
+                    tx.run(q)
+                tx.commit()
+
+     
     #current_status = 'complete'
     
     j = {'energies': energyList}    

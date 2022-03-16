@@ -17,6 +17,10 @@ import MenuItem from "@mui/material/MenuItem";
 import AjaxVideo from "../components/AjaxVideo";
 import SelectionVis from "../vis/SelectionVis";
 import TextField from "@mui/material/TextField";
+import FormControlLabel from '@mui/material/FormControlLabel';
+import FormControl from '@mui/material/FormControl';
+import Checkbox from '@mui/material/Checkbox';
+
 import "../css/App.css";
 
 
@@ -48,6 +52,7 @@ class SelectionModal extends React.Component {
             tabIdx: 0,
             maxSteps: 2500,
             fmax: 0.01,
+            saveResults: true,
             sse: ''
         }
     }
@@ -67,7 +72,7 @@ class SelectionModal extends React.Component {
 
         //ss.onmessage = (e) => this.parseSSE(e.data);
         
-        api_calculate_NEB(run, start, end, this.state.interpolate, this.state.maxSteps, this.state.fmax).then((data) => {
+        api_calculate_NEB(run, start, end, this.state.interpolate, this.state.maxSteps, this.state.fmax, this.state.saveResults).then((data) => {
             let drawSequence = [];
             let gap = 1 / this.state.interpolate;
             
@@ -124,7 +129,7 @@ class SelectionModal extends React.Component {
                     onBackdropClick={() => this.closeFunc()}
                     maxWidth="lg"
                     fullWidth={true}>
-                    <DialogTitle sx={{'height': 150}}>Single Path Selection: {`${extent.name} ${extent.begin.timestep} - ${extent.end.timestep}`}
+                    <DialogTitle sx={{'height': 125}}>Single Path Selection: {`${extent.name} ${extent.begin.timestep} - ${extent.end.timestep}`}
                         
                         <Tabs value={this.state.tabIdx} onChange={(_,v) => {this.setState({tabIdx: v})}}>
                             <Tab label="Info"/>
@@ -159,9 +164,8 @@ class SelectionModal extends React.Component {
                     </TabPanel>
                     <TabPanel value={this.state.tabIdx} index={1}>
                         <DialogContent style={{height: '400px'}}>
-                        <Stack spacing={2} alignItems="center" justifyContent="center">
-
-                            <h2>{parseInt(this.state.end) - parseInt(this.state.start) + " steps"}</h2>
+                            <Stack spacing={2} alignItems="center" justifyContent="center">                               
+                                <h2>{parseInt(this.state.end) - parseInt(this.state.start) + " steps"}</h2>
                                 <TextField
                                     label="Number of images interpolated between points on NEB:"
                                     fullWidth
@@ -170,7 +174,6 @@ class SelectionModal extends React.Component {
                                     defaultValue={this.state.interpolate}
                                     onChange={(e) => {this.setState({interpolate: e.target.value})}}
                                 />
-
                                 <TextField
                                     fullWidth
                                     label="Maximum number of optimization steps"
@@ -179,7 +182,6 @@ class SelectionModal extends React.Component {
                                     defaultValue={this.state.maxSteps}
                                     onChange={(e) => {this.setState({maxSteps: e.target.value})}}
                                />                        
-
                             <TextField
                                     fullWidth
                                     label="fmax"
@@ -188,7 +190,14 @@ class SelectionModal extends React.Component {
                                     defaultValue={this.state.fmax}
                                     onChange={(e) => {this.setState({fmax: e.target.value})}}
                                />                        
-
+                                <FormControl>                                     
+                                    <FormControlLabel control={<Checkbox checked={this.state.saveResults}
+                                                                         onChange={(e) => {this.setState({
+                                                                             saveResults: e.target.checked
+                                                                         })}}
+                                                               />}
+                                                      label="Save results to database"/>
+                                </FormControl>                                
                         {!this.state.isLoading &&
                          <Scatterplot
                              data={{
