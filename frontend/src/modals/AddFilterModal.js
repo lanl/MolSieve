@@ -7,6 +7,13 @@ import Stack from "@mui/material/Stack";
 import Button from "@mui/material/Button";
 import Select from "@mui/material/Select";
 import MenuItem from "@mui/material/MenuItem";
+import FormControl from "@mui/material/FormControl";
+import FormHelperText from "@mui/material/FormHelperText";
+import Tabs from '@mui/material/Tabs';
+import Tab from '@mui/material/Tab';
+import {TabPanel} from "../api/myutils";
+import AjaxSelect from "../components/AjaxSelect";
+import Box from "@mui/material/Box";
 
 class AddFilterModal extends React.Component {
     constructor(props) {
@@ -15,6 +22,7 @@ class AddFilterModal extends React.Component {
             attribute: null,
             filter_type: null,
             properties: null,
+            tabIdx: 0
         };
     }
 
@@ -28,7 +36,7 @@ class AddFilterModal extends React.Component {
         });
     }
 
-    addFilter = () => {
+    addFilter = () => {        
         this.props.closeFunc();
         this.props.addFilter(this.state);
     };
@@ -36,6 +44,10 @@ class AddFilterModal extends React.Component {
     closeFunc = () => {
         this.props.closeFunc();
     };
+
+    changeAttribute = (v) => {        
+        this.setState({attribute: v});
+    }
 
     render() {
         var options = this.props.trajectory.properties.map((property) => {
@@ -52,43 +64,69 @@ class AddFilterModal extends React.Component {
                 open={this.props.open}
                 onBackdropClick={() => this.closeFunc(true)}
             >
-                <DialogTitle>{this.props.title}</DialogTitle>
-                <DialogContent>
+                <DialogTitle>{this.props.title}
+                    <Tabs value={this.state.tabIdx} onChange={(_, v) => {
+                              this.setState({tabIdx: v}, () => {
+                                  if(this.state.tabIdx === 0) {
+                                      this.setState({filter_type: 'MIN', attribute: this.state.properties[0]})
+                                  } else {
+                                      this.setState({filter_type: 'RELATION'});
+                                  }
+                              })
+
+                          }}>
+                        <Tab label="Attribute filter"/>
+                        <Tab label="Relationship filter"/>
+                    </Tabs>
+                </DialogTitle>
+                <TabPanel value={this.state.tabIdx} index={0}>
+                    <DialogContent>
                     <Stack spacing={1}>
-                        <label htmlFor="select_new_filter">Attribute: </label>
-                        <Select
-                            name="select_new_filter"
-                            onChange={(e) => {
-                                this.setState({ attribute: e.target.value });
-                            }}
-                            value={this.state.attribute}
+                        <FormControl>
+                            <Select                            
+                                onChange={(e) => {
+                                    this.setState({ filter_type: e.target.value });
+                                }}
+                                value={this.state.filter_type}
                         >
-                            {options}
-                        </Select>
-                        <label htmlFor="select_new_filter_type">
-                            Filter type:{" "}
-                        </label>
-                        <Select
-                            name="select_new_filter_type"
-                            onChange={(e) => {
-                                this.setState({ filter_type: e.target.value });
-                            }}
-                            value={this.state.filter_type}
-                        >
-                            <MenuItem key="MIN" value="MIN">
+                                <MenuItem key="MIN" value="MIN">
                                 Show states with at least this quantity (min)
-                            </MenuItem>
-                            <MenuItem key="MAX" value="MAX">
-                                Show states with at most this quantity (max)
-                            </MenuItem>
-                            <MenuItem key="RANGE" value="RANGE">
-                                Show states with quantities between a range
-                            </MenuItem>
-                        </Select>
+                                </MenuItem>
+                                <MenuItem key="MAX" value="MAX">
+                                    Show states with at most this quantity (max)
+                                </MenuItem>
+                                <MenuItem key="RANGE" value="RANGE">
+                                    Show states with quantities between a range
+                                </MenuItem>
+                            </Select>
+                            <FormHelperText>Filter Type</FormHelperText>
+                        </FormControl>
+
+                        <FormControl>
+                            <Select                            
+                                onChange={(e) => {
+                                    this.setState({ attribute: e.target.value });
+                                }}
+                                value={this.state.attribute}
+                            >
+                                {options}
+                            </Select>
+                            <FormHelperText>Attribute</FormHelperText>
+                        </FormControl>
                     </Stack>
-                </DialogContent>
+                    </DialogContent>
+                </TabPanel>
+                <TabPanel value={this.state.tabIdx} index={1}>
+                    <Box sx={{display: 'flex', alignItems:'center',
+                              justifyContent: 'center'}}>
+                        <FormControl>
+                            <AjaxSelect api_call='/get_run_list' change={this.changeAttribute}/>
+                            <FormHelperText>Name of Relationship</FormHelperText>
+                        </FormControl>
+                    </Box>
+                </TabPanel>
                 <DialogActions>
-                    <Button
+                    <Button                        
                         size="small"
                         variant="contained"
                         onClick={this.addFilter}

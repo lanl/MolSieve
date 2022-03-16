@@ -10,6 +10,7 @@ import {
     filter_clustering_difference,
     filter_fuzzy_membership,
     filter_transitions,
+    filter_relationship
 } from "../api/filters";
 import FilterComponent from "../components/FilterComponent";
 import Slider from "@mui/material/Slider";
@@ -104,6 +105,7 @@ class VisGrid extends React.Component {
                         ),
                         type: SLIDER,
                     };
+
                     filters["fuzzy_membership"] = {
                         enabled: false,
                         func: filter_fuzzy_membership,
@@ -156,45 +158,47 @@ class VisGrid extends React.Component {
     addFilter = (state) => {
         let runs = this.state.runs;
         let run = runs[state.run];
-        let filters = run["filters"];
-
+        let filters = run["filters"];        
         const sequence = this.props.trajectories[state.run].sequence;
 
         let func = null;
         let filter_label = null;
-
+        let filter_type = null;
+        let val = null;
+        
         switch (state.filter_type) {
             case "MIN":
                 func = filter_min_opacity;
                 filter_label = "At least";
+                filter_type = SLIDER;
+                val = getMinProperty(state.attribute,sequence);
                 break;
             case "MAX":
                 func = filter_max_opacity;
                 filter_label = "At most";
+                filter_type = SLIDER;
+                val = getMinProperty(state.attribute,sequence);
                 break;
             case "RANGE":
                 func = filter_range_opacity;
                 filter_label = "Between";
+            filter_type = RANGE_SLIDER;
+            val = [
+                      getMinProperty(state.attribute, sequence),
+                      getMaxProperty(state.attribute, sequence),
+            ];
                 break;
+            case "RELATION":
+                func = filter_relationship;
+                filter_type = TOGGLE;
+                val = false;
+            break;
             default:
                 alert("Unsupported filter type");
                 filter_label = "Unknown filter";
                 func = null;
                 break;
         }
-
-        let val =
-            state.filter_type === "MIN" || state.filter_type === "MAX"
-                ? getMinProperty(state.attribute, sequence)
-                : [
-                      getMinProperty(state.attribute, sequence),
-                      getMaxProperty(state.attribute, sequence),
-                  ];
-
-        let filter_type =
-            state.filter_type === "MIN" || state.filter_type === "MAX"
-                ? SLIDER
-                : RANGE_SLIDER;
 
         filters[`${state.attribute}_${state.filter_type}`] = {
             enabled: false,
@@ -206,7 +210,7 @@ class VisGrid extends React.Component {
                 getMinProperty(state.attribute, sequence),
                 getMaxProperty(state.attribute, sequence),
             ],
-            options: {
+            options: {                
                 val: val,
                 property: state.attribute,
             },

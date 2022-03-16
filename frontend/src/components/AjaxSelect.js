@@ -8,9 +8,15 @@ class AjaxSelect extends React.Component {
     constructor(props) {
         super(props);
 
+        let value = null;
+
+        if(this.props.defaultValue !== undefined) {
+            value = this.props.defaultValue;
+        }
+
         this.state = {
             isLoaded: false,
-            value: this.props.defaultValue,
+            value: value,
             data: [],
         }
     }
@@ -20,7 +26,11 @@ class AjaxSelect extends React.Component {
             axios.get(this.props.api_call).then((response)=> {                
                 this.setState({data: response.data.map((r) => {
                     return r;
-                }), isLoaded: true});
+                }), isLoaded: true}, () => {
+                    if(this.state.value === null) {
+                        this.setValue(response.data[0]);
+                    }
+                });
             }).catch((e) => { alert(e);})
         }
     }

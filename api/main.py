@@ -89,6 +89,21 @@ def get_scipy_distributions():
 def get_ovito_modifiers():
     return neomd.utils.return_ovito_modifiers()
 
+@app.get('/run_cypher_query')
+def run_cypher_query(query: str):
+    driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687",
+                                        auth=("neo4j", "secret"))
+
+    print(query)
+    j = []
+    with driver.session() as session:        
+        results = session.run(query)
+        for r in results.value():
+            j.append(r)
+            
+    return j
+    
+    
 @app.get("/generate_ovito_image")
 async def generate_ovito_image(number: str):
     driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687",
@@ -559,8 +574,8 @@ async def calculate_neb_on_path(run: str, start: str, end: str, interpolate: int
                     q = '''MATCH (a:State),
                                  (b:State)
                            WHERE a.number = '{state_n1}' AND b.number = '{state_n2}'
-                           MERGE (a)-[:NEB {{timestep: {timestep}, interpolate: {interpolate},
-                                              maxSteps: {maxSteps}, fmax: {fmax}, energies: '{energies}', run: '{run}' }}]->(b);                    
+                           MERGE (a)-[:{run}_NEB {{timestep: {timestep}, interpolate: {interpolate},
+                                              maxSteps: {maxSteps}, fmax: {fmax}, energies: '{energies}'}}]->(b);                    
                         '''.format(state_n1=r['start']['number'],
                                    state_n2=r['end']['number'],
                                    run=run,

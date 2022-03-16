@@ -1,5 +1,6 @@
 import { mostOccurringElement} from "./myutils";
 import * as d3 from 'd3';
+import axios from 'axios';
 
 /** Generic filter function that gets all states with at least val of property.    
  * @param {Trajectory} trajectory - the trajectory to filter on
@@ -139,6 +140,27 @@ export function filter_clustering_difference(trajectory, svg) {
                 return "green";
             }
         });
+}
+
+export function filter_relationship(trajectory,svg,options) {            
+    const run = options.property;    
+
+    // add more options, to filter on timestep, number etc.
+    // but for now this is possible, and really cool!
+    
+    axios.get('/run_cypher_query',
+              {params:
+               {query:
+                `MATCH ()-[r:${run}]-() RETURN DISTINCT r.timestep;`
+               }}).then((response) => {
+                   let filter_array = response.data;
+                   svg.select(`#g_${trajectory.name}`)
+                       .selectAll("rect").filter(function(d) {
+                           return !filter_array.includes(d['timestep']);
+                       })
+                       .attr("opacity", 0);                                     
+               });    
+    
 }
 
 /** Run a sliding window across the entire trajectory and count how many times the dominant state of the cluster (the state the occurs the most)
