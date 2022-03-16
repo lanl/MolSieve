@@ -144,19 +144,23 @@ export function filter_clustering_difference(trajectory, svg) {
 
 export function filter_relationship(trajectory,svg,options) {            
     const run = options.property;    
+    const attribute = options.relation_attribute;
 
-    // add more options, to filter on timestep, number etc.
-    // but for now this is possible, and really cool!
+    // bold assumption to make, but will work for now
+    const node = (attribute !== 'timestep') ? '(n:State)' : '()';
+    const entityType = (attribute !== 'timestep') ? 'n' : 'r';
+    
+    let query = `MATCH ${node}-[r:${run}]-() RETURN DISTINCT ${entityType}.${attribute};`;    
     
     axios.get('/run_cypher_query',
               {params:
                {query:
-                `MATCH ()-[r:${run}]-() RETURN DISTINCT r.timestep;`
+                query
                }}).then((response) => {
                    let filter_array = response.data;
                    svg.select(`#g_${trajectory.name}`)
                        .selectAll("rect").filter(function(d) {
-                           return !filter_array.includes(d['timestep']);
+                           return !filter_array.includes(d[attribute]);
                        })
                        .attr("opacity", 0);                                     
                });    

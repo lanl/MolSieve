@@ -143,6 +143,7 @@ class VisGrid extends React.Component {
     };
 
     propagateChange = (filter) => {
+        console.log(filter);
         let runs = { ...this.state.runs };
         let this_filter = runs[filter.run]["filters"][filter.id];
 
@@ -200,10 +201,20 @@ class VisGrid extends React.Component {
                 break;
         }
 
-        filters[`${state.attribute}_${state.filter_type}`] = {
+        let id = null;
+        let checkBoxLabel = null;
+        if (state.filter_type == "RELATION") {
+            id = `${state.attribute}_${state.relation_attribute}`
+            checkBoxLabel = `Find common ${state.relation_attribute} with ${state.attribute} `
+        } else {
+            id = `${state.attribute}_${state.filter_type}`;
+            checkBoxLabel = `Filter ${state.attribute}`;
+        }
+
+        filters[id] = {
             enabled: false,
             func: func,
-            checkBoxLabel: `Filter ${state.attribute}`,
+            checkBoxLabel: checkBoxLabel,
             sliderLabel: filter_label,
             type: filter_type,
             extents: [
@@ -213,8 +224,9 @@ class VisGrid extends React.Component {
             options: {                
                 val: val,
                 property: state.attribute,
+                relation_attribute: state.relation_attribute
             },
-            id: `${state.attribute}_${state.filter_type}`,
+            id: id,
         };
         run.filters = filters;
         runs[state.run] = run;

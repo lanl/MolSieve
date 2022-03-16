@@ -363,7 +363,7 @@ def get_atom_properties():
     return j
 
 @app.get('/get_run_list')
-def get_run_list():
+def get_run_list(truncateNEB: Optional[bool] = True):
     driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687",
                                         auth=("neo4j", "secret"))
     j = []
@@ -375,9 +375,13 @@ def get_run_list():
             # gets rid of ugly syntax on js side - puts everything in one array; probably a better more elegant way to do this
             runs = []
             for r in result.values():
-                if r[0] != 'NEB':
+                if 'NEB' not in r[0]:
                     runs.append(r[0])
-                    trajectories.update({r[0] : Trajectory()})                    
+                    trajectories.update({r[0] : Trajectory()})
+                elif 'NEB' in r[0] and not truncateNEB:
+                    runs.append(r[0])
+                    trajectories.update({r[0] : Trajectory()})
+                    
             j = runs
         except neo4j.exceptions.ServiceUnavailable as exception:
             raise exception

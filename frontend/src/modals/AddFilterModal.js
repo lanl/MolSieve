@@ -31,6 +31,7 @@ class AddFilterModal extends React.Component {
         this.setState({
             run: this.props.run,
             attribute: properties[0],
+            relation_attribute: properties[0],
             filter_type: "MIN",
             properties: [...this.props.trajectory.properties],
         });
@@ -120,9 +121,25 @@ class AddFilterModal extends React.Component {
                     <Box sx={{display: 'flex', alignItems:'center',
                               justifyContent: 'center'}}>
                         <FormControl>
-                            <AjaxSelect api_call='/get_run_list' change={this.changeAttribute}/>
+                            <AjaxSelect api_call='/get_run_list'
+                                        params={{
+                                            truncateNEB: false
+                                        }} change={this.changeAttribute}/>
                             <FormHelperText>Name of Relationship</FormHelperText>
                         </FormControl>
+                        
+                        <FormControl>
+                            <Select                            
+                                onChange={(e) => {
+                                    this.setState({ relation_attribute: e.target.value });
+                                }}
+                                value={this.state.relation_attribute}
+                            >
+                                {options}
+                            </Select>
+                            <FormHelperText>Attribute to match</FormHelperText>
+                        </FormControl>
+                        
                     </Box>
                 </TabPanel>
                 <DialogActions>
