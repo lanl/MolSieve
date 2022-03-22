@@ -397,7 +397,7 @@ def get_metadata(run: str):
     return j
 
 @app.get('/pcca')
-def pcca(run: str, clusters: int, optimal: int, m_min: int, m_max: int):            
+def pcca(run: str, clusters: int, optimal: int, m_min: int, m_max: int):           
     driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687",
                                         auth=("neo4j", "secret"))
     if config.IMPATIENT:            
@@ -409,7 +409,7 @@ def pcca(run: str, clusters: int, optimal: int, m_min: int, m_max: int):
         schema=[("State", run, "State", "ONE-TO-ONE"),
                 ("Atom", "PART_OF", "State", "MANY-TO-ONE")])
 
-    m, idx_to_state_number = calculator.calculate_transition_matrix(
+    m, idx_to_state_number=calculator.calculate_transition_matrix(
         driver, qb, run=run, discrete=True)
     
     gpcca = gp.GPCCA(np.array(m), z='LM', method='brandts')
@@ -440,8 +440,7 @@ def pcca(run: str, clusters: int, optimal: int, m_min: int, m_max: int):
                     fuzzy_memberships.update({cluster_idx + m_min: state_to_membership})
             j.update({'feasible_clusters': feasible_clusters})
         except ValueError as exception:
-            print(exception)
-            return {'status': 500, 'Error': str(exception)}, 500
+            raise exception
     else:
         try:
             gpcca.optimize(clusters)
@@ -457,8 +456,7 @@ def pcca(run: str, clusters: int, optimal: int, m_min: int, m_max: int):
                 state_to_membership.update({idx_to_state_number[idx]: m})                        
             fuzzy_memberships.update({clusters: state_to_membership})
         except ValueError as exception:
-            print(exception)
-            return {'status': 500, 'Error': str(exception)}, 500
+            raise exception
 
     j.update({'sets': sets})
     j.update({'fuzzy_memberships': fuzzy_memberships})        

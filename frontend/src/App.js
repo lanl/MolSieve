@@ -79,11 +79,12 @@ class App extends React.Component {
         // first check if the state has that clustering already calculated
         return new Promise((resolve, reject) => {
             let current_traj = this.state.trajectories[run];
-            if (Object.keys(current_traj.clusterings).includes(clusters)) {
+            
+            if (current_traj.feasible_clusters.includes(clusters)) {
                 const new_trajectories = {
                     ...this.state.trajectories,
                 };
-                new_trajectories[run].current_clustering = parseInt(clusters);
+                new_trajectories[run].current_clustering = clusters;
                 new_trajectories[run].set_cluster_info();
                 this.setState({ trajectories: new_trajectories });
                 resolve(true);
@@ -110,8 +111,8 @@ class App extends React.Component {
                     })
                     .catch((e) => {
                         this.setState({ isLoading: false });
-                        alert(e.response.data.Error);
-                        reject(false);
+                        alert(e);
+                        reject(false);                        
                     });
             }
         });

@@ -16,9 +16,12 @@ import CircularProgress from "@mui/material/CircularProgress";
 import axios from 'axios';
 import {DataGrid} from '@mui/x-data-grid';
 import Stack from "@mui/material/Stack";
+import TextField from "@mui/material/TextField";
+
 
 const OVITO = 'ovito_modifier';
 const PYTHON = 'python_script';
+const CYPHER_QUERY = 'cypher_query';
 
 class AnalysisTab extends React.Component {
     constructor(props) {
@@ -89,11 +92,28 @@ class AnalysisTab extends React.Component {
             });            
             break;
         case PYTHON:
+            var textArea = this.addTextArea();
+            var newStep = {'type': PYTHON, 'value': 'test', 'render': textArea}           
+            this.setState({steps: [...this.state.steps, newStep]});
+            break;
+        case CYPHER_QUERY:
+            var txtArea = this.addTextArea();
+            var newStepCQ = {'type': CYPHER_QUERY, 'value': 'test', 'render': txtArea};            
+            this.setState({steps: [...this.state.steps, newStepCQ]});
             break;
         default:
             alert("Unknown analysis step!");
             return;
         }
+    }
+
+    addTextArea = () => {
+        /*let index = this.state.steps.length;
+        let steps = this.state.steps;
+        let step = steps[index];*/
+
+        return (<TextField multiline on/>);
+        
     }
 
     render() {
@@ -146,7 +166,8 @@ class AnalysisTab extends React.Component {
                                 <FormControl>
                                     <RadioGroup row value={this.state.newStep} onChange={(e) => {this.setState({newStep: e.target.value})}}>
                                         <FormControlLabel value={OVITO} control={<Radio />} label="Ovito Modifier" />
-                                        <FormControlLabel value={PYTHON} control={<Radio />} label="Python Script" />                                    
+                                        <FormControlLabel value={PYTHON} control={<Radio />} label="Python Script" />
+                                        <FormControlLabel value={CYPHER_QUERY} control={<Radio />} label="Cypher Query" />
                                     </RadioGroup>
                                 </FormControl>
                                 <Button variant="contained" size="small" onClick={() => {this.addStep()}}>Add new analysis step</Button>

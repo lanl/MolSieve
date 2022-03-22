@@ -25,6 +25,7 @@
   },
   "scripts": {
     "start": "react-scripts start",
+    "start-api": "cd .. && uvicorn api.main:app",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
@@ -49,8 +50,12 @@
   },
   "proxy": "http://localhost:8000",
   "devDependencies": {
-    "eslint": "^8.9.0",
-    "eslint-plugin-react": "^7.28.0",
+    "eslint": "^8.11.0",
+    "eslint-config-airbnb": "^19.0.4",
+    "eslint-plugin-import": "^2.25.4",
+    "eslint-plugin-jsx-a11y": "^6.5.1",
+    "eslint-plugin-react": "^7.29.4",
+    "eslint-plugin-react-hooks": "^4.3.0",
     "prettier": "2.5.1"
   }
 }

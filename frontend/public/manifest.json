@@ -1,6 +1,6 @@
 {
-  "short_name": "React App",
-  "name": "Create React App Sample",
+  "short_name": "Trajectory Visualization",
+  "name": "Trajectory Visualization",
   "icons": [
     {
       "src": "favicon.ico",

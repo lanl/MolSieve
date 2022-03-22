@@ -129,21 +129,21 @@ class VisGrid extends React.Component {
     };
 
     recalculate_clustering = async (run) => {
-        var result = await this.props.recalculate_clustering(
-            run,
-            this.state.runs[run]["current_clustering"]
-        );
-        if (!result) {
+        try {
+            await this.props.recalculate_clustering(
+                run,
+                this.state.runs[run]["current_clustering"]
+            );            
+        } catch(e) {
             this.updateRun(
                 run,
                 "current_clustering",
                 this.props.trajectories[run].current_clustering
-            );
-        }
+            );        
+        }         
     };
 
-    propagateChange = (filter) => {
-        console.log(filter);
+    propagateChange = (filter) => {        
         let runs = { ...this.state.runs };
         let this_filter = runs[filter.run]["filters"][filter.id];
 
