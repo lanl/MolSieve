@@ -55,6 +55,7 @@ function TrajectoryChart({ trajectories, runs, loadingCallback }) {
     const toggleModal = (key) => {
         if (currentModal) {
             setCurrentModal();
+            setActionCompleted();
             return;
         }
         setCurrentModal(key);
@@ -160,22 +161,21 @@ function TrajectoryChart({ trajectories, runs, loadingCallback }) {
     useKeyUp('Shift', completeMultipleSelection);
 
     useEffect(() => {
-        switch (actionCompleted) {
-            case MULTIPLE_PATH_SELECTION:
-                if (extents.length < 2) break;
-                toggleModal(actionCompleted);
+        switch (actionCompleted) {            
+        case MULTIPLE_PATH_SELECTION:            
+            if (extents.length < 2) break;
+            toggleModal(actionCompleted);
+            break;
+        case PATH_SELECTION:            
+            toggleModal(actionCompleted);
+            break;
+        case SINGLE_STATE:            
+            toggleModal(actionCompleted);
+            break;
+        default:
                 break;
-            case PATH_SELECTION:
-                toggleModal(actionCompleted);
-                break;
-            case SINGLE_STATE:
-                // console.log(actionCompleted);
-                toggleModal(actionCompleted);
-                break;
-            default:
-                break;
-        }
-    }, [actionCompleted]);
+            }
+        }, [actionCompleted]);
 
     const ref = useTrajectoryChartRender(
         (svg) => {
@@ -393,7 +393,6 @@ function TrajectoryChart({ trajectories, runs, loadingCallback }) {
                 ])
                 .on('end', (e) => {
                     const extent = e.selection;
-
                     if (extent) {
                         const currName = dataList[Math.round(scaleY.invert(extent[0][1]))]
                             .name;
@@ -404,13 +403,16 @@ function TrajectoryChart({ trajectories, runs, loadingCallback }) {
                             const end = trajectories[currName].sequence[
                                 Math.round(scaleX.invert(extent[1][0]))
                             ];
-                            const xtent = {
-                                name: currName,
-                                begin,
-                                end,
-                            };
-
-                            setExtents((prev) => [...prev, xtent]);
+                            if(begin !== undefined && end !== undefined) {
+                                const xtent = {
+                                    name: currName,
+                                    begin,
+                                    end,
+                                };
+                                setExtents((prev) => [...prev, xtent]);
+                            } else {                                
+                                alert("Invalid selection. Please try again.")
+                            }
                         }
                     }
                 });
@@ -424,7 +426,7 @@ function TrajectoryChart({ trajectories, runs, loadingCallback }) {
                     [width, height],
                 ])
                 .on('end', function(e) {
-                    const extent = e.selection;
+                    const extent = e.selection;                    
                     if (extent) {
                         const currName = dataList[Math.round(scaleY.invert(extent[0][1]))]
                             .name;
@@ -435,16 +437,21 @@ function TrajectoryChart({ trajectories, runs, loadingCallback }) {
                             const end = trajectories[currName].sequence[
                                 Math.round(scaleX.invert(extent[1][0]))
                             ];
-                            const xtent = {
-                                name: currName,
-                                begin,
-                                end,
-                            };
-                            setModalTitle(
-                                `Timesteps ${begin.timestep} - ${end.timestep}`,
-                            );
-                            setExtents([...extents, xtent]);
-                            setActionCompleted(PATH_SELECTION);
+
+                            if(begin !== undefined && end !== undefined) {                                
+                                const xtent = {
+                                    name: currName,
+                                    begin,
+                                    end,
+                                };
+                                setModalTitle(
+                                    `Timesteps ${begin.timestep} - ${end.timestep}`,
+                                );
+                                setExtents([...extents, xtent]);
+                                setActionCompleted(PATH_SELECTION);
+                            } else {
+                                alert("Invalid selection. Please try again.");
+                            }
                         }
                     }
                     d3.select(this).remove();
