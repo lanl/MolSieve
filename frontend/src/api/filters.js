@@ -163,8 +163,7 @@ export function filter_relationship(trajectory,svg,options) {
                            return !filter_array.includes(d[attribute]);
                        })
                        .attr("opacity", 0);                                     
-               });    
-    
+               });
 }
 
 export function filter_chunks(trajectory, svg) {

@@ -73,9 +73,12 @@ class VisGrid extends React.Component {
             for (var run of runs) {
                 if (!Object.keys(this.state.runs).includes(run)) {
                     let runs = { ...this.state.runs };
-                    runs[run] = {};
-                    runs[run]["current_clustering"] =
-                        this.props.trajectories[run].current_clustering;
+
+                    
+                    runs[run] = { current_clustering: this.props.trajectories[run].current_clustering,
+                                  chunkingThreshold: this.props.trajectories[run].chunkingThreshold,
+                                };
+                    
 
                     const filters = {};
 
@@ -153,7 +156,7 @@ class VisGrid extends React.Component {
         }         
     };
 
-    propagateChange = (filter) => {        
+    propagateChange = (filter) => {
         let runs = { ...this.state.runs };
         let this_filter = runs[filter.run]["filters"][filter.id];
 
@@ -243,6 +246,11 @@ class VisGrid extends React.Component {
         this.setState({ runs: runs });
     };
 
+    simplifySet = (run, threshold) => {
+        this.props.simplifySet(run, threshold);
+    }
+    
+    // the pcca / threshold sliders are more than filters - they directly affect the dataset
     renderControls = (runs) => {
         return runs.map((run) => {
             return (
@@ -282,6 +290,23 @@ class VisGrid extends React.Component {
                         <ListItemText secondary={this.state.runs[run]["current_clustering"] + " clusters"}>                            
                         </ListItemText>
                     </ListItem>
+                    <ListItem>
+                        <Slider step={0.05}
+                                min={0}
+                                max={1}
+                                onChangeCommitted={() => {
+                                    this.simplifySet(run,this.state.runs[run].chunkingThreshold);
+                                }}
+                                valueLabelDisplay="auto"
+                                onChange={(e) => {                                    
+                                    this.updateRun(run, "chunkingThreshold", e.target.value);
+                                }}
+                                value={this.state.runs[run].chunkingThreshold}
+                        />
+                    </ListItem>
+                    <ListItem>
+                        <ListItemText secondary={`${this.state.runs[run]["chunkingThreshold"]}% chunking threshold`}/>                            
+                    </ListItem>                        
                     {Object.keys(this.state.runs[run]["filters"]).length > 0 &&
                         Object.keys(this.state.runs[run]["filters"]).map(
                             (key, idx) => {

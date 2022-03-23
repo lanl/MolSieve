@@ -25,6 +25,8 @@ class Trajectory {
 
     simplifiedSequence;
 
+    chunkingThreshold;
+
     /** Loops through the sequence and applies the clustering to each state.
      * Allows us to keep track of colorings and perform other calculations.
      */
@@ -105,8 +107,7 @@ class Trajectory {
             chunks.push(lastChunk);
         }
         
-        this.simplifiedSequence = { sequence: simplifiedSequence, chunks: chunks };
-        console.log(this.simplifiedSequence);
+        this.simplifiedSequence = { sequence: simplifiedSequence, chunks: chunks };        
     }
     
     set_colors(colorArray) {

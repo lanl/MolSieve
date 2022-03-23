@@ -1,6 +1,5 @@
 import { React, useEffect, useState, useRef } from "react";
 import { useTrajectoryChartRender } from "../hooks/useTrajectoryChartRender";
-import { intToRGB } from "../api/myutils";
 import Box from "@mui/material/Box";
 import tippy from "tippy.js";
 import "tippy.js/dist/tippy.css";
@@ -48,7 +47,8 @@ function Scatterplot({ data, loadingCallback }) {
             let path = data.path;
             let sequence = data.sequence;
             let title = data.title;
-
+            let colors = data.colors;            
+            
             if (reverse == null) reverse = false;
             if (path == null) path = false;
 
@@ -107,7 +107,7 @@ function Scatterplot({ data, loadingCallback }) {
                     if (d["cluster"] == -1) {
                         return "black";
                     }
-                    return intToRGB(d["cluster"]);
+                    return colors[d.cluster];
                 })
                 .on("mouseover", function (event) {
                     const i = event.currentTarget.getAttribute("index");

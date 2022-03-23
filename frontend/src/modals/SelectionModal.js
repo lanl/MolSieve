@@ -142,7 +142,8 @@ class SelectionModal extends React.Component {
                             data={{
                                 extents: this.props.extents,
                                 sequence: this.props.trajectories[this.state.run].sequence,
-                                run: this.state.run
+                                run: this.state.run,
+                                colors: this.props.trajectories[this.state.run].colors,
                             }}
                         />
                         
@@ -205,7 +206,8 @@ class SelectionModal extends React.Component {
                                  x_attribute: 'timestep',
                                  y_attribute: 'energies',
                                  y_attributeList: this.state.energies,
-                                 path: true
+                                 path: true,
+                                 colors: this.props.trajectories[this.state.run].colors,                                 
                              }} />}
                             {this.state.isLoading && <CircularProgress color="grey" style={{alignContent: 'center', justifyContent: 'center'}}/>}
                         </Stack>
