@@ -20,6 +20,16 @@ class App extends React.Component {
             run: null,
             trajectories: {},
             loadingMessage: "Loading...",
+            colors: ['ff0029', '377eb8', '66a61e', '984ea3', '00d2d5', 'ff7f00', 'af8d00',
+                     '7f80cd', 'b3e900', 'c42e60', 'a65628', 'f781bf', '8dd3c7', 'bebada',
+                     'fb8072', '80b1d3', 'fdb462', 'fccde5', 'bc80bd', 'ffed6f', 'c4eaff',
+                     'cf8c00', '1b9e77', 'd95f02', 'e7298a', 'e6ab02', 'a6761d', '0097ff',
+                     '00d067', '000000', '252525', '525252', '737373', '969696', 'bdbdbd',
+                     'f43600', '4ba93b', '5779bb', '927acc', '97ee3f', 'bf3947', '9f5b00',
+                     'f48758', '8caed6', 'f2b94f', 'eff26e', 'e43872', 'd9b100', '9d7a00',
+                     '698cff', 'd9d9d9', '00d27e', 'd06800', '009f82', 'c49200', 'cbe8ff',
+                     'fecddf', 'c27eb6', '8cd2ce', 'c4b8d9', 'f883b0', 'a49100', 'f48800',
+                     '27d0df', 'a04a9b'],
         };
     }
 
@@ -88,6 +98,7 @@ class App extends React.Component {
                 };
                 new_trajectories[run].current_clustering = clusters;
                 new_trajectories[run].set_cluster_info();
+                new_trajectories[run].simplifySet();
                 this.setState({ trajectories: new_trajectories });
                 resolve(true);
             } else {
@@ -104,6 +115,8 @@ class App extends React.Component {
                         const new_trajectories = {
                             ...this.state.trajectories,
                         };
+                        traj.add_colors(this.state.colors, clusters);
+                        traj.simplifySet();
                         new_trajectories[run] = traj;
                         this.setState({
                             isLoading: false,
@@ -129,25 +142,36 @@ class App extends React.Component {
      * @param {Array<String>} properties - Properties of the trajectory to retrieve
      */
     load_trajectory = (run, clusters, optimal, m_min, m_max, properties) => {
-        var new_traj = new Trajectory();
-        new_traj.properties = [...properties];
+        const newTraj = new Trajectory();
+        newTraj.properties = [...properties];
         
-        this.load_sequence(run, new_traj.properties, new_traj)
-            .then((new_traj) => {
-                this.load_PCCA(run, clusters, optimal, m_min, m_max, new_traj)
-                    .then((new_traj) => {
-                        this.load_metadata(run, new_traj).then((new_traj) => {
+        this.load_sequence(run, newTraj.properties, newTraj)
+            .then((newTraj) => {
+                this.load_PCCA(run, clusters, optimal, m_min, m_max, newTraj)
+                    .then((newTraj) => {
+                        this.load_metadata(run, newTraj).then((newTraj) => {
                             // some final processing on trajectory
-                            new_traj.properties.push("timestep");
-                            new_traj.calculate_unique_states();
-                            new_traj.set_cluster_info();
-                            const new_trajectories = {
+                            newTraj.properties.push('timestep');
+                            newTraj.calculate_unique_states();
+                            newTraj.set_cluster_info(); // for each state                            
+                            // could be an option
+                            newTraj.simplifySet();
+                            
+                            const removed = newTraj.set_colors(this.state.colors);
+                            const newTrajectories = {
                                 ...this.state.trajectories,
                             };
-                            new_trajectories[run] = new_traj;
+
+                            console.log(newTraj);
+                            
+                            newTrajectories[run] = newTraj;
+                            let newColors = [...this.state.colors];
+                            newColors.splice(0, removed);
+                            
                             this.setState({
                                 isLoading: false,
-                                trajectories: new_trajectories,
+                                trajectories: newTrajectories,
+                                colors: newColors,
                             });
                         });
                     }

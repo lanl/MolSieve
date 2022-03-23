@@ -6,8 +6,7 @@
     },
     "extends": [
         "eslint:recommended",
-        //"airbnb",
-        //"airbnb/hooks",
+        "airbnb",
         "plugin:react/recommended"        
     ],
     "parserOptions": {
@@ -21,6 +20,10 @@
         "react"
     ],
     "rules": {
-	"react/prop-types": 0        
+	"react/prop-types": 0,        
+        "no-plusplus": 0,
+        "indent": 0,
+        "max-len": 0
+        
     }
 }

@@ -418,11 +418,12 @@ def pcca(run: str, clusters: int, optimal: int, m_min: int, m_max: int):
         schema=[("State", run, "State", "ONE-TO-ONE"),
                 ("Atom", "PART_OF", "State", "MANY-TO-ONE")])
 
-    # best way to add up runs?
+    # best way to add up runs?    
     m, idx_to_state_number = calculator.calculate_transition_matrix(
-        driver, qb, run=run, discrete=True, trajectory=trajectories[run].sequence, getOccurrences=False)
+        driver, qb, run=run, discrete=True, trajectory=trajectories[run].sequence, getOccurrences=False)    
     
     gpcca = gp.GPCCA(np.array(m), z='LM', method='brandts')
+    
     j = {}
     sets = {}
     fuzzy_memberships = {}    
@@ -445,7 +446,7 @@ def pcca(run: str, clusters: int, optimal: int, m_min: int, m_max: int):
                         clusterings.append(newSet)
                     sets.update({cluster_idx + m_min: clusterings})
                     state_to_membership = {}
-                    for idx,m in enumerate(gpcca.memberships.tolist()):
+                    for idx, m in enumerate(gpcca.memberships.tolist()):
                         state_to_membership.update({idx_to_state_number[idx]: m})                        
                     fuzzy_memberships.update({cluster_idx + m_min: state_to_membership})
             j.update({'feasible_clusters': feasible_clusters})
@@ -462,7 +463,7 @@ def pcca(run: str, clusters: int, optimal: int, m_min: int, m_max: int):
                 clusterings.append(newSet)
             sets.update({clusters: clusterings})
             state_to_membership = {}
-            for idx,m in enumerate(gpcca.memberships.tolist()):
+            for idx, m in enumerate(gpcca.memberships.tolist()):
                 state_to_membership.update({idx_to_state_number[idx]: m})                        
             fuzzy_memberships.update({clusters: state_to_membership})
         except ValueError as exception:
@@ -474,6 +475,8 @@ def pcca(run: str, clusters: int, optimal: int, m_min: int, m_max: int):
     # j.update({'dominant_eigenvalues': gpcca.dominant_eigenvalues.tolist()})
     # j.update({'minChi': gpcca.minChi(m_min, m_max)})
 
+    print(j)
+    
     saveTestJson(run, 'optimal_pcca', j)       
     return j
 

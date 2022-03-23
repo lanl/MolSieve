@@ -157,33 +157,33 @@ class VisGrid extends React.Component {
     };
 
     addFilter = (state) => {
-        let runs = this.state.runs;
-        let run = runs[state.run];
-        let filters = run["filters"];        
+        const runs = this.state.runs;
+        const run = runs[state.run];
+        const filters = run["filters"];        
         const sequence = this.props.trajectories[state.run].sequence;
 
         let func = null;
-        let filter_label = null;
-        let filter_type = null;
+        let filterLabel = null;
+        let filterType = null;
         let val = null;
         
         switch (state.filter_type) {
             case "MIN":
                 func = filter_min_opacity;
-                filter_label = "At least";
-                filter_type = SLIDER;
+                filterLabel = "At least";
+                filterType = SLIDER;
                 val = getMinProperty(state.attribute,sequence);
                 break;
             case "MAX":
                 func = filter_max_opacity;
-                filter_label = "At most";
-                filter_type = SLIDER;
+                filterLabel = "At most";
+                filterType = SLIDER;
                 val = getMinProperty(state.attribute,sequence);
                 break;
             case "RANGE":
                 func = filter_range_opacity;
-                filter_label = "Between";
-            filter_type = RANGE_SLIDER;
+                filterLabel = "Between";
+            filterType = RANGE_SLIDER;
             val = [
                       getMinProperty(state.attribute, sequence),
                       getMaxProperty(state.attribute, sequence),
@@ -191,12 +191,12 @@ class VisGrid extends React.Component {
                 break;
             case "RELATION":
                 func = filter_relationship;
-                filter_type = TOGGLE;
+                filterType = TOGGLE;
                 val = false;
             break;
             default:
                 alert("Unsupported filter type");
-                filter_label = "Unknown filter";
+                filterLabel = "Unknown filter";
                 func = null;
                 break;
         }
@@ -215,8 +215,8 @@ class VisGrid extends React.Component {
             enabled: false,
             func: func,
             checkBoxLabel: checkBoxLabel,
-            sliderLabel: filter_label,
-            type: filter_type,
+            sliderLabel: filterLabel,
+            type: filterType,
             extents: [
                 getMinProperty(state.attribute, sequence),
                 getMaxProperty(state.attribute, sequence),
@@ -438,13 +438,13 @@ class VisGrid extends React.Component {
         this.setState({ drawerOpen: !this.state.drawerOpen});
     }
 
-    render() {
-        let runs = Object.keys(this.state.runs);
-        let trajs = Object.keys(this.props.trajectories);
-        let safe = (runs.length === trajs.length && runs.length > 0 && trajs.length > 0) ? true : false;                
-        var controls = this.renderControls(runs);        
-        
-        return(
+  render() {
+        const runs = Object.keys(this.state.runs);
+        const trajs = Object.keys(this.props.trajectories);
+        const safe = (runs.length === trajs.length && runs.length > 0 && trajs.length > 0) ? true : false;
+        const controls = this.renderControls(runs);
+
+        return (
             <Box sx={{ height: '100%' }}>
                 {safe && (
                 <Button sx={{ float: 'right' }} onClick={() => {

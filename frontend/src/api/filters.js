@@ -113,7 +113,7 @@ export function filter_fuzzy_membership(trajectory, svg) {
 export function filter_clustering_difference(trajectory, svg) {
     var clustering_assignments = {};
     var maxSize = -Number.MAX_SAFE_INTEGER;
-    // for some reason, an extra labels object is created at the end
+    // for some reason, an extra labels object is created at the end    
     for (var d of trajectory.unique_states) {
         var labels = new Set();
         for (var clustering of Object.values(trajectory.clusterings)) {
