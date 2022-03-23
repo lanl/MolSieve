@@ -1,16 +1,15 @@
 from fastapi import FastAPI, Request
-import asyncio
-from pydantic import BaseModel, BaseSettings
-from typing import Optional, Dict, List
+from pydantic import BaseModel
+from typing import Optional, List
 
 import neo4j
-import ovito
 import neomd
-from neomd import querybuilder, converter, calculator, query, visualizations
+from neomd import querybuilder, converter, calculator, visualizations
 import os
 from scipy import stats
 import pygpcca as gp
 import numpy as np
+import pandas as pd
 import json
 
 from sse_starlette.sse import EventSourceResponse
@@ -27,13 +26,16 @@ from .config import config
 from .trajectory import Trajectory
 from .utils import *
 
+
 class AnalysisStep(BaseModel):
     analysisType: str
     value: str
 
+
 class AnalysisRequest(BaseModel):        
     pathStart: Optional[str] = None
     pathEnd: Optional[str] = None
+
 
 os.environ['OVITO_THREAD_COUNT'] = '1'
 os.environ['DISPLAY'] = ''
@@ -58,19 +60,19 @@ def getMetadata(run, getJson=False):
     if getJson or trajectories[run].metadata is None:
         j = {}            
         driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687",
-                                        auth=("neo4j", "secret"))
+                                            auth = ("neo4j", "secret"))
         with driver.session() as session:
             try:
                 result = session.run(
                     "MATCH (n:Metadata {{run: '{run}' }}) RETURN n".format(run=run))
                 record = result.single()
                 for n in record.values():
-                    for key,value in n.items():                                                                                
+                    for key,value in n.items():
                         if key == "LAMMPSBootstrapScript":
                             params = metadata_to_parameters(value)
                             cmds = metadata_to_cmds(params)
                             trajectories[run].metadata = {'parameters': params, 'cmds': cmds}                                
-                        j.update({key:value})                    
+                        j.update({key: value})
             except neo4j.exceptions.ServiceUnavailable as exception:
                 raise exception
 
@@ -100,10 +102,10 @@ def run_cypher_query(query: str):
         results = session.run(query)
         for r in results.value():
             j.append(r)
-            
+
     return j
-    
-    
+
+
 @app.get("/generate_ovito_image")
 async def generate_ovito_image(number: str):
     driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687",
@@ -178,9 +180,9 @@ async def run_analysis(steps: List[AnalysisStep], run: str, pathStart: int = Non
         else:
             q = qb.generate_trajectory(run,
                                "ASC",
-                               ('relation', 'timestep'),                               
+                               ('relation', 'timestep'),
                                include_atoms=True,
-                               ase_mode=True)                
+                               ase_mode=True)
             state_atom_dict = converter.query_to_ASE(driver, qb, q, get_atom_type(getMetadata(run)['parameters']))
             saveTestPickle(run, 'state_atom_dict', state_atom_dict)            
     else:
@@ -285,7 +287,7 @@ def calculate_path_similarity(extents: dict):
 
     return score
 
-
+# perhaps run this first and then the PCCA
 @app.get('/load_sequence')
 def load_sequence(run: str, properties: str):
     if config.IMPATIENT:
@@ -320,13 +322,19 @@ def load_sequence(run: str, properties: str):
             session.run(oq.text)
             
         if "AtomCount" not in run_md.keys():
-            oq2 = qb.generate_calculate_many_to_one_count("PART_OF", saveMetadata=True,run=run)
+            oq2 = qb.generate_calculate_many_to_one_count("PART_OF", saveMetadata=True, run=run)
             session.run(oq2.text)
 
         result = session.run(q.text)
         j = result.data()
         saveTestJson(run, 'sequence', j)
 
+    # here save the trajectory into your own format into the server's memory
+
+    new_traj = Trajectory()
+    new_traj.sequence = pd.DataFrame(j)
+    trajectories[run] = new_traj
+    
     return j
 
 @app.get('/get_property_list')
@@ -396,6 +404,7 @@ def get_metadata(run: str):
     
     return j
 
+# TODO: make pcca support multiple runs
 @app.get('/pcca')
 def pcca(run: str, clusters: int, optimal: int, m_min: int, m_max: int):           
     driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687",
@@ -409,8 +418,9 @@ def pcca(run: str, clusters: int, optimal: int, m_min: int, m_max: int):
         schema=[("State", run, "State", "ONE-TO-ONE"),
                 ("Atom", "PART_OF", "State", "MANY-TO-ONE")])
 
-    m, idx_to_state_number=calculator.calculate_transition_matrix(
-        driver, qb, run=run, discrete=True)
+    # best way to add up runs?
+    m, idx_to_state_number = calculator.calculate_transition_matrix(
+        driver, qb, run=run, discrete=True, trajectory=trajectories[run].sequence, getOccurrences=False)
     
     gpcca = gp.GPCCA(np.array(m), z='LM', method='brandts')
     j = {}
@@ -464,8 +474,7 @@ def pcca(run: str, clusters: int, optimal: int, m_min: int, m_max: int):
     # j.update({'dominant_eigenvalues': gpcca.dominant_eigenvalues.tolist()})
     # j.update({'minChi': gpcca.minChi(m_min, m_max)})
 
-    saveTestJson(run, 'optimal_pcca', j)
-
+    saveTestJson(run, 'optimal_pcca', j)       
     return j
 
 

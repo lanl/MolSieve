@@ -47,7 +47,7 @@ class App extends React.Component {
     load_PCCA = (run, clusters, optimal, m_min, m_max, trajectory) => {
         this.setState({
             isLoading: true,
-            loadingMessage: `Calculating PCCA for ${run}...`,
+            loadingMessage: `Calculating PCCA for ${run}...`
         });
 
         if (m_min === undefined) m_min = 0;
@@ -59,14 +59,16 @@ class App extends React.Component {
     /** Wrapper for the backend call in api.js */
     load_sequence = (run, properties, new_traj) => {
         this.setState({
-            loadingMessage: `Loading sequence for ${run}...`,
+            isLoading: true,
+            loadingMessage: `Loading sequence for ${run}...`
         });
         return api_loadSequence(run, properties, new_traj);
     };
 
     load_metadata = (run, new_traj) => {
         this.setState({
-            loadingMessage: `Loading metadata for ${run}...`,
+            isLoading: true,
+            loadingMessage: `Loading metadata for ${run}...`
         });
         return api_load_metadata(run, new_traj);
     };
@@ -129,11 +131,11 @@ class App extends React.Component {
     load_trajectory = (run, clusters, optimal, m_min, m_max, properties) => {
         var new_traj = new Trajectory();
         new_traj.properties = [...properties];
-
-        this.load_PCCA(run, clusters, optimal, m_min, m_max, new_traj)
+        
+        this.load_sequence(run, new_traj.properties, new_traj)
             .then((new_traj) => {
-                this.load_sequence(run, new_traj.properties, new_traj).then(
-                    (new_traj) => {
+                this.load_PCCA(run, clusters, optimal, m_min, m_max, new_traj)
+                    .then((new_traj) => {
                         this.load_metadata(run, new_traj).then((new_traj) => {
                             // some final processing on trajectory
                             new_traj.properties.push("timestep");
