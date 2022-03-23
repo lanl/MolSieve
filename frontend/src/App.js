@@ -141,7 +141,7 @@ class App extends React.Component {
      * @param {number} m_max - When running optimal clustering, maximum cluster size to try; ignored if optimal = -1
      * @param {Array<String>} properties - Properties of the trajectory to retrieve
      */
-    load_trajectory = (run, clusters, optimal, m_min, m_max, properties) => {
+    load_trajectory = (run, clusters, optimal, m_min, m_max, properties, chunkingThreshold) => {
         const newTraj = new Trajectory();
         newTraj.properties = [...properties];
         
@@ -155,7 +155,7 @@ class App extends React.Component {
                             newTraj.calculate_unique_states();
                             newTraj.set_cluster_info(); // for each state                            
                             // could be an option
-                            newTraj.simplifySet();
+                            newTraj.simplifySet(chunkingThreshold);
                             
                             const removed = newTraj.set_colors(this.state.colors);
                             const newTrajectories = {

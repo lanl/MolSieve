@@ -232,15 +232,9 @@ function TrajectoryChart({ trajectories, runs, loadingCallback }) {
             // TODO add modal on state click, to show additional information if interested
 
             const importantGroup = svg.append('g').attr('id', 'important');
-            const chunkGroup = svg.append('g').attr('id', 'chunk');
-
-            //const timestepWidth = 1;
+            const chunkGroup = svg.append('g').attr('id', 'chunk');            
 
             for (const t of dataList) {
-
-
-                // chunk rendering - render first so that important overlap them
-
                 const c = chunkGroup.append('g').attr('id', `c_${t.name}`);
                 c.selectAll('rect').data(t.chunks)
                     .enter()
@@ -258,7 +252,7 @@ function TrajectoryChart({ trajectories, runs, loadingCallback }) {
                     })
                     .attr('first', (d) => d.first)
                     .attr('last', (d) => d.last)
-                    .attr('run', () => t.name)                    
+                    .attr('run', () => t.name)
                     .on('mouseover', function(_, d) {
                         this.setAttribute('opacity', '0.2');
                         tippy(this, {

@@ -72,15 +72,15 @@ class Trajectory {
         }
     }
 
-    simplifySet() {
+    simplifySet(chunkingThreshold) {
         const simplifiedSequence = [];
         const chunks = [];
         let lastChunk = { first: null, last: null, color: null };
         // sort of a sliding window thing
 
         for (const s of this.sequence) {
-            // if at least one membership is above a threshold, add to lastChunk
-            if (Math.max(...this.fuzzy_memberships[this.current_clustering][s.number]) > 0.75) {
+            // if at least one fuzzy membership is above a threshold, add to lastChunk; i.e its not interesting
+            if (Math.max(...this.fuzzy_memberships[this.current_clustering][s.number]) > chunkingThreshold) {
                 if (lastChunk.first === null) {
                     lastChunk.first = s.timestep;
                 }

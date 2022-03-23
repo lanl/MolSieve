@@ -1,5 +1,4 @@
 import React from "react";
-import CheckboxTable from "../components/CheckboxTable";
 import Slider from "@mui/material/Slider";
 import Button from "@mui/material/Button";
 import DialogTitle from "@mui/material/DialogTitle";
@@ -10,6 +9,11 @@ import DialogContent from "@mui/material/DialogContent";
 import Stack from "@mui/material/Stack";
 import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
+import Checkbox from '@mui/material/Checkbox';
+import FormControlLabel from '@mui/material/FormControlLabel';
+import TextField from "@mui/material/TextField";
+
+import CheckboxTable from "../components/CheckboxTable";
 import {TabPanel} from "../api/myutils";
 import AnalysisTab from './AnalysisTab';
 
@@ -25,7 +29,9 @@ class LoadRunModal extends React.Component {
             run: null,
             clusters: -1,
             optimal: 1,
-            tabIdx: 0
+            tabIdx: 0,
+            chunkingThreshold: 0.75,
+            simplifySequence: true,
         };
     }
 
@@ -46,14 +52,17 @@ class LoadRunModal extends React.Component {
 
     runFunc = () => {
         this.closeFunc(false);
-        
+
+        const chunkingThreshold = (this.state.simplifySequence) ? this.state.chunkingThreshold : 1;
+
         this.props.runFunc(
             this.state.run,
             -1,
             1,
             this.state.values[0],
             this.state.values[1],
-            this.state.clicked
+            this.state.clicked,
+            chunkingThreshold
         );
     };
 
@@ -107,6 +116,25 @@ class LoadRunModal extends React.Component {
                                     .replace(",", " - ")}{" "}
                                 clusters
                             </b>
+                        </Stack>
+                        <Stack spacing={2} direction="row" alignItems="center" justifyContent="center">
+                            <FormControlLabel
+                                label="Simplify sequence?"
+                                control={<Checkbox
+                                             onChange={(e) => {this.setState({
+                                                 simplifySequence: e.target.checked
+                                             })}}
+                                             checked={this.state.simplifySequence}/>}/>
+                            
+                            <TextField
+                                fullWidth
+                                disabled={!this.state.simplifySequence}
+                                label="Chunk Threshold"
+                                type="number"
+                                inputProps={{ inputMode: 'numeric', pattern: '[0-9]*', min: 1e-10, step:0.05 }}
+                                defaultValue={ this.state.chunkingThreshold }
+                                onChange={(e) => {this.setState({chunkingThreshold: e.target.value})}}
+                             />
                         </Stack>
                         <p>Select which properties you wish to analyze.</p>
                         <CheckboxTable
