@@ -10,7 +10,8 @@ import {
     filter_clustering_difference,
     filter_fuzzy_membership,
     filter_transitions,
-    filter_relationship
+    filter_relationship,
+    filter_chunks
 } from "../api/filters";
 import FilterComponent from "../components/FilterComponent";
 import Slider from "@mui/material/Slider";
@@ -85,6 +86,15 @@ class VisGrid extends React.Component {
                         id: `clustering_difference`,
                         type: TOGGLE,
                     };
+
+                    filters["chunks"] = {
+                        enabled: false,
+                        func: filter_chunks,
+                        checkBoxLabel: "Hide chunks",
+                        id: 'chunks',
+                        type: TOGGLE,
+                    }
+                    
                     filters["transitions"] = {
                         enabled: false,
                         func: filter_transitions,

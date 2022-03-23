@@ -167,6 +167,11 @@ export function filter_relationship(trajectory,svg,options) {
     
 }
 
+export function filter_chunks(trajectory, svg) {
+    svg.select(`#c_${trajectory.name}`)
+        .selectAll("rect").attr("opacity", 0);    
+}
+
 /** Run a sliding window across the entire trajectory and count how many times the dominant state of the cluster (the state the occurs the most)
  * occurs within that window. Set the opacity of a state based on that count divided by the size of the window.
  * @param {Trajectory} trajectory - the trajectory to filter on
