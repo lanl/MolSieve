@@ -48,27 +48,32 @@ function GraphVis({trajectories, runs }) {
             const sSequence = trajectory.simplifiedSequence.sequence;
             const links = trajectory.simplifiedSequence.interleaved;
             const colors = trajectory.colors;
+            const uniqueStates = [];
 
+            const seen = [];
+            for(const s of sSequence) {
+                if(!seen.includes(s.number)) {
+                    uniqueStates.push(s);
+                    seen.push(s.number);
+                }
+            }
+            
             // chunk strength - a measure of its size
             // state strength - measure of its occurences
             
             const chunkSizes = chunks.map((chunk) => {
                 return chunk.last - chunk.timestep;
-            })
-
-            console.log(Math.max([...chunkSizes]));
+            })                        
             
             const timeScale = d3.scaleLinear().range([1,125]).domain([0,Math.max([...chunkSizes])]);
             
             const l = linkGroup.append("g").attr('id', 'l_${name}');
             let link = l.selectAll("line").data(links).enter().append("line").attr("stroke-width", 1).attr("stroke", "black");
 
-            
-            
             const g = importantGroup.append('g').attr('id', 'node_g_${name}');            
 
             let stateNodes = g.selectAll('circle')
-                .data(sSequence)
+                .data(uniqueStates)
                 .enter()
                 .append('circle')
                 .attr('r', 5)
@@ -77,6 +82,8 @@ function GraphVis({trajectories, runs }) {
                         return 'black';
                     }
                     return colors[d.cluster];
+                }).on('mouseover', function(d) {
+                    console.log(d);
                 });
 
             
@@ -95,12 +102,13 @@ function GraphVis({trajectories, runs }) {
                 });            
 
 
-            d3.forceSimulation([...chunks, ...sSequence])
-                .force("link", d3.forceLink(links).id(function(d) { return d.timestep; }).iterations(1))
-                .force("charge", d3.forceManyBody().distanceMax(1000).theta(0.6).strength(function(d) {
+            d3.forceSimulation([...chunks, ...uniqueStates])
+                .force("link", d3.forceLink(links).id(function(d) { return d.number; }).iterations(1))
+                .force("charge", d3.forceManyBody().distanceMax(200).theta(0.6))
+                       //.strength(function(d) {
                     // highly connected states attract others
-                    return links[]
-                })
+                    //return links[]
+            //    })
                 .on('tick', ticked);
             
             // pass in entire dataset

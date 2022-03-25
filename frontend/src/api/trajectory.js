@@ -75,16 +75,16 @@ class Trajectory {
     }
 
     simplifySet(chunkingThreshold) {
-        const simplifiedSequence = [];
+        const simplifiedSequence = [];        
         const chunks = [];
-        let lastChunk = { timestep: null, last: null, color: null };
-        // sort of a sliding window thing
-
+        let lastChunk = { timestep: null, last: null, color: null, number: null };                
+            
         for (const s of this.sequence) {
             // if at least one fuzzy membership is above a threshold, add to lastChunk; i.e its not interesting
             if (Math.max(...this.fuzzy_memberships[this.current_clustering][s.number]) > chunkingThreshold) {
                 if (lastChunk.timestep === null) {
                     lastChunk.timestep = s.timestep;
+                    lastChunk.number = s.number + "_c";
                 }
                 lastChunk.last = s.timestep;
                 // later on can make this more sophisticated
@@ -95,10 +95,11 @@ class Trajectory {
                     newChunk.timestep = lastChunk.timestep;
                     newChunk.last = lastChunk.last;
                     newChunk.color = lastChunk.color;
+                    newChunk.number = lastChunk.number;
                     
                     chunks.push(newChunk);
-                    lastChunk = { timestep: null, last: null, color: null };
-                }
+                    lastChunk = { timestep: null, last: null, color: null, number: null };
+                }                
                 simplifiedSequence.push(s);
             }
         }
@@ -122,11 +123,11 @@ class Trajectory {
         
         while (l != l_count && r != r_count) {
             if (simplifiedSequence[l].timestep < chunks[r].timestep) {
-                interleaved.push({ source: lastObj.timestep, target: simplifiedSequence[l].timestep });
+                interleaved.push({ source: lastObj.number, target: simplifiedSequence[l].number });
                 lastObj = simplifiedSequence[l];
                 l++;
             } else {
-                interleaved.push({ source: lastObj.timestep, target: chunks[r].timestep });
+                interleaved.push({ source: lastObj.number, target: chunks[r].number });
                 lastObj = chunks[r];
                 r++;
             }
