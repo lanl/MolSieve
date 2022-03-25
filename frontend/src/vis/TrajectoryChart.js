@@ -239,25 +239,25 @@ function TrajectoryChart({ trajectories, runs, loadingCallback }) {
                 c.selectAll('rect').data(t.chunks)
                     .enter()
                     .append('rect')
-                    .attr('x', (d) => scaleX(d.first))
+                    .attr('x', (d) => scaleX(d.timestep))
                     .attr('y', () => scaleY(t.y))
-                    .attr('width', (d) => scaleX(d.last - d.first))
+                    .attr('width', (d) => scaleX(d.last - d.timestep))
                     .attr('height', 25)
                     .attr('stroke', 'black')
                     .attr('fill', (d) => {
-                        if (d.cluster === -1) {
+                        if (d.color === -1) {
                             return 'black';
                         }
                         return t.colors[d.color];
                     })
-                    .attr('first', (d) => d.first)
+                    .attr('timestep', (d) => d.timestep)
                     .attr('last', (d) => d.last)
                     .attr('run', () => t.name)
                     .on('mouseover', function(_, d) {
                         this.setAttribute('opacity', '0.2');
                         tippy(this, {
                             allowHTML: true,
-                            content: `Timesteps ${d.first} - ${d.last}</br>Cluster: ${d.color}`,
+                            content: `Timesteps ${d.timestep} - ${d.last}</br>Cluster: ${d.color}`,
                             arrow: true,
                             maxWidth: 'none',
                        });
@@ -324,15 +324,19 @@ function TrajectoryChart({ trajectories, runs, loadingCallback }) {
                             maxWidth: 'none',
                         });
 
-                        // TODO make this bind as an effect instead of inside the function
-                        if (stateHighlight) {
-                            d3.selectAll('rect').filter((dp) => dp.id != d.id).attr('opacity', '0.05');
+                        // TODO make this bind as an effect instead of inside the function - this could still be optimized
+                        if (stateHighlight) {                            
+                            d3.select(`#g_${t.name}`).selectAll('rect').filter((dp) => {
+                                return dp.id != d.id
+                            }).attr('opacity', '0.01');
+                            d3.select(`#c_${t.name}`).selectAll('rect').attr('opacity', '0');
                         }
                     })
                     .on('mouseout', function (_, d) {                        
                         this.setAttribute('stroke', 'none');
                         if (stateHighlight) {
-                            d3.selectAll('rect').filter((dp) => dp.id != d.id).attr('opacity', '1.0');
+                            d3.select(`#g_${t.name}`).selectAll('rect').filter((dp) => dp.id != d.id).attr('opacity', '1.0');
+                            d3.select(`#c_${t.name}`).selectAll('rect').attr('opacity', '1');
                         }
                     });
 
@@ -456,14 +460,14 @@ function TrajectoryChart({ trajectories, runs, loadingCallback }) {
                     }
                     d3.select(this).remove();
                     d3.select('.brush').remove();
-                });
+                });            
             loadingCallback();
         },
         [runs, width, height, stateHighlight, trajectories],
     );
 
-    return (
-        <div onContextMenu={openContext} ref={divRef} width="100%" height="100%">
+    return (        
+        <div onContextMenu={openContext} ref={divRef}>
             {width
                 && height
                 && Object.keys(trajectories).length

@@ -290,11 +290,12 @@ def calculate_path_similarity(extents: dict):
 # perhaps run this first and then the PCCA
 @app.get('/load_sequence')
 def load_sequence(run: str, properties: str):
+
     if config.IMPATIENT:
         r = loadTestJson(run, 'sequence')
         if r != None:
-            return r
-
+            return r    
+    
     # id is technically not a property, so we have to include it here
     # everything else is dynamically loaded in
     node_attributes = [('id', 'first')]
@@ -313,7 +314,7 @@ def load_sequence(run: str, properties: str):
                                "ASC", ('relation', 'timestep'),
                                node_attributes=node_attributes,
                                relation_attributes=['timestep'])
-        
+
     run_md = get_metadata(run)
             
     with driver.session() as session:
@@ -327,7 +328,9 @@ def load_sequence(run: str, properties: str):
 
         result = session.run(q.text)
         j = result.data()
+        
         saveTestJson(run, 'sequence', j)
+
 
     # here save the trajectory into your own format into the server's memory
 

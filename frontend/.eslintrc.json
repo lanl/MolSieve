@@ -22,7 +22,7 @@
 	"react/prop-types": 0,        
         "no-plusplus": 0,
         "indent": 0,
-        "max-len": 0
-        
+        "max-len": 0,
+        "no-inner-declarations": 0
     }
 }

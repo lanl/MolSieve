@@ -77,37 +77,62 @@ class Trajectory {
     simplifySet(chunkingThreshold) {
         const simplifiedSequence = [];
         const chunks = [];
-        let lastChunk = { first: null, last: null, color: null };
+        let lastChunk = { timestep: null, last: null, color: null };
         // sort of a sliding window thing
 
         for (const s of this.sequence) {
             // if at least one fuzzy membership is above a threshold, add to lastChunk; i.e its not interesting
             if (Math.max(...this.fuzzy_memberships[this.current_clustering][s.number]) > chunkingThreshold) {
-                if (lastChunk.first === null) {
-                    lastChunk.first = s.timestep;
+                if (lastChunk.timestep === null) {
+                    lastChunk.timestep = s.timestep;
                 }
                 lastChunk.last = s.timestep;
                 // later on can make this more sophisticated
                 lastChunk.color = s.cluster;
             } else {
-                if (lastChunk.first !== null && lastChunk.last !== null) {
+                if (lastChunk.timestep !== null && lastChunk.last !== null) {
                     let newChunk = {};
-                    newChunk.first = lastChunk.first;
+                    newChunk.timestep = lastChunk.timestep;
                     newChunk.last = lastChunk.last;
                     newChunk.color = lastChunk.color;
                     
                     chunks.push(newChunk);
-                    lastChunk = { first: null, last: null, color: null };
+                    lastChunk = { timestep: null, last: null, color: null };
                 }
                 simplifiedSequence.push(s);
             }
         }
 
-        if (lastChunk.first !== null && lastChunk.last !== null) {
+        if (lastChunk.timestep !== null && lastChunk.last !== null) {
             chunks.push(lastChunk);
         }
         
-        this.simplifiedSequence = { sequence: simplifiedSequence, chunks: chunks };        
+        let l_count = simplifiedSequence.length;
+        let r_count = chunks.length;
+        let l = 0;
+        let r = 0;
+        let interleaved = [];
+        let lastObj = (simplifiedSequence[0].timestep < chunks[0].timestep) ? simplifiedSequence[0] : chunks[0];
+
+        if(lastObj === simplifiedSequence[0]) {
+            l++;
+        } else {
+            r++;
+        }
+        
+        while (l != l_count && r != r_count) {
+            if (simplifiedSequence[l].timestep < chunks[r].timestep) {
+                interleaved.push({ source: lastObj.timestep, target: simplifiedSequence[l].timestep });
+                lastObj = simplifiedSequence[l];
+                l++;
+            } else {
+                interleaved.push({ source: lastObj.timestep, target: chunks[r].timestep });
+                lastObj = chunks[r];
+                r++;
+            }
+        }
+        
+        this.simplifiedSequence = { sequence: simplifiedSequence, chunks: chunks, interleaved: interleaved };        
     }
     
     set_colors(colorArray) {

@@ -32,6 +32,7 @@ import Divider from '@mui/material/Divider';
 import Drawer from "@mui/material/Drawer";
 import Box from "@mui/material/Box";
 import LoadingModal from "../modals/LoadingModal";
+import GraphVis from "../vis/GraphVis";
 
 const XY_PLOT_MODAL = "xy-plot-modal";
 const ADD_FILTER_MODAL = "add-filter-modal";
@@ -480,7 +481,7 @@ class VisGrid extends React.Component {
         const controls = this.renderControls(runs);
 
         return (
-            <Box sx={{ height: '100%' }}>
+            <Box sx={{flexGrow: 1}}>
                 {safe && (
                 <Button sx={{ float: 'right' }} onClick={() => {
                             this.toggleDrawer();
@@ -488,7 +489,7 @@ class VisGrid extends React.Component {
 
                 <Drawer anchor="right" variant="persistent" onClose={this.toggleDrawer} open={this.state.drawerOpen}>
                     {safe && controls}
-                    <Button color="error" variant="contained" onClick={() => {
+                    <Button color="error" size="small" variant="contained" onClick={() => {
                                 this.toggleDrawer();
                             }}>Close</Button>
                 </Drawer>
@@ -558,6 +559,12 @@ class VisGrid extends React.Component {
                     onRequestClose={() => this.toggleModal(null)}
                 />
             )}
+                <Box sx={{position: 'absolute', bottom: 0, left: 0, width: '30%', height: '40%', borderStyle: 'solid'}}>
+                    <GraphVis
+                        trajectories={this.props.trajectories}
+                        runs={this.state.runs}
+                    />
+                </Box>
         </Box>
         );
     }

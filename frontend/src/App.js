@@ -1,7 +1,7 @@
 import React from 'react';
 import './css/App.css';
-import Container from '@mui/material/Container';
-import Stack from '@mui/material/Stack';
+import Box from '@mui/material/Box';
+//import Stack from '@mui/material/Stack';
 import CheckboxTable from './components/CheckboxTable';
 import LoadRunModal from './modals/LoadRunModal';
 import LoadingModal from './modals/LoadingModal';
@@ -190,10 +190,8 @@ class App extends React.Component {
 
     render() {
         return (
-          <div className="App">
-            <Container maxWidth={false} sx={{ height: '100%' }}>
-              <Stack spacing={1}>
-                <div>
+            <Box className="App" sx={{ display: 'flex', flexDirection: 'column', gap: '1%' }}>             
+                <Box sx={{flexShrink: 1, marginLeft: '1.25%', marginRight: '1.25%'}}>
                   <h1>Trajectory Visualization</h1>
                   <h2>powered by React.js</h2>
                   <p>
@@ -202,24 +200,21 @@ class App extends React.Component {
                     to reset zoom. Press and hold SHIFT to select
                     multiple paths. Right click to open a context menu.
                   </p>
-                </div>
-                <CheckboxTable
-                  defaults={['']}
-                  header="Run"
-                  api_call="/get_run_list"
-                  click={(e) => {
-                                this.selectRun(e);
-                            }}
+                    <CheckboxTable
+                        defaults={['']}
+                        header="Run"
+                        api_call="/get_run_list"
+                        click={(e) => {
+                            this.selectRun(e);
+                        }}
+                    />                    
+                </Box>   
+                <VisGrid
+                    trajectories={this.state.trajectories}
+                    recalculate_clustering={this.recalculate_clustering}
+                    simplifySet={this.simplifySet}
                 />
-                <br />
-              </Stack>
-              <VisGrid
-                trajectories={this.state.trajectories}
-                recalculate_clustering={this.recalculate_clustering}
-                simplifySet={this.simplifySet}
-              />
-            </Container>
-
+                
             {this.state.currentModal === RUN_MODAL
                  && (
                  <LoadRunModal
@@ -238,7 +233,7 @@ class App extends React.Component {
                 title={this.state.loadingMessage}
               />
 )}
-          </div>
+          </Box>
         );
     }
 }
