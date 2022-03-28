@@ -49,66 +49,69 @@ function GraphVis({trajectories, runs }) {
             const links = trajectory.simplifiedSequence.interleaved;
             const colors = trajectory.colors;
             const uniqueStates = [];
-
+            
             const seen = [];
             for(const s of sSequence) {
                 if(!seen.includes(s.number)) {
                     uniqueStates.push(s);
                     seen.push(s.number);
                 }
-            }
+            }            
             
             // chunk strength - a measure of its size
-            // state strength - measure of its occurences
+            // state strength - measure of its occurences            
             
             const chunkSizes = chunks.map((chunk) => {
-                return chunk.last - chunk.timestep;
-            })                        
+                chunk.size = chunk.last - chunk.timestep;
+                return chunk.size;
+            });            
             
-            const timeScale = d3.scaleLinear().range([1,125]).domain([0,Math.max([...chunkSizes])]);
+            const timeScale = d3.scaleLinear().range([1,125]).domain([0,Math.max(...chunkSizes)]);            
             
             const l = linkGroup.append("g").attr('id', 'l_${name}');
             let link = l.selectAll("line").data(links).enter().append("line").attr("stroke-width", 1).attr("stroke", "black");
-
             const g = importantGroup.append('g').attr('id', 'node_g_${name}');            
 
             let stateNodes = g.selectAll('circle')
-                .data(uniqueStates)
-                .enter()
-                .append('circle')
-                .attr('r', 5)
-                .attr('fill', function(d) {
-                    if (d.cluster === -1) {
-                        return 'black';
-                    }
-                    return colors[d.cluster];
-                }).on('mouseover', function(d) {
-                    console.log(d);
-                });
+                    .data(uniqueStates)
+                    .enter()
+                    .append('circle')
+                    .attr('r', 5)
+                    .attr('fill', function(d) {
+                        if (d.cluster === -1) {
+                            return 'black';
+                        }
+                        return colors[d.cluster];
+                    }).on('mouseover', function(d) {
+                        console.log(d);
+                    });
+                        
+            const c = chunkGroup.append('g').attr('id', `node_c_${name}`);            
 
-            
-            const c = chunkGroup.append('g').attr('id', `node_c_${name}`);
-            
             let chunkNodes = c.selectAll('circle')
                 .data(chunks)
                 .enter()
                 .append('circle')
-                .attr('r', (d) => { return timeScale(d.last - d.timestep); })
+                .attr('r', (d) => {
+                    return timeScale(d.last - d.timestep); })
                 .attr('fill', function(d) {
                     if (d.color === -1) {
                         return 'black';
                     }
                     return colors[d.color];
-                });            
-
-
+                });                       
+            
             d3.forceSimulation([...chunks, ...uniqueStates])
                 .force("link", d3.forceLink(links).id(function(d) { return d.number; }).iterations(1))
                 .force("charge", d3.forceManyBody().distanceMax(200).theta(0.6))
-                       //.strength(function(d) {
-                    // highly connected states attract others
-                    //return links[]
-            //    })
+                .force("collide", d3.forceCollide().strength(10).radius((d) => {
+                    if(d.size !== undefined && d.size !== null) {
+                        return timeScale(d.size);
+                    } else {
+                        return 5;
+                    }
+                    
+                }))
                 .on('tick', ticked);
             
             // pass in entire dataset
@@ -121,7 +124,8 @@ function GraphVis({trajectories, runs }) {
                     .attr("y1", function(d) { return d.source.y; })
                     .attr("x2", function(d) { return d.target.x; })
                     .attr("y2", function(d) { return d.target.y; });
-    
+
+                
                 chunkNodes
                     .attr("cx", function(d) { return d.x; })
                     .attr("cy", function(d) { return d.y; });

@@ -184,7 +184,12 @@ class App extends React.Component {
         const new_trajectories = {
             ...this.state.trajectories,
         };
-        new_trajectories[run].simplifySet(threshold);
+        const new_traj = new_trajectories[run];
+
+        new_traj.simplifySet(threshold);
+        console.log(new_traj.simplifiedSequence);
+        new_trajectories[run] = new_traj;
+        
         this.setState({ trajectories: new_trajectories });
     };
 

@@ -113,6 +113,19 @@ class Trajectory {
         let l = 0;
         let r = 0;
         let interleaved = [];
+
+        //check if either list is empty
+
+        if(l_count === 0) {
+            this.simplifiedSequence = { sequence: [], chunks: chunks, interleaved: chunks };
+            return;
+        }
+
+        if(r_count === 0) {
+            this.simplifiedSequence = { sequence: simplifiedSequence, chunks: [], interleaved: simplifiedSequence };
+            return;
+        }
+        
         let lastObj = (simplifiedSequence[0].timestep < chunks[0].timestep) ? simplifiedSequence[0] : chunks[0];
 
         if(lastObj === simplifiedSequence[0]) {

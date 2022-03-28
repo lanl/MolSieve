@@ -296,17 +296,19 @@ class VisGrid extends React.Component {
                                 min={0}
                                 max={1}
                                 onChangeCommitted={() => {
+                                    console.log(this.state.runs[run].chunkingThreshold);
                                     this.simplifySet(run,this.state.runs[run].chunkingThreshold);
                                 }}
                                 valueLabelDisplay="auto"
-                                onChange={(e) => {                                    
+                                onChange={(e) => {
+                                    console.log(e.target.value);
                                     this.updateRun(run, "chunkingThreshold", e.target.value);
                                 }}
                                 value={this.state.runs[run].chunkingThreshold}
                         />
                     </ListItem>
                     <ListItem>
-                        <ListItemText secondary={`${this.state.runs[run]["chunkingThreshold"]}% chunking threshold`}/>                            
+                        <ListItemText secondary={`${this.state.runs[run]["chunkingThreshold"] * 100}% chunking threshold`}/>                            
                     </ListItem>                        
                     {Object.keys(this.state.runs[run]["filters"]).length > 0 &&
                         Object.keys(this.state.runs[run]["filters"]).map(
