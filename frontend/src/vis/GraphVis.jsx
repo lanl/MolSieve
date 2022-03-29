@@ -45,21 +45,12 @@ function GraphVis({trajectories, runs }) {
         for (const [name, trajectory] of Object.entries(trajectories)) {
             
             const chunks = trajectory.simplifiedSequence.chunks;
-            const sSequence = trajectory.simplifiedSequence.sequence;
+            const sSequence = trajectory.simplifiedSequence.uniqueStates;
             const links = trajectory.simplifiedSequence.interleaved;
-            const colors = trajectory.colors;
-            const uniqueStates = [];
-            
-            const seen = [];
-            for(const s of sSequence) {
-                if(!seen.includes(s.number)) {
-                    uniqueStates.push(s);
-                    seen.push(s.number);
-                }
-            }            
+            const colors = trajectory.colors;            
             
             // chunk strength - a measure of its size
-            // state strength - measure of its occurences            
+            // state strength - measure of its occurences                        
             
             const chunkSizes = chunks.map((chunk) => {
                 chunk.size = chunk.last - chunk.timestep;
@@ -73,7 +64,7 @@ function GraphVis({trajectories, runs }) {
             const g = importantGroup.append('g').attr('id', 'node_g_${name}');            
 
             let stateNodes = g.selectAll('circle')
-                    .data(uniqueStates)
+                    .data(sSequence)
                     .enter()
                     .append('circle')
                     .attr('r', 5)
@@ -88,20 +79,46 @@ function GraphVis({trajectories, runs }) {
                         
             const c = chunkGroup.append('g').attr('id', `node_c_${name}`);            
 
-            let chunkNodes = c.selectAll('circle')
-                .data(chunks)
-                .enter()
-                .append('circle')
-                .attr('r', (d) => {
-                    return timeScale(d.last - d.timestep); })
-                .attr('fill', function(d) {
-                    if (d.color === -1) {
-                        return 'black';
-                    }
-                    return colors[d.color];
-                });                       
+            let chunkNodes = null;            
             
-            d3.forceSimulation([...chunks, ...uniqueStates])
+            if(chunks.length != 0) {
+                chunkNodes = c.selectAll('circle')
+                    .data(chunks)
+                    .enter()
+                    .append('circle')
+                    .attr('r', (d) => {
+                        return timeScale(d.size); })
+                    .attr('fill', function(d) {
+                        if (d.color === -1) {
+                            return 'black';
+                        }
+                        return colors[d.color];
+                    });                       
+            }
+            
+            let simulated = [];
+            
+            if(chunks.length != 0) {
+                simulated.push(...chunks);
+            }
+
+            if(sSequence.length != 0) {
+                simulated.push(...sSequence);
+            }
+
+            console.log(chunks.length);
+            console.log(sSequence.length);
+            console.log(simulated);
+            console.log(links);
+            
+            let missingLinks = links.filter((link) => {
+                link.number === undefined || link.number === null
+            });
+
+            console.log(missingLinks);
+            
+            
+            d3.forceSimulation(simulated)
                 .force("link", d3.forceLink(links).id(function(d) { return d.number; }).iterations(1))
                 .force("charge", d3.forceManyBody().distanceMax(200).theta(0.6))
                 .force("collide", d3.forceCollide().strength(10).radius((d) => {
@@ -125,11 +142,12 @@ function GraphVis({trajectories, runs }) {
                     .attr("x2", function(d) { return d.target.x; })
                     .attr("y2", function(d) { return d.target.y; });
 
+                if(chunks.length != 0) {
+                    chunkNodes
+                        .attr("cx", function(d) { return d.x; })
+                        .attr("cy", function(d) { return d.y; });
+                }
                 
-                chunkNodes
-                    .attr("cx", function(d) { return d.x; })
-                    .attr("cy", function(d) { return d.y; });
-
                 stateNodes
                     .attr("cx", function(d) { return d.x; })
                     .attr("cy", function(d) { return d.y; });

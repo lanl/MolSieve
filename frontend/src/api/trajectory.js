@@ -77,6 +77,8 @@ class Trajectory {
     simplifySet(chunkingThreshold) {
         const simplifiedSequence = [];        
         const chunks = [];
+        const seen = [];
+        const uniqueStates = [];        
         let lastChunk = { timestep: null, last: null, color: null, number: null };                
             
         for (const s of this.sequence) {
@@ -99,7 +101,12 @@ class Trajectory {
                     
                     chunks.push(newChunk);
                     lastChunk = { timestep: null, last: null, color: null, number: null };
-                }                
+                }
+                
+                if(!seen.includes(s.number)) {
+                    uniqueStates.push(s);
+                    seen.push(s.number);
+                }
                 simplifiedSequence.push(s);
             }
         }
@@ -116,37 +123,54 @@ class Trajectory {
 
         //check if either list is empty
 
-        if(l_count === 0) {
-            this.simplifiedSequence = { sequence: [], chunks: chunks, interleaved: chunks };
-            return;
-        }
-
-        if(r_count === 0) {
-            this.simplifiedSequence = { sequence: simplifiedSequence, chunks: [], interleaved: simplifiedSequence };
-            return;
-        }
-        
-        let lastObj = (simplifiedSequence[0].timestep < chunks[0].timestep) ? simplifiedSequence[0] : chunks[0];
-
-        if(lastObj === simplifiedSequence[0]) {
-            l++;
-        } else {
-            r++;
-        }
-        
-        while (l != l_count && r != r_count) {
-            if (simplifiedSequence[l].timestep < chunks[r].timestep) {
-                interleaved.push({ source: lastObj.number, target: simplifiedSequence[l].number });
-                lastObj = simplifiedSequence[l];
+        let lastObj = null;
+        if(simplifiedSequence.length !== 0 && chunks.length !== 0) {
+            lastObj = (simplifiedSequence[0].timestep < chunks[0].timestep) ? simplifiedSequence[0] : chunks[0];
+            
+            if(lastObj === simplifiedSequence[0]) {
                 l++;
             } else {
-                interleaved.push({ source: lastObj.number, target: chunks[r].number });
-                lastObj = chunks[r];
                 r++;
             }
+
+            while (l != l_count && r != r_count) {
+                if (simplifiedSequence[l].timestep < chunks[r].timestep) {
+                    interleaved.push({ source: lastObj.number, target: simplifiedSequence[l].number });
+                    lastObj = simplifiedSequence[l];
+                    l++;
+                } else {
+                    interleaved.push({ source: lastObj.number, target: chunks[r].number });
+                    lastObj = chunks[r];
+                    r++;
+                }
+            }
+            
+        } else {
+            if(simplifiedSequence.length !== 0) {
+                lastObj = simplifiedSequence[0];
+                l++;
+                while(l !== l_count) {
+                    interleaved.push({source: lastObj.number, target: simplifiedSequence[l].number });
+                    lastObj = simplifiedSequence[l];
+                    l++;
+                }                
+            }
+
+            if(chunks.length !== 0) {
+                lastObj = chunks[0];
+                r++;
+                while(r !== r_count) {
+                    interleaved.push({source: lastObj.number, target: chunks[r].number });
+                    lastObj = chunks[r];
+                    r++;
+                }                
+            }
         }
-        
-        this.simplifiedSequence = { sequence: simplifiedSequence, chunks: chunks, interleaved: interleaved };        
+
+        // TODO: need to have some way of the trajectory chart accepting uniqueStates
+        // need to decouple timestep attribute from state and work purely on relations
+        // uniqueStates should be its own calculation
+        this.simplifiedSequence = { uniqueStates: uniqueStates, sequence: simplifiedSequence, chunks: chunks, interleaved: interleaved };        
     }
     
     set_colors(colorArray) {
