@@ -88,8 +88,7 @@ class Trajectory {
                     lastChunk.timestep = s.timestep;
                     lastChunk.number = s.number + "_c";
                 }
-                lastChunk.last = s.timestep;
-                // later on can make this more sophisticated
+                lastChunk.last = s.timestep;            
                 lastChunk.color = s.cluster;
             } else {
                 if (lastChunk.timestep !== null && lastChunk.last !== null) {
@@ -98,7 +97,7 @@ class Trajectory {
                     newChunk.last = lastChunk.last;
                     newChunk.color = lastChunk.color;
                     newChunk.number = lastChunk.number;
-                    
+                                       
                     chunks.push(newChunk);
                     lastChunk = { timestep: null, last: null, color: null, number: null };
                 }
@@ -168,7 +167,7 @@ class Trajectory {
 
         // TODO: need to have some way of the trajectory chart accepting uniqueStates
         // need to decouple timestep attribute from state and work purely on relations
-        // uniqueStates should be its own calculation
+        // uniqueStates should be its own calculation        
         this.simplifiedSequence = { uniqueStates: uniqueStates, sequence: simplifiedSequence, chunks: chunks, interleaved: interleaved };        
     }
     

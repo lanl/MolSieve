@@ -310,6 +310,7 @@ function TrajectoryChart({ trajectories, runs, loadingCallback }) {
                         }
                     }
                 }
+                count++;
             }
             
             const xAxis = svg.append('g').call(d3.axisBottom().scale(scaleX));
