@@ -48,6 +48,9 @@ function GraphVis({trajectories, runs }) {
 
         // if not seperate trajectories
         // merge chunks, sSequence, links
+
+
+        // switch to only running one simulation
         
         for (const [name, trajectory] of Object.entries(trajectories)) {
             
@@ -106,7 +109,7 @@ function GraphVis({trajectories, runs }) {
                     this.setAttribute('stroke', 'black');
                     onChunkMouseOver(this, d, name);
                 }).on('mouseout', function () {                        
-                    this.setAttribute('stroke', 'none')
+                    this.setAttribute('stroke', 'none');
                 });
             
             if (Object.keys(runs[name].filters).length > 0) {

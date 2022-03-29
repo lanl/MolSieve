@@ -188,103 +188,120 @@ function TrajectoryChart({ trajectories, runs, loadingCallback }) {
             
             let count = 0;
             let maxLength = -Number.MAX_SAFE_INTEGER;
-
+            let chunkSizes = [1];
+            
             for (const trajectory of Object.values(trajectories)) {
                 if(trajectory.sequence.length > maxLength) {
                     maxLength = trajectory.sequence.length;
                 }
-            }
 
+                chunkSizes.push(...trajectory.simplifiedSequence.chunks.map((chunk) => {
+                    chunk.size = (chunk.last - chunk.timestep);
+                    return chunk.size;
+                }));
+            }            
+            
             // domain 102.5% of actual length for some breathing room
             const scaleX = d3
                 .scaleLinear()
                 .range([margin.left, width - margin.right])
-                .domain([0, maxLength * 1.025]);                            
-
+                .domain([0, maxLength * 1.025]);                                                                                                                                      
+            
             const scaleY = d3
                 .scaleLinear()
                 .range([margin.top, height - margin.bottom])
-                .domain([0, Object.keys(trajectories).length]);
-
+                .domain([0, Object.keys(trajectories).length]);                                           
+            
             const tickNames = [];
 
             // TODO add modal on state click, to show additional information if interested
-
-            const importantGroup = svg.append('g').attr('id', 'important');
+            
             const chunkGroup = svg.append('g').attr('id', 'chunk');            
-
+            const importantGroup = svg.append('g').attr('id', 'important');
+            
             for (const [name, trajectory] of Object.entries(trajectories)) {
-                
+
                 const sSequence = trajectory.simplifiedSequence.sequence;
                 const chunks = trajectory.simplifiedSequence.chunks;                
                 const colors = trajectory.colors;            
 
                 trajectory.name = name;
                 
-                const c = chunkGroup.append('g').attr('id', `c_${name}`);
-                c.selectAll('rect').data(chunks)
-                    .enter()
-                    .append('rect')
-                    .attr('x', (d) => scaleX(d.timestep))
-                    .attr('y', () => scaleY(count))
-                    .attr('width', (d) => scaleX(d.last - d.timestep))
-                    .attr('height', 25)
-                    .attr('stroke', 'black')
-                    .attr('fill', (d) => {
-                        if (d.color === -1) {
-                            return 'black';
-                        }
-                        return colors[d.color];
-                    })
-                    .attr('run', () => name)
-                    .on('mouseover', function(_, d) {
-                        this.setAttribute('opacity', '0.2');
-                        onChunkMouseOver(this, d, name);
-                    }).on('mouseout', function() {                        
-                        this.setAttribute('opacity', '1.0');
-                    });
-
-                
-                const g = importantGroup.append('g').attr('id', `g_${name}`)
+                const g = importantGroup.append('g').attr('id', `g_${name}`);
                 tickNames.push(name);
+
                 g.selectAll('rect')
                     .data(sSequence, (d) => d)
                     .enter()
                     .append('rect')
                     .attr('x', (d) => scaleX(d.timestep))
                     .attr('y', () => scaleY(count))
-                    .attr('width', 5)
+                    .attr('width', (d) => scaleX(d.timestep + 1) - scaleX(d.timestep))
                     .attr('height', 25)
+                    .attr('opacity', 1.0)
                     .attr('fill', (d) => {
                         if (d.cluster === -1) {
                             return 'black';
                         }
                         return colors[d.cluster];
                     })                    
-                    .on('click', (_, d) => {
-                        setCurrentState(d);
-                        setActionCompleted(SINGLE_STATE);
-                        // toggleModal(SINGLE_STATE);
+                    .on('click', function (_, d) {
+                        if (this.getAttribute('opacity') > 0) {
+                            setCurrentState(d);
+                            setActionCompleted(SINGLE_STATE);
+                        }                        
                     })
-                    .on('mouseover', function(_, d) {
-                        this.setAttribute('stroke', 'black');
-                        onStateMouseOver(this, d, trajectory, name);
-                        // TODO make this bind as an effect instead of inside the function - this could still be optimized
-                        if (stateHighlight) {                            
-                            d3.select(`#g_${name}`).selectAll('rect').filter((dp) => {
-                                return dp.id != d.id
-                            }).attr('opacity', '0.01');
-                            d3.select(`#c_${name}`).selectAll('rect').attr('opacity', '0');
+                    .on('mouseover', function(_, d) {                        
+                        if (this.getAttribute('opacity') > 0) {                            
+                            this.setAttribute('stroke', 'black');
+                            onStateMouseOver(this, d, trajectory, name);
+                            // TODO make this bind as an effect instead of inside the function - this could still be optimized
+                            if (stateHighlight) {                            
+                                svg.select(`#g_${name}`).selectAll('*').filter(function(dp) {                                    
+                                    return (dp.id !== d.id) && this.getAttribute('opacity') > 0;
+                                }).attr('opacity', 0.01);
+                            }
                         }
                     })
                     .on('mouseout', function (_, d) {                        
-                        this.setAttribute('stroke', 'none');
-                        if (stateHighlight) {
-                            d3.select(`#g_${name}`).selectAll('rect').filter((dp) => dp.id != d.id).attr('opacity', '1.0');
-                            d3.select(`#c_${name}`).selectAll('rect').attr('opacity', '1');
+                        if (this.getAttribute('opacity') > 0) {
+                            this.setAttribute('stroke', 'none');
+                            if (stateHighlight) {
+                                svg.select(`#g_${name}`).selectAll('*').filter(function(dp) {
+                                    return (dp.id != d.id) && this.getAttribute('opacity') > 0;
+                                }).attr('opacity', 1.0);
+                            }
                         }
                     });
 
+                const c = chunkGroup.append('g').attr('id', `c_${name}`);
+                
+                c.selectAll('rect').data(chunks)
+                    .enter()
+                    .append('rect')
+                    .attr('x', (d) => scaleX(d.timestep))
+                    .attr('y', () => scaleY(count))
+                    .attr('width', (d) => scaleX(d.last + 1) - scaleX(d.timestep))
+                    .attr('height', 25)
+                    .attr('stroke', 'black')
+                    .attr('opacity', 1.0)
+                    .attr('fill', (d) => {
+                        if (d.color === -1) {
+                            return 'black';
+                        }
+                        return colors[d.color];
+                    })                    
+                    .on('mouseover', function(_, d) {                        
+                        if (this.getAttribute('opacity') > 0) {
+                            this.setAttribute('opacity', 0.2);
+                            onChunkMouseOver(this, d, name);
+                        }
+                    }).on('mouseout', function() {
+                        if(this.getAttribute('opacity') > 0) {
+                            this.setAttribute('opacity', 1.0);                            
+                        }
+                    });
+               
                 if (Object.keys(runs[name].filters).length > 0) {
                     for (const k of Object.keys(runs[name].filters)) {
                         const filter = runs[name].filters[k];
@@ -302,31 +319,29 @@ function TrajectoryChart({ trajectories, runs, loadingCallback }) {
                 // zoom out on double click
                 scaleX.domain([0, maxLength * 1.025]);
                 xAxis.call(d3.axisBottom(scaleX));
-                importantGroup.selectAll('rect').attr('x', (d) => scaleX(d.timestep));
-                chunkGroup.selectAll('rect').attr('x', (d) => scaleX(d.first)).attr('width', (d) => scaleX(d.last - d.first));
+                importantGroup.selectAll('rect').attr('x', (d) => scaleX(d.timestep)).attr('width', (d) => scaleX(d.timestep + 1) - scaleX(d.timestep));
+                chunkGroup.selectAll('rect').attr('x', (d) => scaleX(d.timestep)).attr('width', (d) => scaleX(d.last + 1) - scaleX(d.timestep));
             });
 
             zBrush = d3
                 .brushX()
                 .keyModifiers(false)
                 .extent([
-                    [0, 0],
-                    [width, height],
+                    [margin.left, margin.top],
+                    [width - margin.right, height - margin.bottom],
                 ])
                 .on('end', function(e) {
                     const extent = e.selection;
                     if (extent) {
-                        svg.select('.brush').call(zBrush.move, null);
+                        d3.select('.brush').call(zBrush.move, null);
                         scaleX.domain([
                             scaleX.invert(extent[0]),
                             scaleX.invert(extent[1]),
                         ]);
                         xAxis.call(d3.axisBottom(scaleX));
-
-                        importantGroup.selectAll('rect').attr('x', (d) => scaleX(d.timestep)).attr('stroke', 'none');
-
-                        // caused by x moving out of the viewport. since its no longer visible, it is not drawn
-                        chunkGroup.selectAll('rect').attr('x', (d) => scaleX(d.first)).attr('width', (d) => scaleX(d.last - d.first));
+                        
+                        importantGroup.selectAll('rect').attr('x', (d) => scaleX(d.timestep)).attr('width', (d) => scaleX(d.timestep + 1) - scaleX(d.timestep));          
+                        chunkGroup.selectAll('rect').attr('x', (d) => scaleX(d.timestep)).attr('width', (d) => scaleX(d.last + 1) - scaleX(d.timestep));
                     }
                     d3.select(this).remove();
                     d3.select('.brush').remove();
@@ -337,8 +352,8 @@ function TrajectoryChart({ trajectories, runs, loadingCallback }) {
                 .brush()
                 .keyModifiers(false)
                 .extent([
-                    [0, 0],
-                    [width, height],
+                    [margin.left, margin.top],
+                    [width - margin.right, height - margin.bottom],
                 ])
                 .on('end', (e) => {
                     const extent = e.selection;
@@ -370,8 +385,8 @@ function TrajectoryChart({ trajectories, runs, loadingCallback }) {
                 .brush()
                 .keyModifiers(false)
                 .extent([
-                    [0, 0],
-                    [width, height],
+                    [margin.left, margin.top],
+                    [width - margin.right, height - margin.bottom],
                 ])
                 .on('end', function(e) {
                     const extent = e.selection;                    
@@ -403,7 +418,7 @@ function TrajectoryChart({ trajectories, runs, loadingCallback }) {
                     }
                     d3.select(this).remove();
                     d3.select('.brush').remove();
-                });            
+                });                       
             loadingCallback();
         },
         [runs, width, height, stateHighlight, trajectories],

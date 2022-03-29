@@ -175,7 +175,7 @@ export function filter_relationship(trajectory,svg,options) {
 
 export function filter_chunks(trajectory, svg) {
     svg.select(`#c_${trajectory.name}`)
-        .selectAll("*").attr("opacity", 0);    
+        .selectAll("*").attr("opacity", 0);
 }
 
 /** Run a sliding window across the entire trajectory and count how many times the dominant state of the cluster (the state the occurs the most)
