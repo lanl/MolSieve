@@ -37,11 +37,16 @@ function GraphVis({trajectories, runs }) {
         if (!svg.empty()) {
             svg.selectAll('*').remove();
         }
+
+        // used for zooming https://gist.github.com/catherinekerr/b3227f16cebc8dd8beee461a945fb323
+        const container = svg.append('g')
+              .attr('id', 'container')
+              .attr('transform', "translate(0,0)scale(1,1)");
         
-        const importantGroup = svg.append('g').attr('id', 'important');
-        const chunkGroup = svg.append('g').attr('id', 'chunk');
-        const linkGroup = svg.append('g').attr("id", 'links');
-   
+        const importantGroup = container.append('g').attr('id', 'important');
+        const chunkGroup = container.append('g').attr('id', 'chunk');
+        const linkGroup = container.append('g').attr('id', 'links');
+        
         for (const [name, trajectory] of Object.entries(trajectories)) {
             
             const chunks = trajectory.simplifiedSequence.chunks;
@@ -56,13 +61,14 @@ function GraphVis({trajectories, runs }) {
                 chunk.size = chunk.last - chunk.timestep;
                 return chunk.size;
             });            
-            
-            const timeScale = d3.scaleLinear().range([1,125]).domain([0,Math.max(...chunkSizes)]);            
+
+            // scale could be 5 times * threshold cluster
+            const timeScale = d3.scaleLinear().range([5,125]).domain([0,Math.max(...chunkSizes)]);            
             
             const l = linkGroup.append("g").attr('id', 'l_${name}');
             let link = l.selectAll("line").data(links).enter().append("line").attr("stroke-width", 1).attr("stroke", "black");
-            const g = importantGroup.append('g').attr('id', 'node_g_${name}');            
 
+            const g = importantGroup.append('g').attr('id', 'node_g_${name}');            
             let stateNodes = g.selectAll('circle')
                     .data(sSequence)
                     .enter()
@@ -78,62 +84,32 @@ function GraphVis({trajectories, runs }) {
                     });
                         
             const c = chunkGroup.append('g').attr('id', `node_c_${name}`);            
-
-            let chunkNodes = null;            
+            let chunkNodes = c.selectAll('circle')
+                .data(chunks)
+                .enter()
+                .append('circle')
+                .attr("number", (d) => {return d.number})
+                .attr('r', (d) => {
+                    return timeScale(d.size);
+                })
+                .attr('fill', function(d) {
+                    if (d.color === -1) {
+                        return 'black';
+                    }
+                    return colors[d.color];
+                });
             
-            if(chunks.length != 0) {
-                chunkNodes = c.selectAll('circle')
-                    .data(chunks)
-                    .enter()
-                    .append('circle')
-                    .attr('r', (d) => {
-                        return timeScale(d.size); })
-                    .attr('fill', function(d) {
-                        if (d.color === -1) {
-                            return 'black';
-                        }
-                        return colors[d.color];
-                    });                       
-            }
-            
-            let simulated = [];
-            
-            if(chunks.length != 0) {
-                simulated.push(...chunks);
-            }
-
-            if(sSequence.length != 0) {
-                simulated.push(...sSequence);
-            }
-
-            console.log(chunks.length);
-            console.log(sSequence.length);
-            console.log(simulated);
-            console.log(links);
-            
-            let missingLinks = links.filter((link) => {
-                link.number === undefined || link.number === null
-            });
-
-            console.log(missingLinks);
-            
-            
-            d3.forceSimulation(simulated)
-                .force("link", d3.forceLink(links).id(function(d) { return d.number; }).iterations(1))
-                .force("charge", d3.forceManyBody().distanceMax(200).theta(0.6))
+            d3.forceSimulation([...chunks, ...sSequence])
+                .force("link", d3.forceLink(links).id(function(d) { return d.number; }))
+                .force("charge", d3.forceManyBody().distanceMax(300).theta(0.75))
                 .force("collide", d3.forceCollide().strength(10).radius((d) => {
                     if(d.size !== undefined && d.size !== null) {
                         return timeScale(d.size);
                     } else {
                         return 5;
-                    }
-                    
+                    }                    
                 }))
-                .on('tick', ticked);
-            
-            // pass in entire dataset
-            
-//            simulation.force("link").links(links);
+                .on('tick', ticked);                       
 
             function ticked() {
                 link
@@ -142,18 +118,15 @@ function GraphVis({trajectories, runs }) {
                     .attr("x2", function(d) { return d.target.x; })
                     .attr("y2", function(d) { return d.target.y; });
 
-                if(chunks.length != 0) {
-                    chunkNodes
-                        .attr("cx", function(d) { return d.x; })
-                        .attr("cy", function(d) { return d.y; });
-                }
-                
-                stateNodes
+               chunkNodes
                     .attr("cx", function(d) { return d.x; })
                     .attr("cy", function(d) { return d.y; });
-                
+                                
+                stateNodes
+                    .attr("cx", function(d) { return d.x; })
+                    .attr("cy", function(d) { return d.y; });                
             }
-
+           
             /*function drag(simulation) {    
                 function dragstarted(event) {
                     if (!event.active) simulation.alphaTarget(0.3).restart();
@@ -177,33 +150,44 @@ function GraphVis({trajectories, runs }) {
                     .on("drag", dragged)
                     .on("end", dragended);
                     }*/            
-
-            const zoom = d3.zoom().on('zoom', function(e) {
-
-//                const originX = e.clientX;
-//                const originY = e.clientY;
-                
-                console.log(e.transform);
-                const tX = e.transform.x;
-                const tY = e.transform.y;
-                //const s = e.transform.k;
-
-                svg.attr("viewBox", `${tX},${tY}, ${width}, ${height}`);
-                svg.attr("transform-origin", "0 0");
-
-            });
-
-            svg.call(zoom);
-            
         }
 
+        // the trick to zooming like this is to move the container without moving the SVG's viewport
         
-    }, [runs, width, height, trajectories]);
+        const zoom = d3.zoom().on('zoom', function(e) {
+            container.attr("transform", e.transform);  
+        });
+
+        // set default view for SVG
+        const bbox = container.node().getBBox();
+        const vx = bbox.x;
+        const vy = bbox.y;	
+        const vw = bbox.width;
+        const vh = bbox.height;
+        const defaultView = `${vx} ${vy} ${vw} ${vh}`;
+        
+        svg.attr("viewBox", defaultView).attr("preserveAspectRatio", "xMidYMid meet").call(zoom);
+            
+    }        
+    , [runs, width, height, trajectories]);
 
     return (<div ref={divRef}>
                 {width && height && Object.keys(trajectories).length === Object.keys(runs).length
                  && <svg id="svg_nodes" ref={ref} viewBox={[0,0,width,height]}/>}                
             </div>);    
 }
+
+
+// might still be useful for centering on trajectory
+/*function getTransform(node, xScale) {
+    bbox = node.node().getBBox();
+    var bx = bbox.x;
+    var by = bbox.y;
+    var bw = bbox.width;
+    var bh = bbox.height;
+    var tx = -bx*xScale + vx + vw/2 - bw*xScale/2;
+    var ty = -by*xScale + vy + vh/2 - bh*xScale/2;
+    return {translate: [tx, ty], scale: xScale}
+}*/
 
 export default GraphVis;

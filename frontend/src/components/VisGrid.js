@@ -504,8 +504,15 @@ class VisGrid extends React.Component {
                     trajectories={this.props.trajectories}
                     runs={this.state.runs}
                     loadingCallback={this.chartFinishedLoading}
-                ></TrajectoryChart>
+                ></TrajectoryChart>                
             )}
+            {safe && <Box sx={{position: 'absolute', bottom: 0, left: 0, width: '30%', height: '40%', borderStyle: 'solid'}}>
+                         <GraphVis
+                             trajectories={this.props.trajectories}
+                             runs={this.state.runs}/>
+                     </Box>
+            }
+
 
             {this.state.currentModal === METADATA_MODAL && (
                 <Dialog
@@ -561,12 +568,6 @@ class VisGrid extends React.Component {
                     onRequestClose={() => this.toggleModal(null)}
                 />
             )}
-                <Box sx={{position: 'absolute', bottom: 0, left: 0, width: '30%', height: '40%', borderStyle: 'solid'}}>
-                    <GraphVis
-                        trajectories={this.props.trajectories}
-                        runs={this.state.runs}
-                    />
-                </Box>
         </Box>
         );
     }
