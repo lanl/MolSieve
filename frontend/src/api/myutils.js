@@ -1,4 +1,6 @@
 // stolen from https://stackoverflow.com/questions/11120840/hash-string-into-rgb-color
+import tippy from 'tippy.js';
+import 'tippy.js/dist/tippy.css';
 
 export function djb2(str) {
     var hash = 5381;
@@ -34,6 +36,52 @@ export function mostOccurringElement(arr) {
     return Object.keys(counts).reduce((a, b) =>
         counts[a] > counts[b] ? a : b
     );
+}
+
+export function extractPropertyString(props, d) {
+    let propertyString = '';
+    let propCount = 0;
+    const perLine = 3;
+    
+    for (const property of props) {
+        const currentProp = d[property];
+        const capitalized = property.charAt(0).toUpperCase() + property.slice(1); 
+        
+        propertyString += `<b>${capitalized}</b>: ${currentProp} `;
+
+        propCount++;
+        if (propCount % perLine === 0) {
+            propertyString += '<br>';
+        }
+    }
+    return propertyString;
+}
+
+export function onStateMouseOver(node, d, trajectory) {
+    node.setAttribute('stroke', 'black');
+    
+    const propertyString = extractPropertyString(trajectory.properties, d);
+    const fuzzyMemberships = trajectory.fuzzy_memberships[trajectory.current_clustering][d.number];
+    
+    tippy(node, {
+        allowHTML: true,
+        content:
+        `<b>Run</b>: ${trajectory.name}
+        <br><b>Cluster</b>: ${d.cluster}
+        <b>Fuzzy memberships</b>: ${fuzzyMemberships}
+        <br>${propertyString}`,
+        arrow: true,
+        maxWidth: 'none',
+    });    
+}
+
+export function onChunkMouseOver(node, d) {
+    tippy(node, {
+        allowHTML: true,
+        content: `Timesteps ${d.timestep} - ${d.last}</br>Cluster: ${d.color}`,
+        arrow: true,
+        maxWidth: 'none',
+    });
 }
 
 // mpn65 color palette

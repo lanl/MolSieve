@@ -2,8 +2,7 @@ import {
     React, useEffect, useState, useRef,
 } from 'react';
 import * as d3 from 'd3';
-//import tippy from 'tippy.js';
-//import 'tippy.js/dist/tippy.css';
+import { onStateMouseOver, onChunkMouseOver } from '../api/myutils';
 import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
 
 function GraphVis({trajectories, runs }) {
@@ -79,8 +78,10 @@ function GraphVis({trajectories, runs }) {
                             return 'black';
                         }
                         return colors[d.cluster];
-                    }).on('mouseover', function(d) {
-                        console.log(d);
+                    }).on('mouseover', function(_, d) {                        
+                        onStateMouseOver(this, d, trajectory);
+                    }).on('mouseout', function() {
+                        this.setAttribute('stroke', 'none');
                     });
                         
             const c = chunkGroup.append('g').attr('id', `node_c_${name}`);            
@@ -97,6 +98,11 @@ function GraphVis({trajectories, runs }) {
                         return 'black';
                     }
                     return colors[d.color];
+                }).on('mouseover', function(_, d) {
+                    this.setAttribute('stroke', 'black');
+                    onChunkMouseOver(this, d);
+                }).on('mouseout', function () {                        
+                    this.setAttribute('stroke', 'none')
                 });
             
             d3.forceSimulation([...chunks, ...sSequence])

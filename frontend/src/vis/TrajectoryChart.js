@@ -2,8 +2,6 @@ import {
     React, useEffect, useState, useRef,
 } from 'react';
 import * as d3 from 'd3';
-import tippy from 'tippy.js';
-import 'tippy.js/dist/tippy.css';
 
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
@@ -14,6 +12,7 @@ import SingleStateModal from '../modals/SingleStateModal';
 import MultiplePathSelectionModal from '../modals/MultiplePathSelectionModal';
 import SelectionModal from '../modals/SelectionModal';
 import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
+import { onStateMouseOver, onChunkMouseOver } from '../api/myutils';
 
 const PATH_SELECTION = 'path_selection';
 const MULTIPLE_PATH_SELECTION = 'multiple_path_selection';
@@ -186,34 +185,14 @@ function TrajectoryChart({ trajectories, runs, loadingCallback }) {
             if (!svg.empty()) {
                 svg.selectAll('*').remove();
             }
-
-            const dataList = [];
+            
             let count = 0;
             let maxLength = -Number.MAX_SAFE_INTEGER;
 
-            for (const name of Object.keys(trajectories)) {
-                const data = trajectories[name].sequence;
-
-                if (data.length > maxLength) {
-                    maxLength = data.length;
+            for (const trajectory of Object.values(trajectories)) {
+                if(trajectory.sequence.length > maxLength) {
+                    maxLength = trajectory.sequence.length;
                 }
-
-                dataList.push({
-                    name,
-                    data,
-                    y: count,
-                    fuzzy_memberships:
-                        trajectories[name].fuzzy_memberships[
-                        trajectories[name].current_clustering
-                        ],
-                    unique_states: trajectories[name].unique_states,
-                    clusterings: trajectories[name].clusterings,
-                    current_clustering: trajectories[name].current_clustering,
-                    colors: trajectories[name].colors,
-                    simplifiedSequence: trajectories[name].simplifiedSequence.sequence,
-                    chunks: trajectories[name].simplifiedSequence.chunks,
-                });
-                count++;
             }
 
             // domain 102.5% of actual length for some breathing room
@@ -225,7 +204,7 @@ function TrajectoryChart({ trajectories, runs, loadingCallback }) {
             const scaleY = d3
                 .scaleLinear()
                 .range([margin.top, height - margin.bottom])
-                .domain([0, dataList.length]);
+                .domain([0, Object.keys(trajectories).length]);
 
             const tickNames = [];
 
@@ -234,13 +213,18 @@ function TrajectoryChart({ trajectories, runs, loadingCallback }) {
             const importantGroup = svg.append('g').attr('id', 'important');
             const chunkGroup = svg.append('g').attr('id', 'chunk');            
 
-            for (const t of dataList) {
-                const c = chunkGroup.append('g').attr('id', `c_${t.name}`);
-                c.selectAll('rect').data(t.chunks)
+            for (const [name, trajectory] of Object.entries(trajectories)) {
+                
+                const sSequence = trajectory.simplifiedSequence.sequence;
+                const chunks = trajectory.simplifiedSequence.chunks;                
+                const colors = trajectory.colors;            
+                
+                const c = chunkGroup.append('g').attr('id', `c_${name}`);
+                c.selectAll('rect').data(chunks)
                     .enter()
                     .append('rect')
                     .attr('x', (d) => scaleX(d.timestep))
-                    .attr('y', () => scaleY(t.y))
+                    .attr('y', () => scaleY(count))
                     .attr('width', (d) => scaleX(d.last - d.timestep))
                     .attr('height', 25)
                     .attr('stroke', 'black')
@@ -248,46 +232,33 @@ function TrajectoryChart({ trajectories, runs, loadingCallback }) {
                         if (d.color === -1) {
                             return 'black';
                         }
-                        return t.colors[d.color];
+                        return colors[d.color];
                     })
-                    .attr('timestep', (d) => d.timestep)
-                    .attr('last', (d) => d.last)
-                    .attr('run', () => t.name)
+                    .attr('run', () => name)
                     .on('mouseover', function(_, d) {
                         this.setAttribute('opacity', '0.2');
-                        tippy(this, {
-                            allowHTML: true,
-                            content: `Timesteps ${d.timestep} - ${d.last}</br>Cluster: ${d.color}`,
-                            arrow: true,
-                            maxWidth: 'none',
-                       });
-                    }).on('mouseout', function() {
-                        this.setAttribute('stroke', 'black');
+                        onChunkMouseOver(this, d);
+                    }).on('mouseout', function() {                        
                         this.setAttribute('opacity', '1.0');
                     });
 
                 
-                const g = importantGroup.append('g').attr('id', `g_${t.name}`);
-                tickNames.push(t.name);
+                const g = importantGroup.append('g').attr('id', `g_${name}`);
+                tickNames.push(name);
                 g.selectAll('rect')
-                    .data(t.simplifiedSequence, (d) => d)
+                    .data(sSequence, (d) => d)
                     .enter()
                     .append('rect')
                     .attr('x', (d) => scaleX(d.timestep))
-                    .attr('y', () => scaleY(t.y))
+                    .attr('y', () => scaleY(count))
                     .attr('width', 5)
                     .attr('height', 25)
                     .attr('fill', (d) => {
                         if (d.cluster === -1) {
                             return 'black';
                         }
-                        return t.colors[d.cluster];
-                    })
-                    .attr('run', () => t.name)
-                    .attr('number', (d) => d.number)
-                    .attr('timestep', (d) => d.timestep)
-                    .attr('occurrences', (d) => d.occurrences)
-                    .attr('fuzzy_membership', (d) => t.fuzzy_memberships[d.number])
+                        return colors[d.cluster];
+                    })                    
                     .on('click', (_, d) => {
                         setCurrentState(d);
                         setActionCompleted(SINGLE_STATE);
@@ -295,61 +266,34 @@ function TrajectoryChart({ trajectories, runs, loadingCallback }) {
                     })
                     .on('mouseover', function(_, d) {
                         this.setAttribute('stroke', 'black');
-                        const props = trajectories[t.name].properties;
-                        let propertyString = '';
-                        const perLine = 3;
-                        let propCount = 0;
-                        for (const property of props) {
-                            propertyString
-                                += `<b>${property
-                                }</b>: ${trajectories[t.name].sequence[d.timestep][
-                                property
-                                ]
-                                } `;
-                            propCount++;
-                            if (propCount % perLine === 0) {
-                                propertyString += '<br>';
-                            }
-                        }
-                        tippy(this, {
-                            allowHTML: true,
-                            content:
-                                `<b>Run</b>: ${t.name
-                                }<br><b>Cluster</b>: ${d.cluster
-                                } <b>Fuzzy memberships</b>: ${this.getAttribute(
-                                    'fuzzy_membership',
-                                ).toString()
-                                }<br>${propertyString}`,
-                            arrow: true,
-                            maxWidth: 'none',
-                        });
-
+                        onStateMouseOver(this, d, trajectory);
                         // TODO make this bind as an effect instead of inside the function - this could still be optimized
                         if (stateHighlight) {                            
-                            d3.select(`#g_${t.name}`).selectAll('rect').filter((dp) => {
+                            d3.select(`#g_${name}`).selectAll('rect').filter((dp) => {
                                 return dp.id != d.id
                             }).attr('opacity', '0.01');
-                            d3.select(`#c_${t.name}`).selectAll('rect').attr('opacity', '0');
+                            d3.select(`#c_${name}`).selectAll('rect').attr('opacity', '0');
                         }
                     })
                     .on('mouseout', function (_, d) {                        
                         this.setAttribute('stroke', 'none');
+
                         if (stateHighlight) {
-                            d3.select(`#g_${t.name}`).selectAll('rect').filter((dp) => dp.id != d.id).attr('opacity', '1.0');
-                            d3.select(`#c_${t.name}`).selectAll('rect').attr('opacity', '1');
+                            d3.select(`#g_${name}`).selectAll('rect').filter((dp) => dp.id != d.id).attr('opacity', '1.0');
+                            d3.select(`#c_${name}`).selectAll('rect').attr('opacity', '1');
                         }
                     });
 
-                if (Object.keys(runs[t.name].filters).length > 0) {
-                    for (const k of Object.keys(runs[t.name].filters)) {
-                        const filter = runs[t.name].filters[k];
+                if (Object.keys(runs[name].filters).length > 0) {
+                    for (const k of Object.keys(runs[name].filters)) {
+                        const filter = runs[name].filters[k];
                         if (filter.enabled) {
-                            filter.func(t, svg, filter.options);
+                            filter.func(trajectory, svg, filter.options);
                         }
                     }
                 }
-
             }
+            
             const xAxis = svg.append('g').call(d3.axisBottom().scale(scaleX));
 
             // reset zoom
@@ -398,8 +342,7 @@ function TrajectoryChart({ trajectories, runs, loadingCallback }) {
                 .on('end', (e) => {
                     const extent = e.selection;
                     if (extent) {
-                        const currName = dataList[Math.round(scaleY.invert(extent[0][1]))]
-                            .name;
+                        const currName = Object.keys(trajectories)[Math.round(scaleY.invert(extent[0][1]))];
                         if (currName !== null && currName !== undefined) {
                             const begin = trajectories[currName].sequence[
                                 Math.round(scaleX.invert(extent[0][0]))
@@ -432,8 +375,7 @@ function TrajectoryChart({ trajectories, runs, loadingCallback }) {
                 .on('end', function(e) {
                     const extent = e.selection;                    
                     if (extent) {
-                        const currName = dataList[Math.round(scaleY.invert(extent[0][1]))]
-                            .name;
+                        const currName = Object.keys(trajectories)[Math.round(scaleY.invert(extent[0][1]))];
                         if (currName !== null && currName !== undefined) {
                             const begin = trajectories[currName].sequence[
                                 Math.round(scaleX.invert(extent[0][0]))
