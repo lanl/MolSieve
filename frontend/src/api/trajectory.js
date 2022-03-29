@@ -143,8 +143,7 @@ class Trajectory {
                     lastObj = chunks[r];
                     r++;
                 }
-            }
-            
+            }            
         } else {
             if(simplifiedSequence.length !== 0) {
                 lastObj = simplifiedSequence[0];

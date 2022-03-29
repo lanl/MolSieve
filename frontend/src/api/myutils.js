@@ -57,7 +57,7 @@ export function extractPropertyString(props, d) {
     return propertyString;
 }
 
-export function onStateMouseOver(node, d, trajectory) {
+export function onStateMouseOver(node, d, trajectory, name) {
     node.setAttribute('stroke', 'black');
     
     const propertyString = extractPropertyString(trajectory.properties, d);
@@ -66,7 +66,7 @@ export function onStateMouseOver(node, d, trajectory) {
     tippy(node, {
         allowHTML: true,
         content:
-        `<b>Run</b>: ${trajectory.name}
+        `<b>Run</b>: ${name}
         <br><b>Cluster</b>: ${d.cluster}
         <b>Fuzzy memberships</b>: ${fuzzyMemberships}
         <br>${propertyString}`,
@@ -75,10 +75,13 @@ export function onStateMouseOver(node, d, trajectory) {
     });    
 }
 
-export function onChunkMouseOver(node, d) {
+export function onChunkMouseOver(node, d, name) {
     tippy(node, {
         allowHTML: true,
-        content: `Timesteps ${d.timestep} - ${d.last}</br>Cluster: ${d.color}`,
+        content: `<b>Run</b>: ${name}
+                  <br><b>Timesteps</b> ${d.timestep} - ${d.last}
+                  <br><b>Cluster</b>: ${d.color}
+                  <br><b>Number</b>: ${d.number}`,
         arrow: true,
         maxWidth: 'none',
     });

@@ -12,7 +12,7 @@ export function filter_min_opacity(trajectory, svg, options) {
     const val = options.val;
     
     svg.select(`#g_${trajectory.name}`)
-        .selectAll("rect")
+        .selectAll("*")
         .filter(function (d) {
             return d[property] <= val;
         })
@@ -30,7 +30,7 @@ export function filter_max_opacity(trajectory, svg, options) {
     const val = options.val;
     
     svg.select(`#g_${trajectory.name}`)
-        .selectAll("rect")
+        .selectAll("*")
         .filter(function (d) {
             return d[property] >= val;
         })
@@ -47,7 +47,7 @@ export function filter_range_opacity(trajectory, svg, options) {
     const val = options.val;
     
     svg.select(`#g_${trajectory.name}`)
-        .selectAll("rect")
+        .selectAll("*")
         .filter(function (d) {
             return d[property] <= val[0] || d[property] >= val[1];
         })
@@ -61,27 +61,36 @@ export function filter_range_opacity(trajectory, svg, options) {
  * @param {Object} svg - d3 selection to modify
  */
 export function filter_fuzzy_membership(trajectory, svg) {
-    var current_membership_values = trajectory.fuzzy_memberships;
-    var extents = {};
+    const current_clustering = trajectory.current_clustering;
+    const current_membership_values = trajectory.fuzzy_memberships[current_clustering];    
+    const sequence = trajectory.simplifiedSequence.sequence;    
 
-    for (var i = 0; i < trajectory.current_clustering; i++) {
-        var minMax = [Number.MAX_SAFE_INTEGER, Number.MIN_SAFE_INTEGER];
+    // for each cluster that is in the current clustering,
+    // create an extents array that contains its minimum / maximum membership percentage
+    const extents = {};
+    for (let i = 0; i < current_clustering; i++) {
+        const minMax = [Number.MAX_SAFE_INTEGER, Number.MIN_SAFE_INTEGER];
         extents[i] = minMax;
     }
 
-    for (var j = 0; j < trajectory.data.length; j++) {
-        var id = trajectory.data[j]["number"];
-        var cluster_membership = trajectory.data[j]["cluster"];
-        extents[cluster_membership][0] = Math.min(
-            extents[cluster_membership][0],
-            current_membership_values[id][cluster_membership]
+    // go through sequence and find min / max membership percentage
+    for (let j = 0; j < sequence.length; j++) {        
+        const state = sequence[j];
+
+        // look at the state's determined clustering and compare it to the minimum percentage we've seen
+        extents[state.cluster][0] = Math.min(
+            extents[state.cluster][0],
+            current_membership_values[state.number][state.cluster]
         );
-        extents[cluster_membership][1] = Math.max(
-            extents[cluster_membership][1],
-            current_membership_values[id][cluster_membership]
+
+        // same as above
+        extents[state.cluster][1] = Math.max(
+            extents[state.cluster][1],
+            current_membership_values[state.number][state.cluster]
         );
     }
 
+    // for each cluster in the current clustering, build a set of scales to scale the opacity by
     var scales = [];
     for (var k = 0; k < trajectory.current_clustering; k++) {
         scales.push(
@@ -93,11 +102,9 @@ export function filter_fuzzy_membership(trajectory, svg) {
     }
 
     svg.select(`#g_${trajectory.name}`)
-        .selectAll("rect")
-        .attr("opacity", function () {
-            var value = this.getAttributeNode("fuzzy_membership")
-                .nodeValue.split(",")
-                .map(Number);
+        .selectAll("*")
+        .attr("opacity", function (d) {
+            let value = trajectory.fuzzy_memberships[trajectory.current_clustering][d.number];            
             var scale_index = value.reduce(
                 (iMax, x, i, arr) => (x > arr[iMax] ? i : iMax),
                 0
@@ -111,27 +118,27 @@ export function filter_fuzzy_membership(trajectory, svg) {
  * @param {Object} svg - d3 selection to modify
  */
 export function filter_clustering_difference(trajectory, svg) {
-    var clustering_assignments = {};
-    var maxSize = -Number.MAX_SAFE_INTEGER;
+    const clustering_assignments = {};
+    let maxSize = -Number.MAX_SAFE_INTEGER;
+
     // for some reason, an extra labels object is created at the end    
-    for (var d of trajectory.unique_states) {
-        var labels = new Set();
-        for (var clustering of Object.values(trajectory.clusterings)) {
-            for (var i = 0; i < clustering.length; i++) {
-                if (clustering[i].includes(d)) {
-                    labels.add(i);
+    for (const d of trajectory.simplifiedSequence.uniqueStates) {
+        const labels = new Set();
+        for (const clustering of Object.values(trajectory.clusterings)) {
+            for (let i = 0; i < clustering.length; i++) {
+                if (clustering[i].includes(d.number)) {
+                    labels.add(i);                    
                 }
             }
         }
-        maxSize = labels.size > maxSize ? labels.size : maxSize;
-        clustering_assignments[d] = labels;
-    }
-
+        maxSize = (maxSize < labels.size) ? labels.size : maxSize;
+        clustering_assignments[d.number] = labels;
+    }    
+    
     svg.select(`#g_${trajectory.name}`)
-        .selectAll("rect")
+        .selectAll("*")
         .attr("fill", function (d) {
-            var instability =
-                clustering_assignments[d["number"]].size / maxSize;
+            var instability = clustering_assignments[d.number].size / maxSize;
             if (instability > 0.75) {
                 return "red";
             } else if (instability < 0.75 && instability > 0.5) {
@@ -159,7 +166,7 @@ export function filter_relationship(trajectory,svg,options) {
                }}).then((response) => {
                    let filter_array = response.data;
                    svg.select(`#g_${trajectory.name}`)
-                       .selectAll("rect").filter(function(d) {
+                       .selectAll("*").filter(function(d) {
                            return !filter_array.includes(d[attribute]);
                        })
                        .attr("opacity", 0);                                     
@@ -168,7 +175,7 @@ export function filter_relationship(trajectory,svg,options) {
 
 export function filter_chunks(trajectory, svg) {
     svg.select(`#c_${trajectory.name}`)
-        .selectAll("rect").attr("opacity", 0);    
+        .selectAll("*").attr("opacity", 0);    
 }
 
 /** Run a sliding window across the entire trajectory and count how many times the dominant state of the cluster (the state the occurs the most)
@@ -178,7 +185,7 @@ export function filter_chunks(trajectory, svg) {
  * @param {Dictionary} options - the params specific to this filter
  */
 export function filter_transitions(trajectory, svg, options) {    
-    const sequence = trajectory.data;
+    const sequence = trajectory.simplifiedSequence.sequence;    
     const clusters = trajectory.clusterings[trajectory.current_clustering];
     const mode = options.selectVal;
     const slider_value = options.val;        
@@ -192,8 +199,7 @@ export function filter_transitions(trajectory, svg, options) {
     var dominants = [];
 
     for (var i = 0; i < clusters.length; i++) {
-        var clustered_data = sequence
-            .filter(function (d) {
+        var clustered_data = sequence.filter(function (d) {
                 if (d["cluster"] === i) {
                     return d;
                 }
@@ -233,7 +239,7 @@ export function filter_transitions(trajectory, svg, options) {
         }
     }
     svg.select(`#g_${trajectory.name}`)
-        .selectAll("rect")
+        .selectAll("*")
         .attr("opacity", function (_, i) {
             return timesteps[i];
         });

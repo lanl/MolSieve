@@ -218,6 +218,8 @@ function TrajectoryChart({ trajectories, runs, loadingCallback }) {
                 const sSequence = trajectory.simplifiedSequence.sequence;
                 const chunks = trajectory.simplifiedSequence.chunks;                
                 const colors = trajectory.colors;            
+
+                trajectory.name = name;
                 
                 const c = chunkGroup.append('g').attr('id', `c_${name}`);
                 c.selectAll('rect').data(chunks)
@@ -237,13 +239,13 @@ function TrajectoryChart({ trajectories, runs, loadingCallback }) {
                     .attr('run', () => name)
                     .on('mouseover', function(_, d) {
                         this.setAttribute('opacity', '0.2');
-                        onChunkMouseOver(this, d);
+                        onChunkMouseOver(this, d, name);
                     }).on('mouseout', function() {                        
                         this.setAttribute('opacity', '1.0');
                     });
 
                 
-                const g = importantGroup.append('g').attr('id', `g_${name}`);
+                const g = importantGroup.append('g').attr('id', `g_${name}`)
                 tickNames.push(name);
                 g.selectAll('rect')
                     .data(sSequence, (d) => d)
@@ -266,7 +268,7 @@ function TrajectoryChart({ trajectories, runs, loadingCallback }) {
                     })
                     .on('mouseover', function(_, d) {
                         this.setAttribute('stroke', 'black');
-                        onStateMouseOver(this, d, trajectory);
+                        onStateMouseOver(this, d, trajectory, name);
                         // TODO make this bind as an effect instead of inside the function - this could still be optimized
                         if (stateHighlight) {                            
                             d3.select(`#g_${name}`).selectAll('rect').filter((dp) => {
@@ -277,7 +279,6 @@ function TrajectoryChart({ trajectories, runs, loadingCallback }) {
                     })
                     .on('mouseout', function (_, d) {                        
                         this.setAttribute('stroke', 'none');
-
                         if (stateHighlight) {
                             d3.select(`#g_${name}`).selectAll('rect').filter((dp) => dp.id != d.id).attr('opacity', '1.0');
                             d3.select(`#c_${name}`).selectAll('rect').attr('opacity', '1');

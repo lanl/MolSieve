@@ -45,13 +45,18 @@ function GraphVis({trajectories, runs }) {
         const importantGroup = container.append('g').attr('id', 'important');
         const chunkGroup = container.append('g').attr('id', 'chunk');
         const linkGroup = container.append('g').attr('id', 'links');
+
+        // if not seperate trajectories
+        // merge chunks, sSequence, links
         
         for (const [name, trajectory] of Object.entries(trajectories)) {
             
             const chunks = trajectory.simplifiedSequence.chunks;
             const sSequence = trajectory.simplifiedSequence.uniqueStates;
             const links = trajectory.simplifiedSequence.interleaved;
-            const colors = trajectory.colors;            
+            const colors = trajectory.colors;
+
+            trajectory.name = name;
             
             // chunk strength - a measure of its size
             // state strength - measure of its occurences                        
@@ -66,8 +71,8 @@ function GraphVis({trajectories, runs }) {
             
             const l = linkGroup.append("g").attr('id', 'l_${name}');
             let link = l.selectAll("line").data(links).enter().append("line").attr("stroke-width", 1).attr("stroke", "black");
-
-            const g = importantGroup.append('g').attr('id', 'node_g_${name}');            
+            
+            const g = importantGroup.append('g').attr('id', `g_${name}`);            
             let stateNodes = g.selectAll('circle')
                     .data(sSequence)
                     .enter()
@@ -79,17 +84,16 @@ function GraphVis({trajectories, runs }) {
                         }
                         return colors[d.cluster];
                     }).on('mouseover', function(_, d) {                        
-                        onStateMouseOver(this, d, trajectory);
+                        onStateMouseOver(this, d, trajectory, name);
                     }).on('mouseout', function() {
                         this.setAttribute('stroke', 'none');
                     });
                         
-            const c = chunkGroup.append('g').attr('id', `node_c_${name}`);            
+            const c = chunkGroup.append('g').attr('id', `c_${name}`);            
             let chunkNodes = c.selectAll('circle')
                 .data(chunks)
                 .enter()
-                .append('circle')
-                .attr("number", (d) => {return d.number})
+                .append('circle')                
                 .attr('r', (d) => {
                     return timeScale(d.size);
                 })
@@ -100,11 +104,20 @@ function GraphVis({trajectories, runs }) {
                     return colors[d.color];
                 }).on('mouseover', function(_, d) {
                     this.setAttribute('stroke', 'black');
-                    onChunkMouseOver(this, d);
+                    onChunkMouseOver(this, d, name);
                 }).on('mouseout', function () {                        
                     this.setAttribute('stroke', 'none')
                 });
             
+            if (Object.keys(runs[name].filters).length > 0) {
+                for (const k of Object.keys(runs[name].filters)) {
+                    const filter = runs[name].filters[k];
+                    if (filter.enabled) {
+                        filter.func(trajectory, svg, filter.options);
+                    }
+                }
+            }                    
+        
             d3.forceSimulation([...chunks, ...sSequence])
                 .force("link", d3.forceLink(links).id(function(d) { return d.number; }))
                 .force("charge", d3.forceManyBody().distanceMax(300).theta(0.75))
