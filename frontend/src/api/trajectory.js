@@ -103,58 +103,22 @@ class Trajectory {
         if (lastChunk.timestep !== null) {
             chunks.push(lastChunk);
         }                
-        
-        let l_count = simplifiedSequence.length;
-        let r_count = chunks.length;
-        let l = 0;
-        let r = 0;
-        let interleaved = [];        
-        let lastObj = null;
-        
-        if(simplifiedSequence.length !== 0 && chunks.length !== 0) {
-            lastObj = (simplifiedSequence[0].timestep < chunks[0].timestep) ? simplifiedSequence[0] : chunks[0];
-            
-            if(lastObj === simplifiedSequence[0]) {
-                l++;
-            } else {
-                r++;
-            }
+       
+        let sorted = [...simplifiedSequence, ...chunks].sort((a,b) => a.timestep - b.timestep);
+        let interleaved = [];
+        let i = 0;
+        let j = 1;
 
-            while (l != l_count && r != r_count) {
-                if (simplifiedSequence[l].timestep < chunks[r].timestep) {
-                    interleaved.push({ source: lastObj.id, target: simplifiedSequence[l].id });
-                    lastObj = simplifiedSequence[l];
-                    l++;
-                } else {
-                    interleaved.push({ source: lastObj.id, target: chunks[r].id });
-                    lastObj = chunks[r];
-                    r++;
-                }
-            }
-            
-        } else {
-            if(simplifiedSequence.length !== 0) {
-                lastObj = simplifiedSequence[0];
-                l++;
-                while(l !== l_count) {
-                    interleaved.push({source: lastObj.id, target: simplifiedSequence[l].id });
-                    lastObj = simplifiedSequence[l];
-                    l++;
-                }                
-            }
-
-            if(chunks.length !== 0) {
-                lastObj = chunks[0];
-                r++;
-                while(r !== r_count) {
-                    interleaved.push({source: lastObj.id, target: chunks[r].id });
-                    lastObj = chunks[r];
-                    r++;
-                }                
-            }
+        for(i; i < sorted.length - 1; i++) {
+            interleaved.push({"source": sorted[i].id, "target": sorted[j].id});
+            j++;
         }
+
+        const sequence = simplifiedSequence.map((state) => {
+            return state.id;
+        });
         
-        this.simplifiedSequence = { sequence: simplifiedSequence, chunks: chunks, interleaved: interleaved };        
+        this.simplifiedSequence = { sequence: simplifiedSequence, uniqueStates: [...new Set(sequence)], chunks: chunks, interleaved: interleaved };        
     }
     
     set_colors(colorArray) {

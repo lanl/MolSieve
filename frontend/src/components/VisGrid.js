@@ -32,7 +32,7 @@ import Divider from '@mui/material/Divider';
 import Drawer from "@mui/material/Drawer";
 import Box from "@mui/material/Box";
 import LoadingModal from "../modals/LoadingModal";
-//import GraphVis from "../vis/GraphVis";
+import GraphVis from "../vis/GraphVis";
 
 const XY_PLOT_MODAL = "xy-plot-modal";
 const ADD_FILTER_MODAL = "add-filter-modal";
@@ -476,14 +476,6 @@ class VisGrid extends React.Component {
         this.setState({ drawerOpen: !this.state.drawerOpen});
     }
 
-    /*
-      {safe && <Box sx={{position: 'absolute', bottom: 0, left: 0, width: '30%', height: '40%', borderStyle: 'solid'}}>
-                         <GraphVis
-                             trajectories={this.props.trajectories}
-                             runs={this.state.runs}/>
-                     </Box>
-            }
-      */
     
   render() {
         const runs = Object.keys(this.state.runs);
@@ -516,10 +508,19 @@ class VisGrid extends React.Component {
                     loadingCallback={this.chartFinishedLoading}
                 ></TrajectoryChart>                
             )}
-                
-            
 
+                    
+                {safe && <Box sx={{position: 'absolute', bottom: 0, left: 0, width: '30%', height: '40%', borderStyle: 'solid'}}>
+                             <GraphVis
+                                 trajectories={this.props.trajectories}
+                                 runs={this.state.runs}
+                                 globalUniqueStates={this.props.globalUniqueStates}
+                             />
+                         </Box>
+                }
+      
 
+                          
             {this.state.currentModal === METADATA_MODAL && (
                 <Dialog
                     open={this.state.currentModal === METADATA_MODAL}

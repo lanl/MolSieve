@@ -217,10 +217,7 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
             // TODO add modal on state click, to show additional information if interested
             
             const chunkGroup = svg.append('g').attr('id', 'chunk');            
-            const importantGroup = svg.append('g').attr('id', 'important');
-
-            console.log(globalUniqueStates);
-            
+            const importantGroup = svg.append('g').attr('id', 'important');                        
             
             for (const [name, trajectory] of Object.entries(trajectories)) {                
                 const sSequence = trajectory.simplifiedSequence.sequence;

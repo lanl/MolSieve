@@ -158,7 +158,7 @@ class App extends React.Component {
                 this.load_PCCA(run, clusters, optimal, m_min, m_max, newTraj)
                     .then((newTraj) => {
                         this.load_metadata(run, newTraj).then((newTraj) => {
-                            console.log(newTraj);
+                            
                             // some final processing on trajectory
                             //newTraj.properties.push('timestep');
                             //newTraj.calculate_unique_states();
@@ -212,8 +212,7 @@ class App extends React.Component {
         };
         const new_traj = new_trajectories[run];
 
-        new_traj.simplifySet(threshold);
-        console.log(new_traj.simplifiedSequence);
+        new_traj.simplifySet(threshold);        
         new_trajectories[run] = new_traj;
         
         this.setState({ trajectories: new_trajectories });
