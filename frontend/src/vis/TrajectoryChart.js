@@ -48,7 +48,7 @@ function useKeyDown(key, action) {
     }, []);
 }
 
-function TrajectoryChart({ trajectories, runs, loadingCallback }) {
+function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallback }) {
     const [currentModal, setCurrentModal] = useState();
 
     const toggleModal = (key) => {
@@ -218,12 +218,15 @@ function TrajectoryChart({ trajectories, runs, loadingCallback }) {
             
             const chunkGroup = svg.append('g').attr('id', 'chunk');            
             const importantGroup = svg.append('g').attr('id', 'important');
-            
-            for (const [name, trajectory] of Object.entries(trajectories)) {
 
+            console.log(globalUniqueStates);
+            
+            
+            for (const [name, trajectory] of Object.entries(trajectories)) {                
                 const sSequence = trajectory.simplifiedSequence.sequence;
                 const chunks = trajectory.simplifiedSequence.chunks;                
-                const colors = trajectory.colors;            
+                const colors = trajectory.colors;
+                const currentClustering = trajectory.currentClusteringArray;
 
                 trajectory.name = name;
                 
@@ -239,11 +242,8 @@ function TrajectoryChart({ trajectories, runs, loadingCallback }) {
                     .attr('width', (d) => scaleX(d.timestep + 1) - scaleX(d.timestep))
                     .attr('height', 25)
                     .attr('opacity', 1.0)
-                    .attr('fill', (d) => {
-                        if (d.cluster === -1) {
-                            return 'black';
-                        }
-                        return colors[d.cluster];
+                    .attr('fill', (d) => {                        
+                        return colors[currentClustering[d.id]];
                     })                    
                     .on('click', function (_, d) {
                         if (this.getAttribute('opacity') > 0) {
@@ -254,7 +254,7 @@ function TrajectoryChart({ trajectories, runs, loadingCallback }) {
                     .on('mouseover', function(_, d) {                        
                         if (this.getAttribute('opacity') > 0) {                            
                             this.setAttribute('stroke', 'black');
-                            onStateMouseOver(this, d, trajectory, name);
+                            onStateMouseOver(this, globalUniqueStates[d.id], trajectory, name);
                             // TODO make this bind as an effect instead of inside the function - this could still be optimized
                             if (stateHighlight) {                            
                                 svg.select(`#g_${name}`).selectAll('*').filter(function(dp) {                                    
@@ -286,10 +286,7 @@ function TrajectoryChart({ trajectories, runs, loadingCallback }) {
                     .attr('stroke', 'black')
                     .attr('opacity', 1.0)
                     .attr('fill', (d) => {
-                        if (d.color === -1) {
-                            return 'black';
-                        }
-                        return colors[d.color];
+                        return colors[currentClustering[-d.id]];
                     })                    
                     .on('mouseover', function(_, d) {                        
                         if (this.getAttribute('opacity') > 0) {

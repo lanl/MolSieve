@@ -8,7 +8,7 @@ import axios from 'axios';
  * @param {Array<string>} properties - Properties of the trajectory to retrieve
  * @param {Trajectory|undefined} trajectory - optional, if passed to the function will modify the trajectory object and return it
  */
-export function api_loadSequence(run, properties, trajectory) {
+export function api_loadSequence(run, properties) {
     return new Promise((resolve, reject) => {
         axios
             .get("/load_sequence", {
@@ -17,15 +17,8 @@ export function api_loadSequence(run, properties, trajectory) {
                     properties: properties.toString(),
                 },
             })
-            .then((response) => {
-                if (trajectory === undefined) {
-                    return resolve(response.data);
-                }
-                
-                trajectory.sequence = response.data.sequence;
-                trajectory.uniqueStates = response.data.uniqueStates;
-                
-                return resolve(trajectory);
+            .then((response) => {                        
+                return resolve(response.data);
             })
             .catch((e) => {
                 reject(e);
@@ -54,7 +47,7 @@ export function api_loadPCCA(run, clusters, optimal, m_min, m_max, trajectory) {
                     m_max: m_max,
                 },
             })
-            .then((response) => {
+            .then((response) => {                
                 if (optimal === 1) {
                     var new_traj =
                         trajectory === undefined

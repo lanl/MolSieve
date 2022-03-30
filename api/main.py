@@ -439,6 +439,8 @@ def pcca(run: str, clusters: int, optimal: int, m_min: int, m_max: int):
     sequence = trajectories[run].sequence
     uniqueStates = trajectories[run].uniqueStates
 
+    currentClustering = {}
+    
     m, idx_to_id = calculator.calculate_transition_matrix(
         driver, qb, run=run, discrete=True, trajectory=sequence, uniqueStates=uniqueStates, getOccurrences=False)    
     
@@ -468,7 +470,12 @@ def pcca(run: str, clusters: int, optimal: int, m_min: int, m_max: int):
                     for idx, m in enumerate(gpcca.memberships.tolist()):
                         id_to_membership.update({idx_to_id[idx]: m})                        
                     fuzzy_memberships.update({cluster_idx + m_min: id_to_membership})
-            j.update({'feasible_clusters': feasible_clusters})
+            j.update({'feasible_clusters': feasible_clusters})            
+            
+            #for cc, clustering in enumerate(sets[gpcca.n_m]):
+            #    for iden in clustering:
+            #            currentClustering[iden] = cc
+            
         except ValueError as exception:
             raise exception
     else:
@@ -488,8 +495,9 @@ def pcca(run: str, clusters: int, optimal: int, m_min: int, m_max: int):
         except ValueError as exception:
             raise exception            
 
-    j.update({'sets': sets})
-    j.update({'fuzzy_memberships': fuzzy_memberships})        
+    j.update({'sets': sets});
+    j.update({'fuzzy_memberships': fuzzy_memberships});
+    # j.update({'currentClustering': currentClustering});
     # TODO: add as metadata in vis
     # j.update({'dominant_eigenvalues': gpcca.dominant_eigenvalues.tolist()})
     # j.update({'minChi': gpcca.minChi(m_min, m_max)})

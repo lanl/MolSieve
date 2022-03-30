@@ -30,6 +30,7 @@ class App extends React.Component {
                      '698cff', 'd9d9d9', '00d27e', 'd06800', '009f82', 'c49200', 'cbe8ff',
                      'fecddf', 'c27eb6', '8cd2ce', 'c4b8d9', 'f883b0', 'a49100', 'f48800',
                      '27d0df', 'a04a9b'],
+            globalUniqueStates: {},            
         };
     }
 
@@ -142,11 +143,18 @@ class App extends React.Component {
      * @param {Array<String>} properties - Properties of the trajectory to retrieve
      */
     load_trajectory = (run, clusters, optimal, m_min, m_max, properties, chunkingThreshold) => {
-        const newTraj = new Trajectory();
-        newTraj.properties = [...properties];
 
-        this.load_sequence(run, newTraj.properties, newTraj)
-            .then((newTraj) => {
+        this.load_sequence(run, properties)
+            .then((data) => {
+                const newTraj = new Trajectory();
+                newTraj.sequence = data.sequence;                
+                newTraj.uniqueStates = data.uniqueStates.map((state) => {
+                    return state.id;
+                });                
+                
+                newTraj.properties = [...properties]; // questionable if we need it
+                const newUniqueStates = this.calculateGlobalUniqueStates(data.uniqueStates);
+                
                 this.load_PCCA(run, clusters, optimal, m_min, m_max, newTraj)
                     .then((newTraj) => {
                         this.load_metadata(run, newTraj).then((newTraj) => {
@@ -156,10 +164,10 @@ class App extends React.Component {
                             //newTraj.calculate_unique_states();
                             newTraj.set_cluster_info(); // for each state
                             // could be an option
-                            //newTraj.chunkingThreshold = chunkingThreshold;
+                            newTraj.chunkingThreshold = chunkingThreshold;                            
                             newTraj.simplifySet(chunkingThreshold);
+                            
                             const removed = newTraj.set_colors(this.state.colors);
-
                             const newTrajectories = {
                                 ...this.state.trajectories,
                             };
@@ -172,6 +180,7 @@ class App extends React.Component {
                                 isLoading: false,
                                 trajectories: newTrajectories,
                                 colors: newColors,
+                                globalUniqueStates: newUniqueStates
                             });
                         });
                     });
@@ -180,6 +189,22 @@ class App extends React.Component {
                 alert(e);
             });
     };
+
+    calculateGlobalUniqueStates = (newUniqueStates) => {
+        const globalUniqueStates = this.state.globalUniqueStates;      
+        for(const s of newUniqueStates) {
+            if(Object.keys(globalUniqueStates).includes(s.id)) {
+                // copy over any new properties
+                globalUniqueStates[s.id] = Object.assign(globalUniqueStates[s.id], s);
+            }
+            else {
+                globalUniqueStates[s.id] = s;
+            }
+        }
+
+        return globalUniqueStates;
+        
+    }
 
     simplifySet = (run, threshold) => {
         const new_trajectories = {
@@ -217,6 +242,7 @@ class App extends React.Component {
                 </Box>   
                 <VisGrid
                     trajectories={this.state.trajectories}
+                    globalUniqueStates={this.state.globalUniqueStates}
                     recalculate_clustering={this.recalculate_clustering}
                     simplifySet={this.simplifySet}
                 />

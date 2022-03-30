@@ -1,8 +1,9 @@
 class Trajectory {
-    sequence;
-    uniqueStates;
+    sequence;    
     properties;
-    
+    uniqueStates;
+    currentClusteringArray = [];
+
     optimal_cluster_value;
 
     feasible_clusters;
@@ -29,20 +30,20 @@ class Trajectory {
      * Allows us to keep track of colorings and perform other calculations.
      */
     set_cluster_info() {
-        for (let i = 0; i < this.sequence.length; i++) {
+        const currentClusteringArray = {};
+        for (let i = 0; i < this.uniqueStates.length; i++) {
             for (
                 let j = 0;
                 j < this.clusterings[this.current_clustering].length;
                 j++
             ) {
-                if (this.clusterings[this.current_clustering][j].includes(this.sequence[i].number)) {
-                    this.sequence[i].cluster = j;
+                if (this.clusterings[this.current_clustering][j].includes(this.uniqueStates[i])) {
+                    currentClusteringArray[this.uniqueStates[i]] = j;
                 }
             }
-            if (this.sequence[i].cluster == null) {
-                this.sequence[i].cluster = -1;
-            }
+            
         }
+        this.currentClusteringArray = currentClusteringArray;
     }
 
     /** Calculates a set of all the unique states in the sequence */
@@ -75,36 +76,27 @@ class Trajectory {
     simplifySet(chunkingThreshold) {
         const simplifiedSequence = [];        
         const chunks = [];
-        const seen = [];
-        const uniqueStates = [];        
-        let lastChunk = { timestep: null, last: null, color: null, number: null };
+        let lastChunk = { timestep: null, last: null, id: null };
         
-        for (const s of this.sequence) {
+        for (const [timestep,id] of this.sequence.entries()) {
             // if at least one fuzzy membership is above a threshold, add to lastChunk; i.e its not interesting
-            if (Math.max(...this.fuzzy_memberships[this.current_clustering][s.number]) >= chunkingThreshold) {
+            if (Math.max(...this.fuzzy_memberships[this.current_clustering][id]) >= chunkingThreshold) {
                 if (lastChunk.timestep === null) {
-                    lastChunk.timestep = s.timestep;
-                    lastChunk.number = s.number + "_c";
+                    lastChunk.timestep = timestep;
+                    lastChunk.id = -id; //figure out clever transform later
                 }
-                lastChunk.last = s.timestep;            
-                lastChunk.color = s.cluster;
+                lastChunk.last = timestep;            
             } else {
                 if (lastChunk.timestep !== null && lastChunk.last !== null) {
                     let newChunk = {};
                     newChunk.timestep = lastChunk.timestep;
                     newChunk.last = lastChunk.last;
-                    newChunk.color = lastChunk.color;
-                    newChunk.number = lastChunk.number;
-                                       
+                    newChunk.id = lastChunk.id;                                       
                     chunks.push(newChunk);
-                    lastChunk = { timestep: null, last: null, color: null, number: null };
+                    
+                    lastChunk = { timestep: null, last: null,  id: null };
                 }
-                
-                if(!seen.includes(s.number)) {
-                    uniqueStates.push(s);
-                    seen.push(s.number);
-                }
-                simplifiedSequence.push(s);
+                simplifiedSequence.push({'timestep': timestep, 'id': id});
             }
         }
 
@@ -130,21 +122,22 @@ class Trajectory {
 
             while (l != l_count && r != r_count) {
                 if (simplifiedSequence[l].timestep < chunks[r].timestep) {
-                    interleaved.push({ source: lastObj.number, target: simplifiedSequence[l].number });
+                    interleaved.push({ source: lastObj.id, target: simplifiedSequence[l].id });
                     lastObj = simplifiedSequence[l];
                     l++;
                 } else {
-                    interleaved.push({ source: lastObj.number, target: chunks[r].number });
+                    interleaved.push({ source: lastObj.id, target: chunks[r].id });
                     lastObj = chunks[r];
                     r++;
                 }
-            }            
+            }
+            
         } else {
             if(simplifiedSequence.length !== 0) {
                 lastObj = simplifiedSequence[0];
                 l++;
                 while(l !== l_count) {
-                    interleaved.push({source: lastObj.number, target: simplifiedSequence[l].number });
+                    interleaved.push({source: lastObj.id, target: simplifiedSequence[l].id });
                     lastObj = simplifiedSequence[l];
                     l++;
                 }                
@@ -154,18 +147,14 @@ class Trajectory {
                 lastObj = chunks[0];
                 r++;
                 while(r !== r_count) {
-                    interleaved.push({source: lastObj.number, target: chunks[r].number });
+                    interleaved.push({source: lastObj.id, target: chunks[r].id });
                     lastObj = chunks[r];
                     r++;
                 }                
             }
         }
-
-        // TODO: need to have some way of the trajectory chart accepting uniqueStates
-        // need to decouple timestep attribute from state and work purely on relations
-        // uniqueStates should be its own calculation
         
-        this.simplifiedSequence = { uniqueStates: uniqueStates, sequence: simplifiedSequence, chunks: chunks, interleaved: interleaved };        
+        this.simplifiedSequence = { sequence: simplifiedSequence, chunks: chunks, interleaved: interleaved };        
     }
     
     set_colors(colorArray) {
