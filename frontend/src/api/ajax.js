@@ -21,7 +21,10 @@ export function api_loadSequence(run, properties, trajectory) {
                 if (trajectory === undefined) {
                     return resolve(response.data);
                 }
-                trajectory.sequence = response.data;
+                
+                trajectory.sequence = response.data.sequence;
+                trajectory.uniqueStates = response.data.uniqueStates;
+                
                 return resolve(trajectory);
             })
             .catch((e) => {

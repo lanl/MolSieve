@@ -83,7 +83,7 @@ function GraphVis({trajectories, runs }) {
             }));
         }            
         const globalTimeScale = d3.scaleLinear().range([5,125]).domain([0, Math.max(...chunkSizes)]);            
-
+        const seen = [];
 
         for (const [name, trajectory] of Object.entries(trajectories)) {
             
@@ -94,11 +94,11 @@ function GraphVis({trajectories, runs }) {
 
             trajectory.name = name;
 
+            const l = linkGroup.append("g").attr('id', `l_${name}`);
+            const g = importantGroup.append('g').attr('id', `g_${name}`);              
+            const c = chunkGroup.append('g').attr('id', `c_${name}`);
+            
             if(seperateTrajectories) {
-                const l = linkGroup.append("g").attr('id', `l_${name}`);
-                const g = importantGroup.append('g').attr('id', `g_${name}`);              
-                const c = chunkGroup.append('g').attr('id', `c_${name}`);            
-
                 let {linkNodes, stateNodes, chunkNodes} = renderGraph(links, chunks, sSequence, l, g, c, name, colors, globalTimeScale, trajectory);
 
                 if (Object.keys(runs[name].filters).length > 0) {
@@ -137,24 +137,44 @@ function GraphVis({trajectories, runs }) {
                         .attr("cx", function(d) { return d.x; })
                         .attr("cy", function(d) { return d.y; });       
                 }
+                
+            } else {
+                let renderNow = [];
+                for(const s of sSequence) {
+                    if(!seen.includes(s.number)) {                        
+                        renderNow.push(s);
+                        seen.push(s.number);
+                    }
+                }
+                
+                simulatedLinks = [...simulatedLinks, ...links];          
+                renderGraph(simulatedLinks, chunks, renderNow, l, g, c, name, colors, globalTimeScale, trajectory)                
+                simulated = [...simulated, ...chunks, ...renderNow];
             }
-
-        // chunk strength - a measure of its size
-        // state strength - measure of its occurences
-
-        // scale could be 5 times * threshold cluster
-
-
-            //simulated = [...simulated, ...chunks, ...sSequence];
-            //simulatedLinks = [...simulatedLinks, ...links];
-        }
-        
+        }                
 
         // the trick to zooming like this is to move the container without moving the SVG's viewport
         
         const zoom = d3.zoom().on('zoom', function(e) {
             container.attr("transform", e.transform);  
         });
+
+        if(!seperateTrajectories) {                       
+            globalLinkNodes = linkGroup.selectAll('line');
+            globalStateNodes = importantGroup.selectAll('circle');
+            globalChunkNodes = chunkGroup.selectAll('circle');            
+            d3.forceSimulation(simulated)
+                .force("link", d3.forceLink(simulatedLinks).id(function(d) { return d.number; }))
+                .force("charge", d3.forceManyBody().distanceMax(300).theta(0.75))
+                .force("collide", d3.forceCollide().strength(10).radius((d) => {
+                    if(d.size !== undefined && d.size !== null) {
+                        return globalTimeScale(d.size);
+                    } else {
+                        return 5;
+                    }                    
+                }))
+                .on('tick', ticked);
+        }
 
         // set default view for SVG
         const bbox = container.node().getBBox();
@@ -166,9 +186,6 @@ function GraphVis({trajectories, runs }) {
         
         svg.attr("viewBox", defaultView).attr("preserveAspectRatio", "xMidYMid meet").call(zoom);
 
-        globalLinkNodes = linkGroup.selectAll('line');
-        globalStateNodes = importantGroup.selectAll('circle');
-        globalChunkNodes = chunkGroup.selectAll('circle');            
     }        
     , [runs, width, height, trajectories]);
 

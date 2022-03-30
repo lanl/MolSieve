@@ -299,10 +299,12 @@ def load_sequence(run: str, properties: str):
     # id is technically not a property, so we have to include it here
     # everything else is dynamically loaded in
     node_attributes = [('id', 'first')]
+    uniqueStateAttributes = ["id"]
     if properties != "":
         properties = properties.split(',')
         for prop in properties:
             node_attributes.append((prop, 'first'))
+            uniqueStateAttributes.append(str(prop))
 
     driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687",
                                         auth=("neo4j", "secret"))
@@ -312,12 +314,23 @@ def load_sequence(run: str, properties: str):
 
     q = qb.generate_trajectory(run,
                                "ASC", ('relation', 'timestep'),
-                               node_attributes=node_attributes,
-                               relation_attributes=['timestep'])
+                               node_attributes=[('id', 'first')])
 
+    uniqueStateQuery = qb.generate_get_all_nodes("State",
+                              node_attributes = uniqueStateAttributes,
+                              relation=run)
+
+    print(uniqueStateQuery.text)
+    
     run_md = get_metadata(run)
+
+    j = {}
             
     with driver.session() as session:
+
+        result = session.run(q.text)
+        j['sequence'] = result.value()                
+
         if "occurrences" not in run_md.keys():
             oq = qb.generate_get_occurrences(run)
             session.run(oq.text)
@@ -326,16 +339,18 @@ def load_sequence(run: str, properties: str):
             oq2 = qb.generate_calculate_many_to_one_count("PART_OF", saveMetadata=True, run=run)
             session.run(oq2.text)
 
-        result = session.run(q.text)
-        j = result.data()
+        
+        res = session.run(uniqueStateQuery.text)
+        j['uniqueStates'] = res.data()        
         
         saveTestJson(run, 'sequence', j)
 
-
-    # here save the trajectory into your own format into the server's memory
-
     new_traj = Trajectory()
-    new_traj.sequence = pd.DataFrame(j)
+    new_traj.sequence = j['sequence']
+    new_traj.uniqueStates = j['uniqueStates']
+
+    print(new_traj)
+    
     trajectories[run] = new_traj
     
     return j
@@ -421,9 +436,11 @@ def pcca(run: str, clusters: int, optimal: int, m_min: int, m_max: int):
         schema=[("State", run, "State", "ONE-TO-ONE"),
                 ("Atom", "PART_OF", "State", "MANY-TO-ONE")])
 
-    # best way to add up runs?    
-    m, idx_to_state_number = calculator.calculate_transition_matrix(
-        driver, qb, run=run, discrete=True, trajectory=trajectories[run].sequence, getOccurrences=False)    
+    sequence = trajectories[run].sequence
+    uniqueStates = trajectories[run].uniqueStates
+
+    m, idx_to_id = calculator.calculate_transition_matrix(
+        driver, qb, run=run, discrete=True, trajectory=sequence, uniqueStates=uniqueStates, getOccurrences=False)    
     
     gpcca = gp.GPCCA(np.array(m), z='LM', method='brandts')
     
@@ -434,7 +451,6 @@ def pcca(run: str, clusters: int, optimal: int, m_min: int, m_max: int):
         try:
             gpcca.optimize({'m_min': m_min, 'm_max': m_max})
             j.update({'optimal_value': gpcca.n_m})
-
             feasible_clusters = []
             for cluster_idx, val in enumerate(gpcca.crispness_values):
                 if val != 0:
@@ -445,13 +461,13 @@ def pcca(run: str, clusters: int, optimal: int, m_min: int, m_max: int):
                     for s in gpcca.macrostate_sets:
                         newSet = []
                         for i in s:
-                            newSet.append(idx_to_state_number[i])
+                            newSet.append(idx_to_id[i])
                         clusterings.append(newSet)
                     sets.update({cluster_idx + m_min: clusterings})
-                    state_to_membership = {}
+                    id_to_membership = {}
                     for idx, m in enumerate(gpcca.memberships.tolist()):
-                        state_to_membership.update({idx_to_state_number[idx]: m})                        
-                    fuzzy_memberships.update({cluster_idx + m_min: state_to_membership})
+                        id_to_membership.update({idx_to_id[idx]: m})                        
+                    fuzzy_memberships.update({cluster_idx + m_min: id_to_membership})
             j.update({'feasible_clusters': feasible_clusters})
         except ValueError as exception:
             raise exception
@@ -462,15 +478,15 @@ def pcca(run: str, clusters: int, optimal: int, m_min: int, m_max: int):
             for s in gpcca.macrostate_sets:
                 newSet = []
                 for i in s:
-                    newSet.append(idx_to_state_number[i])
+                    newSet.append(idx_to_id[i])
                 clusterings.append(newSet)
             sets.update({clusters: clusterings})
-            state_to_membership = {}
+            id_to_membership = {}
             for idx, m in enumerate(gpcca.memberships.tolist()):
-                state_to_membership.update({idx_to_state_number[idx]: m})                        
-            fuzzy_memberships.update({clusters: state_to_membership})
+                id_to_membership.update({idx_to_id[idx]: m})                        
+            fuzzy_memberships.update({clusters: id_to_membership})
         except ValueError as exception:
-            raise exception
+            raise exception            
 
     j.update({'sets': sets})
     j.update({'fuzzy_memberships': fuzzy_memberships})        
@@ -478,7 +494,7 @@ def pcca(run: str, clusters: int, optimal: int, m_min: int, m_max: int):
     # j.update({'dominant_eigenvalues': gpcca.dominant_eigenvalues.tolist()})
     # j.update({'minChi': gpcca.minChi(m_min, m_max)})
 
-    print(j)
+    #print(j)
     
     saveTestJson(run, 'optimal_pcca', j)       
     return j

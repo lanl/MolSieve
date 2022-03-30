@@ -1,8 +1,8 @@
 class Trajectory {
     sequence;
-
-    unique_states;
-
+    uniqueStates;
+    properties;
+    
     optimal_cluster_value;
 
     feasible_clusters;
@@ -14,8 +14,6 @@ class Trajectory {
     current_clustering;
 
     colors = [];
-
-    properties;
 
     raw;
 
@@ -79,11 +77,11 @@ class Trajectory {
         const chunks = [];
         const seen = [];
         const uniqueStates = [];        
-        let lastChunk = { timestep: null, last: null, color: null, number: null };                
-            
+        let lastChunk = { timestep: null, last: null, color: null, number: null };
+        
         for (const s of this.sequence) {
             // if at least one fuzzy membership is above a threshold, add to lastChunk; i.e its not interesting
-            if (Math.max(...this.fuzzy_memberships[this.current_clustering][s.number]) > chunkingThreshold) {
+            if (Math.max(...this.fuzzy_memberships[this.current_clustering][s.number]) >= chunkingThreshold) {
                 if (lastChunk.timestep === null) {
                     lastChunk.timestep = s.timestep;
                     lastChunk.number = s.number + "_c";
@@ -110,19 +108,17 @@ class Trajectory {
             }
         }
 
-        if (lastChunk.timestep !== null && lastChunk.last !== null) {
+        if (lastChunk.timestep !== null) {
             chunks.push(lastChunk);
-        }
+        }                
         
         let l_count = simplifiedSequence.length;
         let r_count = chunks.length;
         let l = 0;
         let r = 0;
-        let interleaved = [];
-
-        //check if either list is empty
-
+        let interleaved = [];        
         let lastObj = null;
+        
         if(simplifiedSequence.length !== 0 && chunks.length !== 0) {
             lastObj = (simplifiedSequence[0].timestep < chunks[0].timestep) ? simplifiedSequence[0] : chunks[0];
             
@@ -167,7 +163,8 @@ class Trajectory {
 
         // TODO: need to have some way of the trajectory chart accepting uniqueStates
         // need to decouple timestep attribute from state and work purely on relations
-        // uniqueStates should be its own calculation        
+        // uniqueStates should be its own calculation
+        
         this.simplifiedSequence = { uniqueStates: uniqueStates, sequence: simplifiedSequence, chunks: chunks, interleaved: interleaved };        
     }
     

@@ -150,12 +150,13 @@ class App extends React.Component {
                 this.load_PCCA(run, clusters, optimal, m_min, m_max, newTraj)
                     .then((newTraj) => {
                         this.load_metadata(run, newTraj).then((newTraj) => {
+                            console.log(newTraj);
                             // some final processing on trajectory
-                            newTraj.properties.push('timestep');
-                            newTraj.calculate_unique_states();
+                            //newTraj.properties.push('timestep');
+                            //newTraj.calculate_unique_states();
                             newTraj.set_cluster_info(); // for each state
                             // could be an option
-                            newTraj.chunkingThreshold = chunkingThreshold;
+                            //newTraj.chunkingThreshold = chunkingThreshold;
                             newTraj.simplifySet(chunkingThreshold);
                             const removed = newTraj.set_colors(this.state.colors);
 
