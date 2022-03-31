@@ -31,12 +31,16 @@ import Divider from '@mui/material/Divider';
 
 import Drawer from "@mui/material/Drawer";
 import Box from "@mui/material/Box";
+
+import SingleStateModal from "../modals/SingleStateModal";
 import LoadingModal from "../modals/LoadingModal";
 import GraphVis from "../vis/GraphVis";
 
 const XY_PLOT_MODAL = "xy-plot-modal";
 const ADD_FILTER_MODAL = "add-filter-modal";
 const METADATA_MODAL = "metadata-modal";
+const SINGLE_STATE_MODAL = 'single_state';
+
 
 const RANGE_SLIDER = "range";
 const SLIDER = "slider";
@@ -51,7 +55,8 @@ class VisGrid extends React.Component {
             runs: {},
             drawerOpen: false,
             isLoading: false,
-            selectedState: null
+            stateHovered: null,
+            stateClicked: null
         };
     }
 
@@ -69,8 +74,14 @@ class VisGrid extends React.Component {
         this.setState({ isLoading: false });
     }
 
-    stateSelected = (id) => {
-        this.setState({selectedState: id});
+    setStateHovered = (id) => {
+        this.setState({stateHovered: id});
+    }
+
+    setStateClicked = (state) => {
+        console.log(state);
+        this.setState({stateClicked: state}, () => {
+            this.toggleModal(SINGLE_STATE_MODAL)});
     }
     
     componentDidUpdate() {
@@ -524,7 +535,8 @@ class VisGrid extends React.Component {
                     globalUniqueStates={this.props.globalUniqueStates}
                     runs={this.state.runs}
                     loadingCallback={this.chartFinishedLoading}
-                    stateSelected={this.stateSelected}
+                    setStateHovered={this.setStateHovered}
+                    setStateClicked={this.setStateClicked}
                 ></TrajectoryChart>                
             )}
 
@@ -534,7 +546,8 @@ class VisGrid extends React.Component {
                                  trajectories={this.props.trajectories}
                                  runs={this.state.runs}
                                  globalUniqueStates={this.props.globalUniqueStates}
-                                 stateSelected={this.state.selectedState}
+                                 setStateClicked={this.setStateClicked}
+                                 stateHovered={this.state.stateHovered}                                 
                              />
                          </Box>
                 }      
@@ -582,6 +595,7 @@ class VisGrid extends React.Component {
                     run={this.state.currentRun}
                 />
             )}
+                
             {this.state.currentModal === XY_PLOT_MODAL && (
                 <XYPlotModal
                     title={`Scatter plot for ${this.state.currentRun}`}
@@ -592,6 +606,16 @@ class VisGrid extends React.Component {
                     }
                     onRequestClose={() => this.toggleModal(null)}
                 />
+            )}
+
+            {this.state.currentModal === SINGLE_STATE_MODAL && (
+                    <SingleStateModal
+                        open={this.state.currentModal === SINGLE_STATE_MODAL}
+                        state={this.props.globalUniqueStates[this.state.stateClicked.id]}
+                        closeFunc={() => {
+                            this.toggleModal(SINGLE_STATE_MODAL);                                                        
+                        }}
+                    />
             )}
         </Box>
         );

@@ -16,7 +16,7 @@ let vy = null;
 let vw = null;
 let vh = null;
 
-function GraphVis({trajectories, runs, globalUniqueStates, stateSelected }) {
+function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStateClicked }) {
 
     const divRef = useRef();
     const [width, setWidth] = useState();
@@ -106,8 +106,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateSelected }) {
             const c = chunkGroup.append('g').attr('id', `c_${name}`);
             
             if(seperateTrajectories) {
-                let {linkNodes, stateNodes, chunkNodes} = renderGraph(links, chunks, sSequence, l, g, c, name, colors, globalTimeScale, trajectory, globalUniqueStates);                                
-                
+                let {linkNodes, stateNodes, chunkNodes} = renderGraph(links, chunks, sSequence, l, g, c, name, colors, globalTimeScale, trajectory, globalUniqueStates, setStateClicked);                                                
                 d3.forceSimulation([...chunks, ...sSequence])
                     .force("link", d3.forceLink(links).id(function(d) { return d.id; }))
 //                    .force("charge", d3.forceManyBody().distanceMax(300).theta(0.75))
@@ -219,12 +218,12 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateSelected }) {
     }, [runs]);
 
     useEffect(() => {
-        if(stateSelected !== null && stateSelected !== undefined) {
-            const select = d3.select(ref.current).select(`#node_${stateSelected}`);
-            const transform = getTransform(select, 2.0);            
+        if(stateHovered !== null && stateHovered !== undefined) {
+            const select = d3.select(ref.current).select(`#node_${stateHovered}`);
+            const transform = getTransform(select, d3.zoomTransform(select.node()).k);            
             d3.select(ref.current).select('#container').attr("transform", `translate(${transform.translate})scale(${transform.scale})`);
         }                
-    }, [stateSelected]);
+    }, [stateHovered]);
 
     return (<div ref={divRef}>
                 {width && height && Object.keys(trajectories).length === Object.keys(runs).length
@@ -232,7 +231,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateSelected }) {
             </div>);    
 }
 
-function renderGraph(links, chunks, sSequence, l, g, c, name, colors, timeScale, trajectory, globalUniqueStates) {    
+function renderGraph(links, chunks, sSequence, l, g, c, name, colors, timeScale, trajectory, globalUniqueStates, setStateClicked) {    
 
     const linkNodes = l.selectAll("line").data(links).enter().append("line").attr("stroke-width", 1).attr("stroke", "black");    
     const stateNodes = g.selectAll('circle')
@@ -243,7 +242,12 @@ function renderGraph(links, chunks, sSequence, l, g, c, name, colors, timeScale,
           .attr('id', d => `node_${d.id}`)
           .attr('fill', function(d) {              
               return colors[trajectory.idToCluster[d.id]];
-        }).on('mouseover', function(_, d) {
+          }).on('click', function(_,d) {
+              if (this.getAttribute('opacity') > 0) {                                                        
+                  setStateClicked(d);
+              }                        
+          })    
+          .on('mouseover', function(_, d) {
             if(trajectory !== null && trajectory !== undefined) {
                 onStateMouseOver(this, globalUniqueStates[d.id], trajectory, name);
             }

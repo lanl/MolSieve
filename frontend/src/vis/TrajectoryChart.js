@@ -8,7 +8,6 @@ import MenuItem from '@mui/material/MenuItem';
 import ListItemText from '@mui/material/ListItemText';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import Checkbox from '@mui/material/Checkbox';
-import SingleStateModal from '../modals/SingleStateModal';
 import MultiplePathSelectionModal from '../modals/MultiplePathSelectionModal';
 import SelectionModal from '../modals/SelectionModal';
 import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
@@ -16,7 +15,6 @@ import { onStateMouseOver, onChunkMouseOver } from '../api/myutils';
 
 const PATH_SELECTION = 'path_selection';
 const MULTIPLE_PATH_SELECTION = 'multiple_path_selection';
-const SINGLE_STATE = 'single_state';
 
 const margin = {
     top: 20, bottom: 20, left: 40, right: 25,
@@ -48,7 +46,7 @@ function useKeyDown(key, action) {
     }, []);
 }
 
-function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallback, stateSelected }) {
+function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallback, setStateHovered, setStateClicked }) {
     
     const [currentModal, setCurrentModal] = useState();
 
@@ -82,7 +80,7 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
     const [extents, setExtents] = useState([]);
     const [actionCompleted, setActionCompleted] = useState('');
     const [modalTitle, setModalTitle] = useState('');
-    const [currentState, setCurrentState] = useState(null);
+    //const [currentState, setCurrentState] = useState(null);
 
     const [stateHighlight, setStateHighlight] = useState(false);
 
@@ -154,7 +152,7 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
         }
 
         setModalTitle('Multiple Path Selection');
-        setActionCompleted(MULTIPLE_PATH_SELECTION);
+        //setActionCompleted(MULTIPLE_PATH_SELECTION);
     };
 
     useKeyDown('Shift', multipleSelectionBrush);
@@ -168,10 +166,7 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
             break;
         case PATH_SELECTION:            
             toggleModal(actionCompleted);
-            break;
-        case SINGLE_STATE:            
-            toggleModal(actionCompleted);
-            break;
+            break;                
         default:
                 break;
             }
@@ -244,9 +239,8 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                         return colors[currentClustering[d.id]];
                     })                    
                     .on('click', function (_, d) {
-                        if (this.getAttribute('opacity') > 0) {
-                            setCurrentState(d);
-                            setActionCompleted(SINGLE_STATE);
+                        if (this.getAttribute('opacity') > 0) {                                                        
+                            setStateClicked(d);
                         }                        
                     })
                     .on('mouseover', function(_, d) {                        
@@ -260,7 +254,7 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                                 }).attr('opacity', 0.01);
                             }
 
-                            stateSelected(d.id);
+                            setStateHovered(d.id);
                         }
                     })
                     .on('mouseout', function (_, d) {                        
@@ -476,18 +470,7 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                     </ListItemIcon>
                     <ListItemText>Toggle state highlighting</ListItemText>
                 </MenuItem>
-            </Menu>
-            {currentModal === SINGLE_STATE && (
-                <SingleStateModal
-                    open={currentModal === SINGLE_STATE}
-                    state={currentState}
-                    closeFunc={() => {
-                        setCurrentState(null);
-                        setActionCompleted('');
-                        toggleModal(SINGLE_STATE);
-                    }}
-                />
-            )}
+            </Menu>            
             {currentModal === PATH_SELECTION && (
                 <SelectionModal
                     title={modalTitle}
