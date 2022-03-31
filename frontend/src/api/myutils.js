@@ -136,8 +136,7 @@ export function intersection() {
 /** Gets the minimum value of the given property within the sequence.
  * @param {string} property - the property you're interested in
  * @param {Array<Object>} sequence - the array of states to search through
- * @return {number} min value of property
- * TODO: perhaps refactor to simply unique states would be faster
+ * @return {number} min value of property 
  */
 export function getMinProperty(property, sequence) {
     var min = Number.MAX_VALUE;
@@ -152,8 +151,7 @@ export function getMinProperty(property, sequence) {
 /** Gets the maximum value of the given property within the sequence.
  * @param {string} property - the property you're interested in
  * @param {Array<Object>} sequence - the array of states to search through
- * @return {number} max value of property
- * TODO: perhaps refactor to simply unique states would be faster
+ * @return {number} max value of property 
  */
 export function getMaxProperty(property, sequence) {
     var max = Number.MIN_VALUE;

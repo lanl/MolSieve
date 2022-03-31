@@ -53,9 +53,9 @@ function GraphVis({trajectories, runs, globalUniqueStates }) {
             return;
         }
         // clear so we don't draw over-top and cause insane lag
+        
         if (!svg.empty()) {
             svg.selectAll('*').remove();
-            console.log("deleted");
         }
 
         // used for zooming https://gist.github.com/catherinekerr/b3227f16cebc8dd8beee461a945fb323
@@ -88,15 +88,10 @@ function GraphVis({trajectories, runs, globalUniqueStates }) {
         for (const [name, trajectory] of Object.entries(trajectories)) {
             
             const chunks = trajectory.simplifiedSequence.chunks;
-            const sSequence = trajectory.simplifiedSequence.uniqueStates.map((state) => {
-                return {'id': state};
-            });
-
-            console.log(sSequence);
-            
+            const sSequence = trajectory.simplifiedSequence.uniqueStates;            
             const links = trajectory.simplifiedSequence.interleaved;
-            const colors = trajectory.colors;
-
+            const colors = trajectory.colors;            
+            
             trajectory.name = name;
 
             const l = linkGroup.append("g").attr('id', `l_${name}`);
@@ -110,11 +105,11 @@ function GraphVis({trajectories, runs, globalUniqueStates }) {
                     for (const k of Object.keys(runs[name].filters)) {
                         const filter = runs[name].filters[k];
                         if (filter.enabled) {
-                            filter.func(trajectory, svg, filter.options);
+                            filter.func(trajectory, svg, globalUniqueStates, filter.options);
                         }
                     }
                 }
-
+                
                 d3.forceSimulation([...chunks, ...sSequence])
                     .force("link", d3.forceLink(links).id(function(d) { return d.id; }))
                     .force("charge", d3.forceManyBody().distanceMax(300).theta(0.75))
@@ -124,8 +119,7 @@ function GraphVis({trajectories, runs, globalUniqueStates }) {
                         } else {
                             return 5;
                         }                    
-                    }))
-                    .on('tick', ticked_single);
+                    })).on('tick', ticked_single);
 
                 function ticked_single() {
                     linkNodes
@@ -210,7 +204,7 @@ function renderGraph(links, chunks, sSequence, l, g, c, name, colors, timeScale,
           .append('circle')
           .attr('r', 5)
           .attr('fill', function(d) {              
-              return colors[trajectory.currentClusteringArray[d.id]];
+              return colors[trajectory.idToCluster[d.id]];
         }).on('mouseover', function(_, d) {
             if(trajectory !== null && trajectory !== undefined) {
                 onStateMouseOver(this, globalUniqueStates[d.id], trajectory, name);
@@ -227,7 +221,7 @@ function renderGraph(links, chunks, sSequence, l, g, c, name, colors, timeScale,
             return timeScale(d.size);
         })
         .attr('fill', function(d) {
-            return colors[trajectory.currentClusteringArray[-d.id]];
+            return colors[trajectory.idToCluster[-d.id]];
         }).on('mouseover', function(_, d) {
             this.setAttribute('stroke', 'black');
             onChunkMouseOver(this, d, name);

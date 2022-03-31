@@ -49,6 +49,7 @@ function useKeyDown(key, action) {
 }
 
 function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallback }) {
+    
     const [currentModal, setCurrentModal] = useState();
 
     const toggleModal = (key) => {
@@ -223,7 +224,7 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                 const sSequence = trajectory.simplifiedSequence.sequence;
                 const chunks = trajectory.simplifiedSequence.chunks;                
                 const colors = trajectory.colors;
-                const currentClustering = trajectory.currentClusteringArray;
+                const currentClustering = trajectory.idToCluster;
 
                 trajectory.name = name;
                 
@@ -300,7 +301,7 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                     for (const k of Object.keys(runs[name].filters)) {
                         const filter = runs[name].filters[k];
                         if (filter.enabled) {
-                            filter.func(trajectory, svg, filter.options);
+                            filter.func(trajectory, svg, globalUniqueStates, filter.options);
                         }
                     }
                 }

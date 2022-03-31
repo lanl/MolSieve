@@ -173,9 +173,12 @@ class VisGrid extends React.Component {
     addFilter = (state) => {
         const runs = this.state.runs;
         const run = runs[state.run];
-        const filters = run["filters"];        
-        const sequence = this.props.trajectories[state.run].sequence;
-
+        const filters = run["filters"];
+        
+        // get us the ids of all the states in our simplified sequence
+        const stateIds = this.props.trajectories[state.run].simplifiedSequence.uniqueStates;        
+        const sequence = stateIds.map((state) => this.props.globalUniqueStates[state.id]);        
+        
         let func = null;
         let filterLabel = null;
         let filterType = null;
@@ -517,9 +520,7 @@ class VisGrid extends React.Component {
                                  globalUniqueStates={this.props.globalUniqueStates}
                              />
                          </Box>
-                }
-      
-
+                }      
                           
             {this.state.currentModal === METADATA_MODAL && (
                 <Dialog

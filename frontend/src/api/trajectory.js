@@ -1,8 +1,11 @@
 class Trajectory {
-    sequence;    
+    // sequence is an array of ids that indexes into the globalUniqueState array
+    sequence;
+    
     properties;
-    uniqueStates;
-    currentClusteringArray = [];
+
+    // dict of id to cluster id
+    idToCluster = {};
 
     optimal_cluster_value;
 
@@ -22,6 +25,7 @@ class Trajectory {
 
     LAMMPSBootstrapScript;
 
+    // contains sequence, unique states, chunks, and the links between each object
     simplifiedSequence;
 
     chunkingThreshold;
@@ -31,28 +35,22 @@ class Trajectory {
      */
     set_cluster_info() {
         const currentClusteringArray = {};
-        for (let i = 0; i < this.uniqueStates.length; i++) {
+        // alternatively, just stick in the global unique state array - may take a few more comparisons
+        // but will still give the correct answer
+        const uniqueStates = [...new Set(this.sequence)];
+        
+        for (let i = 0; i < uniqueStates.length; i++) {
             for (
                 let j = 0;
                 j < this.clusterings[this.current_clustering].length;
                 j++
             ) {
-                if (this.clusterings[this.current_clustering][j].includes(this.uniqueStates[i])) {
-                    currentClusteringArray[this.uniqueStates[i]] = j;
+                if (this.clusterings[this.current_clustering][j].includes(uniqueStates[i])) {
+                    currentClusteringArray[uniqueStates[i]] = j;
                 }
-            }
-            
+            }            
         }
-        this.currentClusteringArray = currentClusteringArray;
-    }
-
-    /** Calculates a set of all the unique states in the sequence */
-    calculate_unique_states() {
-        const unique_states = new Set();
-        for (let i = 0; i < this.sequence.length; i++) {
-            unique_states.add(this.sequence[i].number);
-        }
-        this.unique_states = unique_states;
+        this.idToCluster = currentClusteringArray;
     }
 
     /** Sets the metadata for the run in the this object
@@ -117,8 +115,13 @@ class Trajectory {
         const sequence = simplifiedSequence.map((state) => {
             return state.id;
         });
-        
-        this.simplifiedSequence = { sequence: simplifiedSequence, uniqueStates: [...new Set(sequence)], chunks: chunks, interleaved: interleaved };        
+
+        // needs to be objects for force graph...
+        const uniqueStates = [...new Set(sequence)].map((state) => {
+                return {'id': state};
+        });
+        // sequence has id and timestep, unique states just has id
+        this.simplifiedSequence = { sequence: simplifiedSequence, uniqueStates: uniqueStates, chunks: chunks, interleaved: interleaved };        
     }
     
     set_colors(colorArray) {
