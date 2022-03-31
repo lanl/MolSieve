@@ -50,7 +50,8 @@ class VisGrid extends React.Component {
             currentRun: null,
             runs: {},
             drawerOpen: false,
-            isLoading: false
+            isLoading: false,
+            selectedState: null
         };
     }
 
@@ -66,6 +67,10 @@ class VisGrid extends React.Component {
 
     chartFinishedLoading = () => {        
         this.setState({ isLoading: false });
+    }
+
+    stateSelected = (id) => {
+        this.setState({selectedState: id});
     }
     
     componentDidUpdate() {
@@ -519,6 +524,7 @@ class VisGrid extends React.Component {
                     globalUniqueStates={this.props.globalUniqueStates}
                     runs={this.state.runs}
                     loadingCallback={this.chartFinishedLoading}
+                    stateSelected={this.stateSelected}
                 ></TrajectoryChart>                
             )}
 
@@ -528,6 +534,7 @@ class VisGrid extends React.Component {
                                  trajectories={this.props.trajectories}
                                  runs={this.state.runs}
                                  globalUniqueStates={this.props.globalUniqueStates}
+                                 stateSelected={this.state.selectedState}
                              />
                          </Box>
                 }      

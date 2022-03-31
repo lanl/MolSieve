@@ -4,12 +4,19 @@ import {
 import * as d3 from 'd3';
 import { onStateMouseOver, onChunkMouseOver } from '../api/myutils';
 import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
+//import { zoomIdentity } from 'd3';
 
 let globalLinkNodes = null;
 let globalChunkNodes = null;
 let globalStateNodes = null;
+let container = null;
 
-function GraphVis({trajectories, runs, globalUniqueStates }) {
+let vx = null;
+let vy = null;
+let vw = null;
+let vh = null;
+
+function GraphVis({trajectories, runs, globalUniqueStates, stateSelected }) {
 
     const divRef = useRef();
     const [width, setWidth] = useState();
@@ -52,15 +59,14 @@ function GraphVis({trajectories, runs, globalUniqueStates }) {
         if (height === undefined || width === undefined) {
             return;
         }
-        // clear so we don't draw over-top and cause insane lag
-        console.log("rendering...");
+        // clear so we don't draw over-top and cause insane lag        
         
         if (!svg.empty()) {
             svg.selectAll('*').remove();
         }
 
         // used for zooming https://gist.github.com/catherinekerr/b3227f16cebc8dd8beee461a945fb323
-        const container = svg.append('g')
+        container = svg.append('g')
               .attr('id', 'container')
               .attr('transform', "translate(0,0)scale(1,1)");
         
@@ -100,20 +106,11 @@ function GraphVis({trajectories, runs, globalUniqueStates }) {
             const c = chunkGroup.append('g').attr('id', `c_${name}`);
             
             if(seperateTrajectories) {
-                let {linkNodes, stateNodes, chunkNodes} = renderGraph(links, chunks, sSequence, l, g, c, name, colors, globalTimeScale, trajectory, globalUniqueStates);
-
-                /*if (Object.keys(runs[name].filters).length > 0) {
-                    for (const k of Object.keys(runs[name].filters)) {
-                        const filter = runs[name].filters[k];
-                        if (filter.enabled) {
-                            filter.func(trajectory, svg, globalUniqueStates, filter.options);
-                        }
-                    }
-                }*/
+                let {linkNodes, stateNodes, chunkNodes} = renderGraph(links, chunks, sSequence, l, g, c, name, colors, globalTimeScale, trajectory, globalUniqueStates);                                
                 
                 d3.forceSimulation([...chunks, ...sSequence])
                     .force("link", d3.forceLink(links).id(function(d) { return d.id; }))
-                    .force("charge", d3.forceManyBody().distanceMax(300).theta(0.75))
+//                    .force("charge", d3.forceManyBody().distanceMax(300).theta(0.75))
                     .force("collide", d3.forceCollide().strength(10).radius((d) => {
                         if(d.size !== undefined && d.size !== null) {
                             return globalTimeScale(d.size);
@@ -165,7 +162,7 @@ function GraphVis({trajectories, runs, globalUniqueStates }) {
             globalChunkNodes = chunkGroup.selectAll('circle');            
 
             d3.forceSimulation(simulated)
-                .force("link", d3.forceLink(simulatedLinks).id(function(d) { return d.number; }))
+                .force("link", d3.forceLink(simulatedLinks).id(function(d) { return d.id; }))
                 .force("charge", d3.forceManyBody().distanceMax(300).theta(0.75))
                 .force("collide", d3.forceCollide().strength(10).radius((d) => {
                     if(d.size !== undefined && d.size !== null) {
@@ -179,10 +176,10 @@ function GraphVis({trajectories, runs, globalUniqueStates }) {
 
         // set default view for SVG
         const bbox = container.node().getBBox();
-        const vx = bbox.x;
-        const vy = bbox.y;	
-        const vw = bbox.width;
-        const vh = bbox.height;
+        vx = bbox.x;
+        vy = bbox.y;	
+        vw = bbox.width;
+        vh = bbox.height;
         const defaultView = `${vx} ${vy} ${vw} ${vh}`;
         
         svg.attr("viewBox", defaultView).attr("preserveAspectRatio", "xMidYMid meet").call(zoom);
@@ -221,6 +218,14 @@ function GraphVis({trajectories, runs, globalUniqueStates }) {
         }
     }, [runs]);
 
+    useEffect(() => {
+        if(stateSelected !== null && stateSelected !== undefined) {
+            const select = d3.select(ref.current).select(`#node_${stateSelected}`);
+            const transform = getTransform(select, 2.0);            
+            d3.select(ref.current).select('#container').attr("transform", `translate(${transform.translate})scale(${transform.scale})`);
+        }                
+    }, [stateSelected]);
+
     return (<div ref={divRef}>
                 {width && height && Object.keys(trajectories).length === Object.keys(runs).length
                  && <svg id="svg_nodes" ref={ref} viewBox={[0,0,width,height]}/>}                
@@ -235,16 +240,25 @@ function renderGraph(links, chunks, sSequence, l, g, c, name, colors, timeScale,
           .enter()
           .append('circle')
           .attr('r', 5)
+          .attr('id', d => `node_${d.id}`)
           .attr('fill', function(d) {              
               return colors[trajectory.idToCluster[d.id]];
         }).on('mouseover', function(_, d) {
             if(trajectory !== null && trajectory !== undefined) {
                 onStateMouseOver(this, globalUniqueStates[d.id], trajectory, name);
             }
-        }).on('mouseout', function() {
-            this.setAttribute('stroke', 'none');
-        });
                         
+            d3.select('#sequence_important').selectAll('g').selectAll('*').filter(function(dp) {                                    
+                return (dp.id == d.id) && this.getAttribute('opacity') > 0;
+            }).attr('stroke', 'black');
+       
+        }).on('mouseout', function(_,d) {
+            this.setAttribute('stroke', 'none');
+            d3.select(`#sequence_important`).selectAll('g').selectAll('*').filter(function(dp) {
+                return (dp.id == d.id) && this.getAttribute('opacity') > 0;
+            }).attr('stroke', 'none');
+        });
+                         
     const chunkNodes = c.selectAll('circle')
         .data(chunks)
         .enter()
@@ -265,15 +279,15 @@ function renderGraph(links, chunks, sSequence, l, g, c, name, colors, timeScale,
 }
 
 // might still be useful for centering on trajectory
-/*function getTransform(node, xScale) {
-    bbox = node.node().getBBox();
-    var bx = bbox.x;
-    var by = bbox.y;
-    var bw = bbox.width;
-    var bh = bbox.height;
+function getTransform(node, xScale) {
+    const bbox = node.node().getBBox();
+    const bx = bbox.x;
+    const by = bbox.y;
+    const bw = bbox.width;
+    const bh = bbox.height;
     var tx = -bx*xScale + vx + vw/2 - bw*xScale/2;
     var ty = -by*xScale + vy + vh/2 - bh*xScale/2;
     return {translate: [tx, ty], scale: xScale}
-}*/
+}
 
 export default GraphVis;

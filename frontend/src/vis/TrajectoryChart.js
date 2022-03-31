@@ -48,7 +48,7 @@ function useKeyDown(key, action) {
     }, []);
 }
 
-function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallback }) {
+function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallback, stateSelected }) {
     
     const [currentModal, setCurrentModal] = useState();
 
@@ -218,7 +218,7 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
             // TODO add modal on state click, to show additional information if interested
             
             const chunkGroup = svg.append('g').attr('id', 'chunk');            
-            const importantGroup = svg.append('g').attr('id', 'important');                        
+            const importantGroup = svg.append('g').attr('id', 'sequence_important');                        
             
             for (const [name, trajectory] of Object.entries(trajectories)) {                
                 const sSequence = trajectory.simplifiedSequence.sequence;
@@ -255,17 +255,19 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                             onStateMouseOver(this, globalUniqueStates[d.id], trajectory, name);
                             // TODO make this bind as an effect instead of inside the function - this could still be optimized
                             if (stateHighlight) {                            
-                                svg.select(`#g_${name}`).selectAll('*').filter(function(dp) {                                    
+                                svg.select(`#sequence_important`).selectAll('g').selectAll('*').filter(function(dp) {                                    
                                     return (dp.id !== d.id) && this.getAttribute('opacity') > 0;
                                 }).attr('opacity', 0.01);
                             }
+
+                            stateSelected(d.id);
                         }
                     })
                     .on('mouseout', function (_, d) {                        
                         if (this.getAttribute('opacity') > 0) {
                             this.setAttribute('stroke', 'none');
                             if (stateHighlight) {
-                                svg.select(`#g_${name}`).selectAll('*').filter(function(dp) {
+                                svg.select(`#sequence_important`).selectAll('g').selectAll('*').filter(function(dp) {
                                     return (dp.id != d.id) && this.getAttribute('opacity') > 0;
                                 }).attr('opacity', 1.0);
                             }
@@ -295,16 +297,7 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                         if(this.getAttribute('opacity') > 0) {
                             this.setAttribute('opacity', 1.0);                            
                         }
-                    });
-               
-                if (Object.keys(runs[name].filters).length > 0) {
-                    for (const k of Object.keys(runs[name].filters)) {
-                        const filter = runs[name].filters[k];
-                        if (filter.enabled) {
-                            filter.func(trajectory, svg, globalUniqueStates, filter.options);
-                        }
-                    }
-                }
+                    });               
                 count++;
             }
             
@@ -421,13 +414,13 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
     );
 
         useEffect(() => {
-        if (ref) {
-            for (const [name, trajectory] of Object.entries(trajectories)) {
-                const undoGroups = ['g', 'l', 'c'];
-                if (Object.keys(runs[name].filters).length > 0) {
-                    for (const k of Object.keys(runs[name].filters)) {
-                        const filter = runs[name].filters[k];
-                        if (filter.enabled) {
+            if (ref) {
+                for (const [name, trajectory] of Object.entries(trajectories)) {
+                    const undoGroups = ['g', 'l', 'c'];
+                    if (Object.keys(runs[name].filters).length > 0) {
+                        for (const k of Object.keys(runs[name].filters)) {
+                            const filter = runs[name].filters[k];
+                            if (filter.enabled) {
                             filter.func(trajectory, d3.select(ref.current), globalUniqueStates, filter.options);
                             if (undoGroups.includes(filter.group)) {
                                 undoGroups.splice(undoGroups.indexOf(filter.group));
