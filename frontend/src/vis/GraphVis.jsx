@@ -48,11 +48,12 @@ function GraphVis({trajectories, runs, globalUniqueStates }) {
     }, []);
 
     const ref = useTrajectoryChartRender((svg) => {
-
+        
         if (height === undefined || width === undefined) {
             return;
         }
         // clear so we don't draw over-top and cause insane lag
+        console.log("rendering...");
         
         if (!svg.empty()) {
             svg.selectAll('*').remove();
@@ -101,14 +102,14 @@ function GraphVis({trajectories, runs, globalUniqueStates }) {
             if(seperateTrajectories) {
                 let {linkNodes, stateNodes, chunkNodes} = renderGraph(links, chunks, sSequence, l, g, c, name, colors, globalTimeScale, trajectory, globalUniqueStates);
 
-                if (Object.keys(runs[name].filters).length > 0) {
+                /*if (Object.keys(runs[name].filters).length > 0) {
                     for (const k of Object.keys(runs[name].filters)) {
                         const filter = runs[name].filters[k];
                         if (filter.enabled) {
                             filter.func(trajectory, svg, globalUniqueStates, filter.options);
                         }
                     }
-                }
+                }*/
                 
                 d3.forceSimulation([...chunks, ...sSequence])
                     .force("link", d3.forceLink(links).id(function(d) { return d.id; }))
@@ -186,8 +187,39 @@ function GraphVis({trajectories, runs, globalUniqueStates }) {
         
         svg.attr("viewBox", defaultView).attr("preserveAspectRatio", "xMidYMid meet").call(zoom);
 
-    }        
-    , [runs, width, height, trajectories]);
+        //used to be run, width, height
+    }, [width, height, trajectories]);
+
+    useEffect(() => {
+        if (ref) {
+            for (const [name, trajectory] of Object.entries(trajectories)) {
+                const undoGroups = ['g', 'l', 'c'];
+                if (Object.keys(runs[name].filters).length > 0) {
+                    for (const k of Object.keys(runs[name].filters)) {
+                        const filter = runs[name].filters[k];
+                        if (filter.enabled) {
+                            filter.func(trajectory, d3.select(ref.current), globalUniqueStates, filter.options);
+                            if (undoGroups.includes(filter.group)) {
+                                undoGroups.splice(undoGroups.indexOf(filter.group));
+                            }
+                        }
+                    }
+                    for (const group of undoGroups) {
+                        d3.select(ref.current).select(`#${group}_${name}`)
+                            .selectAll('*')
+                            .attr("opacity", 1.0)
+                            .attr("fill", function(d) {
+                                if(group === 'c') {
+                                    return trajectory.colors[trajectory.idToCluster[-d.id]];
+                                } else {
+                                    return trajectory.colors[trajectory.idToCluster[d.id]];
+                                }
+                            });
+                    }
+                }
+            }
+        }
+    }, [runs]);
 
     return (<div ref={divRef}>
                 {width && height && Object.keys(trajectories).length === Object.keys(runs).length

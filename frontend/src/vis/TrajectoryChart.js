@@ -417,9 +417,41 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                 });                       
             loadingCallback();
         },
-        [runs, width, height, stateHighlight, trajectories],
+        [width, height, stateHighlight, trajectories],
     );
 
+        useEffect(() => {
+        if (ref) {
+            for (const [name, trajectory] of Object.entries(trajectories)) {
+                const undoGroups = ['g', 'l', 'c'];
+                if (Object.keys(runs[name].filters).length > 0) {
+                    for (const k of Object.keys(runs[name].filters)) {
+                        const filter = runs[name].filters[k];
+                        if (filter.enabled) {
+                            filter.func(trajectory, d3.select(ref.current), globalUniqueStates, filter.options);
+                            if (undoGroups.includes(filter.group)) {
+                                undoGroups.splice(undoGroups.indexOf(filter.group));
+                            }
+                        }
+                    }
+                    for (const group of undoGroups) {
+                        d3.select(ref.current).select(`#${group}_${name}`)
+                            .selectAll('*')
+                            .attr("opacity", 1.0)
+                            .attr("fill", function(d) {
+                                if(group === 'c') {
+                                    return trajectory.colors[trajectory.idToCluster[-d.id]];
+                                } else {
+                                    return trajectory.colors[trajectory.idToCluster[d.id]];
+                                }
+                            });
+                    }
+                }
+            }            
+        }
+        loadingCallback();
+        }, [runs]);
+    
     return (        
         <div onContextMenu={openContext} ref={divRef}>
             {width

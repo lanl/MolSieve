@@ -83,12 +83,14 @@ class VisGrid extends React.Component {
 
                     const filters = {};
 
+                    // group tells you what group in a visualization this filter affects
                     filters["clustering_difference"] = {
                         enabled: false,
                         func: filter_clustering_difference,
                         checkBoxLabel: "Show clustering difference",
                         id: `clustering_difference`,
                         type: TOGGLE,
+                        group: 'g'
                     };
 
                     filters["chunks"] = {
@@ -97,7 +99,8 @@ class VisGrid extends React.Component {
                         checkBoxLabel: "Hide chunks",
                         id: 'chunks',
                         type: TOGGLE,
-                    }
+                        group: 'c'
+                    };
                     
                     filters["transitions"] = {
                         enabled: false,
@@ -118,6 +121,7 @@ class VisGrid extends React.Component {
                             </select>
                         ),
                         type: SLIDER,
+                        group: 'g'
                     };
 
                     filters["fuzzy_membership"] = {
@@ -126,6 +130,7 @@ class VisGrid extends React.Component {
                         checkBoxLabel: "Filter fuzzy memberships",
                         id: `fuzzy_membership`,
                         type: TOGGLE,
+                        group: 'g'                        
                     };
 
                     runs[run]["filters"] = filters;
@@ -164,6 +169,9 @@ class VisGrid extends React.Component {
         if (filter.options) {
             this_filter.options = filter.options;
         }
+        
+        // might not be the most elegant, but for now it's ok
+        this_filter.undo = (filter.enabled == false) ? true : false;        
         this_filter.enabled = filter.enabled;
 
         runs[filter.run]["filters"][filter.id] = this_filter;
@@ -244,7 +252,9 @@ class VisGrid extends React.Component {
                 relation_attribute: state.relation_attribute
             },
             id: id,
+            group: 'g'
         };
+
         run.filters = filters;
         runs[state.run] = run;
         this.setState({ runs: runs });
