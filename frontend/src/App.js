@@ -99,7 +99,8 @@ class App extends React.Component {
                 };
                 new_trajectories[run].current_clustering = clusters;
                 new_trajectories[run].set_cluster_info();
-                new_trajectories[run].simplifySet();
+                
+                new_trajectories[run].simplifySet(new_trajectories[run].chunkingThreshold);
                 this.setState({ trajectories: new_trajectories });
                 resolve(true);
             } else {
@@ -117,7 +118,7 @@ class App extends React.Component {
                             ...this.state.trajectories,
                         };
                         traj.add_colors(this.state.colors, clusters);
-                        traj.simplifySet();
+                        traj.simplifySet(new_trajectories[run].chunkingThreshold);
                         new_trajectories[run] = traj;
                         this.setState({
                             isLoading: false,

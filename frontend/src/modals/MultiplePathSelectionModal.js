@@ -108,7 +108,7 @@ class MultiplePathSelectionModal extends React.Component {
 
             const extent_options = this.props.extents.map((extent, i) => (
               <MenuItem key={i} value={JSON.stringify(extent)}>
-                {`${extent.name} ${extent.begin.timestep} - ${extent.end.timestep}`}
+                {`${extent.name} ${extent.begin} - ${extent.end}`}
               </MenuItem>
                 ));
 
@@ -141,13 +141,13 @@ class MultiplePathSelectionModal extends React.Component {
                         sequence: this.props.trajectories[
                             extent.name
                         ].sequence.slice(
-                            extent.begin.timestep,
-                            extent.end.timestep + 1,
+                            extent.begin,
+                            extent.end + 1,
                         ),
                         x_attribute: this.state.x_attribute,
                         y_attribute: this.state.y_attribute,
                         colors: this.props.trajectories[extent.name].colors,
-                        title: `${extent.name} ${extent.begin.timestep} - ${extent.end.timestep}`,
+                        title: `${extent.name} ${extent.begin} - ${extent.end}`,
                     }}
                 />
               </Grid>
@@ -168,11 +168,11 @@ class MultiplePathSelectionModal extends React.Component {
                   <p>
                     Similarity between
                     {' '}
-                    {`${extent1.name} ${extent1.begin.timestep} - ${extent1.end.timestep}`}
+                    {`${extent1.name} ${extent1.begin} - ${extent1.end}`}
                     {' '}
                     and
                     {' '}
-                    {`${extent2.name} ${extent2.begin.timestep} - ${extent2.end.timestep}`}
+                    {`${extent2.name} ${extent2.begin} - ${extent2.end}`}
                     {' '}
                     is
                     {' '}
@@ -184,25 +184,25 @@ class MultiplePathSelectionModal extends React.Component {
 
             // could use more spacing between the videos
             const ajaxVideos = this.props.extents.map((extent, idx) => {
-                const start = extent.begin.timestep;
-                const end = extent.end.timestep;
+                const start = extent.begin;
+                const end = extent.end;
 
                 return (
                   <Grid key={idx} item xs={6}>
-                    <p>{`${extent.name} ${extent.begin.timestep} - ${extent.end.timestep}`}</p>
+                    <p>{`${extent.name} ${extent.begin} - ${extent.end}`}</p>
                     <AjaxVideo run={extent.name} start={start} end={end} />
                   </Grid>
                 );
             });
 
-            const analysisTabs = this.props.extents.map((extent, idx) => <Tab key={idx + 4} label={`Analysis for ${extent.name}: ${extent.begin.timestep} - ${extent.end.timestep}`} />);
+            const analysisTabs = this.props.extents.map((extent, idx) => <Tab key={idx + 4} label={`Analysis for ${extent.name}: ${extent.begin} - ${extent.end}`} />);
 
             const analysisTabsContent = this.props.extents.map((extent, idx) => (
               <TabPanel value={this.state.tabIdx} key={idx + 4} index={idx + 4}>
                 <AnalysisTab
                   run={extent.name}
-                  pathStart={extent.begin.timestep}
-                  pathEnd={extent.end.timestep}
+                  pathStart={extent.begin}
+                  pathEnd={extent.end}
                   closeFunc={() => {
                                              this.closeFunc(true);
                                          }}

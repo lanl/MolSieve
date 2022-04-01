@@ -5,27 +5,20 @@ import * as d3 from 'd3';
 import '../css/vis.css';
 import { onStateMouseOver, onChunkMouseOver } from '../api/myutils';
 import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
-import usePrevious from '../hooks/usePrevious';
 import {apply_filters} from '../api/filters';
 
 let globalLinkNodes = null;
 let globalChunkNodes = null;
 let globalStateNodes = null;
 let container = null;
-
-let vx = null;
-let vy = null;
-let vw = null;
-let vh = null;
 let zoom = null;
+const simulations = [];
 
 function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStateClicked, setStateHovered, loadingCallback, lastEventCaller }) {
 
     const divRef = useRef();
     const [width, setWidth] = useState();
-    const [height, setHeight] = useState();
-
-    const previousStateHovered = usePrevious(stateHovered);
+    const [height, setHeight] = useState();        
     
     const resize = () => {
         const newWidth = divRef.current.parentElement.clientWidth;
@@ -60,25 +53,32 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
     }, []);
 
     const ref = useTrajectoryChartRender((svg) => {
-        
+
         if (height === undefined || width === undefined) {
             return;
         }
         // clear so we don't draw over-top and cause insane lag        
         
         if (!svg.empty()) {
-            svg.selectAll('*').remove();
-        }                                                  
+            
+            for(const sim of simulations) {
+                sim.stop();
+            }
+            
+            simulations.splice(0, simulations.length);
 
-        var defs = svg.append("defs");
-        //Filter for the outside glow
-        var filter = defs.append("filter")
-            .attr("id","changeColor");
-
-        filter.append("feColorMatrix")
-            .attr("type","hueRotate")
-            .attr("values","180");
-
+            for (const [name, trajectory] of Object.entries(trajectories)) {
+                svg.select(`#c_${name}`).selectAll('*')
+                    .data(trajectory.simplifiedSequence.chunks).exit().remove();
+                svg.select(`#l_${name}`).selectAll('*')
+                    .data(trajectory.simplifiedSequence.interleaved).exit().remove();
+                svg.select(`#g_${name}`).selectAll('*')
+                    .data(trajectory.simplifiedSequence.uniqueStates).exit().remove();
+            }
+            
+            
+            svg.selectAll('*').remove();            
+        }
         
         // used for zooming https://gist.github.com/catherinekerr/b3227f16cebc8dd8beee461a945fb323
         container = svg.append('g')
@@ -108,16 +108,16 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
         const seen = [];
         
         for (const [name, trajectory] of Object.entries(trajectories)) {
-            
+            console.log(trajectories);
             const chunks = trajectory.simplifiedSequence.chunks;
-            const sSequence = trajectory.simplifiedSequence.uniqueStates;            
+            const sSequence = trajectory.simplifiedSequence.uniqueStates;
             const links = trajectory.simplifiedSequence.interleaved;
             const colors = trajectory.colors;            
             
             trajectory.name = name;
 
             const l = linkGroup.append("g").attr('id', `l_${name}`);
-            const g = importantGroup.append('g').attr('id', `g_${name}`);              
+            const g = importantGroup.append('g').attr('id', `g_${name}`);      
             const c = chunkGroup.append('g').attr('id', `c_${name}`);
             
             if(seperateTrajectories) {
@@ -125,7 +125,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                                                                       name, colors, globalTimeScale, trajectory,
                                                                       globalUniqueStates, setStateClicked, setStateHovered);                                                
 
-                d3.forceSimulation([...chunks, ...sSequence])
+                const sim = d3.forceSimulation([...chunks, ...sSequence])
                     .force("link", d3.forceLink(links).id(function(d) { return d.id; }))
 //                    .force("charge", d3.forceManyBody().distanceMax(300).theta(0.75))
                     .force("collide", d3.forceCollide().strength(10).radius((d) => {
@@ -136,6 +136,8 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                         }                    
                     })).on('tick', ticked_single);
 
+                simulations.push(sim);
+                
                 function ticked_single() {
                     linkNodes
                         .attr("x1", function(d) { return d.source.x; })
@@ -180,7 +182,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
 
             d3.forceSimulation(simulated)
                 .force("link", d3.forceLink(simulatedLinks).id(function(d) { return d.id; }))
-                .force("charge", d3.forceManyBody().distanceMax(300).theta(0.75))
+                .force("charge", d3.forceManyBody().distanceMax(600).theta(0.75))
                 .force("collide", d3.forceCollide().strength(10).radius((d) => {
                     if(d.size !== undefined && d.size !== null) {
                         return globalTimeScale(d.size);
@@ -193,10 +195,10 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
 
         // set default view for SVG
         const bbox = container.node().getBBox();
-        vx = bbox.x;
-        vy = bbox.y;	
-        vw = bbox.width;
-        vh = bbox.height;
+        const vx = bbox.x;
+        const vy = bbox.y;	
+        const vw = bbox.width;
+        const vh = bbox.height;
         const defaultView = `${vx} ${vy} ${vw} ${vh}`;
         
         svg.attr("viewBox", defaultView).attr("preserveAspectRatio", "xMidYMid meet").call(zoom);
@@ -214,10 +216,14 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
     useEffect(() => {
 
         if(stateHovered !== undefined && stateHovered !== null) {
-            if(previousStateHovered !== undefined && previousStateHovered !== null) {
-                const node = d3.select(ref.current).select(`#node_${previousStateHovered}`).node();
-                node.classList.toggle("highlightedState");
+            
+            const prevSelect = d3.select(ref.current)
+                  .selectAll('*').select('.highlightedState');
+
+            if(!prevSelect.empty()) {
+                prevSelect.classed("highlightedState", false);
             }
+            
             const select = d3.select(ref.current).select(`#node_${stateHovered}`);
             select.classed("highlightedState", true);
 
@@ -233,8 +239,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                 const midX = bx + bw / 2;
                 const midY = by + bh / 2;
 
-                //translate the middle of our view-port to that position            
-
+                //translate the middle of our view-port to that position    
                 d3.select(ref.current).transition().duration(500).call(zoom.transform,
                                                                        d3.zoomIdentity.translate(width / 2 - midX, height / 2 - midY));
             }
@@ -258,8 +263,8 @@ function renderGraph(links, chunks, sSequence, l, g, c, name, colors, timeScale,
           .attr('id', d => `node_${d.id}`)
           .attr('fill', function(d) {              
               return colors[trajectory.idToCluster[d.id]];
-          }).on('click', function(_,d) {
-              if (this.getAttribute('opacity') > 0) {                                                        
+          }).on('click', function(_,d) {              
+              if (!this.classList.contains("invisible")) {                  
                   setStateClicked(globalUniqueStates[d.id]);
               }                        
           })    

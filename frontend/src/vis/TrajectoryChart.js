@@ -239,7 +239,7 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                     .attr('y', () => scaleY(count))
                     .attr('width', (d) => scaleX(d.timestep + 1) - scaleX(d.timestep))
                     .attr('height', 25)
-                    .attr('opacity', 1.0)                    
+                    .attr('opacity', 1.0)                
                     .attr('fill', (d) => {                        
                         return colors[currentClustering[d.id]];
                     })                    
@@ -249,7 +249,7 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                         }                        
                     })
                     .on('mouseover', function(_, d) {                        
-                        if (!this.classList.contains("invisible")) {                            
+                        if (!this.classList.contains("invisible")) {
                             onStateMouseOver(this, globalUniqueStates[d.id], trajectory, name);
                             setStateHovered(this, d.id);
                         }
@@ -338,7 +338,7 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                                     name: currName,
                                     begin,
                                     end,
-                                };
+                                };                                
                                 setExtents((prev) => [...prev, xtent]);
                             } else {                                
                                 alert("Invalid selection. Please try again.")
