@@ -57,8 +57,7 @@ export function extractPropertyString(props, d) {
     return propertyString;
 }
 
-export function onStateMouseOver(node, d, trajectory, name) {
-    node.setAttribute('stroke', 'black');
+export function onStateMouseOver(node, d, trajectory, name) {    
     
     const propertyString = extractPropertyString(trajectory.properties, d);
     const fuzzyMemberships = trajectory.fuzzy_memberships[trajectory.current_clustering][d.id];

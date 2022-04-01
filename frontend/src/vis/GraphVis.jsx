@@ -1,10 +1,12 @@
 import {
-    React, useEffect, useState, useRef,
+    React, useEffect, useState, useRef
 } from 'react';
 import * as d3 from 'd3';
+import '../css/vis.css';
 import { onStateMouseOver, onChunkMouseOver } from '../api/myutils';
 import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
-//import { zoomIdentity } from 'd3';
+import usePrevious from '../hooks/usePrevious';
+import {apply_filters} from '../api/filters';
 
 let globalLinkNodes = null;
 let globalChunkNodes = null;
@@ -23,6 +25,8 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
     const [width, setWidth] = useState();
     const [height, setHeight] = useState();
 
+    const previousStateHovered = usePrevious(stateHovered);
+    
     const resize = () => {
         const newWidth = divRef.current.parentElement.clientWidth;
         setWidth(newWidth);
@@ -199,42 +203,20 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
 
     useEffect(() => {
         if (ref) {
-            for (const [name, trajectory] of Object.entries(trajectories)) {
-                const undoGroups = ['g', 'l', 'c'];
-                if (Object.keys(runs[name].filters).length > 0) {
-                    for (const k of Object.keys(runs[name].filters)) {
-                        const filter = runs[name].filters[k];
-                        if (filter.enabled) {
-                            filter.func(trajectory, d3.select(ref.current), globalUniqueStates, filter.options);
-                            if (undoGroups.includes(filter.group)) {
-                                undoGroups.splice(undoGroups.indexOf(filter.group));
-                            }
-                        }
-                    }
-                    for (const group of undoGroups) {
-                        d3.select(ref.current).select(`#${group}_${name}`)
-                            .selectAll('*')
-                            .attr("opacity", 1.0)
-                            .attr("fill", function(d) {
-                                if(group === 'c') {
-                                    return trajectory.colors[trajectory.idToCluster[-d.id]];
-                                } else {
-                                    return trajectory.colors[trajectory.idToCluster[d.id]];
-                                }
-                            });
-                    }
-                }
-            }
+            apply_filters(trajectories, runs, globalUniqueStates, ref);
         }
     }, [runs]);
 
     useEffect(() => {
-        if(stateHovered !== null && stateHovered !== undefined) {
+        if(stateHovered !== undefined && stateHovered !== null) {
+            if(previousStateHovered !== undefined && previousStateHovered !== null) {
+                const node = d3.select(ref.current).select(`#node_${previousStateHovered}`).node();
+                node.classList.toggle("highlightedState");
+            }
             const select = d3.select(ref.current).select(`#node_${stateHovered}`);
-            select.style("filter", "url(#changeColor)").style("stroke", "black").style("stroke-width", "2");
+            select.classed("highlightedState", true);
 
             const node = select.node();
-
             const bbox = node.getBBox();
             const bx = bbox.x;
             const by = bbox.y;
@@ -245,12 +227,11 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
             const midX = bx + bw / 2;
             const midY = by + bh / 2;
 
-            //translate the middle of our view-port to that position
-            
+            //translate the middle of our view-port to that position            
             d3.select(ref.current).transition().duration(500).call(zoom.transform,
                                                                    d3.zoomIdentity.translate(width / 2 - midX, height / 2 - midY));
             
-        }                
+        }                    
     }, [stateHovered]);
 
     return (<div ref={divRef}>
@@ -279,7 +260,7 @@ function renderGraph(links, chunks, sSequence, l, g, c, name, colors, timeScale,
             if(trajectory !== null && trajectory !== undefined) {
                 onStateMouseOver(this, globalUniqueStates[d.id], trajectory, name);
             }
-                        
+            // move this out 
             d3.select('#sequence_important').selectAll('g').selectAll('*').filter(function(dp) {                                    
                 return (dp.id == d.id) && this.getAttribute('opacity') > 0;
             }).attr('stroke', 'black');

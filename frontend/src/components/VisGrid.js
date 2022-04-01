@@ -11,7 +11,7 @@ import {
     filter_fuzzy_membership,
     filter_transitions,
     filter_relationship,
-    filter_chunks
+    filter_chunks,
 } from "../api/filters";
 import FilterComponent from "../components/FilterComponent";
 import Slider from "@mui/material/Slider";
@@ -106,7 +106,8 @@ class VisGrid extends React.Component {
                         checkBoxLabel: "Show clustering difference",
                         id: `clustering_difference`,
                         type: TOGGLE,
-                        group: 'g'
+                        group: 'g',
+                        className: ["strongly_unstable", "moderately_unstable", "stable"]
                     };
 
                     filters["chunks"] = {
@@ -115,7 +116,8 @@ class VisGrid extends React.Component {
                         checkBoxLabel: "Hide chunks",
                         id: 'chunks',
                         type: TOGGLE,
-                        group: 'c'
+                        group: 'c',
+                        className: ['chunks', 'invisible']
                     };
                     
                     filters["transitions"] = {
@@ -137,7 +139,8 @@ class VisGrid extends React.Component {
                             </select>
                         ),
                         type: SLIDER,
-                        group: 'g'
+                        group: 'g',
+                        className: 'transitions'                    
                     };
 
                     filters["fuzzy_membership"] = {
@@ -146,7 +149,8 @@ class VisGrid extends React.Component {
                         checkBoxLabel: "Filter fuzzy memberships",
                         id: `fuzzy_membership`,
                         type: TOGGLE,
-                        group: 'g'                        
+                        group: 'g',
+                        className: 'fuzzy_membership'                        
                     };
 
                     runs[run]["filters"] = filters;
@@ -186,10 +190,8 @@ class VisGrid extends React.Component {
             this_filter.options = filter.options;
         }
         
-        // might not be the most elegant, but for now it's ok
-        this_filter.undo = (filter.enabled == false) ? true : false;        
         this_filter.enabled = filter.enabled;
-
+        
         runs[filter.run]["filters"][filter.id] = this_filter;
         this.setState({ runs: runs, isLoading: true });
     };
@@ -207,7 +209,6 @@ class VisGrid extends React.Component {
         let filterLabel = null;
         let filterType = null;
         let val = null;
-        
         switch (state.filter_type) {
             case "MIN":
                 func = filter_min_opacity;
@@ -265,10 +266,11 @@ class VisGrid extends React.Component {
             options: {                
                 val: val,
                 property: state.attribute,
-                relation_attribute: state.relation_attribute
+                relation_attribute: state.relation_attribute,
             },
             id: id,
-            group: 'g'
+            group: 'g',
+            className: [state.filter_type, "invisible"]
         };
 
         run.filters = filters;

@@ -12,6 +12,8 @@ import MultiplePathSelectionModal from '../modals/MultiplePathSelectionModal';
 import SelectionModal from '../modals/SelectionModal';
 import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
 import { onStateMouseOver, onChunkMouseOver } from '../api/myutils';
+import '../css/vis.css';
+import {apply_filters} from '../api/filters';
 
 const PATH_SELECTION = 'path_selection';
 const MULTIPLE_PATH_SELECTION = 'multiple_path_selection';
@@ -234,38 +236,38 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                     .attr('y', () => scaleY(count))
                     .attr('width', (d) => scaleX(d.timestep + 1) - scaleX(d.timestep))
                     .attr('height', 25)
-                    .attr('opacity', 1.0)
+                    .attr('opacity', 1.0)                    
                     .attr('fill', (d) => {                        
                         return colors[currentClustering[d.id]];
                     })                    
                     .on('click', function (_, d) {
-                        if (this.getAttribute('opacity') > 0) {                                                        
+                        if (this.getAttribute("opacity") > 0) {                                                        
                             setStateClicked(d);
                         }                        
                     })
                     .on('mouseover', function(_, d) {                        
-                        if (this.getAttribute('opacity') > 0) {                            
-                            this.setAttribute('stroke', 'black');
+                        if (this.getAttribute("opacity") > 0) {                            
+                            this.classList.toggle("highlightedState");
                             onStateMouseOver(this, globalUniqueStates[d.id], trajectory, name);
                             // TODO make this bind as an effect instead of inside the function - this could still be optimized
                             if (stateHighlight) {                            
-                                svg.select(`#sequence_important`).selectAll('g').selectAll('*').filter(function(dp) {                                    
-                                    return (dp.id !== d.id) && this.getAttribute('opacity') > 0;
+                                importantGroup.selectAll('g').selectAll('*').filter(function(dp) {                                    
+                                    return (dp.id !== d.id);
                                 }).attr('opacity', 0.01);
                             }
-
                             setStateHovered(d.id);
                         }
                     })
-                    .on('mouseout', function (_, d) {                        
-                        if (this.getAttribute('opacity') > 0) {
-                            this.setAttribute('stroke', 'none');
+                    .on('mouseout', function (_, d) {
+                        if (this.getAttribute("opacity") > 0) {
+                            this.classList.toggle("highlightedState");
                             if (stateHighlight) {
-                                svg.select(`#sequence_important`).selectAll('g').selectAll('*').filter(function(dp) {
-                                    return (dp.id != d.id) && this.getAttribute('opacity') > 0;
+                                importantGroup.selectAll('g').selectAll('*').filter(function(dp) {
+                                    return (dp.id !== d.id);
                                 }).attr('opacity', 1.0);
                             }
                         }
+                        //setStateHovered(null);
                     });
 
                 const c = chunkGroup.append('g').attr('id', `c_${name}`);
@@ -282,13 +284,16 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                     .attr('fill', (d) => {
                         return colors[currentClustering[-d.id]];
                     })                    
-                    .on('mouseover', function(_, d) {                        
-                        if (this.getAttribute('opacity') > 0) {
-                            this.setAttribute('opacity', 0.2);
+                    .on('mouseover', function(_, d) {
+                        if (!this.classList.contains("invisible")) {
+
                             onChunkMouseOver(this, d, name);
+                            
+                            this.setAttribute('opacity', 0.2);
+                            //setStateHovered(d.id);
                         }
                     }).on('mouseout', function() {
-                        if(this.getAttribute('opacity') > 0) {
+                        if(this.getAttribute("opacity") > 0) {
                             this.setAttribute('opacity', 1.0);                            
                         }
                     });               
@@ -407,35 +412,10 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
         [width, height, stateHighlight, trajectories],
     );
 
-        useEffect(() => {
+     useEffect(() => {
             if (ref) {
-                for (const [name, trajectory] of Object.entries(trajectories)) {
-                    const undoGroups = ['g', 'l', 'c'];
-                    if (Object.keys(runs[name].filters).length > 0) {
-                        for (const k of Object.keys(runs[name].filters)) {
-                            const filter = runs[name].filters[k];
-                            if (filter.enabled) {
-                            filter.func(trajectory, d3.select(ref.current), globalUniqueStates, filter.options);
-                            if (undoGroups.includes(filter.group)) {
-                                undoGroups.splice(undoGroups.indexOf(filter.group));
-                            }
-                        }
-                    }
-                    for (const group of undoGroups) {
-                        d3.select(ref.current).select(`#${group}_${name}`)
-                            .selectAll('*')
-                            .attr("opacity", 1.0)
-                            .attr("fill", function(d) {
-                                if(group === 'c') {
-                                    return trajectory.colors[trajectory.idToCluster[-d.id]];
-                                } else {
-                                    return trajectory.colors[trajectory.idToCluster[d.id]];
-                                }
-                            });
-                    }
-                }
-            }            
-        }
+                apply_filters(trajectories, runs, globalUniqueStates, ref);
+            }
         loadingCallback();
         }, [runs]);
     
