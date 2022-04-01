@@ -206,7 +206,7 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
             const scaleX = d3
                 .scaleLinear()
                 .range([margin.left, width - margin.right])
-                .domain([0, maxLength * 1.025]);                                                                                                                                      
+                .domain([0, maxLength]);                                                                                                                                      
             
             const scaleY = d3
                 .scaleLinear()
@@ -245,7 +245,7 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                     })                    
                     .on('click', function (_, d) {
                         if (!this.classList.contains("invisible")) {                                                        
-                            setStateClicked(d);
+                            setStateClicked(globalUniqueStates[d.id]);
                         }                        
                     })
                     .on('mouseover', function(_, d) {                        
@@ -287,7 +287,7 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
             // reset zoom
             svg.on('dblclick', () => {
                 // zoom out on double click
-                scaleX.domain([0, maxLength * 1.025]);
+                scaleX.domain([0, maxLength]);
                 xAxis.call(d3.axisBottom(scaleX));
                 importantGroup.selectAll('rect').attr('x', (d) => scaleX(d.timestep)).attr('width', (d) => scaleX(d.timestep + 1) - scaleX(d.timestep));
                 chunkGroup.selectAll('rect').attr('x', (d) => scaleX(d.timestep)).attr('width', (d) => scaleX(d.last + 1) - scaleX(d.timestep));
@@ -330,12 +330,9 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                     if (extent) {
                         const currName = Object.keys(trajectories)[Math.round(scaleY.invert(extent[0][1]))];
                         if (currName !== null && currName !== undefined) {
-                            const begin = trajectories[currName].sequence[
-                                Math.round(scaleX.invert(extent[0][0]))
-                            ];
-                            const end = trajectories[currName].sequence[
-                                Math.round(scaleX.invert(extent[1][0]))
-                            ];
+                            const begin = Math.round(scaleX.invert(extent[0][0]));                            
+                            const end = Math.round(scaleX.invert(extent[1][0]));
+                            
                             if(begin !== undefined && end !== undefined) {
                                 const xtent = {
                                     name: currName,
@@ -359,26 +356,20 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                     [width - margin.right, height - margin.bottom],
                 ])
                 .on('end', function(e) {
-                    const extent = e.selection;                    
+                    const extent = e.selection;
+                    
                     if (extent) {
                         const currName = Object.keys(trajectories)[Math.round(scaleY.invert(extent[0][1]))];
                         if (currName !== null && currName !== undefined) {
-                            const begin = trajectories[currName].sequence[
-                                Math.round(scaleX.invert(extent[0][0]))
-                            ];
-                            const end = trajectories[currName].sequence[
-                                Math.round(scaleX.invert(extent[1][0]))
-                            ];
-
+                            const begin = Math.round(scaleX.invert(extent[0][0]));
+                            const end = Math.round(scaleX.invert(extent[1][0]));
+                            
                             if(begin !== undefined && end !== undefined) {                                
                                 const xtent = {
                                     name: currName,
                                     begin,
                                     end,
                                 };
-                                setModalTitle(
-                                    `Timesteps ${begin.timestep} - ${end.timestep}`,
-                                );
                                 setExtents([...extents, xtent]);
                                 setActionCompleted(PATH_SELECTION);
                             } else {
@@ -447,12 +438,13 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                 </MenuItem>
             </Menu>            
             {currentModal === PATH_SELECTION && (
-                <SelectionModal
-                    title={modalTitle}
-                    open={currentModal === PATH_SELECTION}
-                    trajectories={trajectories}
-                    extents={extents}
-                    closeFunc={() => {
+                    <SelectionModal
+                title={modalTitle}
+                open={currentModal === PATH_SELECTION}
+                trajectories={trajectories}
+                globalUniqueStates={globalUniqueStates}
+                extents={extents}
+                closeFunc={() => {
                         setExtents([]);
                         setActionCompleted('');
                         toggleModal(PATH_SELECTION);

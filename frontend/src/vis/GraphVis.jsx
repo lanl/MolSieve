@@ -260,7 +260,7 @@ function renderGraph(links, chunks, sSequence, l, g, c, name, colors, timeScale,
               return colors[trajectory.idToCluster[d.id]];
           }).on('click', function(_,d) {
               if (this.getAttribute('opacity') > 0) {                                                        
-                  setStateClicked(d);
+                  setStateClicked(globalUniqueStates[d.id]);
               }                        
           })    
           .on('mouseover', function(_, d) {

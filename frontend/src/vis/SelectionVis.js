@@ -46,7 +46,8 @@ function SelectionVis({ data, loadingCallback }) {
 
         const { sequence } = data;
         const { run } = data;
-        const { colors } = data;        
+        const { colors } = data;
+        const { currentClustering } = data;        
 
         const scaleX = d3
             .scaleLinear()
@@ -62,18 +63,15 @@ function SelectionVis({ data, loadingCallback }) {
             .attr('width', 5)
             .attr('height', 10)
             .attr('fill', (d) => {
-                if (d.cluster === -1) {
-                    return 'black';
-                }
-                return colors[d.cluster];
+                return colors[currentClustering[d]];
             });
 
         svg.selectAll('rect')
-            .filter((d) => {
+            .filter((_, i) => {
                 for (const extent of extents) {
                     if (
-                        d.timestep >= extent.begin.timestep
-                        && d.timestep <= extent.end.timestep
+                        i >= extent.begin
+                        && i <= extent.end
                     ) {
                         return true;
                     }
@@ -83,10 +81,10 @@ function SelectionVis({ data, loadingCallback }) {
             .attr('height', 20)
             .attr('y', height * 0.2);
 
-        let title = `${run}`;
+        let title = `${run} `;
 
         for (const extent of extents) {
-            title += `${extent.begin.timestep} - ${extent.end.timestep} `;
+            title += `${extent.begin} - ${extent.end} `;
         }
 
         svg.append('text')
@@ -95,6 +93,7 @@ function SelectionVis({ data, loadingCallback }) {
             .attr('text-anchor', 'middle')
             .style('font-size', '12px')
             .text(title);
+
         if (loadingCallback !== undefined) {
             loadingCallback();
         }

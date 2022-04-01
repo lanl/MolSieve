@@ -37,16 +37,22 @@ class SelectionModal extends React.Component {
         const extents = this.props.extents[0];
 
         const currentRun = extents["name"];
-        const start = extents["begin"]["timestep"];
-        const end = extents["end"]["timestep"];
+        const start = extents["begin"];
+        const end = extents["end"];
+
+        const path = this.props.trajectories[currentRun].sequence.slice(start, end + 1);
         
+        const pathVals = path.map((id) => {
+            return this.props.globalUniqueStates[id];
+        });
+
         this.state = {
             interpolate: 1,
             energies: [],
             run: currentRun,
             start: start,
             end: end,
-            sequence: this.props.trajectories[currentRun].sequence.slice(start, end + 1),     
+            sequence: pathVals,     
             drawSequence: [],
             isLoading: false,
             tabIdx: 0,
@@ -57,16 +63,15 @@ class SelectionModal extends React.Component {
         }
     }
 
-    parseSSE = (data) => {
-        alert(data);
+    parseSSE = (data) => {        
         this.setState({sse: data})
     }
 
     calculateNEB = () => {        
         const extents = this.props.extents[0];
         const run = extents["name"];
-        const start = parseInt(extents["begin"]["timestep"]);
-        const end = parseInt(extents["end"]["timestep"]);
+        const start = parseInt(extents["begin"]);
+        const end = parseInt(extents["end"]);
 
         //const ss = new EventSource('/stream');
 
@@ -80,7 +85,7 @@ class SelectionModal extends React.Component {
                 drawSequence.push(this.state.sequence[i]);
                 for(var j = 0; j < this.state.interpolate; j++) {
                     let stateCopy = { ...this.state.sequence[i] };
-                    stateCopy["timestep"] += gap * (j + 1);                    
+                    stateCopy.timestep += gap * (j + 1);                    
                     drawSequence.push(stateCopy);
                 }
             }
@@ -116,21 +121,19 @@ class SelectionModal extends React.Component {
         var extent_options = this.props.extents.map((extent, i) => {
             return (
                 <MenuItem key={i} value={JSON.stringify(extent)}>
-                    {`${extent.name} ${extent.begin.timestep} - ${extent.end.timestep}`}
+                    {`${extent.name} ${extent.begin} - ${extent.end}`}
                 </MenuItem>
             );
         });        
 
             let extent = this.props.extents[0];
-            
             return (
                 <Dialog
                     open={this.props.open}
                     onBackdropClick={() => this.closeFunc()}
                     maxWidth="lg"
                     fullWidth={true}>
-                    <DialogTitle sx={{'height': 125}}>Single Path Selection: {`${extent.name} ${extent.begin.timestep} - ${extent.end.timestep}`}
-                        
+                    <DialogTitle sx={{'height': 125}}>Single Path Selection: {`${extent.name} ${extent.begin} - ${extent.end}`}                        
                         <Tabs value={this.state.tabIdx} onChange={(_,v) => {this.setState({tabIdx: v})}}>
                             <Tab label="Info"/>
                             <Tab label="NEB"/>
@@ -144,6 +147,7 @@ class SelectionModal extends React.Component {
                                 sequence: this.props.trajectories[this.state.run].sequence,
                                 run: this.state.run,
                                 colors: this.props.trajectories[this.state.run].colors,
+                                currentClustering: this.props.trajectories[this.state.run].idToCluster
                             }}
                         />
                         
