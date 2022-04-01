@@ -1,0 +1,21 @@
+.highlightedState {
+    stroke: black;
+    filter: brightness(2);
+}
+
+.strongly_unstable {
+    fill: red          
+}
+
+.moderately_unstable {
+    fill: yellow
+}
+
+.stable {
+    fill: green
+}
+
+.MIN, .MAX, .RANGE, .RELATION, .chunks, .invisible {
+    opacity: 0.0
+}
+
