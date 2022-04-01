@@ -15,6 +15,7 @@ let vx = null;
 let vy = null;
 let vw = null;
 let vh = null;
+let zoom = null;
 
 function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStateClicked }) {
 
@@ -63,8 +64,18 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
         
         if (!svg.empty()) {
             svg.selectAll('*').remove();
-        }
+        }                                                  
 
+        var defs = svg.append("defs");
+        //Filter for the outside glow
+        var filter = defs.append("filter")
+            .attr("id","changeColor");
+
+        filter.append("feColorMatrix")
+            .attr("type","hueRotate")
+            .attr("values","180");
+
+        
         // used for zooming https://gist.github.com/catherinekerr/b3227f16cebc8dd8beee461a945fb323
         container = svg.append('g')
               .attr('id', 'container')
@@ -151,7 +162,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
 
         // the trick to zooming like this is to move the container without moving the SVG's viewport
         
-        const zoom = d3.zoom().on('zoom', function(e) {
+        zoom = d3.zoom().on('zoom', function(e) {
             container.attr("transform", e.transform);  
         });
 
@@ -220,8 +231,25 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
     useEffect(() => {
         if(stateHovered !== null && stateHovered !== undefined) {
             const select = d3.select(ref.current).select(`#node_${stateHovered}`);
-            const transform = getTransform(select, d3.zoomTransform(select.node()).k);            
-            d3.select(ref.current).select('#container').attr("transform", `translate(${transform.translate})scale(${transform.scale})`);
+            select.style("filter", "url(#changeColor)").style("stroke", "black").style("stroke-width", "2");
+
+            const node = select.node();
+
+            const bbox = node.getBBox();
+            const bx = bbox.x;
+            const by = bbox.y;
+            const bw = bbox.width;
+            const bh = bbox.height;
+
+            // get middle of object
+            const midX = bx + bw / 2;
+            const midY = by + bh / 2;
+
+            //translate the middle of our view-port to that position
+            
+            d3.select(ref.current).transition().duration(500).call(zoom.transform,
+                                                                   d3.zoomIdentity.translate(width / 2 - midX, height / 2 - midY));
+            
         }                
     }, [stateHovered]);
 
@@ -280,18 +308,6 @@ function renderGraph(links, chunks, sSequence, l, g, c, name, colors, timeScale,
         });
     
     return {linkNodes, stateNodes, chunkNodes};
-}
-
-// might still be useful for centering on trajectory
-function getTransform(node, xScale) {
-    const bbox = node.node().getBBox();
-    const bx = bbox.x;
-    const by = bbox.y;
-    const bw = bbox.width;
-    const bh = bbox.height;
-    var tx = -bx*xScale + vx + vw/2 - bw*xScale/2;
-    var ty = -by*xScale + vy + vh/2 - bh*xScale/2;
-    return {translate: [tx, ty], scale: xScale}
 }
 
 export default GraphVis;
