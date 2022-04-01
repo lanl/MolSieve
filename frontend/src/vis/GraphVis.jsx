@@ -19,7 +19,7 @@ let vw = null;
 let vh = null;
 let zoom = null;
 
-function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStateClicked }) {
+function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStateClicked, setStateHovered, loadingCallback }) {
 
     const divRef = useRef();
     const [width, setWidth] = useState();
@@ -121,7 +121,10 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
             const c = chunkGroup.append('g').attr('id', `c_${name}`);
             
             if(seperateTrajectories) {
-                let {linkNodes, stateNodes, chunkNodes} = renderGraph(links, chunks, sSequence, l, g, c, name, colors, globalTimeScale, trajectory, globalUniqueStates, setStateClicked);                                                
+                let {linkNodes, stateNodes, chunkNodes} = renderGraph(links, chunks, sSequence, l, g, c,
+                                                                      name, colors, globalTimeScale, trajectory,
+                                                                      globalUniqueStates, setStateClicked, setStateHovered);                                                
+
                 d3.forceSimulation([...chunks, ...sSequence])
                     .force("link", d3.forceLink(links).id(function(d) { return d.id; }))
 //                    .force("charge", d3.forceManyBody().distanceMax(300).theta(0.75))
@@ -159,7 +162,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                 }
                 
                 simulatedLinks = [...simulatedLinks, ...links];          
-                renderGraph(simulatedLinks, chunks, renderNow, l, g, c, name, colors, globalTimeScale, trajectory)                
+                renderGraph(simulatedLinks, chunks, renderNow, l, g, c, name, colors, globalTimeScale, trajectory, setStateHovered);                
                 simulated = [...simulated, ...chunks, ...renderNow];
             }
         }                
@@ -197,7 +200,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
         const defaultView = `${vx} ${vy} ${vw} ${vh}`;
         
         svg.attr("viewBox", defaultView).attr("preserveAspectRatio", "xMidYMid meet").call(zoom);
-
+        loadingCallback();
         //used to be run, width, height
     }, [width, height, trajectories]);
 
@@ -205,6 +208,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
         if (ref) {
             apply_filters(trajectories, runs, globalUniqueStates, ref);
         }
+        loadingCallback();
     }, [runs]);
 
     useEffect(() => {
@@ -229,9 +233,8 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
 
             //translate the middle of our view-port to that position            
             d3.select(ref.current).transition().duration(500).call(zoom.transform,
-                                                                   d3.zoomIdentity.translate(width / 2 - midX, height / 2 - midY));
-            
-        }                    
+                                                                   d3.zoomIdentity.translate(width / 2 - midX, height / 2 - midY));            
+        }        
     }, [stateHovered]);
 
     return (<div ref={divRef}>
@@ -240,7 +243,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
             </div>);    
 }
 
-function renderGraph(links, chunks, sSequence, l, g, c, name, colors, timeScale, trajectory, globalUniqueStates, setStateClicked) {    
+function renderGraph(links, chunks, sSequence, l, g, c, name, colors, timeScale, trajectory, globalUniqueStates, setStateClicked, setStateHovered) {    
 
     const linkNodes = l.selectAll("line").data(links).enter().append("line").attr("stroke-width", 1).attr("stroke", "black");    
     const stateNodes = g.selectAll('circle')
@@ -260,18 +263,8 @@ function renderGraph(links, chunks, sSequence, l, g, c, name, colors, timeScale,
             if(trajectory !== null && trajectory !== undefined) {
                 onStateMouseOver(this, globalUniqueStates[d.id], trajectory, name);
             }
-            // move this out 
-            d3.select('#sequence_important').selectAll('g').selectAll('*').filter(function(dp) {                                    
-                return (dp.id == d.id) && this.getAttribute('opacity') > 0;
-            }).attr('stroke', 'black');
-       
-        }).on('mouseout', function(_,d) {
-            this.setAttribute('stroke', 'none');
-            d3.select(`#sequence_important`).selectAll('g').selectAll('*').filter(function(dp) {
-                return (dp.id == d.id) && this.getAttribute('opacity') > 0;
-            }).attr('stroke', 'none');
-        });
-                         
+              setStateHovered(d.id);
+          });             
     const chunkNodes = c.selectAll('circle')
         .data(chunks)
         .enter()

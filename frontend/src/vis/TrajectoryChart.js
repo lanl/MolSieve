@@ -14,6 +14,7 @@ import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
 import { onStateMouseOver, onChunkMouseOver } from '../api/myutils';
 import '../css/vis.css';
 import {apply_filters} from '../api/filters';
+import usePrevious from '../hooks/usePrevious';
 
 const PATH_SELECTION = 'path_selection';
 const MULTIPLE_PATH_SELECTION = 'multiple_path_selection';
@@ -48,10 +49,12 @@ function useKeyDown(key, action) {
     }, []);
 }
 
-function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallback, setStateHovered, setStateClicked }) {
+function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallback, setStateHovered, setStateClicked, stateHovered }) {
     
     const [currentModal, setCurrentModal] = useState();
 
+    const previousStateHovered = usePrevious(stateHovered);
+    
     const toggleModal = (key) => {
         if (currentModal) {
             setCurrentModal();
@@ -84,7 +87,7 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
     const [modalTitle, setModalTitle] = useState('');
     //const [currentState, setCurrentState] = useState(null);
 
-    const [stateHighlight, setStateHighlight] = useState(false);
+    const [stateHighlight, setStateHighlight] = useState(true);
 
     const toggleStateHighlight = () => {
         setStateHighlight((prev) => !prev);
@@ -241,33 +244,15 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                         return colors[currentClustering[d.id]];
                     })                    
                     .on('click', function (_, d) {
-                        if (this.getAttribute("opacity") > 0) {                                                        
+                        if (!this.classList.contains("invisible")) {                                                        
                             setStateClicked(d);
                         }                        
                     })
                     .on('mouseover', function(_, d) {                        
-                        if (this.getAttribute("opacity") > 0) {                            
-                            this.classList.toggle("highlightedState");
+                        if (!this.classList.contains("invisible")) {                            
                             onStateMouseOver(this, globalUniqueStates[d.id], trajectory, name);
-                            // TODO make this bind as an effect instead of inside the function - this could still be optimized
-                            if (stateHighlight) {                            
-                                importantGroup.selectAll('g').selectAll('*').filter(function(dp) {                                    
-                                    return (dp.id !== d.id);
-                                }).attr('opacity', 0.01);
-                            }
                             setStateHovered(d.id);
                         }
-                    })
-                    .on('mouseout', function (_, d) {
-                        if (this.getAttribute("opacity") > 0) {
-                            this.classList.toggle("highlightedState");
-                            if (stateHighlight) {
-                                importantGroup.selectAll('g').selectAll('*').filter(function(dp) {
-                                    return (dp.id !== d.id);
-                                }).attr('opacity', 1.0);
-                            }
-                        }
-                        //setStateHovered(null);
                     });
 
                 const c = chunkGroup.append('g').attr('id', `c_${name}`);
@@ -286,14 +271,12 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                     })                    
                     .on('mouseover', function(_, d) {
                         if (!this.classList.contains("invisible")) {
-
-                            onChunkMouseOver(this, d, name);
-                            
+                            onChunkMouseOver(this, d, name);                            
                             this.setAttribute('opacity', 0.2);
                             //setStateHovered(d.id);
                         }
                     }).on('mouseout', function() {
-                        if(this.getAttribute("opacity") > 0) {
+                        if(!this.classList.contains("invisible")) {
                             this.setAttribute('opacity', 1.0);                            
                         }
                     });               
@@ -417,7 +400,20 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                 apply_filters(trajectories, runs, globalUniqueStates, ref);
             }
         loadingCallback();
-        }, [runs]);
+     }, [runs]);
+
+    useEffect(() => {
+        if(stateHighlight && stateHovered !== undefined && stateHovered !== null) {
+
+            if(previousStateHovered !== undefined && previousStateHovered !== null) {
+                d3.select('#sequence_important').selectAll(".highlightedState").classed("highlightedState", false);
+            }
+            
+            d3.select('#sequence_important').selectAll('g').selectAll('*').filter(function(dp) {                                    
+                return (dp.id == stateHovered) && !this.classList.contains("invisible");
+            }).classed("highlightedState", true);                                                
+        }                    
+    }, [stateHovered]);
     
     return (        
         <div onContextMenu={openContext} ref={divRef}>

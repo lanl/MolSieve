@@ -539,6 +539,7 @@ class VisGrid extends React.Component {
                     loadingCallback={this.chartFinishedLoading}
                     setStateHovered={this.setStateHovered}
                     setStateClicked={this.setStateClicked}
+                    stateHovered={this.state.stateHovered}                                 
                 ></TrajectoryChart>                
             )}
 
@@ -548,7 +549,9 @@ class VisGrid extends React.Component {
                                  trajectories={this.props.trajectories}
                                  runs={this.state.runs}
                                  globalUniqueStates={this.props.globalUniqueStates}
+                                 setStateHovered={this.setStateHovered}
                                  setStateClicked={this.setStateClicked}
+                                 loadingCallback={this.chartFinishedLoading}
                                  stateHovered={this.state.stateHovered}                                 
                              />
                          </Box>
