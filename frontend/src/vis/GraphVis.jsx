@@ -19,7 +19,7 @@ let vw = null;
 let vh = null;
 let zoom = null;
 
-function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStateClicked, setStateHovered, loadingCallback }) {
+function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStateClicked, setStateHovered, loadingCallback, lastEventCaller }) {
 
     const divRef = useRef();
     const [width, setWidth] = useState();
@@ -212,6 +212,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
     }, [runs]);
 
     useEffect(() => {
+
         if(stateHovered !== undefined && stateHovered !== null) {
             if(previousStateHovered !== undefined && previousStateHovered !== null) {
                 const node = d3.select(ref.current).select(`#node_${previousStateHovered}`).node();
@@ -220,20 +221,23 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
             const select = d3.select(ref.current).select(`#node_${stateHovered}`);
             select.classed("highlightedState", true);
 
-            const node = select.node();
-            const bbox = node.getBBox();
-            const bx = bbox.x;
-            const by = bbox.y;
-            const bw = bbox.width;
-            const bh = bbox.height;
+            if(lastEventCaller.nodeName !== "circle") {
+                const node = select.node();
+                const bbox = node.getBBox();
+                const bx = bbox.x;
+                const by = bbox.y;
+                const bw = bbox.width;
+                const bh = bbox.height;
 
-            // get middle of object
-            const midX = bx + bw / 2;
-            const midY = by + bh / 2;
+                // get middle of object
+                const midX = bx + bw / 2;
+                const midY = by + bh / 2;
 
-            //translate the middle of our view-port to that position            
-            d3.select(ref.current).transition().duration(500).call(zoom.transform,
-                                                                   d3.zoomIdentity.translate(width / 2 - midX, height / 2 - midY));            
+                //translate the middle of our view-port to that position            
+
+                d3.select(ref.current).transition().duration(500).call(zoom.transform,
+                                                                       d3.zoomIdentity.translate(width / 2 - midX, height / 2 - midY));
+            }
         }        
     }, [stateHovered]);
 
@@ -263,8 +267,9 @@ function renderGraph(links, chunks, sSequence, l, g, c, name, colors, timeScale,
             if(trajectory !== null && trajectory !== undefined) {
                 onStateMouseOver(this, globalUniqueStates[d.id], trajectory, name);
             }
-              setStateHovered(d.id);
+              setStateHovered(this, d.id);
           });             
+
     const chunkNodes = c.selectAll('circle')
         .data(chunks)
         .enter()

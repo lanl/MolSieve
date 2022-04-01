@@ -251,7 +251,7 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                     .on('mouseover', function(_, d) {                        
                         if (!this.classList.contains("invisible")) {                            
                             onStateMouseOver(this, globalUniqueStates[d.id], trajectory, name);
-                            setStateHovered(d.id);
+                            setStateHovered(this, d.id);
                         }
                     });
 
@@ -272,8 +272,7 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                     .on('mouseover', function(_, d) {
                         if (!this.classList.contains("invisible")) {
                             onChunkMouseOver(this, d, name);                            
-                            this.setAttribute('opacity', 0.2);
-                            //setStateHovered(d.id);
+                            this.setAttribute('opacity', 0.2);                            
                         }
                     }).on('mouseout', function() {
                         if(!this.classList.contains("invisible")) {

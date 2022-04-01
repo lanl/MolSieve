@@ -56,7 +56,8 @@ class VisGrid extends React.Component {
             drawerOpen: false,
             isLoading: false,
             stateHovered: null,
-            stateClicked: null
+            stateClicked: null,
+            lastEventCaller: null
         };
     }
 
@@ -74,8 +75,8 @@ class VisGrid extends React.Component {
         this.setState({ isLoading: false });
     }
 
-    setStateHovered = (id) => {
-        this.setState({stateHovered: id});
+    setStateHovered = (caller, id) => {
+        this.setState({stateHovered: id, lastEventCaller: caller});
     }
 
     setStateClicked = (state) => {
@@ -539,7 +540,8 @@ class VisGrid extends React.Component {
                     loadingCallback={this.chartFinishedLoading}
                     setStateHovered={this.setStateHovered}
                     setStateClicked={this.setStateClicked}
-                    stateHovered={this.state.stateHovered}                                 
+                    stateHovered={this.state.stateHovered}
+                    lastEventCaller={this.state.lastEventCaller}
                 ></TrajectoryChart>                
             )}
 
@@ -552,7 +554,8 @@ class VisGrid extends React.Component {
                                  setStateHovered={this.setStateHovered}
                                  setStateClicked={this.setStateClicked}
                                  loadingCallback={this.chartFinishedLoading}
-                                 stateHovered={this.state.stateHovered}                                 
+                                 stateHovered={this.state.stateHovered}
+                                 lastEventCaller={this.state.lastEventCaller}
                              />
                          </Box>
                 }      

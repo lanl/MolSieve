@@ -58,26 +58,44 @@ export function extractPropertyString(props, d) {
 }
 
 export function onStateMouseOver(node, d, trajectory, name) {    
+
+    let content = "";
     
-    const propertyString = extractPropertyString(trajectory.properties, d);
-    const fuzzyMemberships = trajectory.fuzzy_memberships[trajectory.current_clustering][d.id];
+    if(name !== undefined) {
+        content += `<b>Run</b>: ${name}<br>`;
+    }
+    
+    
+    if(trajectory !== undefined) {
+        const propertyString = extractPropertyString(trajectory.properties, d);
+        const fuzzyMemberships = trajectory.fuzzy_memberships[trajectory.current_clustering][d.id];
+        content += `<b>Fuzzy memberships</b>: ${fuzzyMemberships}
+        <br>${propertyString}`;
+    } else {
+        // get global state property somehow
+    }
+
     
     tippy(node, {
         allowHTML: true,
-        content:
-        `<b>Run</b>: ${name}
-        <b>Fuzzy memberships</b>: ${fuzzyMemberships}
-        <br>${propertyString}`,
+        content: content,
         arrow: true,
         maxWidth: 'none',
     });    
 }
 
 export function onChunkMouseOver(node, d, name) {
+    let content = "";
+    
+    if(name !== undefined) {
+        content += `<b>Run</b>: ${name}<br>`;
+    }
+
+    content += `<br><b>Timesteps</b> ${d.timestep} - ${d.last}`
+    
     tippy(node, {
         allowHTML: true,
-        content: `<b>Run</b>: ${name}
-                  <br><b>Timesteps</b> ${d.timestep} - ${d.last}`,
+        content: content,
         arrow: true,
         maxWidth: 'none',
     });
