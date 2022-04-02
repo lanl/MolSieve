@@ -68,14 +68,13 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
             simulations.splice(0, simulations.length);
 
             for (const [name, trajectory] of Object.entries(trajectories)) {
-                svg.select(`#c_${name}`).selectAll('*')
+                svg.select(`#c_${name}`).selectAll('circle')
                     .data(trajectory.simplifiedSequence.chunks).exit().remove();
-                svg.select(`#l_${name}`).selectAll('*')
+                svg.select(`#l_${name}`).selectAll('line')
                     .data(trajectory.simplifiedSequence.interleaved).exit().remove();
-                svg.select(`#g_${name}`).selectAll('*')
+                svg.select(`#g_${name}`).selectAll('circle')
                     .data(trajectory.simplifiedSequence.uniqueStates).exit().remove();
-            }
-            
+            }            
             
             svg.selectAll('*').remove();            
         }

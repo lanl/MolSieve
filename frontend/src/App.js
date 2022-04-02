@@ -227,8 +227,7 @@ class App extends React.Component {
                     to reset zoom. Press and hold SHIFT to select
                     multiple paths. Right click to open a context menu.
                   </p>
-                    <CheckboxTable
-                        defaults={['']}
+                    <CheckboxTable                        
                         header="Run"
                         api_call="/get_run_list"
                         click={(e) => {

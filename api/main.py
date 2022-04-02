@@ -318,26 +318,27 @@ def load_sequence(run: str, properties: str):
 
     uniqueStateQuery = qb.generate_get_all_nodes("State",
                               node_attributes = uniqueStateAttributes,
-                              relation=run)
-
-    print(uniqueStateQuery.text)
+                              relation=run)    
     
     run_md = get_metadata(run)
 
     j = {}
-            
+
+    occurrenceString = '{run}_occurrences'.format(run=run)
+    
     with driver.session() as session:
 
-        result = session.run(q.text)
-        j['sequence'] = result.value()                
-
-        if "occurrences" not in run_md.keys():
-            oq = qb.generate_get_occurrences(run)
+        if occurrenceString not in run_md.keys():
+            oq = qb.generate_get_occurrences(run, occurrenceString)
             session.run(oq.text)
             
         if "AtomCount" not in run_md.keys():
             oq2 = qb.generate_calculate_many_to_one_count("PART_OF", saveMetadata=True, run=run)
             session.run(oq2.text)
+        
+        result = session.run(q.text)
+        j['sequence'] = result.value()                
+
 
         
         res = session.run(uniqueStateQuery.text)
@@ -422,9 +423,10 @@ def get_metadata(run: str):
     
     return j
 
+
 # TODO: make pcca support multiple runs
 @app.get('/pcca')
-def pcca(run: str, clusters: int, optimal: int, m_min: int, m_max: int):           
+def pcca(run: str, clusters: int, optimal: int, m_min: int, m_max: int):
     driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687",
                                         auth=("neo4j", "secret"))
     if config.IMPATIENT:            
@@ -438,14 +440,12 @@ def pcca(run: str, clusters: int, optimal: int, m_min: int, m_max: int):
 
     sequence = trajectories[run].sequence
     uniqueStates = trajectories[run].uniqueStates
-
-    currentClustering = {}
     
     m, idx_to_id = calculator.calculate_transition_matrix(
-        driver, qb, run=run, discrete=True, trajectory=sequence, uniqueStates=uniqueStates, getOccurrences=False)    
+        driver, qb, run=run, discrete=True, trajectory=sequence, getOccurrences=False)
     
     gpcca = gp.GPCCA(np.array(m), z='LM', method='brandts')
-    
+
     j = {}
     sets = {}
     fuzzy_memberships = {}    

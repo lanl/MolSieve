@@ -23,9 +23,10 @@ const defaultValues = [2, 4];
 class LoadRunModal extends React.Component {
     constructor(props) {
         super(props);
+        
         this.state = {
             values: defaultValues.slice(),
-            clicked: ["occurrences", "number"],
+            clicked: null,
             run: null,
             clusters: -1,
             optimal: 1,
@@ -47,7 +48,9 @@ class LoadRunModal extends React.Component {
     };
 
     componentDidMount() {
-        this.setState({ run: this.props.run });
+        this.setState({ run: this.props.run,
+                        clicked: [`${this.props.run}_occurrences`, "number"]
+                      });
     }
 
     runFunc = () => {
@@ -72,7 +75,7 @@ class LoadRunModal extends React.Component {
 
     render() {
         if (this.props.isOpen) {
-            let defaults = ["occurrences", "number"];
+            let defaults = [`${this.props.run}_occurrences`, "number"];
 
             return (
                 <Dialog

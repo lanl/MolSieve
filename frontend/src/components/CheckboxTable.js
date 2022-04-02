@@ -113,7 +113,12 @@ class CheckboxTable extends React.Component {
             if(this.props.defaults === undefined) {
                 defaults = [];
             }
-            
+
+            for(const d of defaults) {
+                if(!items.includes(d)) {
+                    items.push(d);
+                }
+            }
             return (
                 <TableContainer component={Paper}>
                     <Table size="small">

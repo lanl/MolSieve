@@ -399,7 +399,7 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                 d3.select('#sequence_important').selectAll(".highlightedState").classed("highlightedState", false);
             }
             
-            d3.select('#sequence_important').selectAll('g').selectAll('*').filter(function(dp) {                                    
+            d3.select('#sequence_important').selectAll('g').selectAll('rect').filter(function(dp) {                                    
                 return (dp.id == stateHovered) && !this.classList.contains("invisible");
             }).classed("highlightedState", true);                                                
         }                    
