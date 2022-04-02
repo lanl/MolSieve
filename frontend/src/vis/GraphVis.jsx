@@ -10,6 +10,7 @@ import {apply_filters} from '../api/filters';
 let globalLinkNodes = null;
 let globalChunkNodes = null;
 let globalStateNodes = null;
+
 let container = null;
 let zoom = null;
 const simulations = [];
@@ -80,6 +81,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
         }
         
         // used for zooming https://gist.github.com/catherinekerr/b3227f16cebc8dd8beee461a945fb323
+     
         container = svg.append('g')
               .attr('id', 'container')
               .attr('transform', "translate(0,0)scale(1,1)");
@@ -102,12 +104,16 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                 chunk.size = (chunk.last - chunk.timestep);
                 return chunk.size;
             }));
-        }            
+        }
+        // https://bl.ocks.org/mbostock/1062288 - collapsible tree
+        // https://coppelia.io/2014/07/an-a-to-z-of-extra-features-for-the-d3-force-layout/
+        // http://bl.ocks.org/samuelleach/5497403
+        
         const globalTimeScale = d3.scaleLinear().range([5,125]).domain([0, Math.max(...chunkSizes)]);            
         const seen = [];
+        let count = 0;
         
-        for (const [name, trajectory] of Object.entries(trajectories)) {
-            console.log(trajectories);
+        for (const [name, trajectory] of Object.entries(trajectories)) {            
             const chunks = trajectory.simplifiedSequence.chunks;
             const sSequence = trajectory.simplifiedSequence.uniqueStates;
             const links = trajectory.simplifiedSequence.interleaved;
@@ -123,11 +129,12 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                 let {linkNodes, stateNodes, chunkNodes} = renderGraph(links, chunks, sSequence, l, g, c,
                                                                       name, colors, globalTimeScale, trajectory,
                                                                       globalUniqueStates, setStateClicked, setStateHovered);                                                
-
+                
                 const sim = d3.forceSimulation([...chunks, ...sSequence])
-                    .force("link", d3.forceLink(links).id(function(d) { return d.id; }))
-//                    .force("charge", d3.forceManyBody().distanceMax(300).theta(0.75))
-                    .force("collide", d3.forceCollide().strength(10).radius((d) => {
+                      .force("link", d3.forceLink(links).id(function(d) { return d.id; }))
+                      .force("center", d3.forceCenter(count * 2 * width, count * 2 * height))
+                      .force("charge", d3.forceManyBody())
+                      .force("collide", d3.forceCollide().strength(10).radius((d) => {
                         if(d.size !== undefined && d.size !== null) {
                             return globalTimeScale(d.size);
                         } else {
@@ -136,6 +143,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                     })).on('tick', ticked_single);
 
                 simulations.push(sim);
+                count++;
                 
                 function ticked_single() {
                     linkNodes
@@ -201,6 +209,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
         const defaultView = `${vx} ${vy} ${vw} ${vh}`;
         
         svg.attr("viewBox", defaultView).attr("preserveAspectRatio", "xMidYMid meet").call(zoom);
+
         loadingCallback();
         //used to be run, width, height
     }, [width, height, trajectories]);
@@ -264,14 +273,16 @@ function renderGraph(links, chunks, sSequence, l, g, c, name, colors, timeScale,
               return colors[trajectory.idToCluster[d.id]];
           }).on('click', function(_,d) {              
               if (!this.classList.contains("invisible")) {                  
-                  setStateClicked(globalUniqueStates[d.id]);
+                  setStateClicked(globalUniqueStates.get(d.id));
               }                        
           })    
           .on('mouseover', function(_, d) {
-            if(trajectory !== null && trajectory !== undefined) {
-                onStateMouseOver(this, globalUniqueStates[d.id], trajectory, name);
-            }
-              setStateHovered(this, d.id);
+              if(!this.classList.contains("invisible")) {
+                  if(trajectory !== null && trajectory !== undefined) {
+                      onStateMouseOver(this, globalUniqueStates.get(d.id), trajectory, name);
+                  }
+                  setStateHovered(this, d.id);
+              }
           });             
 
     const chunkNodes = c.selectAll('circle')
@@ -284,10 +295,14 @@ function renderGraph(links, chunks, sSequence, l, g, c, name, colors, timeScale,
         .attr('fill', function(d) {
             return colors[trajectory.idToCluster[-d.id]];
         }).on('mouseover', function(_, d) {
-            this.setAttribute('stroke', 'black');
-            onChunkMouseOver(this, d, name);
-        }).on('mouseout', function () {                        
-            this.setAttribute('stroke', 'none');
+            if (!this.classList.contains("invisible")) {   
+                this.setAttribute('stroke', 'black');
+                onChunkMouseOver(this, d, name);
+            }
+        }).on('mouseout', function () {
+            if (!this.classList.contains("invisible")) { 
+                this.setAttribute('stroke', 'none');
+            }
         });
     
     return {linkNodes, stateNodes, chunkNodes};

@@ -13,7 +13,7 @@ const RUN_MODAL = 'run_modal';
 
 class App extends React.Component {
     constructor() {
-        super();
+        super();        
         this.state = {
             isLoading: false,
             currentModal: null,
@@ -30,7 +30,7 @@ class App extends React.Component {
                      '698cff', 'd9d9d9', '00d27e', 'd06800', '009f82', 'c49200', 'cbe8ff',
                      'fecddf', 'c27eb6', '8cd2ce', 'c4b8d9', 'f883b0', 'a49100', 'f48800',
                      '27d0df', 'a04a9b'],
-            globalUniqueStates: {},            
+            globalUniqueStates: new Map(),            
         };
     }
 
@@ -188,19 +188,17 @@ class App extends React.Component {
     };
 
     calculateGlobalUniqueStates = (newUniqueStates) => {
-        const globalUniqueStates = this.state.globalUniqueStates;      
+        const globalUniqueStates = this.state.globalUniqueStates;
         for(const s of newUniqueStates) {
-            if(Object.keys(globalUniqueStates).includes(s.id)) {
-                // copy over any new properties
-                globalUniqueStates[s.id] = Object.assign(globalUniqueStates[s.id], s);
+            if(globalUniqueStates.has(s.id)) {
+                const previous = globalUniqueStates.get(s.id);
+                globalUniqueStates.set(s.id, Object.assign(previous, s));
             }
             else {
-                globalUniqueStates[s.id] = s;
+                globalUniqueStates.set(s.id, s);
             }
-        }
-
-        return globalUniqueStates;
-        
+        }    
+        return globalUniqueStates;        
     }
 
     simplifySet = (run, threshold) => {

@@ -43,7 +43,7 @@ class SelectionModal extends React.Component {
         const path = this.props.trajectories[currentRun].sequence.slice(start, end + 1);
         
         const pathVals = path.map((id) => {
-            return this.props.globalUniqueStates[id];
+            return this.props.globalUniqueStates.get(id);
         });
 
         this.state = {

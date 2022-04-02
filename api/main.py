@@ -337,9 +337,7 @@ def load_sequence(run: str, properties: str):
             session.run(oq2.text)
         
         result = session.run(q.text)
-        j['sequence'] = result.value()                
-
-
+        j['sequence'] = result.value()
         
         res = session.run(uniqueStateQuery.text)
         j['uniqueStates'] = res.data()        

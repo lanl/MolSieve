@@ -31,6 +31,7 @@ import Divider from '@mui/material/Divider';
 
 import Drawer from "@mui/material/Drawer";
 import Box from "@mui/material/Box";
+import Paper from "@mui/material/Paper";
 
 import SingleStateModal from "../modals/SingleStateModal";
 import LoadingModal from "../modals/LoadingModal";
@@ -204,7 +205,7 @@ class VisGrid extends React.Component {
         
         // get us the ids of all the states in our simplified sequence
         const stateIds = this.props.trajectories[state.run].simplifiedSequence.uniqueStates;        
-        const sequence = stateIds.map((state) => this.props.globalUniqueStates[state.id]);        
+        const sequence = stateIds.map((state) => this.props.globalUniqueStates.get(state.id));        
         
         let func = null;
         let filterLabel = null;
@@ -532,21 +533,23 @@ class VisGrid extends React.Component {
                 {this.state.isLoading && <LoadingModal
                                            open={this.state.isLoading}
                                            title="Rendering..."/> }
-            {safe && (
-                <TrajectoryChart
-                    trajectories={this.props.trajectories}
-                    globalUniqueStates={this.props.globalUniqueStates}
-                    runs={this.state.runs}
-                    loadingCallback={this.chartFinishedLoading}
-                    setStateHovered={this.setStateHovered}
-                    setStateClicked={this.setStateClicked}
-                    stateHovered={this.state.stateHovered}
-                    lastEventCaller={this.state.lastEventCaller}
-                ></TrajectoryChart>                
-            )}
 
+                {safe && (<Paper sx={{position: 'absolute', bottom: 0, width: '25%', height: '25%', 'background-color': 'white'}}>
+
+                              <TrajectoryChart
+                                  trajectories={this.props.trajectories}
+                                  globalUniqueStates={this.props.globalUniqueStates}
+                                  runs={this.state.runs}
+                                  loadingCallback={this.chartFinishedLoading}
+                                  setStateHovered={this.setStateHovered}
+                                  setStateClicked={this.setStateClicked}
+                                  stateHovered={this.state.stateHovered}
+                                  lastEventCaller={this.state.lastEventCaller}
+                              ></TrajectoryChart>
+                          </Paper>
+            )}
                     
-                {safe && <Box sx={{position: 'absolute', bottom: 0, left: 0, width: '30%', height: '40%', borderStyle: 'solid'}}>
+                {safe &&
                              <GraphVis
                                  trajectories={this.props.trajectories}
                                  runs={this.state.runs}
@@ -557,7 +560,6 @@ class VisGrid extends React.Component {
                                  stateHovered={this.state.stateHovered}
                                  lastEventCaller={this.state.lastEventCaller}
                              />
-                         </Box>
                 }      
                           
             {this.state.currentModal === METADATA_MODAL && (
@@ -619,7 +621,7 @@ class VisGrid extends React.Component {
             {this.state.currentModal === SINGLE_STATE_MODAL && (
                     <SingleStateModal
                         open={this.state.currentModal === SINGLE_STATE_MODAL}
-                        state={this.props.globalUniqueStates[this.state.stateClicked.id]}
+                        state={this.props.globalUniqueStates.get(this.state.stateClicked.id)}
                         closeFunc={() => {
                             this.toggleModal(SINGLE_STATE_MODAL);                                                        
                         }}

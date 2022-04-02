@@ -25,7 +25,7 @@ export function filter_min_opacity(trajectory, svg, globalUniqueStates) {
     const selection = svg.select(`#g_${trajectory.name}`)
         .selectAll("*")
         .filter(function (d) {
-            return globalUniqueStates[d.id][property] <= val;
+            return globalUniqueStates.get(d.id)[property] <= val;
         });
 
     apply_classes(selection, className);
@@ -45,7 +45,7 @@ export function filter_max_opacity(trajectory, svg, globalUniqueStates) {
     const selection = svg.select(`#g_${trajectory.name}`)
         .selectAll("*")
         .filter(function (d) {
-            return globalUniqueStates[d.id][property] >= val;
+            return globalUniqueStates.get(d.id)[property] >= val;
         });
     
     apply_classes(selection, className);
@@ -64,7 +64,8 @@ export function filter_range_opacity(trajectory, svg, globalUniqueStates) {
    const selection = svg.select(`#g_${trajectory.name}`)
         .selectAll("*")
         .filter(function (d) {
-            return globalUniqueStates[d.id][property] <= val[0] || globalUniqueStates[d.id][property] >= val[1];
+            return globalUniqueStates.get(d.id)[property] <= val[0] ||
+                globalUniqueStates.get(d.id)[property] >= val[1];
         });
     
     apply_classes(selection, className)

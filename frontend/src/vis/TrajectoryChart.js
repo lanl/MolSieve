@@ -245,12 +245,12 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                     })                    
                     .on('click', function (_, d) {
                         if (!this.classList.contains("invisible")) {                                                        
-                            setStateClicked(globalUniqueStates[d.id]);
+                            setStateClicked(globalUniqueStates.get(d.id));
                         }                        
                     })
                     .on('mouseover', function(_, d) {                        
                         if (!this.classList.contains("invisible")) {
-                            onStateMouseOver(this, globalUniqueStates[d.id], trajectory, name);
+                            onStateMouseOver(this, globalUniqueStates.get(d.id), trajectory, name);
                             setStateHovered(this, d.id);
                         }
                     });
@@ -281,8 +281,10 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                     });               
                 count++;
             }
+
+            const xAxisPos = height - margin.bottom;
             
-            const xAxis = svg.append('g').call(d3.axisBottom().scale(scaleX));
+            const xAxis = svg.append('g').call(d3.axisTop().scale(scaleX)).attr("transform", `translate(0,${xAxisPos})`);
 
             // reset zoom
             svg.on('dblclick', () => {
