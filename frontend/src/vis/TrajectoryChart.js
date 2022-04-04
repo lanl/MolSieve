@@ -419,6 +419,7 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                         viewBox={[0, 0, width, height]}
                     />
                 )}
+        
             <Menu
                 open={contextMenu !== null}
                 onClose={closeContext}

@@ -1,12 +1,16 @@
 import React from 'react';
 import './css/App.css';
 import Box from '@mui/material/Box';
-//import Stack from '@mui/material/Stack';
+import AppBar from '@mui/material/AppBar';
+import Toolbar from '@mui/material/Toolbar';
+import Button from '@mui/material/Button';
+import Typography from '@mui/material/Typography';
 import CheckboxTable from './components/CheckboxTable';
 import LoadRunModal from './modals/LoadRunModal';
 import LoadingModal from './modals/LoadingModal';
 import Trajectory from './api/trajectory';
 import VisGrid from './components/VisGrid';
+import MenuIcon from '@mui/icons-material/Menu';
 import { api_loadPCCA, api_loadSequence, api_load_metadata } from './api/ajax';
 
 const RUN_MODAL = 'run_modal';
@@ -17,6 +21,8 @@ class App extends React.Component {
         this.state = {
             isLoading: false,
             currentModal: null,
+            showRunList: false,
+            drawerOpen: false,
             run: null,
             trajectories: {},
             loadingMessage: 'Loading...',
@@ -213,18 +219,35 @@ class App extends React.Component {
         this.setState({ trajectories: new_trajectories });
     };
 
+    toggleDrawer = () => {
+        this.setState({ drawerOpen: !this.state.drawerOpen});
+    }
+    
     render() {
         return (
-            <Box className="App" sx={{ display: 'flex', flexDirection: 'column', gap: '1%' }}>             
-                <Box sx={{flexShrink: 1, marginLeft: '1.25%', marginRight: '1.25%'}}>
-                  <h1>Trajectory Visualization</h1>
-                  <h2>powered by React.js</h2>
-                  <p>
-                    Press CTRL to toggle the path selection brush.
-                    Press Z to toggle the zoom brush. Double click
-                    to reset zoom. Press and hold SHIFT to select
-                    multiple paths. Right click to open a context menu.
-                  </p>
+            <Box className="App" sx={{ display: 'flex', flexDirection: 'column', gap: '1%' }}>
+                <AppBar position="static">                    
+                    <Toolbar>
+                        <Typography
+                            sx={{ flexGrow: 1}}
+                            variant="h6">Trajectory Visualization</Typography>
+                        <Button                            
+                            color="inherit"
+                            onClick={() => {
+                                this.setState({showRunList: !this.state.showRunList});
+                            }}
+                        >Manage trajectories</Button>
+                        {Object.keys(this.state.trajectories).length > 0 &&
+                         <Button                            
+                             color="inherit"
+                             onClick={() => {
+                                 this.toggleDrawer();
+                             }}>
+                             <MenuIcon/>
+                         </Button> }
+                    </Toolbar>
+                </AppBar>
+                {this.state.showRunList && <Box sx={{flexShrink: 1, marginLeft: '1.25%', marginRight: '1.25%'}}>
                     <CheckboxTable                        
                         header="Run"
                         api_call="/get_run_list"
@@ -232,12 +255,14 @@ class App extends React.Component {
                             this.selectRun(e);
                         }}
                     />                    
-                </Box>   
+                </Box>}
                 <VisGrid
                     trajectories={this.state.trajectories}
                     globalUniqueStates={this.state.globalUniqueStates}
                     recalculate_clustering={this.recalculate_clustering}
                     simplifySet={this.simplifySet}
+                    toggleDrawer={this.toggleDrawer}
+                    drawerOpen={this.state.drawerOpen}
                 />
                 
             {this.state.currentModal === RUN_MODAL
@@ -250,7 +275,7 @@ class App extends React.Component {
                    closeFunc={() => this.toggleModal(RUN_MODAL)}
                    onRequestClose={() => this.toggleModal(RUN_MODAL)}
                  />
-)}
+            )}
 
             {this.state.isLoading && (
               <LoadingModal
@@ -262,5 +287,13 @@ class App extends React.Component {
         );
     }
 }
+/*                  <h1>Trajectory Visualization</h1>
+                  <h2>powered by React.js</h2>
+                  <p>
+                    Press CTRL to toggle the path selection brush.
+                    Press Z to toggle the zoom brush. Double click
+                    to reset zoom. Press and hold SHIFT to select
+                    multiple paths. Right click to open a context menu.
+                  </p>*/
 
 export default App;

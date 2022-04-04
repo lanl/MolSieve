@@ -7,6 +7,12 @@ import { onStateMouseOver, onChunkMouseOver } from '../api/myutils';
 import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
 import {apply_filters} from '../api/filters';
 
+import Menu from '@mui/material/Menu';
+import MenuItem from '@mui/material/MenuItem';
+import ListItemText from '@mui/material/ListItemText';
+import ListItemIcon from '@mui/material/ListItemIcon';
+import Checkbox from '@mui/material/Checkbox';
+
 let globalLinkNodes = null;
 let globalChunkNodes = null;
 let globalStateNodes = null;
@@ -20,6 +26,31 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
     const divRef = useRef();
     const [width, setWidth] = useState();
     const [height, setHeight] = useState();        
+
+    const [contextMenu, setContextMenu] = useState(null);
+
+    const toggleSeperateTrajectories = () => {
+        setSeperateTrajectories((prev) => !prev);
+    };
+    
+    const [seperateTrajectories, setSeperateTrajectories] = useState(true);
+
+    const openContext = (event) => {
+        event.preventDefault();
+        setContextMenu(
+            contextMenu === null
+                ? {
+                    mouseX: event.clientX - 2,
+                    mouseY: event.clientY - 4,
+                }
+                : null,
+        );
+    };
+
+    
+    const closeContext = () => {
+        setContextMenu(null);
+    };
     
     const resize = () => {
         const newWidth = divRef.current.parentElement.clientWidth;
@@ -90,10 +121,6 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
         const chunkGroup = container.append('g').attr('id', 'chunk');
         const linkGroup = container.append('g').attr('id', 'links');
 
-        // if not seperate trajectories
-        // merge chunks, sSequence, links
-        const seperateTrajectories = true;
-        
         let simulated = [];
         let simulatedLinks = [];
         let chunkSizes = [];
@@ -212,7 +239,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
 
         loadingCallback();
         //used to be run, width, height
-    }, [width, height, trajectories]);
+    }, [width, height, trajectories, seperateTrajectories]);
 
     useEffect(() => {
         if (ref) {
@@ -254,9 +281,31 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
         }        
     }, [stateHovered]);
 
-    return (<div ref={divRef}>
+    return (<div ref={divRef} onContextMenu={openContext}>
+                
                 {width && height && Object.keys(trajectories).length === Object.keys(runs).length
-                 && <svg id="svg_nodes" ref={ref} viewBox={[0,0,width,height]}/>}                
+                 && <svg id="svg_nodes" ref={ref} viewBox={[0,0,width,height]}/>}
+
+                <Menu
+                    open={contextMenu !== null}
+                    onClose={closeContext}
+                    anchorReference="anchorPosition"
+                    anchorPosition={
+                        contextMenu !== null
+                            ? { top: contextMenu.mouseY, left: contextMenu.mouseX }
+                        : undefined
+                    }
+                >
+                    <MenuItem>
+                        <ListItemIcon>
+                            <Checkbox
+                                onChange={() => { toggleSeperateTrajectories(); }}
+                                checked={seperateTrajectories}                                
+                            />
+                        </ListItemIcon>
+                        <ListItemText>Seperate trajectories</ListItemText>
+                    </MenuItem>
+                </Menu>                            
             </div>);    
 }
 

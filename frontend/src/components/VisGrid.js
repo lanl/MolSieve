@@ -16,7 +16,6 @@ import {
 import FilterComponent from "../components/FilterComponent";
 import Slider from "@mui/material/Slider";
 import Button from "@mui/material/Button";
-import MenuIcon from '@mui/icons-material/Menu';
 
 import Dialog from "@mui/material/Dialog";
 import DialogTitle from "@mui/material/DialogTitle";
@@ -505,10 +504,6 @@ class VisGrid extends React.Component {
         });
     };
 
-    toggleDrawer() {
-        this.setState({ drawerOpen: !this.state.drawerOpen});
-    }
-
     
   render() {
         const runs = Object.keys(this.state.runs);
@@ -519,23 +514,21 @@ class VisGrid extends React.Component {
         return (
             <Box sx={{flexGrow: 1}}>
                 {safe && (
-                <Button sx={{ float: 'right' }} onClick={() => {
-                            this.toggleDrawer();
-                        }}><MenuIcon /></Button>)}
 
-                <Drawer anchor="right" variant="persistent" onClose={this.toggleDrawer} open={this.state.drawerOpen}>
-                    {safe && controls}
-                    <Button color="error" size="small" variant="contained" onClick={() => {
-                                this.toggleDrawer();
-                            }}>Close</Button>
-                </Drawer>
-
+                    <Drawer anchor="right" variant="persistent" onClose={this.props.toggleDrawer} open={this.props.drawerOpen}>
+                        {safe && controls}
+                        <Button color="error" size="small" variant="contained" onClick={() => {
+                                    this.props.toggleDrawer();
+                                }}>
+                        Close</Button>
+                    </Drawer>
+                )}
                 {this.state.isLoading && <LoadingModal
-                                           open={this.state.isLoading}
-                                           title="Rendering..."/> }
+                                             open={this.state.isLoading}
+                                             title="Rendering..."/> }
 
                 {safe && (<Paper sx={{position: 'absolute', bottom: 0, width: '25%', height: '25%', 'background-color': 'white'}}>
-
+                              
                               <TrajectoryChart
                                   trajectories={this.props.trajectories}
                                   globalUniqueStates={this.props.globalUniqueStates}
@@ -546,6 +539,7 @@ class VisGrid extends React.Component {
                                   stateHovered={this.state.stateHovered}
                                   lastEventCaller={this.state.lastEventCaller}
                               ></TrajectoryChart>
+
                           </Paper>
             )}
                     
