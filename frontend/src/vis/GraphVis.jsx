@@ -200,9 +200,10 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
               .attr('id', 'container')
               .attr('transform', "translate(0,0)scale(1,1)");
         
+        const linkGroup = container.append('g').attr('id', 'links');
         const importantGroup = container.append('g').attr('id', 'important');
         const chunkGroup = container.append('g').attr('id', 'chunk');
-        const linkGroup = container.append('g').attr('id', 'links');
+       
 
         let simulated = [];
         let simulatedLinks = [];
@@ -232,11 +233,11 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
             const colors = trajectory.colors;            
             
             trajectory.name = name;
-
-            const l = linkGroup.append("g").attr('id', `l_${name}`);
+            
+            const l = linkGroup.append("g").attr('id', `l_${name}`);                                   
             const g = importantGroup.append('g').attr('id', `g_${name}`);      
             const c = chunkGroup.append('g').attr('id', `c_${name}`);            
-                                   
+
             
             if(seperateTrajectories) {
                 let {linkNodes, stateNodes, chunkNodes} = renderGraph(links, chunks, sSequence, l, g, c,
