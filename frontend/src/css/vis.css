@@ -1,3 +1,7 @@
+.highlightedStates {
+    filter: brightness(2);
+}
+
 .highlightedState {
     stroke: black;
     filter: brightness(2);
@@ -19,10 +23,10 @@
     opacity: 0.01
 }
 
-.MIN, .MAX, .RANGE, .RELATION, .chunks, .invisible, .inCommonInvisible{
+.MIN, .MAX, .RANGE, .RELATION, .chunks, .invisible, .inCommonInvisible, .highlightedInvisible{
     opacity: 0.0
 }
 
 .arrowed {    
-    marker-start: url(#arrow);
+    marker-end: url(#arrow);
 }

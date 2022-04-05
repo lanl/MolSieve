@@ -544,6 +544,7 @@ class VisGrid extends React.Component {
                 {this.state.isLoading && <LoadingModal
                                              open={this.state.isLoading}
                                              title="Rendering..."/> }
+
                 {safe && (<Paper sx={{position: 'absolute', bottom: 0, width: '25%', height: '25%', 'background-color': 'white'}}>                              
                               <TrajectoryChart
                                   trajectories={this.props.trajectories}
@@ -557,8 +558,8 @@ class VisGrid extends React.Component {
                               ></TrajectoryChart>
 
                           </Paper>
-            )}
-                    
+                         )}
+                
                 {safe &&
                  <GraphVis
                      trajectories={this.props.trajectories}

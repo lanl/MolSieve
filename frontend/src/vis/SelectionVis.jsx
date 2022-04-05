@@ -5,9 +5,6 @@ import Box from '@mui/material/Box';
 import * as d3 from 'd3';
 import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
 
-// import tippy from "tippy.js";
-// import "tippy.js/dist/tippy.css";
-
 const margin = {
  top: 20, bottom: 20, left: 40, right: 25,
 };

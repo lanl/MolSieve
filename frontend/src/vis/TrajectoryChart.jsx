@@ -246,7 +246,11 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                         if (!this.classList.contains("invisible")) {                            
                             onStateMouseOver(this, globalUniqueStates.get(d.id), trajectory, name);                            
                             setStateHovered(this, {'stateID': d.id, 'name': name, 'timestep': sSequence.indexOf(d)});                            
+                            d3.select(this).classed("highlightedState", true);
                         } 
+                    })
+                    .on('mouseout', function() {
+                        d3.select(this).classed("highlightedState", false);
                     });
                 
                 const c = chunkGroup.append('g').attr('id', `c_${name}`);
@@ -277,14 +281,18 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
             }
 
             const xAxisPos = height - margin.bottom;
+            const xAxis = svg.append('g');
+            xAxis.attr("transform", `translate(0,${xAxisPos})`);
             
-            const xAxis = svg.append('g').call(d3.axisTop().scale(scaleX)).attr("transform", `translate(0,${xAxisPos})`);
-
+            xAxis.call(d3.axisTop(scaleX).tickValues(scaleX.ticks().filter(tick => Number.isInteger(tick)))
+                       .tickFormat(d3.format('d')));
+            
             // reset zoom
             svg.on('dblclick', () => {
                 // zoom out on double click
                 scaleX.domain([0, maxLength]);
-                xAxis.call(d3.axisBottom(scaleX));
+                xAxis.call(d3.axisTop(scaleX).tickValues(scaleX.ticks().filter(tick => Number.isInteger(tick)))
+                  .tickFormat(d3.format('d')));
                 importantGroup.selectAll('rect').attr('x', (d) => scaleX(d.timestep)).attr('width', (d) => scaleX(d.timestep + 1) - scaleX(d.timestep));
                 chunkGroup.selectAll('rect').attr('x', (d) => scaleX(d.timestep)).attr('width', (d) => scaleX(d.last + 1) - scaleX(d.timestep));
             });
@@ -304,7 +312,9 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                             scaleX.invert(extent[0]),
                             scaleX.invert(extent[1]),
                         ]);
-                        xAxis.call(d3.axisBottom(scaleX));
+                        
+                        xAxis.call(d3.axisTop(scaleX).tickValues(scaleX.ticks().filter(tick => Number.isInteger(tick)))
+                                   .tickFormat(d3.format('d')));
                         
                         importantGroup.selectAll('rect').attr('x', (d) => scaleX(d.timestep)).attr('width', (d) => scaleX(d.timestep + 1) - scaleX(d.timestep));          
                         chunkGroup.selectAll('rect').attr('x', (d) => scaleX(d.timestep)).attr('width', (d) => scaleX(d.last + 1) - scaleX(d.timestep));
@@ -378,7 +388,7 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                 });                       
             loadingCallback();
         },
-        [width, height, stateHighlight, trajectories],
+        [width, height, trajectories],
     );
 
      useEffect(() => {
@@ -389,14 +399,21 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
      }, [runs]);
 
     useEffect(() => {
-        if(stateHighlight && stateHovered !== undefined && stateHovered !== null) {            
-            d3.select('#sequence_important').selectAll(".highlightedState").classed("highlightedState", false);
-
+        if(stateHighlight && stateHovered !== undefined && stateHovered !== null) {
+            
+            d3.select('#sequence_important').selectAll(".highlightedInvisible").classed("highlightedInvisible", false);
+            d3.select('#sequence_important').selectAll('.highlightedStates').classed("highlightedStates", false);
+            
             d3.select('#sequence_important').selectAll('rect:not(.invisible)').filter(function(dp) {                                    
-                return (dp.id == stateHovered.stateID);
-            }).classed("highlightedState", true);                                                
-        }        
-    }, [stateHovered]);
+                return (dp.id !== stateHovered.stateID);
+            }).classed("highlightedInvisible", true);
+            
+            d3.select('#sequence_important').selectAll('rect:not(.highlightedInvisible)').classed("highlightedStates", true);
+        } else {
+            d3.select('#sequence_important').selectAll(".highlightedInvisible").classed("highlightedInvisible", false);
+            d3.select('#sequence_important').selectAll('.highlightedStates').classed("highlightedStates", false);
+        }
+    }, [stateHovered, stateHighlight]);
     
     return (        
         <div onContextMenu={openContext} ref={divRef}>

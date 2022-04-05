@@ -13,7 +13,7 @@ import CircularProgress from '@mui/material/CircularProgress';
 import Grid from '@mui/material/Grid';
 import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
-import Scatterplot from '../vis/Scatterplot.js';
+import Scatterplot from '../vis/Scatterplot';
 import SelectionVis from '../vis/SelectionVis';
 import { intersection, TabPanel } from '../api/myutils';
 import { api_calculate_path_similarity } from '../api/ajax';

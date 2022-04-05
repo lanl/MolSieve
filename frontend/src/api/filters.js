@@ -68,7 +68,7 @@ export function filter_range_opacity(trajectory, svg, globalUniqueStates) {
                 globalUniqueStates.get(d.id)[property] >= val[1];
         });
     
-    apply_classes(selection, className)
+    apply_classes(selection, className);
 }
 
 /** Filter that changes the opacity of the given trajectory based on each state's
