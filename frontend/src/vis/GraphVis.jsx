@@ -21,7 +21,7 @@ let container = null;
 let zoom = null;
 const simulations = [];
 
-function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStateClicked, setStateHovered, loadingCallback, lastEventCaller }) {
+function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStateClicked, setStateHovered, loadingCallback }) {
 
     const divRef = useRef();
     const [width, setWidth] = useState();
@@ -143,12 +143,16 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
         const linkNodes = l.selectAll("line").data(links).enter().append("line").attr("stroke-width", '1').classed("arrowed", showArrows); 
         
         if(seperateTrajectories) {
-            linkNodes.attr("stroke", "black");            
-            
+            linkNodes.attr("stroke", "black");                        
             stateNodes.on('mouseover', function(_, d) {
                 if(!this.classList.contains("invisible")) {                    
-                    onStateMouseOver(this, globalUniqueStates.get(d.id), trajectory, name);                   
-                    setStateHovered(this, {'stateID': d.id, 'name': name});
+                    onStateMouseOver(this, globalUniqueStates.get(d.id), trajectory, name);
+                    const timesteps = trajectory.simplifiedSequence.idToTimestep.get(d.id);
+                    if(timesteps.length === 1) {                        
+                        setStateHovered({'caller': this, 'stateID': d.id, 'name': name, 'timestep': timesteps[0]});
+                    } else {
+                        setStateHovered({'caller': this, 'stateID': d.id, 'name': name, 'timesteps': timesteps});
+                    }
                 }
             });
         } else {            
@@ -157,8 +161,9 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
             });
 
             stateNodes.on('mouseover', function(_, d) {
-                onStateMouseOverMultTraj(this, globalUniqueStates.get(d.id)); 
-                setStateHovered(this, {'stateID': d.id, 'name': name});
+                onStateMouseOverMultTraj(this, globalUniqueStates.get(d.id));
+                // add follow path feature later
+                setStateHovered({'caller': this, 'stateID': d.id, 'name': name});
             });
         }       
         
@@ -212,7 +217,6 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
         const importantGroup = container.append('g').attr('id', 'important');
         const chunkGroup = container.append('g').attr('id', 'chunk');
        
-
         let simulated = [];
         let simulatedLinks = [];
         let chunkSizes = [];
@@ -346,7 +350,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
 
         if(stateHovered !== undefined && stateHovered !== null) {
                         
-            const {name, stateID} = stateHovered;
+            const {caller, name, stateID} = stateHovered;
 
             const prevSelect = d3.select(ref.current)
                   .selectAll('.highlightedState');
@@ -364,7 +368,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
             const select = d3.select(ref.current).select(`#g_${name}`).select(`#node_${stateID}`);
             select.classed("highlightedState", true);
             
-            if(lastEventCaller.nodeName !== "circle") {
+            if(caller.nodeName !== "circle") {
                 const node = select.node();
                 const bbox = node.getBBox();
                 const bx = bbox.x;

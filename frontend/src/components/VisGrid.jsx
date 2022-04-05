@@ -57,8 +57,7 @@ class VisGrid extends React.Component {
             drawerOpen: false,
             isLoading: false,
             stateHovered: null,
-            stateClicked: null,
-            lastEventCaller: null            
+            stateClicked: null
         };
     }
 
@@ -76,8 +75,8 @@ class VisGrid extends React.Component {
         this.setState({ isLoading: false });
     }
 
-    setStateHovered = (caller, stateInfo) => {        
-        this.setState({stateHovered: stateInfo, lastEventCaller: caller});            
+    setStateHovered = (stateInfo) => {        
+        this.setState({stateHovered: stateInfo});            
     }
 
     componentDidMount() {
@@ -86,17 +85,25 @@ class VisGrid extends React.Component {
     
     changeTimestep = (e) => {        
         if(this.state.stateHovered !== null) {
-            if(this.state.stateHovered.timestep !== null && this.state.stateHovered.timestep !== undefined) {
-                let timestep = this.state.stateHovered.timestep; 
+            // timestep = index into simplifiedSequence array            
+            let timestep = null;
+            
+            if(this.state.stateHovered.timesteps) {
+                console.log(this.state.stateHovered.timesteps);                
+            } else {
+                timestep = this.state.stateHovered.timestep;
+            }
+            
+            if(timestep) {                 
                 if(e.key == 'ArrowLeft' || e.key == 'ArrowRight') {
                     timestep = (e.key == 'ArrowLeft') ? timestep - 1 : timestep + 1;
                     const name = this.state.stateHovered.name;
                     const stateID = this.props.trajectories[name].simplifiedSequence.sequence[timestep].id;
-                    this.setStateHovered(this, {'stateID': stateID, 'name': name, 'timestep': timestep});                                
+                    this.setStateHovered({'caller': e, 'stateID': stateID, 'name': name, 'timestep': timestep});                                
                 }
             }
         }
-    }                              
+    }                      
 
 
     setStateClicked = (state) => {        

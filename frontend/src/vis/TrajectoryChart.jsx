@@ -244,13 +244,9 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                     })
                     .on('mouseover', function(_, d) {                                                
                         if (!this.classList.contains("invisible")) {                            
-                            onStateMouseOver(this, globalUniqueStates.get(d.id), trajectory, name);                            
-                            setStateHovered(this, {'stateID': d.id, 'name': name, 'timestep': sSequence.indexOf(d)});                            
-                            d3.select(this).classed("highlightedState", true);
+                            onStateMouseOver(this, globalUniqueStates.get(d.id), trajectory, name);                                                        
+                            setStateHovered({'caller': this, 'stateID': d.id, 'name': name, 'timestep': sSequence.indexOf(d)});                            
                         } 
-                    })
-                    .on('mouseout', function() {
-                        d3.select(this).classed("highlightedState", false);
                     });
                 
                 const c = chunkGroup.append('g').attr('id', `c_${name}`);
@@ -399,19 +395,22 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
      }, [runs]);
 
     useEffect(() => {
-        if(stateHighlight && stateHovered !== undefined && stateHovered !== null) {
-            
-            d3.select('#sequence_important').selectAll(".highlightedInvisible").classed("highlightedInvisible", false);
-            d3.select('#sequence_important').selectAll('.highlightedStates').classed("highlightedStates", false);
-            
-            d3.select('#sequence_important').selectAll('rect:not(.invisible)').filter(function(dp) {                                    
-                return (dp.id !== stateHovered.stateID);
-            }).classed("highlightedInvisible", true);
-            
-            d3.select('#sequence_important').selectAll('rect:not(.highlightedInvisible)').classed("highlightedStates", true);
-        } else {
-            d3.select('#sequence_important').selectAll(".highlightedInvisible").classed("highlightedInvisible", false);
-            d3.select('#sequence_important').selectAll('.highlightedStates').classed("highlightedStates", false);
+        d3.select('#sequence_important').selectAll(".highlightedInvisible").classed("highlightedInvisible", false);
+        d3.select('#sequence_important').selectAll('.highlightedStates').classed("highlightedStates", false);            
+        d3.select('#sequence_important').selectAll('.highlightedState').classed("highlightedState", false);
+        if(stateHovered !== undefined && stateHovered !== null) {            
+            if(stateHighlight) {             
+                d3.select('#sequence_important').selectAll('rect:not(.invisible)').filter(function(dp) {                                    
+                    return (dp.id !== stateHovered.stateID);
+                }).classed("highlightedInvisible", true);
+                
+                d3.select('#sequence_important').selectAll('rect:not(.highlightedInvisible)').classed("highlightedStates", true);
+            }
+            if(stateHovered.timestep) {                
+                d3.select(ref.current).select(`#g_${stateHovered.name}`).selectAll('*').filter(function(_, i) {
+                    return i == stateHovered.timestep;
+                }).classed("highlightedState", true);
+            }            
         }
     }, [stateHovered, stateHighlight]);
     

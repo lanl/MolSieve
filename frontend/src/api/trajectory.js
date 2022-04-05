@@ -139,12 +139,23 @@ class Trajectory {
             return state.id;
         });
 
+        let idToTimestep = new Map();
+                                                 
+        for(const s of simplifiedSequence) {
+            if(idToTimestep.has(s.id)) {
+                const timestepList = idToTimestep.get(s.id);
+                idToTimestep.set(s.id, [...timestepList, simplifiedSequence.indexOf(s)]);
+            } else {
+                idToTimestep.set(s.id, [simplifiedSequence.indexOf(s)]);
+            }            
+        }
+
         // needs to be objects for force graph...
         const uniqueStates = [...new Set(sequence)].map((state) => {
                 return {'id': state};
         });
-        // sequence has id and timestep, unique states just has id
-        this.simplifiedSequence = { sequence: simplifiedSequence, uniqueStates: uniqueStates, chunks: chunks, interleaved: interleaved };        
+
+        this.simplifiedSequence = { sequence: simplifiedSequence, uniqueStates: uniqueStates, chunks: chunks, interleaved: interleaved, idToTimestep: idToTimestep };        
     }
     
     set_colors(colorArray) {
