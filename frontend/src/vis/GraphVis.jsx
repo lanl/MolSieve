@@ -42,6 +42,12 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
     const toggleArrows = () => {
         setArrows((prev) => !prev);
     }
+
+    const [showNeighbors, setShowNeighbors] = useState(true);
+
+    const toggleShowNeighbors = () => {
+        setShowNeighbors((prev) => !prev);
+    }
     
     const openContext = (event) => {
         event.preventDefault();
@@ -163,14 +169,14 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
         // https://coppelia.io/2014/07/an-a-to-z-of-extra-features-for-the-d3-force-layout/
         // http://bl.ocks.org/samuelleach/5497403
         
-        const globalTimeScale = d3.scaleLinear().range([5,125]).domain([0, Math.max(...chunkSizes)]);            
+        const globalTimeScale = d3.scaleLinear().range([10,125]).domain([0, Math.max(...chunkSizes)]);            
         const seen = [];
         let count = 0;
         
         for (const [name, trajectory] of Object.entries(trajectories)) {            
             const chunks = trajectory.simplifiedSequence.chunks;
             const sSequence = trajectory.simplifiedSequence.uniqueStates;
-            const links = trajectory.simplifiedSequence.interleaved;
+            const links = trajectory.simplifiedSequence.interleaved;            
             const colors = trajectory.colors;            
             
             trajectory.name = name;
@@ -269,8 +275,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
     }, [width, height, trajectories, seperateTrajectories]);
 
     useEffect(() => {        
-        if (ref) {
-            console.log(runs);
+        if (ref) {            
             apply_filters(trajectories, runs, globalUniqueStates, ref);
         }
         loadingCallback();
@@ -279,17 +284,25 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
     useEffect(() => {
 
         if(stateHovered !== undefined && stateHovered !== null) {
-            
+                        
+            const {name, stateID} = stateHovered;
+
             const prevSelect = d3.select(ref.current)
-                  .selectAll('*').select('.highlightedState');
+                  .selectAll('.highlightedState');
 
             if(!prevSelect.empty()) {
-                prevSelect.classed("highlightedState", false);
+                prevSelect.classed("highlightedState", false);                
             }
-            
-            const select = d3.select(ref.current).select(`#node_${stateHovered}`);
-            select.classed("highlightedState", true);
 
+            const prevHidden = d3.select(ref.current).selectAll('.neighborInvisible');
+            
+            if(!prevHidden.empty()) {
+                prevHidden.classed("neighborInvisible", false);
+            }
+
+            const select = d3.select(ref.current).select(`#g_${name}`).select(`#node_${stateID}`);
+            select.classed("highlightedState", true);
+            
             if(lastEventCaller.nodeName !== "circle") {
                 const node = select.node();
                 const bbox = node.getBBox();
@@ -306,8 +319,20 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                 d3.select(ref.current).transition().duration(500).call(zoom.transform,
                                                                        d3.zoomIdentity.translate(width / 2 - midX, height / 2 - midY));
             }
-        }        
-    }, [stateHovered]);
+
+            if(!showNeighbors) {
+                const adjacencyList = trajectories[name].adjacencyList;
+
+                d3.select(ref.current).select(`#g_${name}`).selectAll('circle').filter((d) => {
+                    return (!adjacencyList.get(stateID).includes(d.id)) && d.id != stateID;
+                }).classed("neighborInvisible", true);
+
+                d3.select(ref.current).select(`#l_${name}`).selectAll('line').filter((d) => {                
+                    return d.source.id != stateID && d.target.id != stateID;
+                }).classed("neighborInvisible", true);
+            }
+        }
+    }, [stateHovered, showNeighbors]);
 
     useEffect(() => {
         if(ref) {
@@ -348,6 +373,16 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                         </ListItemIcon>
                         <ListItemText>Show transition arrows</ListItemText>                
                     </MenuItem>
+                    <MenuItem>
+                        <ListItemIcon>
+                            <Checkbox
+                                onChange={() => { toggleShowNeighbors(); }}
+                                checked={showNeighbors}                                
+                            />
+                        </ListItemIcon>
+                        <ListItemText>Show neighbors</ListItemText>                
+                    </MenuItem>
+
                 </Menu>                            
             </div>);    
 }
@@ -368,14 +403,14 @@ function renderGraph(links, chunks, sSequence, l, g, c, name, colors, timeScale,
                   setStateClicked(globalUniqueStates.get(d.id));
               }                        
           })    
-          .on('mouseover', function(_, d) {
-              if(!this.classList.contains("invisible")) {
+          .on('mouseover', function(e, d) {
+              if(!this.classList.contains("invisible")) {                 
                   if(trajectory !== null && trajectory !== undefined) {
                       onStateMouseOver(this, globalUniqueStates.get(d.id), trajectory, name);
                   }
-                  setStateHovered(this, d.id);
+                  setStateHovered(this, {'stateID': d.id, 'name': name});
               }
-          });             
+          });
 
     const chunkNodes = c.selectAll('circle')
         .data(chunks)

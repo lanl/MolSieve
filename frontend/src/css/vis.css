@@ -15,10 +15,14 @@
     fill: green
 }
 
-.MIN, .MAX, .RANGE, .RELATION, .chunks, .invisible {
+.neighborInvisible {
+    opacity: 0.01
+}
+
+.MIN, .MAX, .RANGE, .RELATION, .chunks, .invisible{
     opacity: 0.0
 }
 
-.arrowed {
+.arrowed {    
     marker-start: url(#arrow);
 }

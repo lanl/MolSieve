@@ -30,6 +30,8 @@ class Trajectory {
 
     chunkingThreshold;
 
+    adjacencyList = new Map();
+    
     /** Loops through the sequence and applies the clustering to each state.
      * Allows us to keep track of colorings and perform other calculations.
      */
@@ -68,6 +70,27 @@ class Trajectory {
             for (let i = 0; i < howMany; i++) {
                 this.colors.push(`#${colorArray[i]}`);
             }
+        }
+    }
+
+    setAdjacencyList(curr, next) {
+        if(this.adjacencyList.has(curr)) {
+            const nodeList = this.adjacencyList.get(curr);
+            this.adjacencyList.set(curr, [...nodeList, next]);
+        } else {
+            this.adjacencyList.set(curr, [next]);
+        }
+    }
+    
+    buildAdjacencyList() {
+        let i = 0;
+        let j = 1;
+        for(i; i < this.sequence.length - 1; i++) {
+            const curr = this.sequence[i];
+            const next = this.sequence[j];
+            this.setAdjacencyList(curr, next);
+            this.setAdjacencyList(next, curr);            
+            j++;
         }
     }
 

@@ -48,7 +48,8 @@ const TOGGLE = "toggle";
 
 class VisGrid extends React.Component {
     constructor(props) {
-        super(props);
+        super(props);       
+
         this.state = {
             currentModal: null,
             currentRun: null,
@@ -57,7 +58,7 @@ class VisGrid extends React.Component {
             isLoading: false,
             stateHovered: null,
             stateClicked: null,
-            lastEventCaller: null           
+            lastEventCaller: null            
         };
     }
 
@@ -75,9 +76,28 @@ class VisGrid extends React.Component {
         this.setState({ isLoading: false });
     }
 
-    setStateHovered = (caller, id) => {
-        this.setState({stateHovered: id, lastEventCaller: caller});
+    setStateHovered = (caller, stateInfo) => {        
+        this.setState({stateHovered: stateInfo, lastEventCaller: caller});            
     }
+
+    componentDidMount() {
+        document.addEventListener("keydown", this.changeTimestep);        
+    }
+    
+    changeTimestep = (e) => {        
+        if(this.state.stateHovered !== null) {
+            if(this.state.stateHovered.timestep !== null && this.state.stateHovered.timestep !== undefined) {
+                let timestep = this.state.stateHovered.timestep; 
+                if(e.key == 'ArrowLeft' || e.key == 'ArrowRight') {
+                    timestep = (e.key == 'ArrowLeft') ? timestep - 1 : timestep + 1;
+                    const name = this.state.stateHovered.name;
+                    const stateID = this.props.trajectories[name].simplifiedSequence.sequence[timestep].id;
+                    this.setStateHovered(this, {'stateID': stateID, 'name': name, 'timestep': timestep});                                
+                }
+            }
+        }
+    }                              
+
 
     setStateClicked = (state) => {        
         this.setState({stateClicked: state}, () => {

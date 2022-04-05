@@ -64,15 +64,12 @@ export function onStateMouseOver(node, d, trajectory, name) {
     if(name !== undefined) {
         content += `<b>Run</b>: ${name}<br>`;
     }
-    
-    
+        
     if(trajectory !== undefined) {
         const propertyString = extractPropertyString(trajectory.properties, d);
         const fuzzyMemberships = trajectory.fuzzy_memberships[trajectory.current_clustering][d.id];
         content += `<b>Fuzzy memberships</b>: ${fuzzyMemberships}
         <br>${propertyString}`;
-    } else {
-        // get global state property somehow
     }
 
     

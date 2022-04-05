@@ -14,7 +14,6 @@ import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
 import { onStateMouseOver, onChunkMouseOver } from '../api/myutils';
 import '../css/vis.css';
 import {apply_filters} from '../api/filters';
-import usePrevious from '../hooks/usePrevious';
 
 const PATH_SELECTION = 'path_selection';
 const MULTIPLE_PATH_SELECTION = 'multiple_path_selection';
@@ -30,7 +29,7 @@ let msBrush = null;
 function useKeyUp(key, action) {
     useEffect(() => {
         function onKeyup(e) {
-            if (e.key === key) action();
+            if (e.key === key) action(e);
         }
         window.addEventListener('keyup', onKeyup);
         return () => window.removeEventListener('keyup', onKeyup);
@@ -41,7 +40,7 @@ function useKeyDown(key, action) {
     useEffect(() => {
         function onKeydown(e) {
             if (!e.repeat) {
-                if (e.key === key) action();
+                if (e.key === key) action(e);
             }
         }
         window.addEventListener('keydown', onKeydown);
@@ -53,8 +52,6 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
     
     const [currentModal, setCurrentModal] = useState();
 
-    const previousStateHovered = usePrevious(stateHovered);
-    
     const toggleModal = (key) => {
         if (currentModal) {
             setCurrentModal();
@@ -65,7 +62,6 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
     };
 
     const [contextMenu, setContextMenu] = useState(null);
-
     const openContext = (event) => {
         event.preventDefault();
         setContextMenu(
@@ -84,9 +80,7 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
 
     const [extents, setExtents] = useState([]);
     const [actionCompleted, setActionCompleted] = useState('');
-    const [modalTitle, setModalTitle] = useState('');
-    //const [currentState, setCurrentState] = useState(null);
-
+    const [modalTitle, setModalTitle] = useState('');    
     const [stateHighlight, setStateHighlight] = useState(true);
 
     const toggleStateHighlight = () => {
@@ -239,7 +233,7 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                     .attr('y', () => scaleY(count))
                     .attr('width', (d) => scaleX(d.timestep + 1) - scaleX(d.timestep))
                     .attr('height', 25)
-                    .attr('opacity', 1.0)                
+                    .attr('opacity', 1.0)
                     .attr('fill', (d) => {                        
                         return colors[currentClustering[d.id]];
                     })                    
@@ -248,13 +242,13 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                             setStateClicked(globalUniqueStates.get(d.id));
                         }                        
                     })
-                    .on('mouseover', function(_, d) {                        
-                        if (!this.classList.contains("invisible")) {
-                            onStateMouseOver(this, globalUniqueStates.get(d.id), trajectory, name);
-                            setStateHovered(this, d.id);
-                        }
+                    .on('mouseover', function(_, d) {                                                
+                        if (!this.classList.contains("invisible")) {                            
+                            onStateMouseOver(this, globalUniqueStates.get(d.id), trajectory, name);                            
+                            setStateHovered(this, {'stateID': d.id, 'name': name, 'timestep': sSequence.indexOf(d)});                            
+                        } 
                     });
-
+                
                 const c = chunkGroup.append('g').attr('id', `c_${name}`);
                 
                 c.selectAll('rect').data(chunks)
@@ -395,16 +389,13 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
      }, [runs]);
 
     useEffect(() => {
-        if(stateHighlight && stateHovered !== undefined && stateHovered !== null) {
+        if(stateHighlight && stateHovered !== undefined && stateHovered !== null) {            
+            d3.select('#sequence_important').selectAll(".highlightedState").classed("highlightedState", false);
 
-            if(previousStateHovered !== undefined && previousStateHovered !== null) {
-                d3.select('#sequence_important').selectAll(".highlightedState").classed("highlightedState", false);
-            }
-            
-            d3.select('#sequence_important').selectAll('g').selectAll('rect').filter(function(dp) {                                    
-                return (dp.id == stateHovered) && !this.classList.contains("invisible");
+            d3.select('#sequence_important').selectAll('rect:not(.invisible)').filter(function(dp) {                                    
+                return (dp.id == stateHovered.stateID);
             }).classed("highlightedState", true);                                                
-        }                    
+        }        
     }, [stateHovered]);
     
     return (        
