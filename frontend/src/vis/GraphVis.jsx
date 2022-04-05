@@ -39,6 +39,9 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
     
     const toggleSeperateTrajectories = () => {
         setSeperateTrajectories((prev) => !prev);
+        if(seperateTrajectories) {
+            setShowInCommon(false);
+        }
     };
 
     const [showArrows, setArrows] = useState(true);
@@ -408,7 +411,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                 d3.select(ref.current).selectAll(".inCommonInvisible").classed("inCommonInvisible", false);
             }
         }
-    }, [showInCommon, seperateTrajectories, trajectories]);
+    }, [showInCommon, seperateTrajectories]);
     
     return (<div ref={divRef} onContextMenu={openContext}>
                 
