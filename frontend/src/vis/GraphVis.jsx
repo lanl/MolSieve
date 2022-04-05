@@ -3,7 +3,7 @@ import {
 } from 'react';
 import * as d3 from 'd3';
 import '../css/vis.css';
-import { onStateMouseOver, onChunkMouseOver } from '../api/myutils';
+import { onStateMouseOver, onChunkMouseOver, onStateMouseOverMultTraj } from '../api/myutils';
 import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
 import {apply_filters} from '../api/filters';
 
@@ -28,10 +28,14 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
     const [height, setHeight] = useState();        
 
     const [contextMenu, setContextMenu] = useState(null);
-
-    
-    
+       
     const [seperateTrajectories, setSeperateTrajectories] = useState(true);
+    const [inCommon, setInCommon] = useState([]);
+    const [showInCommon, setShowInCommon] = useState(false);
+
+    const toggleShowInCommon = () => {
+        setShowInCommon((prev) => !prev);
+    }
     
     const toggleSeperateTrajectories = () => {
         setSeperateTrajectories((prev) => !prev);
@@ -150,6 +154,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
             });
 
             stateNodes.on('mouseover', function(_, d) {
+                onStateMouseOverMultTraj(this, globalUniqueStates.get(d.id)); 
                 setStateHovered(this, {'stateID': d.id, 'name': name});
             });
         }       
@@ -222,8 +227,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
         // http://bl.ocks.org/samuelleach/5497403
         
         const globalTimeScale = d3.scaleLinear().range([10,125]).domain([0, Math.max(...chunkSizes)]);            
-        const seen = [];
-        const inCommon = [];
+        const seen = [];        
         let count = 0;
         
         for (const [name, trajectory] of Object.entries(trajectories)) {            
@@ -238,6 +242,15 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
             const g = importantGroup.append('g').attr('id', `g_${name}`);      
             const c = chunkGroup.append('g').attr('id', `c_${name}`);            
 
+            let renderNow = [];                
+            for(const s of sSequence) {
+                if(!seen.includes(s.id)) {                        
+                    renderNow.push(s);
+                    seen.push(s.id);                        
+                } else {
+                    inCommon.push(s.id);
+                }
+            }
             
             if(seperateTrajectories) {
                 let {linkNodes, stateNodes, chunkNodes} = renderGraph(links, chunks, sSequence, l, g, c,
@@ -274,18 +287,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                         .attr("cy", function(d) { return d.y; });       
                 }
                 
-            } else {
-                let renderNow = [];
-                
-                for(const s of sSequence) {
-                    if(!seen.includes(s.id)) {                        
-                        renderNow.push(s);
-                        seen.push(s.id);                        
-                    } else {
-                        inCommon.push(s.id);
-                    }
-                }
-                
+            } else {                
                 simulatedLinks = [...simulatedLinks, ...links];          
                 renderGraph(simulatedLinks, chunks, renderNow, l, g, c, name, colors, globalTimeScale, trajectory);                
                 simulated = [...simulated, ...chunks, ...renderNow];
@@ -325,6 +327,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
         const defaultView = `${vx} ${vy} ${vw} ${vh}`;        
 
         svg.attr("viewBox", defaultView).attr("preserveAspectRatio", "xMidYMid meet").call(zoom);
+        setInCommon(inCommon);
         loadingCallback();
         
     }, [width, height, trajectories, seperateTrajectories]);
@@ -395,6 +398,18 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
         }
     }, [showArrows])
 
+    useEffect(() => {
+        if(ref) {
+            if(!seperateTrajectories && showInCommon) {
+                d3.select(ref.current).selectAll("circle").filter((d) => {
+                    return !inCommon.includes(d.id);
+                }).classed("inCommonInvisible", true);
+            } else {
+                d3.select(ref.current).selectAll(".inCommonInvisible").classed("inCommonInvisible", false);
+            }
+        }
+    }, [showInCommon, seperateTrajectories, trajectories]);
+    
     return (<div ref={divRef} onContextMenu={openContext}>
                 
                 {width && height && Object.keys(trajectories).length === Object.keys(runs).length
@@ -438,6 +453,17 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                         <ListItemText>Show neighbors</ListItemText>                
                     </MenuItem>
 
+                    {!seperateTrajectories &&
+                     <MenuItem>
+                         <ListItemIcon>
+                             <Checkbox
+                                 onChange={() => { toggleShowInCommon(); }}
+                                 checked={showInCommon}                                
+                             />
+                         </ListItemIcon>
+                         <ListItemText>Show only states in common</ListItemText>                
+                     </MenuItem>
+                    }
                 </Menu>                            
             </div>);    
 }

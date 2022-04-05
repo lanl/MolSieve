@@ -57,19 +57,12 @@ export function extractPropertyString(props, d) {
     return propertyString;
 }
 
-export function onStateMouseOverMultTraj(node, d, trajectories) {
+export function onStateMouseOverMultTraj(node, d) {
     let content = "";
 
-    for(const [name, trajectory] of trajectories) {
-        const s = trajectory.sequence;
-        if(s.includes(d.id)) {
-            content += `<b>Run</b>: ${name}<br>`;
-            const propertyString = extractPropertyString(trajectory.properties, d);
-            const fuzzyMemberships = trajectory.fuzzy_memberships[trajectory.current_clustering][d.id];
-            content += `<b>Fuzzy memberships</b>: ${fuzzyMemberships}
-            <br>${propertyString}`;
-        }
-    }
+    const propertyString = extractPropertyString(Object.keys(d), d);
+
+    content += `${propertyString}`
     
     tippy(node, {
         allowHTML: true,

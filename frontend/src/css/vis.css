@@ -19,7 +19,7 @@
     opacity: 0.01
 }
 
-.MIN, .MAX, .RANGE, .RELATION, .chunks, .invisible{
+.MIN, .MAX, .RANGE, .RELATION, .chunks, .invisible, .inCommonInvisible{
     opacity: 0.0
 }
 
