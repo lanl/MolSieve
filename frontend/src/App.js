@@ -5,7 +5,7 @@ import AppBar from '@mui/material/AppBar';
 import Toolbar from '@mui/material/Toolbar';
 import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
-import CheckboxTable from './components/CheckboxTable';
+import AjaxMenu from './components/AjaxMenu';
 import LoadRunModal from './modals/LoadRunModal';
 import LoadingModal from './modals/LoadingModal';
 import Trajectory from './api/trajectory';
@@ -17,7 +17,8 @@ const RUN_MODAL = 'run_modal';
 
 class App extends React.Component {
     constructor() {
-        super();        
+      super();
+      this.runListButton = React.createRef();
         this.state = {
             isLoading: false,
             currentModal: null,
@@ -36,7 +37,8 @@ class App extends React.Component {
                      '698cff', 'd9d9d9', '00d27e', 'd06800', '009f82', 'c49200', 'cbe8ff',
                      'fecddf', 'c27eb6', '8cd2ce', 'c4b8d9', 'f883b0', 'a49100', 'f48800',
                      '27d0df', 'a04a9b'],
-            globalUniqueStates: new Map(),            
+            globalUniqueStates: new Map(),
+            anchorEl: null
         };
     }
 
@@ -52,13 +54,20 @@ class App extends React.Component {
         this.setState({ ...this.state, currentModal: key });
     };
 
-    selectRun = (e) => {
-        this.setState({
-            run: e.target.value,
-            currentModal: RUN_MODAL,
-            lastEvent: e,
-        });
-    };
+  selectRun = (e) => {
+    if(e.target.checked) {
+      this.setState({
+        run: e.target.value,
+        currentModal: RUN_MODAL,
+        lastEvent: e,
+      });
+    } else {
+      // can change behavior later
+      const trajectories = this.state.trajectories;
+      delete this.state.trajectories[e.target.value];
+      this.setState({trajectories: trajectories});
+    }
+  };
 
     /** Wrapper for the backend call in api.js */
     load_PCCA = (run, clusters, optimal, m_min, m_max, trajectory) => {
@@ -232,30 +241,36 @@ class App extends React.Component {
                             sx={{ flexGrow: 1}}
                             variant="h6">Trajectory Visualization</Typography>
                         <Button                            
-                            color="inherit"
-                            onClick={() => {
-                                this.setState({showRunList: !this.state.showRunList});
-                            }}
+                          color="inherit"
+                          ref={this.runListButton}
+                            onClick={
+                            () => {
+                                    this.setState({showRunList: !this.state.showRunList});
+                                }
+                            }
                         >Manage trajectories</Button>
                         {Object.keys(this.state.trajectories).length > 0 &&
                          <Button                            
-                             color="inherit"
-                             onClick={() => {
-                                 this.toggleDrawer();
-                             }}>
+                           color="inherit"
+                           onClick={() => {
+                             this.toggleDrawer();
+                           }}>
                              <MenuIcon/>
                          </Button> }
                     </Toolbar>
                 </AppBar>
-                {this.state.showRunList && <Box sx={{flexShrink: 1, marginLeft: '1.25%', marginRight: '1.25%'}}>
-                    <CheckboxTable                        
-                        header="Run"
-                        api_call="/get_run_list"
-                        click={(e) => {
-                            this.selectRun(e);
-                        }}
-                    />                    
-                </Box>}
+
+
+              <AjaxMenu                     
+                anchorEl={this.runListButton.current}
+                   api_call="/get_run_list"
+                   open={this.state.showRunList}
+                   handleClose={() => {this.setState({showRunList: !this.state.showRunList, anchorEl: null})}}
+                   click={(e) => {
+                     this.selectRun(e);
+                   }}
+               />   
+                
                 <VisGrid
                     trajectories={this.state.trajectories}
                     globalUniqueStates={this.state.globalUniqueStates}

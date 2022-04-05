@@ -57,7 +57,7 @@ class VisGrid extends React.Component {
             isLoading: false,
             stateHovered: null,
             stateClicked: null,
-            lastEventCaller: null
+            lastEventCaller: null           
         };
     }
 
@@ -514,7 +514,6 @@ class VisGrid extends React.Component {
         return (
             <Box sx={{flexGrow: 1}}>
                 {safe && (
-
                     <Drawer anchor="right" variant="persistent" onClose={this.props.toggleDrawer} open={this.props.drawerOpen}>
                         {safe && controls}
                         <Button color="error" size="small" variant="contained" onClick={() => {
@@ -526,9 +525,7 @@ class VisGrid extends React.Component {
                 {this.state.isLoading && <LoadingModal
                                              open={this.state.isLoading}
                                              title="Rendering..."/> }
-
-                {safe && (<Paper sx={{position: 'absolute', bottom: 0, width: '25%', height: '25%', 'background-color': 'white'}}>
-                              
+                {safe && (<Paper sx={{position: 'absolute', bottom: 0, width: '25%', height: '25%', 'background-color': 'white'}}>                              
                               <TrajectoryChart
                                   trajectories={this.props.trajectories}
                                   globalUniqueStates={this.props.globalUniqueStates}
@@ -544,18 +541,18 @@ class VisGrid extends React.Component {
             )}
                     
                 {safe &&
-                             <GraphVis
-                                 trajectories={this.props.trajectories}
-                                 runs={this.state.runs}
-                                 globalUniqueStates={this.props.globalUniqueStates}
-                                 setStateHovered={this.setStateHovered}
-                                 setStateClicked={this.setStateClicked}
-                                 loadingCallback={this.chartFinishedLoading}
-                                 stateHovered={this.state.stateHovered}
-                                 lastEventCaller={this.state.lastEventCaller}
-                             />
-                }      
-                          
+                 <GraphVis
+                     trajectories={this.props.trajectories}
+                     runs={this.state.runs}
+                     globalUniqueStates={this.props.globalUniqueStates}
+                     setStateHovered={this.setStateHovered}
+                     setStateClicked={this.setStateClicked}
+                     loadingCallback={this.chartFinishedLoading}
+                     stateHovered={this.state.stateHovered}
+                     lastEventCaller={this.state.lastEventCaller}
+                 />
+                }
+                                         
             {this.state.currentModal === METADATA_MODAL && (
                 <Dialog
                     open={this.state.currentModal === METADATA_MODAL}
