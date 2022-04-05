@@ -98,6 +98,66 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
         window.addEventListener('resize', resize());
     }, []);
 
+    const renderGraph = (links, chunks, sSequence, l, g, c, name, colors, timeScale, trajectory) => {
+        const stateNodes = g.selectAll('circle')
+              .data(sSequence)
+              .enter()
+              .append('circle')
+              .attr('r', 5)
+              .attr('id', d => `node_${d.id}`)
+              .attr('fill', function(d) {              
+                  return colors[trajectory.idToCluster[d.id]];
+              }).on('click', function(_,d) {              
+                  if (!this.classList.contains("invisible")) {                  
+                      setStateClicked(globalUniqueStates.get(d.id));
+                  }
+              });
+            
+        const chunkNodes = c.selectAll('circle')
+              .data(chunks)
+              .enter()
+              .append('circle')                
+              .attr('r', (d) => {
+                  return timeScale(d.size);
+              })
+              .attr('fill', function(d) {
+                  return colors[trajectory.idToCluster[-d.id]];
+              }).on('mouseover', function(_, d) {
+                  if (!this.classList.contains("invisible")) {   
+                      this.setAttribute('stroke', 'black');
+                      onChunkMouseOver(this, d, name);
+                  }
+              }).on('mouseout', function () {
+                  if (!this.classList.contains("invisible")) { 
+                      this.setAttribute('stroke', 'none');
+                  }
+              });
+
+        const linkNodes = l.selectAll("line").data(links).enter().append("line").attr("stroke-width", '1').classed("arrowed", showArrows); 
+        
+        if(seperateTrajectories) {
+            linkNodes.attr("stroke", "black");            
+            
+            stateNodes.on('mouseover', function(_, d) {
+                if(!this.classList.contains("invisible")) {                    
+                    onStateMouseOver(this, globalUniqueStates.get(d.id), trajectory, name);                   
+                    setStateHovered(this, {'stateID': d.id, 'name': name});
+                }
+            });
+        } else {            
+            linkNodes.attr("stroke", function(d) {
+                return colors[trajectory.idToCluster[d.target]];
+            });
+
+            stateNodes.on('mouseover', function(_, d) {
+                setStateHovered(this, {'stateID': d.id, 'name': name});
+            });
+        }       
+        
+        return {linkNodes, stateNodes, chunkNodes};
+        
+    }
+
     const ref = useTrajectoryChartRender((svg) => {
 
         if (height === undefined || width === undefined) {
@@ -105,23 +165,14 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
         }
         // clear so we don't draw over-top and cause insane lag        
         
-        if (!svg.empty()) {
-            
+        if (!svg.empty()) {            
             for(const sim of simulations) {
+                sim.force("link").links([]);
+                delete sim.nodes();                
+                sim.nodes([]);                
                 sim.stop();
-            }
-            
-            simulations.splice(0, simulations.length);
-
-            for (const [name, trajectory] of Object.entries(trajectories)) {
-                svg.select(`#c_${name}`).selectAll('circle')
-                    .data(trajectory.simplifiedSequence.chunks).exit().remove();
-                svg.select(`#l_${name}`).selectAll('line')
-                    .data(trajectory.simplifiedSequence.interleaved).exit().remove();
-                svg.select(`#g_${name}`).selectAll('circle')
-                    .data(trajectory.simplifiedSequence.uniqueStates).exit().remove();
-            }            
-            
+            }           
+            simulations.splice(0, simulations.length);            
             svg.selectAll('*').remove();            
         }
         
@@ -171,24 +222,25 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
         
         const globalTimeScale = d3.scaleLinear().range([10,125]).domain([0, Math.max(...chunkSizes)]);            
         const seen = [];
+        const inCommon = [];
         let count = 0;
         
         for (const [name, trajectory] of Object.entries(trajectories)) {            
-            const chunks = trajectory.simplifiedSequence.chunks;
-            const sSequence = trajectory.simplifiedSequence.uniqueStates;
-            const links = trajectory.simplifiedSequence.interleaved;            
+            const chunks = JSON.parse(JSON.stringify(trajectory.simplifiedSequence.chunks));
+            const sSequence = JSON.parse(JSON.stringify(trajectory.simplifiedSequence.uniqueStates));
+            const links = JSON.parse(JSON.stringify(trajectory.simplifiedSequence.interleaved));            
             const colors = trajectory.colors;            
             
             trajectory.name = name;
 
             const l = linkGroup.append("g").attr('id', `l_${name}`);
             const g = importantGroup.append('g').attr('id', `g_${name}`);      
-            const c = chunkGroup.append('g').attr('id', `c_${name}`);
+            const c = chunkGroup.append('g').attr('id', `c_${name}`);            
+                                   
             
             if(seperateTrajectories) {
                 let {linkNodes, stateNodes, chunkNodes} = renderGraph(links, chunks, sSequence, l, g, c,
-                                                                      name, colors, globalTimeScale, trajectory,
-                                                                      globalUniqueStates, setStateClicked, setStateHovered, showArrows);                                                
+                                                                      name, colors, globalTimeScale, trajectory);                                                
                 
                 const sim = d3.forceSimulation([...chunks, ...sSequence])
                       .force("link", d3.forceLink(links).id(function(d) { return d.id; }))
@@ -223,15 +275,18 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                 
             } else {
                 let renderNow = [];
+                
                 for(const s of sSequence) {
-                    if(!seen.includes(s.number)) {                        
+                    if(!seen.includes(s.id)) {                        
                         renderNow.push(s);
-                        seen.push(s.number);
+                        seen.push(s.id);                        
+                    } else {
+                        inCommon.push(s.id);
                     }
                 }
                 
                 simulatedLinks = [...simulatedLinks, ...links];          
-                renderGraph(simulatedLinks, chunks, renderNow, l, g, c, name, colors, globalTimeScale, trajectory, setStateHovered);                
+                renderGraph(simulatedLinks, chunks, renderNow, l, g, c, name, colors, globalTimeScale, trajectory);                
                 simulated = [...simulated, ...chunks, ...renderNow];
             }
         }                
@@ -249,7 +304,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
 
             d3.forceSimulation(simulated)
                 .force("link", d3.forceLink(simulatedLinks).id(function(d) { return d.id; }))
-                .force("charge", d3.forceManyBody().distanceMax(600).theta(0.75))
+                .force("charge", d3.forceManyBody())
                 .force("collide", d3.forceCollide().strength(10).radius((d) => {
                     if(d.size !== undefined && d.size !== null) {
                         return globalTimeScale(d.size);
@@ -266,12 +321,11 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
         const vy = bbox.y;	
         const vw = bbox.width;
         const vh = bbox.height;
-        const defaultView = `${vx} ${vy} ${vw} ${vh}`;
-        
-        svg.attr("viewBox", defaultView).attr("preserveAspectRatio", "xMidYMid meet").call(zoom);
+        const defaultView = `${vx} ${vy} ${vw} ${vh}`;        
 
+        svg.attr("viewBox", defaultView).attr("preserveAspectRatio", "xMidYMid meet").call(zoom);
         loadingCallback();
-        //used to be run, width, height
+        
     }, [width, height, trajectories, seperateTrajectories]);
 
     useEffect(() => {        
@@ -332,7 +386,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                 }).classed("neighborInvisible", true);
             }
         }
-    }, [stateHovered, showNeighbors]);
+        }, [stateHovered, showNeighbors]);
 
     useEffect(() => {
         if(ref) {
@@ -385,54 +439,6 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
 
                 </Menu>                            
             </div>);    
-}
-
-function renderGraph(links, chunks, sSequence, l, g, c, name, colors, timeScale, trajectory, globalUniqueStates, setStateClicked, setStateHovered, showArrows) {    
-
-    const linkNodes = l.selectAll("line").data(links).enter().append("line").attr("stroke-width", 1).attr("stroke", "black").classed("arrowed", showArrows); 
-    const stateNodes = g.selectAll('circle')
-          .data(sSequence)
-          .enter()
-          .append('circle')
-          .attr('r', 5)
-          .attr('id', d => `node_${d.id}`)
-          .attr('fill', function(d) {              
-              return colors[trajectory.idToCluster[d.id]];
-          }).on('click', function(_,d) {              
-              if (!this.classList.contains("invisible")) {                  
-                  setStateClicked(globalUniqueStates.get(d.id));
-              }                        
-          })    
-          .on('mouseover', function(e, d) {
-              if(!this.classList.contains("invisible")) {                 
-                  if(trajectory !== null && trajectory !== undefined) {
-                      onStateMouseOver(this, globalUniqueStates.get(d.id), trajectory, name);
-                  }
-                  setStateHovered(this, {'stateID': d.id, 'name': name});
-              }
-          });
-
-    const chunkNodes = c.selectAll('circle')
-        .data(chunks)
-        .enter()
-        .append('circle')                
-        .attr('r', (d) => {
-            return timeScale(d.size);
-        })
-        .attr('fill', function(d) {
-            return colors[trajectory.idToCluster[-d.id]];
-        }).on('mouseover', function(_, d) {
-            if (!this.classList.contains("invisible")) {   
-                this.setAttribute('stroke', 'black');
-                onChunkMouseOver(this, d, name);
-            }
-        }).on('mouseout', function () {
-            if (!this.classList.contains("invisible")) { 
-                this.setAttribute('stroke', 'none');
-            }
-        });
-    
-    return {linkNodes, stateNodes, chunkNodes};
 }
 
 export default GraphVis;

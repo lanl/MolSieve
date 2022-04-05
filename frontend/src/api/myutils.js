@@ -57,6 +57,28 @@ export function extractPropertyString(props, d) {
     return propertyString;
 }
 
+export function onStateMouseOverMultTraj(node, d, trajectories) {
+    let content = "";
+
+    for(const [name, trajectory] of trajectories) {
+        const s = trajectory.sequence;
+        if(s.includes(d.id)) {
+            content += `<b>Run</b>: ${name}<br>`;
+            const propertyString = extractPropertyString(trajectory.properties, d);
+            const fuzzyMemberships = trajectory.fuzzy_memberships[trajectory.current_clustering][d.id];
+            content += `<b>Fuzzy memberships</b>: ${fuzzyMemberships}
+            <br>${propertyString}`;
+        }
+    }
+    
+    tippy(node, {
+        allowHTML: true,
+        content: content,
+        arrow: true,
+        maxWidth: 'none',
+    });    
+}
+
 export function onStateMouseOver(node, d, trajectory, name) {    
 
     let content = "";

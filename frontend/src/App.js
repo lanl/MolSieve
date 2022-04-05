@@ -176,7 +176,7 @@ class App extends React.Component {
                             newTraj.chunkingThreshold = chunkingThreshold;                            
                             newTraj.simplifySet(chunkingThreshold);
                             newTraj.buildAdjacencyList();
-                            console.log(newTraj);
+                            
                             const removed = newTraj.set_colors(this.state.colors);
                             const newTrajectories = {
                                 ...this.state.trajectories,
