@@ -38,7 +38,6 @@ class App extends React.Component {
                      'fecddf', 'c27eb6', '8cd2ce', 'c4b8d9', 'f883b0', 'a49100', 'f48800',
                      '27d0df', 'a04a9b'],
             globalUniqueStates: new Map(),
-            anchorEl: null
         };
     }
 
@@ -54,20 +53,18 @@ class App extends React.Component {
         this.setState({ ...this.state, currentModal: key });
     };
 
-  selectRun = (e) => {
-    if(e.target.checked) {
+  selectRun = (v) => {
       this.setState({
-        run: e.target.value,
-        currentModal: RUN_MODAL,
-        lastEvent: e,
+        run: v,
+        currentModal: RUN_MODAL,        
       });
-    } else {
-      // can change behavior later
-      const trajectories = this.state.trajectories;
-      delete this.state.trajectories[e.target.value];
-      this.setState({trajectories: trajectories});
-    }
   };
+
+  removeRun = (v) => {
+    const trajectories = this.state.trajectories;
+    delete this.state.trajectories[v];
+    this.setState({trajectories: trajectories});
+  }
 
     /** Wrapper for the backend call in api.js */
     load_PCCA = (run, clusters, optimal, m_min, m_max, trajectory) => {
@@ -259,26 +256,30 @@ class App extends React.Component {
                          </Button> }
                     </Toolbar>
                 </AppBar>
-
-
-              <AjaxMenu                     
-                anchorEl={this.runListButton.current}
-                   api_call="/get_run_list"
-                   open={this.state.showRunList}
-                   handleClose={() => {this.setState({showRunList: !this.state.showRunList, anchorEl: null})}}
-                   click={(e) => {
-                     this.selectRun(e);
-                   }}
-               />   
-                
-                <VisGrid
-                    trajectories={this.state.trajectories}
-                    globalUniqueStates={this.state.globalUniqueStates}
-                    recalculate_clustering={this.recalculate_clustering}
-                    simplifySet={this.simplifySet}
-                    toggleDrawer={this.toggleDrawer}
-                    drawerOpen={this.state.drawerOpen}
-                />
+                <AjaxMenu                     
+                    anchorEl={this.runListButton.current}
+                    api_call="/get_run_list"
+                    open={this.state.showRunList}
+                    handleClose={() => {this.setState({showRunList: !this.state.showRunList, anchorEl: null})}}
+                    click={(e,v) => {
+                        this.setState({showRunList: !this.state.showRunList}, 
+                                      () => {
+                                          if(e.target.checked) {
+                                              this.selectRun(v);
+                                          } else {
+                                              this.removeRun(v);
+                                          }
+                                      });
+                    }}
+                />                   
+              <VisGrid
+                trajectories={this.state.trajectories}
+                globalUniqueStates={this.state.globalUniqueStates}
+                recalculate_clustering={this.recalculate_clustering}
+                simplifySet={this.simplifySet}
+                toggleDrawer={this.toggleDrawer}
+                drawerOpen={this.state.drawerOpen}
+              />
                 
             {this.state.currentModal === RUN_MODAL
                  && (
@@ -297,7 +298,7 @@ class App extends React.Component {
                 open={this.state.isLoading}
                 title={this.state.loadingMessage}
               />
-)}
+            )}
           </Box>
         );
     }

@@ -29,12 +29,20 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
 
     const [contextMenu, setContextMenu] = useState(null);
 
+    
+    
+    const [seperateTrajectories, setSeperateTrajectories] = useState(true);
+    
     const toggleSeperateTrajectories = () => {
         setSeperateTrajectories((prev) => !prev);
     };
-    
-    const [seperateTrajectories, setSeperateTrajectories] = useState(true);
 
+    const [showArrows, setArrows] = useState(true);
+
+    const toggleArrows = () => {
+        setArrows((prev) => !prev);
+    }
+    
     const openContext = (event) => {
         event.preventDefault();
         setContextMenu(
@@ -112,7 +120,25 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
         }
         
         // used for zooming https://gist.github.com/catherinekerr/b3227f16cebc8dd8beee461a945fb323
-     
+
+        const markerBoxWidth = 10;
+        const markerBoxHeight = 10;
+        const refX = markerBoxWidth / 2;
+        const refY = markerBoxHeight / 2;
+        const arrowPoints = [[0,0], [0,10], [10,5]];
+        
+        svg.append('defs')
+            .append('marker')
+            .attr('id', 'arrow')
+            .attr('viewBox', [0, 0, markerBoxWidth, markerBoxHeight])
+            .attr('refX', refX)
+            .attr('refY', refY)
+            .attr('markerWidth', markerBoxWidth)
+            .attr('markerHeight', markerBoxHeight)
+            .attr('orient', 'auto-start-reverse')
+            .append('path')
+            .attr('d', d3.line()(arrowPoints));
+        
         container = svg.append('g')
               .attr('id', 'container')
               .attr('transform', "translate(0,0)scale(1,1)");
@@ -132,6 +158,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                 return chunk.size;
             }));
         }
+
         // https://bl.ocks.org/mbostock/1062288 - collapsible tree
         // https://coppelia.io/2014/07/an-a-to-z-of-extra-features-for-the-d3-force-layout/
         // http://bl.ocks.org/samuelleach/5497403
@@ -155,7 +182,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
             if(seperateTrajectories) {
                 let {linkNodes, stateNodes, chunkNodes} = renderGraph(links, chunks, sSequence, l, g, c,
                                                                       name, colors, globalTimeScale, trajectory,
-                                                                      globalUniqueStates, setStateClicked, setStateHovered);                                                
+                                                                      globalUniqueStates, setStateClicked, setStateHovered, showArrows);                                                
                 
                 const sim = d3.forceSimulation([...chunks, ...sSequence])
                       .force("link", d3.forceLink(links).id(function(d) { return d.id; }))
@@ -241,8 +268,9 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
         //used to be run, width, height
     }, [width, height, trajectories, seperateTrajectories]);
 
-    useEffect(() => {
+    useEffect(() => {        
         if (ref) {
+            console.log(runs);
             apply_filters(trajectories, runs, globalUniqueStates, ref);
         }
         loadingCallback();
@@ -281,6 +309,12 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
         }        
     }, [stateHovered]);
 
+    useEffect(() => {
+        if(ref) {
+            d3.select(ref.current).selectAll("line").classed("arrowed", showArrows);
+        }
+    }, [showArrows])
+
     return (<div ref={divRef} onContextMenu={openContext}>
                 
                 {width && height && Object.keys(trajectories).length === Object.keys(runs).length
@@ -305,13 +339,22 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                         </ListItemIcon>
                         <ListItemText>Seperate trajectories</ListItemText>
                     </MenuItem>
+                    <MenuItem>
+                        <ListItemIcon>
+                            <Checkbox
+                                onChange={() => { toggleArrows(); }}
+                                checked={showArrows}                                
+                            />
+                        </ListItemIcon>
+                        <ListItemText>Show transition arrows</ListItemText>                
+                    </MenuItem>
                 </Menu>                            
             </div>);    
 }
 
-function renderGraph(links, chunks, sSequence, l, g, c, name, colors, timeScale, trajectory, globalUniqueStates, setStateClicked, setStateHovered) {    
+function renderGraph(links, chunks, sSequence, l, g, c, name, colors, timeScale, trajectory, globalUniqueStates, setStateClicked, setStateHovered, showArrows) {    
 
-    const linkNodes = l.selectAll("line").data(links).enter().append("line").attr("stroke-width", 1).attr("stroke", "black");    
+    const linkNodes = l.selectAll("line").data(links).enter().append("line").attr("stroke-width", 1).attr("stroke", "black").classed("arrowed", showArrows); 
     const stateNodes = g.selectAll('circle')
           .data(sSequence)
           .enter()

@@ -79,8 +79,7 @@ class VisGrid extends React.Component {
         this.setState({stateHovered: id, lastEventCaller: caller});
     }
 
-    setStateClicked = (state) => {
-        console.log(state);
+    setStateClicked = (state) => {        
         this.setState({stateClicked: state}, () => {
             this.toggleModal(SINGLE_STATE_MODAL)});
     }

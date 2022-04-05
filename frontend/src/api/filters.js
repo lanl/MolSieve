@@ -295,9 +295,9 @@ export function filter_transitions(trajectory, svg) {
 }
 
 export function apply_filters(trajectories, runs, globalUniqueStates, ref) {    
-
     // reset all values
     d3.select(ref.current).selectAll('*').attr("class", null).attr("opacity", 1.0);
+
     for (const [name, trajectory] of Object.entries(trajectories)) {             
         if (Object.keys(runs[name].filters).length > 0) {
             for (const k of Object.keys(runs[name].filters)) {

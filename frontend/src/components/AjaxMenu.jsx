@@ -40,7 +40,7 @@ class AjaxMenu extends React.Component {
     if (e.target.checked) {
       this.setState({clicked: [...this.state.clicked, e.target.value]}, () => {
         if (this.props.click) {
-          this.props.click(e, this.state.clicked);
+          this.props.click(e, e.target.value);
         }
       });            
     } else {
@@ -48,7 +48,7 @@ class AjaxMenu extends React.Component {
       newClicked.splice(newClicked.indexOf(e.target.value), 1);
       this.setState({clicked: newClicked}, () => {
         if (this.props.click) {
-          this.props.click(e, this.state.clicked);
+          this.props.click(e, e.target.value);
         }
       });            
     }
