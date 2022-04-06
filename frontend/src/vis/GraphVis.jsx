@@ -140,10 +140,16 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                   }
               });
 
-        const linkNodes = l.selectAll("line").data(links).enter().append("line").attr("stroke-width", '1').classed("arrowed", showArrows); 
+        const linkNodes = l.selectAll("path")
+              .data(links)
+              .join("path")
+              .attr("stroke-width", 1)
+              .attr("fill", "none")
+              .attr("stroke", function(d) {
+                  return colors[trajectory.idToCluster[d.target]];
+              }).classed("arrowed", showArrows); 
         
-        if(seperateTrajectories) {
-            linkNodes.attr("stroke", "black");                        
+        if(seperateTrajectories) {                      
             stateNodes.on('mouseover', function(_, d) {
                 if(!this.classList.contains("invisible")) {                    
                     onStateMouseOver(this, globalUniqueStates.get(d.id), trajectory, name);
@@ -156,9 +162,6 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                 }
             });
         } else {            
-            linkNodes.attr("stroke", function(d) {
-                return colors[trajectory.idToCluster[d.target]];
-            });
 
             stateNodes.on('mouseover', function(_, d) {
                 onStateMouseOverMultTraj(this, globalUniqueStates.get(d.id));
@@ -190,24 +193,19 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
         }
         
         // used for zooming https://gist.github.com/catherinekerr/b3227f16cebc8dd8beee461a945fb323
-
-        const markerBoxWidth = 10;
-        const markerBoxHeight = 10;
-        const refX = markerBoxWidth / 2;
-        const refY = markerBoxHeight / 2;
-        const arrowPoints = [[0,0], [0,10], [10,5]];
         
         svg.append('defs')
             .append('marker')
             .attr('id', 'arrow')
-            .attr('viewBox', [0, 0, markerBoxWidth, markerBoxHeight])
-            .attr('refX', refX)
-            .attr('refY', refY)
-            .attr('markerWidth', markerBoxWidth)
-            .attr('markerHeight', markerBoxHeight)
-            .attr('orient', 'auto-start-reverse')
+            .attr('viewBox','0 -5 10 10')
+            .attr('refX', 15)
+            .attr('refY', -1.5)
+            .attr('markerWidth', 6)
+            .attr('markerHeight', 6)
+            .attr('orient', 'auto')
+            .attr('fill', 'black')
             .append('path')
-            .attr('d', d3.line()(arrowPoints));
+            .attr('d', "M 0,-5L10,0L0,5");
         
         container = svg.append('g')
               .attr('id', 'container')
@@ -235,7 +233,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
         
         const globalTimeScale = d3.scaleLinear().range([10,125]).domain([0, Math.max(...chunkSizes)]);            
         const seen = [];        
-        let count = 0;
+        let count = 1;
         
         for (const [name, trajectory] of Object.entries(trajectories)) {            
             const chunks = JSON.parse(JSON.stringify(trajectory.simplifiedSequence.chunks));
@@ -258,16 +256,20 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                     inCommon.push(s.id);
                 }
             }
+
+
             
             if(seperateTrajectories) {
                 let {linkNodes, stateNodes, chunkNodes} = renderGraph(links, chunks, sSequence, l, g, c,
                                                                       name, colors, globalTimeScale, trajectory);                                                
+
+                // fix chunks to positions
                 
                 const sim = d3.forceSimulation([...chunks, ...sSequence])
                       .force("link", d3.forceLink(links).id(function(d) { return d.id; }))
                       .force("center", d3.forceCenter(count * 2 * width, count * 2 * height))
-                      .force("charge", d3.forceManyBody())
-                      .force("collide", d3.forceCollide().strength(10).radius((d) => {
+                      .force("charge", d3.forceManyBody().theta(0.6))
+                      .force("collide", d3.forceCollide().strength(5).radius((d) => {
                         if(d.size !== undefined && d.size !== null) {
                             return globalTimeScale(d.size);
                         } else {
@@ -279,21 +281,22 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                 count++;
                 
                 function ticked_single() {
-                    linkNodes
-                        .attr("x1", function(d) { return d.source.x; })
-                        .attr("y1", function(d) { return d.source.y; })
-                        .attr("x2", function(d) { return d.target.x; })
-                        .attr("y2", function(d) { return d.target.y; });
-
                     chunkNodes
                         .attr("cx", function(d) { return d.x; })
                         .attr("cy", function(d) { return d.y; });
                                 
                     stateNodes
                         .attr("cx", function(d) { return d.x; })
-                        .attr("cy", function(d) { return d.y; });       
-                }
-                
+                        .attr("cy", function(d) { return d.y; });
+
+                    linkNodes.attr("d", (d) => {
+                        const dx = d.target.x - d.source.x;
+                        const dy = d.target.y - d.source.y;
+                        const dr = Math.sqrt(dx * dx + dy * dy);
+                        
+                        return `M${d.source.x},${d.source.y}A${dr},${dr} 0 0,1 ${d.target.x},${d.target.y}`;
+                    })
+                }                
             } else {                
                 simulatedLinks = [...simulatedLinks, ...links];          
                 renderGraph(simulatedLinks, chunks, renderNow, l, g, c, name, colors, globalTimeScale, trajectory);                
