@@ -531,7 +531,7 @@ def pcca(run: str, clusters: int, optimal: int, m_min: int, m_max: int):
                                                           discrete=True,
                                                           trajectory=sequence,
                                                           getOccurrences=False)
-
+    matrix = m.copy()    
     gpcca = gp.GPCCA(np.array(m), z='LM', method='brandts')
 
     j = {}
@@ -585,7 +585,8 @@ def pcca(run: str, clusters: int, optimal: int, m_min: int, m_max: int):
             raise exception
 
     j.update({'sets': sets})
-    j.update({'fuzzy_memberships': fuzzy_memberships})
+    j.update({'fuzzy_memberships': fuzzy_memberships})    
+    j.update({'occurrence_matrix': matrix.to_numpy().tolist()})
     # j.update({'currentClustering': currentClustering});
     # TODO: add as metadata in vis
     # j.update({'dominant_eigenvalues': gpcca.dominant_eigenvalues.tolist()})

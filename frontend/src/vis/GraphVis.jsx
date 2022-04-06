@@ -55,6 +55,12 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
     const toggleShowNeighbors = () => {
         setShowNeighbors((prev) => !prev);
     }
+
+    const [showTransitionProb, setShowTransitionProb] = useState(true);
+
+    const toggleShowTransitionProb = () => {
+        setShowTransitionProb((prev) => !prev);
+    }
     
     const openContext = (event) => {
         event.preventDefault();
@@ -140,10 +146,10 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                   }
               });
 
+        
         const linkNodes = l.selectAll("path")
               .data(links)
               .join("path")
-              .attr("stroke-width", 1)
               .attr("fill", "none")
               .attr("stroke", function(d) {
                   return colors[trajectory.idToCluster[d.target]];
@@ -161,8 +167,13 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                     }
                 }
             });
-        } else {            
 
+            if(showTransitionProb) {
+                linkNodes.attr("opacity", (d) => {
+                    return trajectory.occurrenceMap.get(Math.abs(d.source)).get(Math.abs(d.target));
+                });
+            }
+        } else {            
             stateNodes.on('mouseover', function(_, d) {
                 onStateMouseOverMultTraj(this, globalUniqueStates.get(d.id));
                 // add follow path feature later
@@ -234,7 +245,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
         const globalTimeScale = d3.scaleLinear().range([10,125]).domain([0, Math.max(...chunkSizes)]);            
         const seen = [];        
         let count = 1;
-        
+
         for (const [name, trajectory] of Object.entries(trajectories)) {            
             const chunks = JSON.parse(JSON.stringify(trajectory.simplifiedSequence.chunks));
             const sSequence = JSON.parse(JSON.stringify(trajectory.simplifiedSequence.uniqueStates));
@@ -256,9 +267,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                     inCommon.push(s.id);
                 }
             }
-
-
-            
+       
             if(seperateTrajectories) {
                 let {linkNodes, stateNodes, chunkNodes} = renderGraph(links, chunks, sSequence, l, g, c,
                                                                       name, colors, globalTimeScale, trajectory);                                                
@@ -291,7 +300,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
 
                     linkNodes.attr("d", (d) => {
                         const dx = d.target.x - d.source.x;
-                        const dy = d.target.y - d.source.y;
+                        const dy = d.target.y - d.source.y;                        
                         const dr = Math.sqrt(dx * dx + dy * dy);
                         
                         return `M${d.source.x},${d.source.y}A${dr},${dr} 0 0,1 ${d.target.x},${d.target.y}`;
@@ -395,18 +404,31 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                     return (!adjacencyList.get(stateID).includes(d.id)) && d.id != stateID;
                 }).classed("neighborInvisible", true);
 
-                d3.select(ref.current).select(`#l_${name}`).selectAll('line').filter((d) => {                
+                d3.select(ref.current).select(`#l_${name}`).selectAll('path').filter((d) => {                
                     return d.source.id != stateID && d.target.id != stateID;
                 }).classed("neighborInvisible", true);
             }
         }
-        }, [stateHovered, showNeighbors]);
+    }, [stateHovered, runs, showNeighbors]);
 
     useEffect(() => {
         if(ref) {
-            d3.select(ref.current).selectAll("line").classed("arrowed", showArrows);
+            d3.select(ref.current).selectAll("path").classed("arrowed", showArrows);
         }
-    }, [showArrows])
+    }, [showArrows]);
+    
+    useEffect(() => {
+        if(showTransitionProb && seperateTrajectories && ref) {
+            for(const [name, trajectory] of Object.entries(trajectories)) {
+                d3.select(ref.current).select(`#l_${name}`).selectAll('path').attr("opacity", (d) => {
+                    // here it has to be id because the object has changed...
+                    return trajectory.occurrenceMap.get(Math.abs(d.source.id)).get(Math.abs(d.target.id));
+                });
+            }                                
+        } else {
+            d3.select(ref.current).selectAll('path').attr("opacity", 1.0);
+        }    
+    }, [showTransitionProb, seperateTrajectories]);
 
     useEffect(() => {
         if(ref) {
@@ -464,15 +486,26 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                     </MenuItem>
 
                     {!seperateTrajectories &&
+                         <MenuItem>
+                             <ListItemIcon>
+                                 <Checkbox
+                                     onChange={() => { toggleShowInCommon(); }}
+                                     checked={showInCommon}                                
+                                 />
+                             </ListItemIcon>
+                             <ListItemText>Show only states in common</ListItemText>                
+                         </MenuItem>
+                    }
+                    {seperateTrajectories &&
                      <MenuItem>
-                         <ListItemIcon>
-                             <Checkbox
-                                 onChange={() => { toggleShowInCommon(); }}
-                                 checked={showInCommon}                                
-                             />
-                         </ListItemIcon>
-                         <ListItemText>Show only states in common</ListItemText>                
-                     </MenuItem>
+                          <ListItemIcon>
+                              <Checkbox
+                                  onChange={() => { toggleShowTransitionProb(); }}
+                                  checked={showTransitionProb}                                
+                              />
+                          </ListItemIcon>
+                          <ListItemText>Set relation opacity to transition probability</ListItemText>                
+                      </MenuItem>
                     }
                 </Menu>                            
             </div>);    

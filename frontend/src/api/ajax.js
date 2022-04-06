@@ -54,11 +54,27 @@ export function api_loadPCCA(run, clusters, optimal, m_min, m_max, trajectory) {
                             ? new Trajectory()
                             : trajectory;
                     var clustered_data = response.data;
+
                     new_traj.optimal_cluster_value =
                         clustered_data.optimal_value;
                     new_traj.current_clustering = clustered_data.optimal_value;
                     new_traj.feasible_clusters =
                         clustered_data.feasible_clusters;
+                    new_traj.occurrenceMap = new Map();
+
+                    let count = 0;
+                    
+                    for (const list of clustered_data.occurrence_matrix) {
+                        const abTransitionProb = new Map();
+                        for(let i = 0; i < list.length; i++) {
+                            if (list[i] !== 0) {
+                                abTransitionProb.set(new_traj.uniqueStates[i], list[i]);
+                            }
+                        }
+                        new_traj.occurrenceMap.set(new_traj.uniqueStates[count], abTransitionProb);
+                        count++;
+                    }                    
+                    
                     for (var idx of new_traj.feasible_clusters) {
                         new_traj.clusterings[idx] = clustered_data.sets[idx];
                         new_traj.fuzzy_memberships[idx] =

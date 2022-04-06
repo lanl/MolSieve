@@ -1,35 +1,21 @@
 class Trajectory {
     // sequence is an array of ids that indexes into the globalUniqueState array
     sequence;
-    
     properties;
-
     // dict of id to cluster id
     idToCluster = {};
-
     optimal_cluster_value;
-
     feasible_clusters;
-
     clusterings = {};
-
     fuzzy_memberships = {};
-
     current_clustering;
-
     colors = [];
-
     raw;
-
     atom_properties;
-
     LAMMPSBootstrapScript;
-
     // contains sequence, unique states, chunks, and the links between each object
     simplifiedSequence;
-
     chunkingThreshold;
-
     adjacencyList = new Map();
     
     /** Loops through the sequence and applies the clustering to each state.
