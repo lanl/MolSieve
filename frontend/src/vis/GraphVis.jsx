@@ -244,11 +244,21 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
         
         const globalTimeScale = d3.scaleLinear().range([10,125]).domain([0, Math.max(...chunkSizes)]);            
         const seen = [];        
-        let count = 0;
+        const traj_gap = width;
+        const y_gap = height * 4;
+        let x_count = 0;
+        let y_count = 0;
+        
+        /* From docs:
+           For convenience, a link’s source and target properties may be initialized using numeric or string identifiers rather than object references; see link.id.
+           When the link force is initialized (or re-initialized, as when the nodes or links change), any link.source or link.target property which is not an object
+           is replaced by an object reference to the corresponding node with the given identifier.*/
+        
         for (const [name, trajectory] of Object.entries(trajectories)) {            
             const chunks = JSON.parse(JSON.stringify(trajectory.simplifiedSequence.chunks));
             const sSequence = JSON.parse(JSON.stringify(trajectory.simplifiedSequence.uniqueStates));
-            const links = JSON.parse(JSON.stringify(trajectory.simplifiedSequence.interleaved));            
+            const links = JSON.parse(JSON.stringify(trajectory.simplifiedSequence.interleaved));
+            
             const colors = trajectory.colors;            
             
             trajectory.name = name;
@@ -266,12 +276,30 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                     inCommon.push(s.id);
                 }
             }
-       
+            
             if(seperateTrajectories) {
                 let {linkNodes, stateNodes, chunkNodes} = renderGraph(links, chunks, sSequence, l, g, c,
                                                                       name, colors, globalTimeScale, trajectory);                                                
 
+                // fix chunks to positions
+                const centerChunk = Math.floor(chunks.length / 2);
+                const center_x = x_count * width + x_count * traj_gap;
+                const center_y = y_count * y_gap;
+                const chunk_gap = (width / chunks.length) + 125;
 
+                for(let c = 0; c < chunks.length; c++) {
+                    if(c == centerChunk) {
+                        chunks[c].fx = center_x;
+                    } else {
+                        if (c < centerChunk) {
+                            chunks[c].fx = center_x - ((centerChunk - c) * chunk_gap);
+                        } else {
+                            chunks[c].fx = center_x + ((c - centerChunk) * chunk_gap);
+                        }
+                    }
+                    chunks[c].fy = center_y;
+                }                
+                
                 const sim = d3.forceSimulation([...chunks, ...sSequence])
                       .force("link", d3.forceLink(links)
                              .id(function(d) { return d.id; })
@@ -280,7 +308,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                                  return d.transitionProb * 100;
                              })*/
                             )
-                      .force("center", d3.forceCenter(count * 2 * width, 0))
+                      .force("center", d3.forceCenter(center_x, center_y))
                       .force("charge", d3.forceManyBody().theta(0.6))
                       .force("collide", d3.forceCollide().strength(5).radius((d) => {
                         if(d.size !== undefined && d.size !== null) {
@@ -290,7 +318,12 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                         }                    
                     })).on('tick', ticked_single);
                 simulations.push(sim);
-                count++;
+                x_count++;
+
+                if(x_count === 3) {
+                    x_count = 0;
+                    y_count++;                    
+                }
                 
                 function ticked_single() {
                     chunkNodes

@@ -16,6 +16,7 @@ class Trajectory {
     // contains sequence, unique states, chunks, and the links between each object
     simplifiedSequence;
     chunkingThreshold;
+    uniqueStates;
     adjacencyList = new Map();
     occurrenceMap = new Map();
     /** Loops through the sequence and applies the clustering to each state.
@@ -117,7 +118,7 @@ class Trajectory {
         let j = 1;
 
         for(i; i < sorted.length - 1; i++) {
-            interleaved.push({"source": sorted[i].id , "target": sorted[j].id, transitionProb: this.occurrenceMap.get(Math.abs(sorted[i].id)).get(Math.abs(sorted[j].id)) });
+            interleaved.push({"source": sorted[i].id , "target": sorted[j].id, transitionProb: this.occurrenceMap.get(Math.abs(sorted[i].id)).get(Math.abs(sorted[j].id))});
             j++;
         }
 
