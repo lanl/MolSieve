@@ -17,7 +17,7 @@ class Trajectory {
     simplifiedSequence;
     chunkingThreshold;
     adjacencyList = new Map();
-    
+    occurrenceMap = new Map();
     /** Loops through the sequence and applies the clustering to each state.
      * Allows us to keep track of colorings and perform other calculations.
      */
@@ -117,7 +117,7 @@ class Trajectory {
         let j = 1;
 
         for(i; i < sorted.length - 1; i++) {
-            interleaved.push({"source": sorted[i].id, "target": sorted[j].id});
+            interleaved.push({"source": sorted[i].id , "target": sorted[j].id, transitionProb: this.occurrenceMap.get(Math.abs(sorted[i].id)).get(Math.abs(sorted[j].id)) });
             j++;
         }
 

@@ -60,14 +60,12 @@ export function api_loadPCCA(run, clusters, optimal, m_min, m_max, trajectory) {
                     new_traj.current_clustering = clustered_data.optimal_value;
                     new_traj.feasible_clusters =
                         clustered_data.feasible_clusters;
-                    new_traj.occurrenceMap = new Map();
 
-                    let count = 0;
-                    
+                    let count = 0;                    
                     for (const list of clustered_data.occurrence_matrix) {
                         const abTransitionProb = new Map();
                         for(let i = 0; i < list.length; i++) {
-                            if (list[i] !== 0) {
+                            if (list[i] > 0) {
                                 abTransitionProb.set(new_traj.uniqueStates[i], list[i]);
                             }
                         }

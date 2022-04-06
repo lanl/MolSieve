@@ -152,7 +152,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
               .join("path")
               .attr("fill", "none")
               .attr("stroke", function(d) {
-                  return colors[trajectory.idToCluster[d.target]];
+                  return colors[trajectory.idToCluster[Math.abs(d.target)]];
               }).classed("arrowed", showArrows); 
         
         if(seperateTrajectories) {                      
@@ -170,7 +170,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
 
             if(showTransitionProb) {
                 linkNodes.attr("opacity", (d) => {
-                    return trajectory.occurrenceMap.get(Math.abs(d.source)).get(Math.abs(d.target));
+                    return d.transitionProb;
                 });
             }
         } else {            
@@ -244,8 +244,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
         
         const globalTimeScale = d3.scaleLinear().range([10,125]).domain([0, Math.max(...chunkSizes)]);            
         const seen = [];        
-        let count = 1;
-
+        let count = 0;
         for (const [name, trajectory] of Object.entries(trajectories)) {            
             const chunks = JSON.parse(JSON.stringify(trajectory.simplifiedSequence.chunks));
             const sSequence = JSON.parse(JSON.stringify(trajectory.simplifiedSequence.uniqueStates));
@@ -272,11 +271,16 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                 let {linkNodes, stateNodes, chunkNodes} = renderGraph(links, chunks, sSequence, l, g, c,
                                                                       name, colors, globalTimeScale, trajectory);                                                
 
-                // fix chunks to positions
-                
+
                 const sim = d3.forceSimulation([...chunks, ...sSequence])
-                      .force("link", d3.forceLink(links).id(function(d) { return d.id; }))
-                      .force("center", d3.forceCenter(count * 2 * width, count * 2 * height))
+                      .force("link", d3.forceLink(links)
+                             .id(function(d) { return d.id; })
+                             /*.strength(function(d) {
+                                 console.log(d.transitionProb);
+                                 return d.transitionProb * 100;
+                             })*/
+                            )
+                      .force("center", d3.forceCenter(count * 2 * width, 0))
                       .force("charge", d3.forceManyBody().theta(0.6))
                       .force("collide", d3.forceCollide().strength(5).radius((d) => {
                         if(d.size !== undefined && d.size !== null) {
@@ -285,7 +289,6 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                             return 5;
                         }                    
                     })).on('tick', ticked_single);
-
                 simulations.push(sim);
                 count++;
                 
@@ -397,7 +400,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                                                                        d3.zoomIdentity.translate(width / 2 - midX, height / 2 - midY));
             }
 
-            if(!showNeighbors) {
+            if(!showNeighbors) {                
                 const adjacencyList = trajectories[name].adjacencyList;
 
                 d3.select(ref.current).select(`#g_${name}`).selectAll('circle').filter((d) => {
@@ -419,14 +422,11 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
     
     useEffect(() => {
         if(showTransitionProb && seperateTrajectories && ref) {
-            for(const [name, trajectory] of Object.entries(trajectories)) {
-                d3.select(ref.current).select(`#l_${name}`).selectAll('path').attr("opacity", (d) => {
-                    // here it has to be id because the object has changed...
-                    return trajectory.occurrenceMap.get(Math.abs(d.source.id)).get(Math.abs(d.target.id));
-                });
-            }                                
+            d3.select(ref.current).select('#links').selectAll('path').attr("opacity", (d) => {                
+                return d.transitionProb;                
+            });                                
         } else {
-            d3.select(ref.current).selectAll('path').attr("opacity", 1.0);
+            d3.select(ref.current).select('#links').selectAll('path').attr("opacity", 1.0);
         }    
     }, [showTransitionProb, seperateTrajectories]);
 
