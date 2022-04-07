@@ -13,12 +13,13 @@ class Trajectory {
     raw;
     atom_properties;
     LAMMPSBootstrapScript;
-    // contains sequence, unique states, chunks, and the links between each object
+    // contains sequence, unique states, chunks, and the links between each object -> should be a seperate object    
     simplifiedSequence;
     chunkingThreshold;
-    uniqueStates;
-    adjacencyList = new Map();
+    uniqueStates;    
     occurrenceMap = new Map();
+
+    
     /** Loops through the sequence and applies the clustering to each state.
      * Allows us to keep track of colorings and perform other calculations.
      */
@@ -59,28 +60,7 @@ class Trajectory {
             }
         }
     }
-
-    setAdjacencyList(curr, next) {
-        if(this.adjacencyList.has(curr)) {
-            const nodeList = this.adjacencyList.get(curr);
-            this.adjacencyList.set(curr, [...nodeList, next]);
-        } else {
-            this.adjacencyList.set(curr, [next]);
-        }
-    }
     
-    buildAdjacencyList() {
-        let i = 0;
-        let j = 1;
-        for(i; i < this.sequence.length - 1; i++) {
-            const curr = this.sequence[i];
-            const next = this.sequence[j];
-            this.setAdjacencyList(curr, next);
-            this.setAdjacencyList(next, curr);            
-            j++;
-        }
-    }
-
     simplifySet(chunkingThreshold) {
         const simplifiedSequence = [];        
         const chunks = [];
@@ -146,12 +126,10 @@ class Trajectory {
     }
     
     set_colors(colorArray) {
-        let i = 0;
-        
+        let i = 0;        
         for (i; i < Math.max(...this.feasible_clusters); i++) {
             this.colors.push(colorArray[i]);
         }
-
         return i;
     }
 }

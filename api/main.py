@@ -402,6 +402,12 @@ def load_sequence(run: str, properties: str):
     uniqueStateQuery = qb.generate_get_all_nodes(
         "State", node_attributes=uniqueStateAttributes, relation=run)
 
+
+    # could use this to get the occurrence counts, build the matrix and lots of other stuff
+    # uniqueRelationQuery = "MATCH (a:State)-[r:{run}]->(b:State) RETURN DISTINCT r ORDER BY r.timestep"
+    # for now though, it would mostly just waste more memory than its worth - length is not meaningful
+    # the only thing that could be worth skipping is whether or not states are symmetrical
+    
     run_md = get_metadata(run)
 
     j = {}

@@ -149,7 +149,6 @@ class App extends React.Component {
      * @param {Array<String>} properties - Properties of the trajectory to retrieve
      */
     load_trajectory = (run, clusters, optimal, m_min, m_max, properties, chunkingThreshold) => {
-
         this.load_sequence(run, properties)
             .then((data) => {
                 const newTraj = new Trajectory();
@@ -168,7 +167,6 @@ class App extends React.Component {
                             // could be an option
                             newTraj.chunkingThreshold = chunkingThreshold;                            
                             newTraj.simplifySet(chunkingThreshold);
-                            newTraj.buildAdjacencyList();
                             
                             const removed = newTraj.set_colors(this.state.colors);
                             const newTrajectories = {

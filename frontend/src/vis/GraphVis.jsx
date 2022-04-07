@@ -389,10 +389,10 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                 }
 
                 if(!showNeighbors) {                
-                    const adjacencyList = trajectories[name].adjacencyList;
+                    const occurrenceMap = trajectories[name].occurrenceMap;
 
                     d3.select(ref.current).select(`#g_${name}`).selectAll('circle').filter((d) => {
-                        return (!adjacencyList.get(stateID).includes(d.id)) && d.id != stateID;
+                        return (!occurrenceMap.get(stateID).has(d.id)) && d.id != stateID;
                     }).classed("neighborInvisible", true);
 
                     d3.select(ref.current).select(`#l_${name}`).selectAll('path').filter((d) => {                
