@@ -55,7 +55,7 @@ class Trajectory {
 
         if (newClustering > 0) {
             for (let i = 0; i < howMany; i++) {
-                this.colors.push(`#${colorArray[i]}`);
+                this.colors.push(colorArray[i]);
             }
         }
     }
@@ -149,7 +149,7 @@ class Trajectory {
         let i = 0;
         
         for (i; i < Math.max(...this.feasible_clusters); i++) {
-            this.colors.push(`#${colorArray[i]}`);
+            this.colors.push(colorArray[i]);
         }
 
         return i;

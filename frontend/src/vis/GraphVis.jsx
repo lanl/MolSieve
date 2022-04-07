@@ -6,6 +6,7 @@ import '../css/vis.css';
 import { onStateMouseOver, onChunkMouseOver, onStateMouseOverMultTraj } from '../api/myutils';
 import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
 import {apply_filters} from '../api/filters';
+import { useSnackbar } from 'notistack';
 
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
@@ -13,13 +14,13 @@ import ListItemText from '@mui/material/ListItemText';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import Checkbox from '@mui/material/Checkbox';
 
-let globalLinkNodes = null;
-let globalChunkNodes = null;
-let globalStateNodes = null;
+import ProgressBox from '../components/ProgressBox';
+import WorkerBuilder from "../api/worker-builder";
+import SimulationWorker from "../api/simulation";
 
 let container = null;
 let zoom = null;
-const simulations = [];
+const trajRendered = {};
 
 function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStateClicked, setStateHovered, loadingCallback }) {
 
@@ -28,13 +29,20 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
     const [height, setHeight] = useState();        
 
     const [contextMenu, setContextMenu] = useState(null);
-       
-    const [seperateTrajectories, setSeperateTrajectories] = useState(true);
+
+    const [progressDict, setProgressDict] = useState({});
+    
+    const [seperateTrajectories, setSeperateTrajectories] = useState(false);
     const [inCommon, setInCommon] = useState([]);
     const [showInCommon, setShowInCommon] = useState(false);
 
     const toggleShowInCommon = () => {
         setShowInCommon((prev) => !prev);
+    }
+
+    const setTrajProgress = (name, progressVal) => {
+        progressDict[name] = progressVal;
+        setProgressDict(progressDict);
     }
     
     const toggleSeperateTrajectories = () => {
@@ -43,7 +51,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
             setShowInCommon(false);
         }
     };
-
+   
     const [showArrows, setArrows] = useState(true);
 
     const toggleArrows = () => {
@@ -61,6 +69,8 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
     const toggleShowTransitionProb = () => {
         setShowTransitionProb((prev) => !prev);
     }
+
+    const { enqueueSnackbar, closeSnackbar } = useSnackbar();
     
     const openContext = (event) => {
         event.preventDefault();
@@ -86,22 +96,6 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
         const newHeight = divRef.current.parentElement.clientHeight;
         setHeight(newHeight);
     };
-
-    const ticked = () => {
-        globalLinkNodes
-            .attr("x1", function(d) { return d.source.x; })
-            .attr("y1", function(d) { return d.source.y; })
-            .attr("x2", function(d) { return d.target.x; })
-            .attr("y2", function(d) { return d.target.y; });
-
-        globalChunkNodes
-            .attr("cx", function(d) { return d.x; })
-            .attr("cy", function(d) { return d.y; });
-                                
-        globalStateNodes
-            .attr("cx", function(d) { return d.x; })
-            .attr("cy", function(d) { return d.y; });        
-    }
     
     useEffect(() => {
         resize();
@@ -152,7 +146,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
               .join("path")
               .attr("fill", "none")
               .attr("stroke", function(d) {
-                  return colors[trajectory.idToCluster[Math.abs(d.target)]];
+                  return colors[trajectory.idToCluster[Math.abs(d.target.id)]];
               }).classed("arrowed", showArrows); 
         
         if(seperateTrajectories) {                      
@@ -192,14 +186,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
         }
         // clear so we don't draw over-top and cause insane lag        
         
-        if (!svg.empty()) {            
-            for(const sim of simulations) {
-                sim.force("link").links([]);
-                delete sim.nodes();                
-                sim.nodes([]);                
-                sim.stop();
-            }           
-            simulations.splice(0, simulations.length);            
+        if (!svg.empty()) {                   
             svg.selectAll('*').remove();            
         }
         
@@ -221,13 +208,11 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
         container = svg.append('g')
               .attr('id', 'container')
               .attr('transform', "translate(0,0)scale(1,1)");
-        
+
         const linkGroup = container.append('g').attr('id', 'links');
         const importantGroup = container.append('g').attr('id', 'important');
         const chunkGroup = container.append('g').attr('id', 'chunk');
        
-        let simulated = [];
-        let simulatedLinks = [];
         let chunkSizes = [];
 
         // always global; option
@@ -243,135 +228,101 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
         // http://bl.ocks.org/samuelleach/5497403
         
         const globalTimeScale = d3.scaleLinear().range([10,125]).domain([0, Math.max(...chunkSizes)]);            
-        const seen = [];        
-        const traj_gap = width;
-        const y_gap = height * 4;
+        const seen = [];                       
         let x_count = 0;
         let y_count = 0;
         
-        /* From docs:
-           For convenience, a link’s source and target properties may be initialized using numeric or string identifiers rather than object references; see link.id.
-           When the link force is initialized (or re-initialized, as when the nodes or links change), any link.source or link.target property which is not an object
-           is replaced by an object reference to the corresponding node with the given identifier.*/
-        
         for (const [name, trajectory] of Object.entries(trajectories)) {            
-            const chunks = JSON.parse(JSON.stringify(trajectory.simplifiedSequence.chunks));
-            const sSequence = JSON.parse(JSON.stringify(trajectory.simplifiedSequence.uniqueStates));
-            const links = JSON.parse(JSON.stringify(trajectory.simplifiedSequence.interleaved));
-            
+            let chunks = JSON.parse(JSON.stringify(trajectory.simplifiedSequence.chunks));
+            let sSequence = JSON.parse(JSON.stringify(trajectory.simplifiedSequence.uniqueStates));
+            let links = JSON.parse(JSON.stringify(trajectory.simplifiedSequence.interleaved));            
             const colors = trajectory.colors;            
-            
+        
             trajectory.name = name;
-            
-            const l = linkGroup.append("g").attr('id', `l_${name}`);                                   
-            const g = importantGroup.append('g').attr('id', `g_${name}`);      
-            const c = chunkGroup.append('g').attr('id', `c_${name}`);            
-
-            let renderNow = [];                
+   
             for(const s of sSequence) {
-                if(!seen.includes(s.id)) {                        
-                    renderNow.push(s);
+                if(!seen.includes(s.id)) {
                     seen.push(s.id);                        
                 } else {
                     inCommon.push(s.id);
                 }
             }
-            
-            if(seperateTrajectories) {
-                let {linkNodes, stateNodes, chunkNodes} = renderGraph(links, chunks, sSequence, l, g, c,
-                                                                      name, colors, globalTimeScale, trajectory);                                                
 
-                // fix chunks to positions
-                const centerChunk = Math.floor(chunks.length / 2);
-                const center_x = x_count * width + x_count * traj_gap;
-                const center_y = y_count * y_gap;
-                const chunk_gap = (width / chunks.length) + 125;
+            // make in common a pairing between multiple trajectories (or even smarter datastructure, something like a venn diagram)
+            // if seperateTrajectories, clone these commonalities                                                          
 
-                for(let c = 0; c < chunks.length; c++) {
-                    if(c == centerChunk) {
-                        chunks[c].fx = center_x;
-                    } else {
-                        if (c < centerChunk) {
-                            chunks[c].fx = center_x - ((centerChunk - c) * chunk_gap);
-                        } else {
-                            chunks[c].fx = center_x + ((c - centerChunk) * chunk_gap);
-                        }
-                    }
-                    chunks[c].fy = center_y;
-                }                
+            const simulationWorker = new WorkerBuilder(SimulationWorker);
+               
+            trajRendered[name] = false;
+            setTrajProgress(name, 0);                
+            enqueueSnackbar((<ProgressBox name={name} progress={progressDict[name]}/>), {key: name, persist: true, preventDuplicate: true});
                 
-                const sim = d3.forceSimulation([...chunks, ...sSequence])
-                      .force("link", d3.forceLink(links)
-                             .id(function(d) { return d.id; })
-                             /*.strength(function(d) {
-                                 console.log(d.transitionProb);
-                                 return d.transitionProb * 100;
-                             })*/
-                            )
-                      .force("center", d3.forceCenter(center_x, center_y))
-                      .force("charge", d3.forceManyBody().theta(0.6))
-                      .force("collide", d3.forceCollide().strength(5).radius((d) => {
-                        if(d.size !== undefined && d.size !== null) {
-                            return globalTimeScale(d.size);
-                        } else {
-                            return 5;
-                        }                    
-                    })).on('tick', ticked_single);
-                simulations.push(sim);
-                x_count++;
+            simulationWorker.postMessage({
+                chunks: chunks,
+                sSequence: sSequence,
+                links: links,
+                x_count: x_count,
+                y_count: y_count,
+                width: width,
+                height: height,
+                maxChunkSize: globalTimeScale(Math.max(...chunkSizes))
+            });
 
-                if(x_count === 3) {
-                    x_count = 0;
-                    y_count++;                    
+            simulationWorker.onmessage = function(event) {
+                switch (event.data.type) {
+                case "tick": return progress_ticked(event.data);
+                case "end": return ended(event.data);                        
                 }
-                
-                function ticked_single() {
-                    chunkNodes
-                        .attr("cx", function(d) { return d.x; })
-                        .attr("cy", function(d) { return d.y; });
-                                
-                    stateNodes
-                        .attr("cx", function(d) { return d.x; })
-                        .attr("cy", function(d) { return d.y; });
-
-                    linkNodes.attr("d", (d) => {
-                        const dx = d.target.x - d.source.x;
-                        const dy = d.target.y - d.source.y;                        
-                        const dr = Math.sqrt(dx * dx + dy * dy);
-                        
-                        return `M${d.source.x},${d.source.y}A${dr},${dr} 0 0,1 ${d.target.x},${d.target.y}`;
-                    })
-                }                
-            } else {                
-                simulatedLinks = [...simulatedLinks, ...links];          
-                renderGraph(simulatedLinks, chunks, renderNow, l, g, c, name, colors, globalTimeScale, trajectory);                
-                simulated = [...simulated, ...chunks, ...renderNow];
             }
-        }                
 
+            x_count++;
+
+            if(x_count === 3) {
+                x_count = 0;
+                y_count++;                    
+            }
+
+            function progress_ticked(data) {                    
+                setTrajProgress(name,data.progress * 100);
+            }
+
+            function ended(data) {
+                sSequence = data.sSequence;
+                chunks = data.chunks;
+                links = data.links;
+                
+                trajRendered[name] = true;
+
+                const l = linkGroup.append("g").attr('id', `l_${name}`);                                   
+                const g = importantGroup.append('g').attr('id', `g_${name}`);      
+                const c = chunkGroup.append('g').attr('id', `c_${name}`);            
+                    
+                let {linkNodes, stateNodes, chunkNodes} = renderGraph(links, chunks, sSequence, l, g, c, name, colors, globalTimeScale, trajectory);
+                
+                chunkNodes
+                    .attr("cx", function(d) { return d.x; })
+                    .attr("cy", function(d) { return d.y; });
+                                
+                stateNodes
+                    .attr("cx", function(d) { return d.x; })
+                    .attr("cy", function(d) { return d.y; });
+
+                linkNodes.attr("d", (d) => {
+                    const dx = d.target.x - d.source.x;
+                    const dy = d.target.y - d.source.y;                        
+                    const dr = Math.sqrt(dx * dx + dy * dy);
+                        
+                    return `M${d.source.x},${d.source.y}A${dr},${dr} 0 0,1 ${d.target.x},${d.target.y}`;
+                });
+                closeSnackbar(name);       
+            }                
+        }
+                   
         // the trick to zooming like this is to move the container without moving the SVG's viewport
         
         zoom = d3.zoom().on('zoom', function(e) {
             container.attr("transform", e.transform);  
         });
-
-        if(!seperateTrajectories) {                       
-            globalLinkNodes = linkGroup.selectAll('line');
-            globalStateNodes = importantGroup.selectAll('circle');
-            globalChunkNodes = chunkGroup.selectAll('circle');            
-
-            d3.forceSimulation(simulated)
-                .force("link", d3.forceLink(simulatedLinks).id(function(d) { return d.id; }))
-                .force("charge", d3.forceManyBody())
-                .force("collide", d3.forceCollide().strength(10).radius((d) => {
-                    if(d.size !== undefined && d.size !== null) {
-                        return globalTimeScale(d.size);
-                    } else {
-                        return 5;
-                    }                    
-                }))
-                .on('tick', ticked);
-        }
 
         // set default view for SVG
         const bbox = container.node().getBBox();
@@ -382,9 +333,11 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
         const defaultView = `${vx} ${vy} ${vw} ${vh}`;        
 
         svg.attr("viewBox", defaultView).attr("preserveAspectRatio", "xMidYMid meet").call(zoom);
+
         setInCommon(inCommon);
         loadingCallback();
-        
+
+         
     }, [width, height, trajectories, seperateTrajectories]);
 
     useEffect(() => {        
@@ -400,49 +353,52 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                         
             const {caller, name, stateID} = stateHovered;
 
-            const prevSelect = d3.select(ref.current)
-                  .selectAll('.highlightedState');
+            if(trajRendered[name]) {
+                const prevSelect = d3.select(ref.current)
+                      .selectAll('.highlightedState');
 
-            if(!prevSelect.empty()) {
-                prevSelect.classed("highlightedState", false);                
-            }
+                if(!prevSelect.empty()) {
+                    prevSelect.classed("highlightedState", false);                
+                }
 
-            const prevHidden = d3.select(ref.current).selectAll('.neighborInvisible');
+                const prevHidden = d3.select(ref.current).selectAll('.neighborInvisible');
             
-            if(!prevHidden.empty()) {
-                prevHidden.classed("neighborInvisible", false);
-            }
+                if(!prevHidden.empty()) {
+                    prevHidden.classed("neighborInvisible", false);
+                }
 
-            const select = d3.select(ref.current).select(`#g_${name}`).select(`#node_${stateID}`);
-            select.classed("highlightedState", true);
             
-            if(caller.nodeName !== "circle") {
-                const node = select.node();
-                const bbox = node.getBBox();
-                const bx = bbox.x;
-                const by = bbox.y;
-                const bw = bbox.width;
-                const bh = bbox.height;
+                const select = d3.select(ref.current).select(`#g_${name}`).select(`#node_${stateID}`);
+                select.classed("highlightedState", true);
+            
+                if(caller.nodeName !== "circle") {
+                    const node = select.node();
+                    const bbox = node.getBBox();
+                    const bx = bbox.x;
+                    const by = bbox.y;
+                    const bw = bbox.width;
+                    const bh = bbox.height;
 
-                // get middle of object
-                const midX = bx + bw / 2;
-                const midY = by + bh / 2;
+                    // get middle of object
+                    const midX = bx + bw / 2;
+                    const midY = by + bh / 2;
 
-                //translate the middle of our view-port to that position    
-                d3.select(ref.current).transition().duration(500).call(zoom.transform,
+                    //translate the middle of our view-port to that position    
+                    d3.select(ref.current).transition().duration(500).call(zoom.transform,
                                                                        d3.zoomIdentity.translate(width / 2 - midX, height / 2 - midY));
-            }
+                }
 
-            if(!showNeighbors) {                
-                const adjacencyList = trajectories[name].adjacencyList;
+                if(!showNeighbors) {                
+                    const adjacencyList = trajectories[name].adjacencyList;
 
-                d3.select(ref.current).select(`#g_${name}`).selectAll('circle').filter((d) => {
-                    return (!adjacencyList.get(stateID).includes(d.id)) && d.id != stateID;
-                }).classed("neighborInvisible", true);
+                    d3.select(ref.current).select(`#g_${name}`).selectAll('circle').filter((d) => {
+                        return (!adjacencyList.get(stateID).includes(d.id)) && d.id != stateID;
+                    }).classed("neighborInvisible", true);
 
-                d3.select(ref.current).select(`#l_${name}`).selectAll('path').filter((d) => {                
-                    return d.source.id != stateID && d.target.id != stateID;
-                }).classed("neighborInvisible", true);
+                    d3.select(ref.current).select(`#l_${name}`).selectAll('path').filter((d) => {                
+                        return d.source.id != stateID && d.target.id != stateID;
+                    }).classed("neighborInvisible", true);
+                }
             }
         }
     }, [stateHovered, runs, showNeighbors]);
@@ -454,18 +410,20 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
     }, [showArrows]);
     
     useEffect(() => {
-        if(showTransitionProb && seperateTrajectories && ref) {
-            d3.select(ref.current).select('#links').selectAll('path').attr("opacity", (d) => {                
-                return d.transitionProb;                
-            });                                
-        } else {
-            d3.select(ref.current).select('#links').selectAll('path').attr("opacity", 1.0);
-        }    
+        if(ref) {
+            if(showTransitionProb && seperateTrajectories) {
+                d3.select(ref.current).select('#links').selectAll('path').attr("opacity", (d) => {                
+                    return d.transitionProb;                
+                });                                
+            } else {
+                d3.select(ref.current).select('#links').selectAll('path').attr("opacity", 1.0);
+            }
+        }
     }, [showTransitionProb, seperateTrajectories]);
 
     useEffect(() => {
         if(ref) {
-            if(!seperateTrajectories && showInCommon) {
+            if(showInCommon) {
                 d3.select(ref.current).selectAll("circle").filter((d) => {
                     return !inCommon.includes(d.id);
                 }).classed("inCommonInvisible", true);
@@ -475,7 +433,8 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
         }
     }, [showInCommon, seperateTrajectories]);
     
-    return (<div ref={divRef} onContextMenu={openContext}>
+    return (
+            <div ref={divRef} onContextMenu={openContext}>
                 
                 {width && height && Object.keys(trajectories).length === Object.keys(runs).length
                  && <svg id="svg_nodes" ref={ref} viewBox={[0,0,width,height]}/>}
@@ -518,7 +477,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                         <ListItemText>Show neighbors</ListItemText>                
                     </MenuItem>
 
-                    {!seperateTrajectories &&
+
                          <MenuItem>
                              <ListItemIcon>
                                  <Checkbox
@@ -528,7 +487,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                              </ListItemIcon>
                              <ListItemText>Show only states in common</ListItemText>                
                          </MenuItem>
-                    }
+                    
                     {seperateTrajectories &&
                      <MenuItem>
                           <ListItemIcon>
@@ -543,5 +502,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                 </Menu>                            
             </div>);    
 }
+
+
 
 export default GraphVis;
