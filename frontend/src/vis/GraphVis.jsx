@@ -13,10 +13,7 @@ import MenuItem from '@mui/material/MenuItem';
 import ListItemText from '@mui/material/ListItemText';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import Checkbox from '@mui/material/Checkbox';
-
 import ProgressBox from '../components/ProgressBox';
-import WorkerBuilder from "../api/worker-builder";
-import SimulationWorker from "../api/simulation";
 
 let container = null;
 let zoom = null;
@@ -29,20 +26,15 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
     const [height, setHeight] = useState();        
 
     const [contextMenu, setContextMenu] = useState(null);
-
-    const [progressDict, setProgressDict] = useState({});
     
     const [seperateTrajectories, setSeperateTrajectories] = useState(false);
     const [inCommon, setInCommon] = useState([]);
     const [showInCommon, setShowInCommon] = useState(false);
 
+    const [progressVal, setProgress] = useState(0);
+    
     const toggleShowInCommon = () => {
         setShowInCommon((prev) => !prev);
-    }
-
-    const setTrajProgress = (name, progressVal) => {
-        progressDict[name] = progressVal;
-        setProgressDict(progressDict);
     }
     
     const toggleSeperateTrajectories = () => {
@@ -53,25 +45,21 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
     };
    
     const [showArrows, setArrows] = useState(true);
-
     const toggleArrows = () => {
         setArrows((prev) => !prev);
     }
 
-    const [showNeighbors, setShowNeighbors] = useState(true);
-
+    const [showNeighbors, setShowNeighbors] = useState(true);         
     const toggleShowNeighbors = () => {
         setShowNeighbors((prev) => !prev);
     }
 
     const [showTransitionProb, setShowTransitionProb] = useState(true);
-
     const toggleShowTransitionProb = () => {
         setShowTransitionProb((prev) => !prev);
     }
 
     const { enqueueSnackbar, closeSnackbar } = useSnackbar();
-    
     const openContext = (event) => {
         event.preventDefault();
         setContextMenu(
@@ -251,12 +239,11 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
             // make in common a pairing between multiple trajectories (or even smarter datastructure, something like a venn diagram)
             // if seperateTrajectories, clone these commonalities                                                          
 
-            const simulationWorker = new WorkerBuilder(SimulationWorker);
-               
-            trajRendered[name] = false;
-            setTrajProgress(name, 0);                
-            enqueueSnackbar((<ProgressBox name={name} progress={progressDict[name]}/>), {key: name, persist: true, preventDuplicate: true});
-                
+            const simulationWorker = new Worker(new URL ('workers/force_directed_simulation.js', import.meta.url));
+            
+            trajRendered[name] = false;            
+            enqueueSnackbar((<ProgressBox name={name} progressVal={progressVal}/>), {key: name, persist: true, preventDuplicate: true});
+            
             simulationWorker.postMessage({
                 chunks: chunks,
                 sSequence: sSequence,
@@ -267,23 +254,20 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                 height: height,
                 maxChunkSize: globalTimeScale(Math.max(...chunkSizes))
             });
-
-            simulationWorker.onmessage = function(event) {
-                switch (event.data.type) {
-                case "tick": return progress_ticked(event.data);
-                case "end": return ended(event.data);                        
+  
+            simulationWorker.onmessage = (event) => {
+                if (event.data.type == "tick") {
+                    setProgress(event.data.progress * 100);
+                }  else {
+                    return ended(event.data);                       
                 }
             }
-
+                       
             x_count++;
 
             if(x_count === 3) {
                 x_count = 0;
                 y_count++;                    
-            }
-
-            function progress_ticked(data) {                    
-                setTrajProgress(name,data.progress * 100);
             }
 
             function ended(data) {
