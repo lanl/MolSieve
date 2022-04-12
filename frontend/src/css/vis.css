@@ -2,6 +2,10 @@
     stroke: black;
 }
 
+.nodeInCommon {
+    fill: black;
+}
+
 .strongly_unstable {
     fill: red          
 }
