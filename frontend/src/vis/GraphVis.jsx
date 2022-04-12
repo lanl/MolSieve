@@ -94,7 +94,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
         window.addEventListener('resize', resize());
     }, []);
     
-    const renderGraph = (links, chunks, sSequence, l, g, c, name, timeScale, trajectory) => {
+    const renderGraph = (links, chunks, sSequence, l, g, c, name, trajectory) => {
 
         const colors = trajectory.colors;
         
@@ -126,7 +126,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
               .enter()
               .append('circle')                
               .attr('r', (d) => {
-                  return timeScale(d.size);
+                  return d.size;
               }).attr('fill', function(d) {
                   return trajectory.colors[trajectory.idToCluster[-d.id]];
               }).on('mouseover', function(_, d) {
@@ -193,7 +193,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
         // always global; option
         for (const trajectory of Object.values(trajectories)) {                        
             chunkSizes.push(...trajectory.simplifiedSequence.chunks.map((chunk) => {
-                chunk.size = (chunk.last - chunk.timestep);
+                chunk.size = (chunk.last - chunk.timestep);                
                 return chunk.size;
             }));
         }
@@ -202,7 +202,13 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
         // https://coppelia.io/2014/07/an-a-to-z-of-extra-features-for-the-d3-force-layout/
         // http://bl.ocks.org/samuelleach/5497403
         
-        const globalTimeScale = d3.scaleLinear().range([10,125]).domain([0, Math.max(...chunkSizes)]);            
+        const globalTimeScale = d3.scaleLinear().range([10,125]).domain([0, Math.max(...chunkSizes)]);
+        for (const trajectory of Object.values(trajectories)) {                        
+            for(const c of trajectory.simplifiedSequence.chunks) {
+                c.size = globalTimeScale(c.size);
+            }
+        }
+        
         const seen = [];                       
         let x_count = 0;
         let y_count = 0;
@@ -263,7 +269,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                     const g = importantGroup.append('g').attr('id', `g_${name}`);      
                     const c = chunkGroup.append('g').attr('id', `c_${name}`);
 
-                    let { stateNodes, chunkNodes, linkNodes } = renderGraph(simulatedLinks, simulatedChunks, simulatedStates, l, g, c, name, globalTimeScale, trajectory);
+                    let { stateNodes, chunkNodes, linkNodes } = renderGraph(simulatedLinks, simulatedChunks, simulatedStates, l, g, c, name, trajectory);
 
                     stateNodes
                         .attr("cx", function(d) { return d.x; })
@@ -357,7 +363,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                         }
                     }
                                         
-                    let { stateNodes, chunkNodes, linkNodes } = renderGraph(links, chunks, renderNow, l, g, c, name, globalTimeScale, trajectory);
+                    let { stateNodes, chunkNodes, linkNodes } = renderGraph(links, chunks, renderNow, l, g, c, name, trajectory);
                     
                     stateNodes
                         .attr("cx", function(d) { return globalSequenceMap.get(d.id).x; })
