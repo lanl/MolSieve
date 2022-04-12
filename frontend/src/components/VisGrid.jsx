@@ -13,6 +13,7 @@ import {
     filter_relationship,
     filter_chunks,
 } from "../api/filters";
+
 import FilterComponent from "../components/FilterComponent";
 import Slider from "@mui/material/Slider";
 import Button from "@mui/material/Button";
@@ -22,11 +23,15 @@ import DialogTitle from "@mui/material/DialogTitle";
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 
+import Accordion from '@mui/material/Accordion';
+import AccordionSummary from '@mui/material/AccordionSummary';
+import AccordionDetails from '@mui/material/AccordionDetails';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+
+
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
 import ListItemText from '@mui/material/ListItemText';
-import ListSubheader from '@mui/material/ListSubheader';
-import Divider from '@mui/material/Divider';
 
 import Drawer from "@mui/material/Drawer";
 import Box from "@mui/material/Box";
@@ -313,17 +318,22 @@ class VisGrid extends React.Component {
     renderControls = (runs) => {
         return runs.map((run) => {
             return (
-                <List key={run}>
-                    <ListSubheader color="primary">{run}{" "}
-                        <Button size="small" variant="outlined"
-                            onClick={() => {
-                                this.setState({ currentRun: run }, () => {
-                                    this.toggleModal(METADATA_MODAL);   
-                                });
-                            }}>
-                        Display metadata
-                        </Button>
-                    </ListSubheader>                    
+                <Accordion key={run}>
+                    <AccordionSummary
+                        expandIcon={<ExpandMoreIcon />}
+                    >{run}</AccordionSummary>
+                    <AccordionDetails>
+                    <List>
+                        <ListItem>
+                            <Button size="small" variant="outlined"
+                                    onClick={() => {
+                                        this.setState({ currentRun: run }, () => {
+                                            this.toggleModal(METADATA_MODAL);   
+                                        });
+                                    }}>
+                                Display metadata
+                            </Button>                            
+                        </ListItem>
                     <ListItem>
                     <Slider
                         step={1}
@@ -497,7 +507,7 @@ class VisGrid extends React.Component {
                     <ListItem>
                         <Button
                             size="small"
-                            variant="outlined"
+                            variant="outlined"                           
                             onClick={() => {
                                 this.setState({
                                     ...this.state,
@@ -524,8 +534,10 @@ class VisGrid extends React.Component {
                             Generate x-y plot with attribute
                         </Button>
                     </ListItem>
-                    <Divider />
-                </List>
+
+                    </List>
+                    </AccordionDetails>                    
+                </Accordion>
             );
         });
     };
@@ -542,7 +554,7 @@ class VisGrid extends React.Component {
                 {safe && (
                     <Drawer anchor="right" variant="persistent" onClose={this.props.toggleDrawer} open={this.props.drawerOpen}>
                         {safe && controls}
-                        <Button color="error" size="small" variant="contained" onClick={() => {
+                        <Button color="secondary" size="small" variant="contained" onClick={() => {
                                     this.props.toggleDrawer();
                                 }}>
                         Close</Button>
@@ -552,7 +564,8 @@ class VisGrid extends React.Component {
                                              open={this.state.isLoading}
                                              title="Rendering..."/> }
 
-                {safe && (<Paper sx={{position: 'absolute', bottom: 0, width: '25%', height: '25%', 'background-color': 'white'}}>                              
+                {safe &&
+                 (<Paper sx={{position: 'absolute', bottom: 0, width: '25%', height: '25%'}}>                              
                               <TrajectoryChart
                                   trajectories={this.props.trajectories}
                                   globalUniqueStates={this.props.globalUniqueStates}
@@ -563,8 +576,8 @@ class VisGrid extends React.Component {
                                   stateHovered={this.state.stateHovered}
                                   lastEventCaller={this.state.lastEventCaller}
                               ></TrajectoryChart>
-
-                          </Paper>
+                      
+                  </Paper>
                          )}
                 
                 {safe &&

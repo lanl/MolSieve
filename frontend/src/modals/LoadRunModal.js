@@ -158,7 +158,7 @@ class LoadRunModal extends React.Component {
                         <Button
                             size="small"
                             variant="contained"
-                            color="error"
+                            color="secondary"
                             onClick={() => {
                                 this.closeFunc(true);
                             }}

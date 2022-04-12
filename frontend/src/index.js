@@ -7,17 +7,32 @@ import '@fontsource/roboto/400.css';
 import '@fontsource/roboto/500.css';
 import '@fontsource/roboto/700.css';
 import { SnackbarProvider } from 'notistack';
+import { ThemeProvider, createTheme } from '@mui/material/styles';
+
+const theme = createTheme({
+    palette: {
+        type: 'light',
+        primary: {
+            main: '#000000',
+        },
+        secondary: {
+            main: '#484848',
+        },
+  },
+});
 
 ReactDOM.render(
   <React.StrictMode>
       <script src="https://ssvg.io/ssvg-auto.js" />
-      <SnackbarProvider
-          anchorOrigin={{
-              vertical: 'top',
-              horizontal: 'center',
-          }}>
-          <App />
-      </SnackbarProvider>
+      <ThemeProvider theme={theme}>
+          <SnackbarProvider
+              anchorOrigin={{
+                  vertical: 'top',
+                  horizontal: 'center',
+              }}>
+              <App />
+          </SnackbarProvider>
+      </ThemeProvider>
   </React.StrictMode>,
   document.getElementById('root'),
 );
