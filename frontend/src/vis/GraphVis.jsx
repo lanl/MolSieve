@@ -194,20 +194,21 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
 
             trajectory.name = name;
 
-            for(const s of sSequence) {
-                if(!seen.includes(s.id)) {
-                    seen.push(s.id);
-                    globalSequence.push(s);
-                } else {                    
-                    inCommon.push(s.id);
-                }
-            }
-
             if(!seperateTrajectories) {
+
                 globalChunks = [...globalChunks, ...chunks];
+
                 for(let l of links) {
                     l.name = name;
                 }
+
+                for(const s of sSequence) {
+                    if(!seen.includes(s.id)) {
+                        seen.push(s.id);
+                        globalSequence.push(s);
+                    }
+                }
+                
                 globalLinks = [...globalLinks, ...links];                
             } else {                
                 const simulationWorker = new Worker(new URL ('workers/force_directed_simulation.js', import.meta.url));
@@ -340,9 +341,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                 const c = chunkGroup.append('g').attr('id', `c_${name}`);            
 
                 let { stateNodes, chunkNodes, linkNodes } = renderGraph(globalLinks, globalChunks, globalSequence, l, g, c, name, globalTimeScale);
-
-                
-                
+                                
                 for (const s of globalSequence) {
                     s.seenIn = globalUniqueStates.get(s.id).seenIn;
                 }
@@ -471,14 +470,15 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
     useEffect(() => {
         if(ref) {
             if(showInCommon) {
-                d3.select(ref.current).selectAll("circle").filter((d) => {
-                    return !inCommon.includes(d.id);
+                console.log(globalUniqueStates);
+                d3.select(ref.current).select('#important').selectAll("circle").filter((d) => {
+                    return globalUniqueStates.get(d.id).seenIn.length == 1;
                 }).classed("inCommonInvisible", true);
             } else {
                 d3.select(ref.current).selectAll(".inCommonInvisible").classed("inCommonInvisible", false);
             }
         }
-    }, [showInCommon, seperateTrajectories]);
+        }, [showInCommon, seperateTrajectories, globalUniqueStates]);
     
     return (
             <div ref={divRef} onContextMenu={openContext}>
@@ -523,29 +523,24 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                         </ListItemIcon>
                         <ListItemText>Show neighbors</ListItemText>                
                     </MenuItem>
-
-
-                         <MenuItem>
-                             <ListItemIcon>
-                                 <Checkbox
-                                     onChange={() => { toggleShowInCommon(); }}
-                                     checked={showInCommon}                                
-                                 />
-                             </ListItemIcon>
-                             <ListItemText>Show only states in common</ListItemText>                
-                         </MenuItem>
-                    
-                    {seperateTrajectories &&
-                     <MenuItem>
-                          <ListItemIcon>
-                              <Checkbox
-                                  onChange={() => { toggleShowTransitionProb(); }}
-                                  checked={showTransitionProb}                                
-                              />
-                          </ListItemIcon>
-                          <ListItemText>Set relation opacity to transition probability</ListItemText>                
-                      </MenuItem>
-                    }
+                    <MenuItem>
+                        <ListItemIcon>
+                            <Checkbox
+                                onChange={() => { toggleShowInCommon(); }}
+                                checked={showInCommon}                                
+                            />
+                        </ListItemIcon>
+                        <ListItemText>Show only states in common</ListItemText>                
+                    </MenuItem>
+                    <MenuItem>
+                        <ListItemIcon>
+                            <Checkbox
+                                onChange={() => { toggleShowTransitionProb(); }}
+                                checked={showTransitionProb}                                
+                            />
+                        </ListItemIcon>
+                        <ListItemText>Set relation opacity to transition probability</ListItemText>                
+                    </MenuItem>      
                 </Menu>                            
             </div>);    
 }
