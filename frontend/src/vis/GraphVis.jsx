@@ -125,7 +125,13 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                   const dr = Math.sqrt(dx * dx + dy * dy);
 
                   return `M${d.source.x},${d.source.y}A${dr},${dr} 0 0,1 ${d.target.x},${d.target.y}`;
-              }).classed("arrowed", showArrows);        
+              }).classed("arrowed", showArrows);
+
+        if(showTransitionProb) {
+            linkNodes.attr("opacity", (d) => {
+                return d.transitionProb;
+            });
+        }
                      
         return {stateNodes, chunkNodes, linkNodes};
     }
@@ -287,12 +293,6 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                     linkNodes.attr("stroke", function(d) {
                         return colors[trajectory.idToCluster[Math.abs(d.target.id)]];
                     });
-
-                    if(showTransitionProb) {
-                        linkNodes.attr("opacity", (d) => {
-                            return d.transitionProb;
-                        });
-                    }
                     
                     trajRendered[name] = true;                                   
                     closeSnackbar(name);       
@@ -346,9 +346,6 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
 
                 let { stateNodes, chunkNodes, linkNodes } = renderGraph(globalLinks, globalChunks, globalSequence, l, g, c, name, globalTimeScale);
                                 
-                for (const s of globalSequence) {
-                    s.seenIn = globalUniqueStates.get(s.id).seenIn;
-                }
 
                 chunkNodes.attr('fill', function(d) {
                     const trajectory = trajectories[d.name];
@@ -364,7 +361,15 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                     }
                 });                
                 
-                stateNodes.on('mouseover', function(_, d) {
+                stateNodes.attr('fill', (d) => {
+                    const uniqueStateObj = globalUniqueStates.get(d.id);
+                    if(uniqueStateObj.seenIn.length === 1) {
+                        const trajectory = trajectories[uniqueStateObj.seenIn[0]];
+                        return trajectory.colors[trajectory.idToCluster[d.id]];
+                    } else {
+                        return 'black';
+                    }
+                }).on('mouseover', function(_, d) {
                     onStateMouseOverMultTraj(this, globalUniqueStates.get(d.id));                
                     setStateHovered({'caller': this, 'stateID': d.id, 'name': name});
                 });
@@ -471,7 +476,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
     
     useEffect(() => {
         if(ref) {
-            if(showTransitionProb && seperateTrajectories) {
+            if(showTransitionProb) {
                 d3.select(ref.current).select('#links').selectAll('path').attr("opacity", (d) => {                
                     return d.transitionProb;                
                 });                                
