@@ -1,3 +1,7 @@
+import Box from '@mui/material/Box';
+import Checkbox from '@mui/material/Checkbox';
+import FormControlLabel from '@mui/material/FormControlLabel';
+
 import React from "react";
 
 class FilterComponent extends React.Component {
@@ -14,8 +18,8 @@ class FilterComponent extends React.Component {
         };
     }
 
-    checkAndPropagateChange = (e) => {
-        this.setState({ enabled: e.target.checked }, () => {
+    checkAndPropagateChange = () => {
+        this.setState({ enabled: !this.state.enabled }, () => {
             this.props.propagateChange(this.state);
         });
     };
@@ -63,17 +67,10 @@ class FilterComponent extends React.Component {
     render() {
         const filter = this.props.filter;
         return (
-            <div>
-                <input
-                    type="checkbox"
-                    name={filter.id}
-                    onChange={(e) => {
-                        this.checkAndPropagateChange(e);
-                    }}
-                />
-                <label htmlFor={filter.id}>{filter.checkBoxLabel}</label>
+            <Box>
+                <FormControlLabel control={<Checkbox checked={this.state.enabled} onChange={() => { this.checkAndPropagateChange(); }}/>} label={filter.checkBoxLabel}/>
                 {this.props.render(this.state, this.getActions())}
-            </div>
+            </Box>
         );
     }
 }
