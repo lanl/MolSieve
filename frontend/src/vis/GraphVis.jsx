@@ -196,17 +196,21 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
 
             if(!seperateTrajectories) {
 
-                globalChunks = [...globalChunks, ...chunks];
-
-                for(let l of links) {
-                    l.name = name;
+                for(const c of chunks) {
+                    c.name = name;
                 }
+
+                globalChunks = [...globalChunks, ...chunks];
 
                 for(const s of sSequence) {
                     if(!seen.includes(s.id)) {
                         seen.push(s.id);
                         globalSequence.push(s);
                     }
+                }
+
+                for(let l of links) {
+                    l.name = name;
                 }
                 
                 globalLinks = [...globalLinks, ...links];                
@@ -346,7 +350,19 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                     s.seenIn = globalUniqueStates.get(s.id).seenIn;
                 }
 
-                chunkNodes.attr('opacity', 0);
+                chunkNodes.attr('fill', function(d) {
+                    const trajectory = trajectories[d.name];
+                    return trajectory.colors[trajectory.idToCluster[-d.id]];
+                }).on('mouseover', function(_, d) {
+                    if (!this.classList.contains("invisible")) {   
+                        this.setAttribute('stroke', 'black');
+                        onChunkMouseOver(this, d, d.name);
+                    }
+                }).on('mouseout', function () {
+                    if (!this.classList.contains("invisible")) { 
+                        this.setAttribute('stroke', 'none');
+                    }
+                });                
                 
                 stateNodes.on('mouseover', function(_, d) {
                     onStateMouseOverMultTraj(this, globalUniqueStates.get(d.id));                
@@ -358,8 +374,6 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                     return trajectory.colors[trajectory.idToCluster[Math.abs(d.target.id)]];                   
                 });
 
-
-                
                 closeSnackbar(name);       
             }            
         }
@@ -496,25 +510,27 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                         : undefined
                     }
                 >
-                    <MenuItem>
-                        <ListItemIcon>
-                            <Checkbox
-                                onChange={() => { toggleSeperateTrajectories(); }}
-                                checked={seperateTrajectories}                                
-                            />
-                        </ListItemIcon>
-                        <ListItemText>Seperate trajectories</ListItemText>
-                    </MenuItem>
-                    <MenuItem>
-                        <ListItemIcon>
-                            <Checkbox
-                                onChange={() => { toggleArrows(); }}
-                                checked={showArrows}                                
-                            />
-                        </ListItemIcon>
-                        <ListItemText>Show transition arrows</ListItemText>                
-                    </MenuItem>
-                    <MenuItem>
+                    {Object.keys(trajectories).length > 1 &&
+                     <MenuItem>
+                         <ListItemIcon>
+                             <Checkbox
+                                 onChange={() => { toggleSeperateTrajectories(); }}
+                                 checked={seperateTrajectories}                                
+                             />
+                         </ListItemIcon>
+                         <ListItemText>Seperate trajectories</ListItemText>
+                     </MenuItem>}
+                     <MenuItem>
+                         <ListItemIcon>
+                             <Checkbox
+                                 onChange={() => { toggleArrows(); }}
+                                 checked={showArrows}                                
+                             />
+                         </ListItemIcon>
+                         <ListItemText>Show transition arrows</ListItemText>                
+                     </MenuItem>
+                    
+                     <MenuItem>
                         <ListItemIcon>
                             <Checkbox
                                 onChange={() => { toggleShowNeighbors(); }}
