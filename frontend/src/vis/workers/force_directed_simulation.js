@@ -46,7 +46,7 @@ self.onmessage = (event) => {
                 )
           .force("center", d3.forceCenter(center_x, center_y))
           .force("charge", d3.forceManyBody().theta(0.6))
-          .force("collide", d3.forceCollide().strength(5)).stop()//.radius((d) => {
+          .force("collide", d3.forceCollide().strength(5)).stop();//.radius((d) => {
 //                  if(d.size !== undefined && d.size !== null) {
 //                      return globalTimeScale(d.size);
 //                  } else {

@@ -31,6 +31,7 @@ class App extends React.Component {
                      '#cab2d6','#6a3d9a','#ffff99','#b15928','#8dd3c7','#ffffb3','#bebada','#fb8072',
                      '#80b1d3','#fdb462','#b3de69','#fccde5','#d9d9d9','#bc80bd','#ccebc5','#ffed6f'],
             globalUniqueStates: new Map(),
+            commonList: new Map()
         };
     }
 
@@ -158,7 +159,7 @@ class App extends React.Component {
                 });                
                 
                 newTraj.properties = [...properties]; // questionable if we need it
-                const newUniqueStates = this.calculateGlobalUniqueStates(data.uniqueStates);
+                const newUniqueStates = this.calculateGlobalUniqueStates(data.uniqueStates, run);
                 
                 this.load_PCCA(run, clusters, optimal, m_min, m_max, newTraj)
                     .then((newTraj) => {
@@ -190,15 +191,17 @@ class App extends React.Component {
                 alert(e);
             });
     };
-
-    calculateGlobalUniqueStates = (newUniqueStates) => {
+    
+    calculateGlobalUniqueStates = (newUniqueStates, run) => {
         const globalUniqueStates = this.state.globalUniqueStates;
         for(const s of newUniqueStates) {
             if(globalUniqueStates.has(s.id)) {
                 const previous = globalUniqueStates.get(s.id);
-                globalUniqueStates.set(s.id, Object.assign(previous, s));
+                previous.seenIn = [...previous.seenIn, run];
+                globalUniqueStates.set(s.id, Object.assign(previous, s));                
             }
             else {
+                s.seenIn = [run];
                 globalUniqueStates.set(s.id, s);
             }
         }    

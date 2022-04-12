@@ -1,10 +1,5 @@
-.highlightedStates {
-    filter: brightness(2);
-}
-
-.highlightedState {
+.highlightedState, .highlightedStates {
     stroke: black;
-    filter: brightness(2);
 }
 
 .strongly_unstable {
