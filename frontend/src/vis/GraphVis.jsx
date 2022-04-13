@@ -14,6 +14,7 @@ import ListItemText from '@mui/material/ListItemText';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import Checkbox from '@mui/material/Checkbox';
 import ProgressBox from '../components/ProgressBox';
+import Box from '@mui/material/Box';
 
 let container = null;
 let zoom = null;
@@ -216,6 +217,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
         let globalChunks = [];
         let globalSequence = [];
         let globalLinks = [];
+        let trajCount = 0;
 
         for (const [name, trajectory] of Object.entries(trajectories)) {                        
             let chunks = JSON.parse(JSON.stringify(trajectory.simplifiedSequence.chunks));
@@ -225,15 +227,21 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
             trajectory.name = name;
 
             if(!seperateTrajectories) {
+                for(let c of chunks) {
+                    const chunk = c;
+                    chunk.x_measure = trajCount;
+                    c = chunk;
+                }
+                
                 globalChunks = [...globalChunks, ...chunks];
                 
                 for(const s of sSequence) {
                     if(!seen.includes(s.id)) {
                         seen.push(s.id);
+                        s.x_measure = trajCount;
                         globalSequence.push(s);
                     }
                 }
-                
                 globalLinks = [...globalLinks, ...links];                
             } else {                
                 const simulationWorker = new Worker(new URL ('workers/force_directed_simulation.js', import.meta.url));
@@ -241,15 +249,37 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                 trajRendered[name] = false;            
                 enqueueSnackbar((<ProgressBox name={name} progressVal={progressVal}/>), {key: name, persist: true, preventDuplicate: true});
 
+                const sequenceMap = new Map();
+                sSequence.map((state) => {
+                    sequenceMap.set(state.id, state);
+                });
+                
+                chunks.map((chunk) => {
+                    sequenceMap.set(chunk.id, chunk);
+                });
+
+                
+                for(const link of links) {
+                    const targetCluster = trajectory.idToCluster[Math.abs(link.target)];
+                    const sourceCluster = trajectory.idToCluster[Math.abs(link.source)];
+
+                    const targetNode = sequenceMap.get(link.target);
+                    const sourceNode = sequenceMap.get(link.source);
+                                        
+                    targetNode.x_measure = targetCluster;
+                    sourceNode.x_measure = sourceCluster;
+
+                    sequenceMap.set(link.target, targetNode);
+                    sequenceMap.set(link.source, sourceNode);
+                }        
+                   
                 simulationWorker.postMessage({
                     chunks: chunks,
                     sSequence: sSequence,
                     links: links,
                     x_count: x_count,
-                    y_count: y_count,
+                    x_measureCount: trajectory.current_clustering,                    
                     width: width,
-                    height: height,
-                    maxChunkSize: globalTimeScale(Math.max(...chunkSizes))
                 });            
   
                 simulationWorker.onmessage = (event) => {
@@ -267,11 +297,11 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
 
                     const l = linkGroup.append("g").attr('id', `l_${name}`);                                   
                     const g = importantGroup.append('g').attr('id', `g_${name}`);      
-                    const c = chunkGroup.append('g').attr('id', `c_${name}`);
-
+                    const c = chunkGroup.append('g').attr('id', `c_${name}`);                    
+                    
                     let { stateNodes, chunkNodes, linkNodes } = renderGraph(simulatedLinks, simulatedChunks, simulatedStates, l, g, c, name, trajectory);
 
-                    stateNodes
+                    stateNodes                    
                         .attr("cx", function(d) { return d.x; })
                         .attr("cy", function(d) { return d.y; });
 
@@ -294,14 +324,13 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                 }
                                 
                 x_count++;
-
                 
                 if(x_count === 3) {
                     x_count = 0;
                     y_count++;                    
-                }
-                
+                }                
             }
+            trajCount++;
         }
 
         if(!seperateTrajectories) {
@@ -315,6 +344,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                 chunks: globalChunks,
                 sSequence: globalSequence,
                 links: globalLinks,
+                x_measureCount: Object.keys(trajectories).length,
                 x_count: x_count,
                 y_count: y_count,
                 width: width,
@@ -532,15 +562,28 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                     }
                 >
                     {Object.keys(trajectories).length > 1 &&
-                     <MenuItem>
-                         <ListItemIcon>
-                             <Checkbox
-                                 onChange={() => { toggleSeperateTrajectories(); }}
-                                 checked={seperateTrajectories}                                
-                             />
-                         </ListItemIcon>
-                         <ListItemText>Seperate trajectories</ListItemText>
-                     </MenuItem>}
+                     <Box>
+                         <MenuItem>
+                             <ListItemIcon>
+                                 <Checkbox
+                                     onChange={() => { toggleSeperateTrajectories(); }}
+                                     checked={seperateTrajectories}                                
+                                 />
+                             </ListItemIcon>
+                             <ListItemText>Seperate trajectories</ListItemText>
+                         </MenuItem>
+
+                         <MenuItem>
+                             <ListItemIcon>
+                                 <Checkbox
+                                     onChange={() => { toggleShowInCommon(); }}
+                                     checked={showInCommon}                                
+                                 />
+                             </ListItemIcon>
+                             <ListItemText>Show only states in common</ListItemText>                
+                         </MenuItem>
+                     </Box>
+                    }
                      <MenuItem>
                          <ListItemIcon>
                              <Checkbox
@@ -559,15 +602,6 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                             />
                         </ListItemIcon>
                         <ListItemText>Show neighbors</ListItemText>                
-                    </MenuItem>
-                    <MenuItem>
-                        <ListItemIcon>
-                            <Checkbox
-                                onChange={() => { toggleShowInCommon(); }}
-                                checked={showInCommon}                                
-                            />
-                        </ListItemIcon>
-                        <ListItemText>Show only states in common</ListItemText>                
                     </MenuItem>
                     <MenuItem>
                         <ListItemIcon>
