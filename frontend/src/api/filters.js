@@ -1,8 +1,6 @@
 import { mostOccurringElement} from "./myutils";
 import * as d3 from 'd3';
 import axios from 'axios';
-
-
 function apply_classes(selection, classes) {
     if(typeof classes === 'string') {
         selection.classed(classes, true);
@@ -294,19 +292,32 @@ export function filter_transitions(trajectory, svg) {
     
 }
 
+function undoFilter(trajectory, svg, filter) {
+    for(const cls of filter.className) {        
+        svg.select(`#${filter.group}_${trajectory.name}`).selectChildren().attr('opacity', 1.0).classed(cls, false);
+    }
+}
+
 export function apply_filters(trajectories, runs, globalUniqueStates, ref) {    
 
-    // reset all classes to null
-    d3.select(ref.current).selectAll('*').attr("class", null);
+    for (const [name, trajectory] of Object.entries(trajectories)) {             
+        if (Object.keys(runs[name].filters).length > 0) {
+            for (const k of Object.keys(runs[name].filters)) {
+                const filter = runs[name].filters[k];                
+                undoFilter(trajectory, d3.select(ref.current), filter);
+            }
+        }
+    }
 
     for (const [name, trajectory] of Object.entries(trajectories)) {             
         if (Object.keys(runs[name].filters).length > 0) {
             for (const k of Object.keys(runs[name].filters)) {
                 const filter = runs[name].filters[k];                
                 if (filter.enabled) {
-                    filter.func(trajectory, d3.select(ref.current), globalUniqueStates);
-                }                 
+                    filter.func(trajectory, d3.select(ref.current), globalUniqueStates)
+                }
             }
         }
     }
+
 }

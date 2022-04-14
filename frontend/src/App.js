@@ -9,29 +9,13 @@ import AjaxMenu from './components/AjaxMenu';
 import LoadRunModal from './modals/LoadRunModal';
 import LoadingModal from './modals/LoadingModal';
 import Trajectory from './api/trajectory';
+import FilterBuilder from './api/FilterBuilder';
 import VisGrid from './components/VisGrid';
 import MenuIcon from '@mui/icons-material/Menu';
 import { api_loadPCCA, api_loadSequence, api_load_metadata } from './api/ajax';
 import ControlDrawer from './components/ControlDrawer';
 
 const RUN_MODAL = 'run_modal';
-
-import {
-    filter_min_opacity,
-    filter_max_opacity,
-    filter_range_opacity,
-    filter_clustering_difference,
-    filter_fuzzy_membership,
-    filter_transitions,
-    filter_relationship,
-    filter_chunks,
-} from "./api/filters";
-
-import { getMinProperty, getMaxProperty } from "./api/myutils";
-
-const RANGE_SLIDER = "range";
-const SLIDER = "slider";
-const TOGGLE = "toggle";
 
 class App extends React.Component {
     constructor() {
@@ -205,8 +189,7 @@ class App extends React.Component {
                                 trajectories: newTrajectories,
                                 colors: newColors,
                                 globalUniqueStates: newUniqueStates
-                            }, () => { console.log(this.state); });
-
+                            });
                             
                         });
                     });
@@ -226,62 +209,16 @@ class App extends React.Component {
 
         const filters = {};
 
-        // group tells you what group in a visualization this filter affects
-        filters["clustering_difference"] = {
-            enabled: false,
-            func: filter_clustering_difference,
-            checkBoxLabel: "Show clustering difference",
-            id: `clustering_difference`,
-            type: TOGGLE,
-            group: 'g',
-            className: ["strongly_unstable", "moderately_unstable", "stable"]
-        };
+        const fb = new FilterBuilder();
 
-        filters["chunks"] = {
-            enabled: false,
-            func: filter_chunks,
-            checkBoxLabel: "Hide chunks",
-            id: 'chunks',
-            type: TOGGLE,
-            group: 'c',
-            className: ['chunks', 'invisible']
-        };
-
-        filters["transitions"] = {
-            enabled: false,
-            func: filter_transitions,
-            checkBoxLabel: "Filter transitions from dominant state",
-            extents: [1, 100],
-            options: { val: 10, selectVal: "per" },
-            id: `transitions`,
-            children: (actions) => (
-                <select
-                    onChange={(e) => {
-                        actions.setMode(e);
-                        actions.propagateChange();
-                    }}
-                >
-                    <option value="per">% of window</option>
-                    <option value="abs">timesteps</option>
-                </select>
-            ),
-            type: SLIDER,
-            group: 'g',
-            className: 'transitions'                    
-        };
-
-        filters["fuzzy_membership"] = {
-            enabled: false,
-            func: filter_fuzzy_membership,
-            checkBoxLabel: "Filter fuzzy memberships",
-            id: `fuzzy_membership`,
-            type: TOGGLE,
-            group: 'g',
-            className: 'fuzzy_membership'                        
-        };
+        filters["clustering_difference"] = fb.buildClusteringDifference();
+        filters["chunks"] = fb.buildHideChunks();
+        filters["transitions"] = fb.buildTransitions();
+        filters["fuzzy_membership"] = fb.buildFuzzyMemberships();
 
         runs[run]["filters"] = filters;
-        return runs 
+
+        return runs;
     }
     
     calculateGlobalUniqueStates = (newUniqueStates, run) => {
@@ -330,75 +267,12 @@ class App extends React.Component {
         // get us the ids of all the states in our simplified sequence
         const stateIds = this.state.trajectories[state.run].simplifiedSequence.uniqueStates;        
         const sequence = stateIds.map((state) => this.state.globalUniqueStates.get(state.id));        
+                
+        const fb = new FilterBuilder();
+        const filter = fb.buildCustomFilter(state.filter_type, state.attribute, sequence);
         
-        let func = null;
-        let filterLabel = null;
-        let filterType = null;
-        let val = null;
-        switch (state.filter_type) {
-            case "MIN":
-                func = filter_min_opacity;
-                filterLabel = "At least";
-                filterType = SLIDER;
-                val = getMinProperty(state.attribute,sequence);
-                break;
-            case "MAX":
-                func = filter_max_opacity;
-                filterLabel = "At most";
-                filterType = SLIDER;
-                val = getMinProperty(state.attribute,sequence);
-                break;
-            case "RANGE":
-                func = filter_range_opacity;
-                filterLabel = "Between";
-            filterType = RANGE_SLIDER;
-            val = [
-                getMinProperty(state.attribute, sequence),
-                getMaxProperty(state.attribute, sequence),
-            ];
-                break;
-            case "RELATION":
-                func = filter_relationship;
-                filterType = TOGGLE;
-                val = false;
-            break;
-            default:
-                alert("Unsupported filter type");
-                filterLabel = "Unknown filter";
-                func = null;
-                break;
-        }
-
-        let id = null;
-        let checkBoxLabel = null;
-        if (state.filter_type == "RELATION") {
-            id = `${state.attribute}_${state.relation_attribute}`
-            checkBoxLabel = `Find common ${state.relation_attribute} with ${state.attribute} `
-        } else {
-            id = `${state.attribute}_${state.filter_type}`;
-            checkBoxLabel = `Filter ${state.attribute}`;
-        }
-
-        filters[id] = {
-            enabled: false,
-            func: func,
-            checkBoxLabel: checkBoxLabel,
-            sliderLabel: filterLabel,
-            type: filterType,
-            extents: [
-                getMinProperty(state.attribute, sequence),
-                getMaxProperty(state.attribute, sequence),
-            ],
-            options: {                
-                val: val,
-                property: state.attribute,
-                relation_attribute: state.relation_attribute,
-            },
-            id: id,
-            group: 'g',
-            className: [state.filter_type]
-        };
-
+        filters[filter.id] = filter;
+        
         run.filters = filters;
         runs[state.run] = run;
         this.setState({runs: runs});
