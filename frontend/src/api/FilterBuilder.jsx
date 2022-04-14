@@ -67,6 +67,7 @@ class FilterBuilder {
         );
         this.filter.type = SLIDER;
         this.filter.group = 'g';
+        this.filter.restrict = ['sequence'];
         this.filter.className = ['transitions'];
 
         return this.getFilter();

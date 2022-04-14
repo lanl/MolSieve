@@ -113,7 +113,7 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                 d3.selectAll('.brush').remove();
             }
 
-            d3.select('#svg_main')
+            d3.select(ref.current)
                 .append('g')
                 .attr('class', 'brush')
                 .call(zBrush);
@@ -126,7 +126,7 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                 d3.selectAll('.brush').remove();
             }
 
-            d3.select('#svg_main')
+            d3.select(ref.current)
                 .append('g')
                 .attr('class', 'brush')
                 .call(sBrush);
@@ -138,7 +138,7 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
 
     const multipleSelectionBrush = () => {
         if (msBrush != null) {
-            d3.select('#svg_main')
+            d3.select(ref.current)
                 .append('g')
                 .attr('class', 'brush')
                 .call(msBrush);
@@ -383,7 +383,7 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
     );
 
      useEffect(() => {
-            if (ref) {
+            if (ref !== undefined && ref.current !== undefined) {
                 apply_filters(trajectories, runs, globalUniqueStates, ref);
             }
         loadingCallback();
@@ -419,7 +419,7 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                 && Object.keys(trajectories).length
                 === Object.keys(runs).length && (
                     <svg
-                        id="svg_main"
+                        id="sequence"
                         ref={ref}
                         viewBox={[0, 0, width, height]}
                     />

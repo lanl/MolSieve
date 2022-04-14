@@ -447,7 +447,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
     }, [width, height, trajectories, seperateTrajectories]);
 
     useEffect(() => {        
-        if (ref) {            
+        if (ref !== undefined && ref.current !== undefined) {            
             apply_filters(trajectories, runs, globalUniqueStates, ref);
         }
         loadingCallback();
@@ -540,7 +540,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
             <div ref={divRef} onContextMenu={openContext}>
                 
                 {width && height && Object.keys(trajectories).length === Object.keys(runs).length
-                 && <svg id="svg_nodes" ref={ref} viewBox={[0,0,width,height]}/>}
+                 && <svg id="graph" ref={ref} viewBox={[0,0,width,height]}/>}
 
                 <Menu
                     open={contextMenu !== null}
