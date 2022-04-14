@@ -23,7 +23,7 @@
 }
 
 .MIN, .MAX, .RANGE, .RELATION, .chunks, .invisible, .inCommonInvisible, .highlightedInvisible{
-    opacity: 0.0
+    visibility: hidden;
 }
 
 .arrowed {    

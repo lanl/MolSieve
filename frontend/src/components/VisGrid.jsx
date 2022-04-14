@@ -368,7 +368,6 @@ class VisGrid extends React.Component {
                                 }}
                                 valueLabelDisplay="auto"
                                 onChange={(e) => {
-                                    console.log(e.target.value);
                                     this.updateRun(run, "chunkingThreshold", e.target.value);
                                 }}
                                 value={this.state.runs[run].chunkingThreshold}
@@ -433,7 +432,7 @@ class VisGrid extends React.Component {
     };
 
     
-  render() {
+    render() {
         const runs = Object.keys(this.state.runs);
         const trajs = Object.keys(this.props.trajectories);
         const safe = (runs.length === trajs.length && runs.length > 0 && trajs.length > 0) ? true : false;

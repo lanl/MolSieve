@@ -247,7 +247,10 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                             onStateMouseOver(this, globalUniqueStates.get(d.id), trajectory, name);                                                        
                             setStateHovered({'caller': this, 'stateID': d.id, 'name': name, 'timestep': sSequence.indexOf(d)});                            
                         } 
-                    });
+                    })
+                    .on('mouseout', function() {                        
+                        setStateHovered(null);
+                    });                
                 
                 const c = chunkGroup.append('g').attr('id', `c_${name}`);
                 
@@ -264,14 +267,10 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                         return colors[currentClustering[-d.id]];
                     })                    
                     .on('mouseover', function(_, d) {
-                        if (!this.classList.contains("invisible")) {
-                            onChunkMouseOver(this, d, name);                            
-                            this.setAttribute('opacity', 0.2);                            
-                        }
+                        onChunkMouseOver(this, d, name);                            
+                        this.setAttribute('opacity', 0.2);                                                    
                     }).on('mouseout', function() {
-                        if(!this.classList.contains("invisible")) {
-                            this.setAttribute('opacity', 1.0);                            
-                        }
+                        this.setAttribute('opacity', 1.0);                                                    
                     });               
                 count++;
             }
@@ -394,10 +393,7 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
         loadingCallback();
      }, [runs]);
 
-    useEffect(() => {
-        d3.select('#sequence_important').selectAll(".highlightedInvisible").classed("highlightedInvisible", false);
-        d3.select('#sequence_important').selectAll('.highlightedStates').classed("highlightedStates", false);            
-        d3.select('#sequence_important').selectAll('.highlightedState').classed("highlightedState", false);
+    useEffect(() => {        
         if(stateHovered !== undefined && stateHovered !== null) {            
             if(stateHighlight) {             
                 d3.select('#sequence_important').selectAll('rect:not(.invisible)').filter(function(dp) {                                    
@@ -411,6 +407,10 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                     return i == stateHovered.timestep;
                 }).classed("highlightedState", true);
             }            
+        } else {
+            d3.select('#sequence_important').selectAll(".highlightedInvisible").classed("highlightedInvisible", false);
+            d3.select('#sequence_important').selectAll('.highlightedStates').classed("highlightedStates", false);            
+            d3.select('#sequence_important').selectAll('.highlightedState').classed("highlightedState", false);
         }
     }, [stateHovered, stateHighlight]);
     
