@@ -81,7 +81,7 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
     const [extents, setExtents] = useState([]);
     const [actionCompleted, setActionCompleted] = useState('');
     const [modalTitle, setModalTitle] = useState('');    
-    const [stateHighlight, setStateHighlight] = useState(true);
+    const [stateHighlight, setStateHighlight] = useState(false);
 
     const toggleStateHighlight = () => {
         setStateHighlight((prev) => !prev);

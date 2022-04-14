@@ -46,7 +46,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
         }
     };
    
-    const [showArrows, setArrows] = useState(true);
+    const [showArrows, setArrows] = useState(false);
     const toggleArrows = () => {
         setArrows((prev) => !prev);
     }
@@ -591,7 +591,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                                  checked={showArrows}                                
                              />
                          </ListItemIcon>
-                         <ListItemText>Show transition arrows</ListItemText>                
+                         <ListItemText>Show all transition arrows</ListItemText>                
                      </MenuItem>
                     
                      <MenuItem>

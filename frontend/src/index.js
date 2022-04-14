@@ -23,7 +23,6 @@ const theme = createTheme({
 
 ReactDOM.render(
   <React.StrictMode>
-      <script src="https://ssvg.io/ssvg-auto.js" />
       <ThemeProvider theme={theme}>
           <SnackbarProvider
               anchorOrigin={{

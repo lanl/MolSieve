@@ -28,7 +28,6 @@ import AccordionSummary from '@mui/material/AccordionSummary';
 import AccordionDetails from '@mui/material/AccordionDetails';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 
-
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
 import ListItemText from '@mui/material/ListItemText';
@@ -389,118 +388,9 @@ class VisGrid extends React.Component {
                                     <FilterComponent
                                         filter={filter}
                                         run={run}
-                                        propagateChange={this.propagateChange}
-                                        render={(state, actions) => {
-                                            if (filter.type === TOGGLE) {
-                                                return (
-                                                    <div>
-                                                        {filter.children &&
-                                                            filter.children}
-                                                    </div>
-                                                );
-                                            } else {
-                                                let slider_label = null;
-
-                                                if (filter.type === SLIDER) {
-                                                    if (
-                                                        filter.options.property
-                                                    ) {
-                                                        slider_label = (
-                                                            <label>
-                                                                {
-                                                                    filter.sliderLabel
-                                                                }{" "}
-                                                                {
-                                                                    state
-                                                                        .options
-                                                                        .val
-                                                                }{" "}
-                                                                {
-                                                                    filter
-                                                                        .options
-                                                                        .property
-                                                                }
-                                                            </label>
-                                                        );
-                                                    } else {
-                                                        slider_label = (
-                                                            <label>
-                                                                {
-                                                                    state
-                                                                        .options
-                                                                        .val
-                                                                }
-                                                            </label>
-                                                        );
-                                                    }
-                                                } else {
-                                                    slider_label = (
-                                                        <label>
-                                                            {filter.sliderLabel}{" "}
-                                                            {
-                                                                state.options
-                                                                    .val[0]
-                                                            }{" "}
-                                                            and{" "}
-                                                            {
-                                                                state.options
-                                                                    .val[1]
-                                                            }{" "}
-                                                            {
-                                                                state.options
-                                                                    .property
-                                                            }
-                                                        </label>
-                                                    );
-                                                }
-                                                const domain = filter.extents;
-                                                return (
-                                                    <div>
-                                                        <Slider
-                                                            min={domain[0]}
-                                                            max={domain[1]}
-                                                            step={1}
-                                                            onChangeCommitted={(
-                                                                e,
-                                                                v
-                                                            ) => {
-                                                                actions.setValues(
-                                                                    e,
-                                                                    v
-                                                                );
-                                                                if (
-                                                                    state.enabled
-                                                                ) {
-                                                                    actions.propagateChange();
-                                                                }
-                                                            }}
-                                                            onChange={(
-                                                                e,
-                                                                v
-                                                            ) => {
-                                                                actions.setValues(
-                                                                    e,
-                                                                    v
-                                                                );
-                                                            }}
-                                                            value={
-                                                                state.options
-                                                                    .val
-                                                            }
-                                                            valueLabelDisplay="auto"
-                                                            name="slider"
-                                                        />
-                                                        <br />
-                                                        <label>
-                                                            {slider_label}{" "}
-                                                            {filter.children &&
-                                                             filter.children(actions)}
-                                                        </label>
-                                                    </div>
-                                                );
-                                            }
-                                        }}
-                                    /></ListItem>
+                                        propagateChange={this.propagateChange}                                                                                
+                                    />
+                                    </ListItem>
                                 );
                             }
                         )}

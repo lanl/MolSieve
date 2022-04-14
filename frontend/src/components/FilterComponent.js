@@ -1,8 +1,14 @@
+import React from "react";
+
 import Box from '@mui/material/Box';
 import Checkbox from '@mui/material/Checkbox';
 import FormControlLabel from '@mui/material/FormControlLabel';
+import Slider from '@mui/material/Slider';
 
-import React from "react";
+
+const RANGE_SLIDER = "range";
+const SLIDER = "slider";
+const TOGGLE = "toggle";
 
 class FilterComponent extends React.Component {
     constructor(props) {
@@ -64,15 +70,79 @@ class FilterComponent extends React.Component {
         };
     };
 
+    render_slider = (filter, slider_label) => {
+        const domain = filter.extents;
+        return (
+            <Box>
+                <Slider
+                    min={domain[0]}
+                    max={domain[1]}
+                    step={1}
+                    onChangeCommitted={(e,v) => {
+                        this.setValues(e,v);
+                        if (this.state.enabled) {
+                            this.propagateChange();
+                        }
+                    }}
+                    onChange={(e,v) => {
+                        this.setValues(e,v);
+                    }}
+                    value={this.state.options.val}
+                    valueLabelDisplay="auto"                    
+                />
+                <br />
+                <label>
+                    {slider_label}
+                </label>
+            </Box>
+        );
+    }
+
     render() {
         const filter = this.props.filter;
+        let slider_label = null;
+        let slider = null;
+
+        switch(filter.type) {
+        case TOGGLE:
+            break;
+        case SLIDER:
+            if (filter.options.property) {
+                slider_label =
+                    (<label>
+                         {filter.sliderLabel}{" "}
+                         {this.state.options.val}{" "}
+                         {filter.options.property}
+                     </label>);
+            } else {
+                slider_label =
+                    (<label>
+                         {this.state.options.val}
+                     </label>);
+            }
+            slider = this.render_slider(filter, slider_label);
+            break;
+        case RANGE_SLIDER:
+            slider_label =
+                (<label>
+                     {filter.sliderLabel}{" "}
+                     {this.state.options.val[0]}{" and "}
+                     {this.state.options.val[1]}{" "}
+                     {this.state.options.property}
+                 </label>);
+            slider = this.render_slider(filter, slider_label);
+            break;
+        }
         return (
             <Box>
                 <FormControlLabel control={<Checkbox checked={this.state.enabled} onChange={() => { this.checkAndPropagateChange(); }}/>} label={filter.checkBoxLabel}/>
-                {this.props.render(this.state, this.getActions())}
+                {slider && slider}
+                {filter.children && filter.children(this.actions)}
             </Box>
         );
     }
 }
+
+//{this.props.render(this.state, this.getActions())}
 
 export default FilterComponent;
