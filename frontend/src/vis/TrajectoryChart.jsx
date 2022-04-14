@@ -237,16 +237,12 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                     .attr('fill', (d) => {                        
                         return colors[currentClustering[d.id]];
                     })                    
-                    .on('click', function (_, d) {
-                        if (!this.classList.contains("invisible")) {                                                        
-                            setStateClicked(globalUniqueStates.get(d.id));
-                        }                        
+                    .on('click', function (_, d) {                        
+                        setStateClicked(globalUniqueStates.get(d.id));                                      
                     })
                     .on('mouseover', function(_, d) {                                                
-                        if (!this.classList.contains("invisible")) {                            
-                            onStateMouseOver(this, globalUniqueStates.get(d.id), trajectory, name);                                                        
-                            setStateHovered({'caller': this, 'stateID': d.id, 'name': name, 'timestep': sSequence.indexOf(d)});                            
-                        } 
+                        onStateMouseOver(this, globalUniqueStates.get(d.id), trajectory, name);                                                        
+                        setStateHovered({'caller': this, 'stateID': d.id, 'name': name, 'timestep': sSequence.indexOf(d)});                            
                     })
                     .on('mouseout', function() {                        
                         setStateHovered(null);
@@ -402,10 +398,12 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                 
                 d3.select('#sequence_important').selectAll('rect:not(.highlightedInvisible)').classed("highlightedStates", true);
             }
+            
             if(stateHovered.timestep) {                
-                d3.select(ref.current).select(`#g_${stateHovered.name}`).selectAll('*').filter(function(_, i) {
-                    return i == stateHovered.timestep;
-                }).classed("highlightedState", true);
+                d3.select(ref.current).select(`#g_${stateHovered.name}`).selectAll('rect:not(.invisible)')
+                    .filter(function(_, i) {
+                        return i === stateHovered.timestep;
+                    }).classed("highlightedState", true);
             }            
         } else {
             d3.select('#sequence_important').selectAll(".highlightedInvisible").classed("highlightedInvisible", false);

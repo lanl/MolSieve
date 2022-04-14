@@ -5,7 +5,6 @@ import Checkbox from '@mui/material/Checkbox';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import Slider from '@mui/material/Slider';
 
-
 const RANGE_SLIDER = "range";
 const SLIDER = "slider";
 const TOGGLE = "toggle";

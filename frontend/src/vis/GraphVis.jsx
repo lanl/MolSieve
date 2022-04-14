@@ -116,6 +116,8 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                   } else {
                       setStateHovered({'caller': this, 'stateID': d.id, 'name': name, 'timesteps': timesteps});
                   }                  
+              }).on('mouseout', function() {
+                  setStateHovered(null);
               });
         
         const chunkNodes = c.selectAll('circle')

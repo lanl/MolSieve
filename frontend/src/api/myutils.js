@@ -73,7 +73,8 @@ export function onStateMouseOverMultTraj(node, d) {
 }
 
 export function onStateMouseOver(node, d, trajectory, name) {    
-
+    // https://atomiks.github.io/tippyjs/v6/addons/#singleton
+    // can improve performance further
     let content = "";
     
     if(name !== undefined) {
@@ -93,6 +94,7 @@ export function onStateMouseOver(node, d, trajectory, name) {
         content: content,
         arrow: true,
         maxWidth: 'none',
+        ignoreAttributes: true
     });    
 }
 
