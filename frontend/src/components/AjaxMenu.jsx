@@ -20,7 +20,7 @@ class AjaxMenu extends React.Component {
     }
 
   componentDidMount() {    
-        if(this.props.api_call !== undefined && this.props.api_call !== '') {
+      if(this.props.api_call !== undefined && this.props.api_call !== '') {
             axios
                 .get(this.props.api_call)
                 .then((response) => {
@@ -29,10 +29,6 @@ class AjaxMenu extends React.Component {
                 .catch((e) => {
                     alert(e);
                 });
-        }
-    
-        if(this.props.clicked !== undefined && this.props.clicked !== null) {
-            this.setState({clicked: [...this.props.clicked]});
         }
   }
 
@@ -74,7 +70,9 @@ class AjaxMenu extends React.Component {
 
     render() {
       const { isLoaded, items } = this.state;
-      
+
+        console.log("rendering");
+        console.log(this.props);
         return (<Menu
                   anchorEl={this.props.anchorEl}
                   open={this.props.open}

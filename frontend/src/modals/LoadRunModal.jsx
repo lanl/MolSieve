@@ -40,10 +40,7 @@ class LoadRunModal extends React.Component {
         this.setState({clicked: [...clicked]});
     };
 
-    closeFunc = (uncheck) => {
-        if (uncheck) {
-            this.props.lastEvent.target.checked = false;
-        }
+    closeFunc = () => {
         this.props.closeFunc();
     };
 
@@ -54,8 +51,7 @@ class LoadRunModal extends React.Component {
     }
 
     runFunc = () => {
-        this.closeFunc(false);
-
+        this.closeFunc();
         const chunkingThreshold = (this.state.simplifySequence) ? this.state.chunkingThreshold : 1;
 
         this.props.runFunc(
@@ -79,7 +75,7 @@ class LoadRunModal extends React.Component {
 
             return (
                 <Dialog
-                    onBackdropClick={() => this.closeFunc(true)}
+                    onBackdropClick={() => this.closeFunc()}
                     open={this.props.isOpen}
                     fullWidth={true}
                     maxWidth="lg"                    
@@ -160,7 +156,7 @@ class LoadRunModal extends React.Component {
                             variant="contained"
                             color="secondary"
                             onClick={() => {
-                                this.closeFunc(true);
+                                this.closeFunc();
                             }}
                         >
                             Cancel
@@ -169,7 +165,7 @@ class LoadRunModal extends React.Component {
                     </TabPanel>
                     <TabPanel value={this.state.tabIdx} index={1}>
                         <AnalysisTab run={this.props.run} closeFunc={() => {
-                                         this.closeFunc(true);
+                                         this.closeFunc();
                                      }}/>
                     </TabPanel>
                 </Dialog>

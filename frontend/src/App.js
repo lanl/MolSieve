@@ -320,6 +320,7 @@ class App extends React.Component {
                          </Button> }
                     </Toolbar>
                 </AppBar>
+
                 <ControlDrawer
                     trajectories={this.state.trajectories}
                     runs={this.state.runs}
@@ -335,6 +336,7 @@ class App extends React.Component {
                     anchorEl={this.runListButton.current}
                     api_call="/get_run_list"
                     open={this.state.showRunList}
+                    clicked={Object.keys(this.state.trajectories)}
                     handleClose={() => {this.setState({showRunList: !this.state.showRunList, anchorEl: null})}}
                     click={(e,v) => {
                         this.setState({showRunList: !this.state.showRunList}, 
@@ -359,7 +361,6 @@ class App extends React.Component {
                    run={this.state.run}
                    runFunc={this.load_trajectory}
                    isOpen={this.state.currentModal === RUN_MODAL}
-                   lastEvent={this.state.lastEvent}
                    closeFunc={() => this.toggleModal(RUN_MODAL)}
                    onRequestClose={() => this.toggleModal(RUN_MODAL)}
                  />
