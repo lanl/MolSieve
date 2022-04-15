@@ -59,15 +59,15 @@ class SingleStateModal extends React.Component {
                         {this.state.isLoaded && 
                          <img ref={this.imgRef} />
                         }
-                                            <Box
-                        sx={{
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                        }}
-                    >
-                                                {!this.state.isLoaded && <CircularProgress color="grey"/>}
-                                            </Box>
+                        <Box
+                            sx={{
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                            }}
+                        >
+                            {!this.state.isLoaded && <CircularProgress color="grey"/>}
+                        </Box>
                         <br/>
                         <TableContainer component={Paper}>
                             <Table size="small">

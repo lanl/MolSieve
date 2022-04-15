@@ -82,9 +82,12 @@ class SelectionModal extends React.Component {
             let gap = 1 / this.state.interpolate;
             
             for(var i = 0; i < this.state.sequence.length - 1; i++) {
-                drawSequence.push(this.state.sequence[i]);
+                const state = {...this.state.sequence[i]};
+                state.timestep = start + i;
+                drawSequence.push(state);
+                
                 for(var j = 0; j < this.state.interpolate; j++) {
-                    let stateCopy = { ...this.state.sequence[i] };
+                    let stateCopy = { ...state };
                     stateCopy.timestep += gap * (j + 1);                    
                     drawSequence.push(stateCopy);
                 }
@@ -96,6 +99,8 @@ class SelectionModal extends React.Component {
                     unpackedEnergies.push(e);
                 }
             })
+
+            console.log(drawSequence);
             
             this.setState({energies: unpackedEnergies, drawSequence: drawSequence, isLoading: false});
             //ss.close();
