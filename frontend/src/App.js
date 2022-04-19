@@ -216,6 +216,7 @@ class App extends React.Component {
         filters["transitions"] = fb.buildTransitions();
         filters["fuzzy_membership"] = fb.buildFuzzyMemberships();
 
+        
         runs[run]["filters"] = filters;
 
         return runs;
@@ -322,7 +323,8 @@ class App extends React.Component {
                 </AppBar>
 
                 <ControlDrawer
-                    trajectories={this.state.trajectories}
+                    trajectories={this.state.trajectories}                    
+                    globalUniqueStates={this.state.globalUniqueStates}
                     runs={this.state.runs}
                     updateRun={this.updateRun}
                     recalculate_clustering={this.recalculate_clustering}

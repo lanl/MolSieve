@@ -14,7 +14,16 @@ import Scatterplot from "../vis/Scatterplot";
 class XYPlotModal extends React.Component {
     constructor(props) {
         super(props);
-        this.state = { x_attribute: null, y_attribute: null };
+
+        const vals = [];
+        for(const s of this.props.trajectory.sequence) {
+            vals.push({...this.props.globalUniqueStates.get(s)});
+        }
+        
+        this.state = { x_attribute: null,
+                       y_attribute: null,
+                       sequence: vals};
+        console.log(this.state);
     }
 
     componentDidMount() {
@@ -71,6 +80,9 @@ class XYPlotModal extends React.Component {
                                 }}
                             >
                                 {options}
+                                <MenuItem key='timestep' value='timestep'>
+                                    timestep
+                                </MenuItem>
                             </Select>
                             <FormHelperText>X attribute</FormHelperText>
                         </FormControl>
@@ -84,16 +96,20 @@ class XYPlotModal extends React.Component {
                                 }}
                             >
                                 {options}
+                                <MenuItem key='timestep' value='timestep'>
+                                    timestep
+                                </MenuItem>
                             </Select>
                             <FormHelperText>Y attribute</FormHelperText>
                         </FormControl>
                         </Stack>
                         <Scatterplot
                             data={{
-                                sequence: this.props.trajectory.sequence,
+                                sequence: this.state.sequence,
                                 x_attribute: this.state.x_attribute,
                                 y_attribute: this.state.y_attribute,
-                                colors: this.props.trajectory.colors
+                                colors: this.props.trajectory.colors,
+                                trajectory: this.props.trajectory
                             }}                            
                         />
                     </Stack>

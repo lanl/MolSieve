@@ -31,7 +31,7 @@ const ADD_FILTER_MODAL = "add-filter-modal";
 const METADATA_MODAL = "metadata-modal";
 
 
-function ControlDrawer({trajectories, runs, updateRun, recalculate_clustering, simplifySet, drawerOpen, toggleDrawer, addFilter, propagateChange}) {
+function ControlDrawer({trajectories, runs, updateRun, recalculate_clustering, simplifySet, drawerOpen, toggleDrawer, addFilter, propagateChange, globalUniqueStates}) {
     const [currentModal, setCurrentModal] = useState();
     const [currentRun, setCurrentRun] = useState(null);
     
@@ -198,6 +198,7 @@ function ControlDrawer({trajectories, runs, updateRun, recalculate_clustering, s
                     trajectory={
                         trajectories[currentRun]
                     }
+                    globalUniqueStates={globalUniqueStates}
                     onRequestClose={() => toggleModal(null)}
                 />
             )}

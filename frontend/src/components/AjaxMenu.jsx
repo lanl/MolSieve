@@ -71,8 +71,6 @@ class AjaxMenu extends React.Component {
     render() {
       const { isLoaded, items } = this.state;
 
-        console.log("rendering");
-        console.log(this.props);
         return (<Menu
                   anchorEl={this.props.anchorEl}
                   open={this.props.open}

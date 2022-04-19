@@ -270,7 +270,10 @@ class MultiplePathSelectionModal extends React.Component {
                                                 this.setX(e);
                                             }}
                           >
-                            {options}
+                              {options}
+                              <MenuItem key='timestep' value='timestep'>
+                                    Timestep
+                                </MenuItem>
                           </Select>
                           <FormHelperText>X attribute</FormHelperText>
                         </FormControl>
@@ -282,7 +285,10 @@ class MultiplePathSelectionModal extends React.Component {
                                                 this.setY(e);
                                             }}
                           >
-                            {options}
+                              {options}
+                              <MenuItem key='timestep' value='timestep'>
+                                    Timestep
+                                </MenuItem>
                           </Select>
                           <FormHelperText>Y attribute</FormHelperText>
                         </FormControl>

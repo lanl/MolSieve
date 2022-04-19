@@ -99,8 +99,6 @@ class SelectionModal extends React.Component {
                     unpackedEnergies.push(e);
                 }
             })
-
-            console.log(drawSequence);
             
             this.setState({energies: unpackedEnergies, drawSequence: drawSequence, isLoading: false});
             //ss.close();

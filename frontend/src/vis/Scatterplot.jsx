@@ -43,6 +43,7 @@ function Scatterplot({ data, loadingCallback }) {
             let y_attribute = data.y_attribute;
             let x_attributeList = data.x_attributeList;
             let y_attributeList = data.y_attributeList;
+            const idToCluster = data.trajectory.idToCluster;
             let reverse = data.reverse;
             let path = data.path;
             let sequence = data.sequence;
@@ -54,8 +55,15 @@ function Scatterplot({ data, loadingCallback }) {
 
             if (x_attributeList == null) {
                 x_attributeList = [];
-                for (const d of sequence) {
-                    x_attributeList.push(d[x_attribute]);
+                if(x_attribute !== 'timestep') {
+                    for (const d of sequence) {
+                        x_attributeList.push(d[x_attribute]);
+                    }
+                } else {
+                    const start = (data.start) ? data.start : 0;
+                    for(let i = 0; i < sequence.length; i++) {
+                        x_attributeList.push(start + i);
+                    }
                 }
             }
 
@@ -104,10 +112,7 @@ function Scatterplot({ data, loadingCallback }) {
                 .attr("width", 5)
                 .attr("height", 5)
                 .attr("fill", function (d) {
-                    if (d["cluster"] == -1) {
-                        return "black";
-                    }
-                    return colors[d.cluster];
+                    return colors[idToCluster[d.id]];
                 })
                 .on("mouseover", function (event) {
                     const i = event.currentTarget.getAttribute("index");
