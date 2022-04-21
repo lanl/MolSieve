@@ -34,7 +34,8 @@ class App extends React.Component {
                 '#cab2d6', '#6a3d9a', '#ffff99', '#b15928', '#8dd3c7', '#ffffb3', '#bebada', '#fb8072',
                 '#80b1d3', '#fdb462', '#b3de69', '#fccde5', '#d9d9d9', '#bc80bd', '#ccebc5', '#ffed6f'],
             globalUniqueStates: new Map(),
-            commonList: new Map()
+            commonList: new Map(),
+            graphMode: true,
         };
     }
 
@@ -320,12 +321,24 @@ class App extends React.Component {
                                 }}>
                                 <MenuIcon />
                             </Button>}
+                        {Object.keys(this.state.trajectories).length > 0 &&
+                            <Button
+                                color="inherit"
+                                onClick={() => {
+                                    this.setState({graphMode: !this.state.graphMode});
+                                }}>
+                                {this.state.graphMode &&
+                                 "Switch to scatterplot view"
+                                }
+                                {!this.state.graphMode &&
+                                 "Switch to graph view"
+                                }
+                            </Button>}
                     </Toolbar>
                 </AppBar>
 
                 <ControlDrawer
                     trajectories={this.state.trajectories}
-                    globalUniqueStates={this.state.globalUniqueStates}
                     runs={this.state.runs}
                     updateRun={this.updateRun}
                     recalculate_clustering={this.recalculate_clustering}
@@ -356,6 +369,7 @@ class App extends React.Component {
                     trajectories={this.state.trajectories}
                     globalUniqueStates={this.state.globalUniqueStates}
                     runs={this.state.runs}
+                    graphMode={this.state.graphMode}
                 />
 
                 {this.state.currentModal === RUN_MODAL

@@ -1,6 +1,6 @@
 .expandableView {
     display: flex;
-    flex-direction: column;    
+    flex-direction: column;
 }
 
 .expandableView_toolbar {

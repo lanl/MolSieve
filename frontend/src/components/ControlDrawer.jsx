@@ -17,7 +17,6 @@ import Slider from '@mui/material/Slider';
 import Drawer from '@mui/material/Drawer';
 
 import AddFilterModal from '../modals/AddFilterModal';
-import XYPlotModal from '../modals/XYPlotModal';
 
 import FilterComponent from './FilterComponent';
 
@@ -26,12 +25,11 @@ import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogTitle';
 import DialogActions from '@mui/material/DialogActions';
 
-const XY_PLOT_MODAL = "xy-plot-modal";
 const ADD_FILTER_MODAL = "add-filter-modal";
 const METADATA_MODAL = "metadata-modal";
 
 
-function ControlDrawer({trajectories, runs, updateRun, recalculate_clustering, simplifySet, drawerOpen, toggleDrawer, addFilter, propagateChange, globalUniqueStates}) {
+function ControlDrawer({trajectories, runs, updateRun, recalculate_clustering, simplifySet, drawerOpen, toggleDrawer, addFilter, propagateChange}) {
     const [currentModal, setCurrentModal] = useState();
     const [currentRun, setCurrentRun] = useState(null);
     
@@ -143,19 +141,7 @@ function ControlDrawer({trajectories, runs, updateRun, recalculate_clustering, s
                     >
                         Add a new filter
                     </Button>
-                </ListItem>
-                <ListItem>
-                    <Button
-                        size="small"
-                        variant="outlined"
-                        onClick={() => {
-                            setCurrentRun(run);
-                            toggleModal(XY_PLOT_MODAL);
-                        }}
-                    >
-                        Generate x-y plot with attribute
-                    </Button>
-                </ListItem>                                                                                
+                </ListItem>                                                                            
                     </List>
                 </AccordionDetails>
             </Accordion>
@@ -190,18 +176,6 @@ function ControlDrawer({trajectories, runs, updateRun, recalculate_clustering, s
                  />
              )}
                 
-            {currentModal === XY_PLOT_MODAL && (
-                <XYPlotModal
-                    title={`Scatter plot for ${currentRun}`}
-                    closeFunc={() => toggleModal(null)}
-                    open={currentModal === XY_PLOT_MODAL}
-                    trajectory={
-                        trajectories[currentRun]
-                    }
-                    globalUniqueStates={globalUniqueStates}
-                    onRequestClose={() => toggleModal(null)}
-                />
-            )}
 
             {currentModal === METADATA_MODAL && (
                 <Dialog

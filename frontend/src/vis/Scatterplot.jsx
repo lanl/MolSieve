@@ -29,7 +29,7 @@ function Scatterplot({ data, loadingCallback }) {
     }, []);
 
     const ref = useTrajectoryChartRender(
-        (svg) => {            
+        (svg) => {
             
             if (height === undefined || width === undefined) {
                 return;

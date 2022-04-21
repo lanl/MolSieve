@@ -21,11 +21,25 @@ let zoom = null;
 const trajRendered = {};
 
 
-function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStateClicked, setStateHovered, loadingCallback }) {
+function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStateClicked, setStateHovered, loadingCallback, display }) {
 
     const divRef = useRef();
     const [width, setWidth] = useState();
-    const [height, setHeight] = useState();        
+    const [height, setHeight] = useState();
+
+    if(display === undefined) {
+        display = true;
+    }
+
+    const [displayProp, setDisplayProp] = useState('block');
+
+    useEffect(() => {
+        if(display === undefined || display === true) {
+            setDisplayProp('block');
+        } else {
+            setDisplayProp('none');
+        }
+    }, [display]);
 
     const [contextMenu, setContextMenu] = useState(null);
     
@@ -536,9 +550,10 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
             }
         }
         }, [showInCommon, seperateTrajectories, globalUniqueStates]);
+
     
     return (
-            <div ref={divRef} onContextMenu={openContext}>
+        <Box ref={divRef} onContextMenu={openContext} sx={{'display': displayProp}}>
                 
                 {width && height && Object.keys(trajectories).length === Object.keys(runs).length
                  && <svg id="graph" ref={ref} viewBox={[0,0,width,height]}/>}
@@ -605,7 +620,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                         <ListItemText>Set relation opacity to transition probability</ListItemText>                
                     </MenuItem>      
                 </Menu>                            
-            </div>);    
+            </Box>);    
 }
 
 

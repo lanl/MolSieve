@@ -6,7 +6,7 @@ import SingleStateModal from "../modals/SingleStateModal";
 import LoadingModal from "../modals/LoadingModal";
 import ExpandableView from "./ExpandableView";
 import GraphVis from "../vis/GraphVis";
-
+import ScatterGraph from './ScatterGraph';
 
 const SINGLE_STATE_MODAL = 'single_state';
 
@@ -88,7 +88,7 @@ class VisGrid extends React.Component {
                 {safe &&
                  (<ExpandableView title="Sequence View"
                                   heightDependency={Object.keys(this.props.trajectories).length}
-                                  sx={{position: 'absolute', bottom: 0,  minWidth: '25%', minHeight: '15%'}}>
+                                  sx={{position: 'fixed', bottom: 0,  minWidth: '25%', minHeight: '15%', zIndex: 9999}}>
                       <TrajectoryChart
                           trajectories={this.props.trajectories}
                           globalUniqueStates={this.props.globalUniqueStates}
@@ -100,10 +100,11 @@ class VisGrid extends React.Component {
                           lastEventCaller={this.state.lastEventCaller}
                       />
                   </ExpandableView>)
-                }                         
+                }        
                 
                 {safe &&
                  <GraphVis
+                     display={this.props.graphMode}
                      trajectories={this.props.trajectories}
                      runs={this.props.runs}
                      globalUniqueStates={this.props.globalUniqueStates}
@@ -112,6 +113,12 @@ class VisGrid extends React.Component {
                      loadingCallback={this.chartFinishedLoading}
                      stateHovered={this.state.stateHovered}
                      lastEventCaller={this.state.lastEventCaller}
+                 />
+                }
+
+                {safe &&                 
+                 <ScatterGraph display={!this.props.graphMode} trajectories={this.props.trajectories}
+                               globalUniqueStates={this.props.globalUniqueStates}
                  />
                 }
                                          
