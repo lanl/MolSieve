@@ -2,7 +2,7 @@ import {
     React, useEffect, useState, useRef,
 } from 'react';
 import * as d3 from 'd3';
-
+import Box from '@mui/material/Box';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
 import ListItemText from '@mui/material/ListItemText';
@@ -14,6 +14,7 @@ import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
 import { onStateMouseOver, onChunkMouseOver } from '../api/myutils';
 import '../css/vis.css';
 import {apply_filters} from '../api/filters';
+
 
 const PATH_SELECTION = 'path_selection';
 const MULTIPLE_PATH_SELECTION = 'multiple_path_selection';
@@ -101,6 +102,7 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
 
     useEffect(() => {
         resize();
+
     }, [trajectories]);
 
     useEffect(() => {
@@ -413,7 +415,7 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
     }, [stateHovered, stateHighlight]);
     
     return (        
-        <div onContextMenu={openContext} ref={divRef}>
+        <Box onContextMenu={openContext} ref={divRef} sx={{flexGrow: 1}}>
             {width
                 && height
                 && Object.keys(trajectories).length
@@ -472,7 +474,7 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                     }}
                 />
             )}
-        </div>
+        </Box>
     );
 }
 

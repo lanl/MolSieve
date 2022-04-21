@@ -1,11 +1,12 @@
 import React from "react";
 import TrajectoryChart from "../vis/TrajectoryChart";
 import Box from "@mui/material/Box";
-import Paper from "@mui/material/Paper";
 
 import SingleStateModal from "../modals/SingleStateModal";
 import LoadingModal from "../modals/LoadingModal";
+import ExpandableView from "./ExpandableView";
 import GraphVis from "../vis/GraphVis";
+
 
 const SINGLE_STATE_MODAL = 'single_state';
 
@@ -19,7 +20,7 @@ class VisGrid extends React.Component {
             drawerOpen: false,
             isLoading: false,
             stateHovered: null,
-            stateClicked: null
+            stateClicked: null,
         };
     }
 
@@ -85,20 +86,21 @@ class VisGrid extends React.Component {
                                              title="Rendering..."/> }
 
                 {safe &&
-                 (<Paper sx={{position: 'absolute', bottom: 0, width: '25%', height: '25%'}}>                              
-                              <TrajectoryChart
-                                  trajectories={this.props.trajectories}
-                                  globalUniqueStates={this.props.globalUniqueStates}
-                                  runs={this.props.runs}
-                                  loadingCallback={this.chartFinishedLoading}
-                                  setStateHovered={this.setStateHovered}
-                                  setStateClicked={this.setStateClicked}
-                                  stateHovered={this.state.stateHovered}
-                                  lastEventCaller={this.state.lastEventCaller}
-                              ></TrajectoryChart>
-                      
-                  </Paper>
-                         )}
+                 (<ExpandableView title="Sequence View"
+                                  heightDependency={Object.keys(this.props.trajectories).length}
+                                  sx={{position: 'absolute', bottom: 0,  minWidth: '25%', minHeight: '15%'}}>
+                      <TrajectoryChart
+                          trajectories={this.props.trajectories}
+                          globalUniqueStates={this.props.globalUniqueStates}
+                          runs={this.props.runs}
+                          loadingCallback={this.chartFinishedLoading}
+                          setStateHovered={this.setStateHovered}
+                          setStateClicked={this.setStateClicked}
+                          stateHovered={this.state.stateHovered}
+                          lastEventCaller={this.state.lastEventCaller}
+                      />
+                  </ExpandableView>)
+                }                         
                 
                 {safe &&
                  <GraphVis

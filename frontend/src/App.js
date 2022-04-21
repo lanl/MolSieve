@@ -19,8 +19,8 @@ const RUN_MODAL = 'run_modal';
 
 class App extends React.Component {
     constructor() {
-      super();
-      this.runListButton = React.createRef();
+        super();
+        this.runListButton = React.createRef();
         this.state = {
             isLoading: false,
             currentModal: null,
@@ -30,9 +30,9 @@ class App extends React.Component {
             trajectories: {},
             runs: {},
             loadingMessage: 'Loading...',
-            colors: ['#b2df8a','#1f78b4','#a6cee3','#33a02c','#fb9a99','#e31a1c','#fdbf6f','#ff7f00',
-                     '#cab2d6','#6a3d9a','#ffff99','#b15928','#8dd3c7','#ffffb3','#bebada','#fb8072',
-                     '#80b1d3','#fdb462','#b3de69','#fccde5','#d9d9d9','#bc80bd','#ccebc5','#ffed6f'],
+            colors: ['#b2df8a', '#1f78b4', '#a6cee3', '#33a02c', '#fb9a99', '#e31a1c', '#fdbf6f', '#ff7f00',
+                '#cab2d6', '#6a3d9a', '#ffff99', '#b15928', '#8dd3c7', '#ffffb3', '#bebada', '#fb8072',
+                '#80b1d3', '#fdb462', '#b3de69', '#fccde5', '#d9d9d9', '#bc80bd', '#ccebc5', '#ffed6f'],
             globalUniqueStates: new Map(),
             commonList: new Map()
         };
@@ -50,18 +50,18 @@ class App extends React.Component {
         this.setState({ ...this.state, currentModal: key });
     };
 
-  selectRun = (v) => {
-      this.setState({
-        run: v,
-        currentModal: RUN_MODAL,        
-      });
-  };
+    selectRun = (v) => {
+        this.setState({
+            run: v,
+            currentModal: RUN_MODAL,
+        });
+    };
 
-  removeRun = (v) => {
-    const trajectories = this.state.trajectories;
-    delete this.state.trajectories[v];
-    this.setState({trajectories: trajectories});
-  }
+    removeRun = (v) => {
+        const trajectories = this.state.trajectories;
+        delete this.state.trajectories[v];
+        this.setState({ trajectories: trajectories });
+    }
 
     /** Wrapper for the backend call in api.js */
     load_PCCA = (run, clusters, optimal, m_min, m_max, trajectory) => {
@@ -99,7 +99,7 @@ class App extends React.Component {
      */
     recalculate_clustering = (run, clusters) =>
         // first check if the state has that clustering already calculated
-         new Promise((resolve, reject) => {
+        new Promise((resolve, reject) => {
             const current_traj = this.state.trajectories[run];
 
             if (current_traj.feasible_clusters.includes(clusters)) {
@@ -108,7 +108,7 @@ class App extends React.Component {
                 };
                 new_trajectories[run].current_clustering = clusters;
                 new_trajectories[run].set_cluster_info();
-                
+
                 new_trajectories[run].simplifySet(new_trajectories[run].chunkingThreshold);
                 this.setState({ trajectories: new_trajectories });
                 resolve(true);
@@ -142,7 +142,7 @@ class App extends React.Component {
                     });
             }
         })
-    ;
+        ;
 
     /** Creates a new trajectory object and populates it with data from the database
      * @param {string} run - Which run this trajectory object will correspond to
@@ -156,22 +156,22 @@ class App extends React.Component {
         this.load_sequence(run, properties)
             .then((data) => {
                 const newTraj = new Trajectory();
-                newTraj.sequence = data.sequence;                
+                newTraj.sequence = data.sequence;
                 newTraj.uniqueStates = data.uniqueStates.map((state) => {
                     return state.id;
-                });                
-                
+                });
+
                 newTraj.properties = [...properties]; // questionable if we need it
                 const newUniqueStates = this.calculateGlobalUniqueStates(data.uniqueStates, run);
-                
+
                 this.load_PCCA(run, clusters, optimal, m_min, m_max, newTraj)
                     .then((newTraj) => {
                         this.load_metadata(run, newTraj).then((newTraj) => {
                             newTraj.set_cluster_info();
                             // could be an option
-                            newTraj.chunkingThreshold = chunkingThreshold;                            
+                            newTraj.chunkingThreshold = chunkingThreshold;
                             newTraj.simplifySet(chunkingThreshold);
-                            
+
                             const removed = newTraj.set_colors(this.state.colors);
                             const newTrajectories = {
                                 ...this.state.trajectories,
@@ -182,7 +182,7 @@ class App extends React.Component {
                             newColors.splice(0, removed);
 
                             const newRuns = this.initFilters(run, newTraj);
-                            
+
                             this.setState({
                                 isLoading: false,
                                 runs: newRuns,
@@ -190,7 +190,7 @@ class App extends React.Component {
                                 colors: newColors,
                                 globalUniqueStates: newUniqueStates
                             });
-                            
+
                         });
                     });
             })
@@ -216,26 +216,27 @@ class App extends React.Component {
         filters["transitions"] = fb.buildTransitions();
         filters["fuzzy_membership"] = fb.buildFuzzyMemberships();
 
-        
+
         runs[run]["filters"] = filters;
 
         return runs;
     }
-    
+
     calculateGlobalUniqueStates = (newUniqueStates, run) => {
         const globalUniqueStates = this.state.globalUniqueStates;
-        for(const s of newUniqueStates) {
-            if(globalUniqueStates.has(s.id)) {
+        for (const s of newUniqueStates) {
+            if (globalUniqueStates.has(s.id)) {
                 const previous = globalUniqueStates.get(s.id);
                 previous.seenIn = [...previous.seenIn, run];
-                globalUniqueStates.set(s.id, Object.assign(previous, s));                
+                globalUniqueStates.set(s.id, Object.assign(previous, s));
+
             }
             else {
                 s.seenIn = [run];
                 globalUniqueStates.set(s.id, s);
             }
-        }    
-        return globalUniqueStates;        
+        }
+        return globalUniqueStates;
     }
 
     updateRun = (run, attribute, value) => {
@@ -243,40 +244,40 @@ class App extends React.Component {
         runs[run][attribute] = value;
         this.setState(runs);
     };
-    
+
     simplifySet = (run, threshold) => {
         const new_trajectories = {
             ...this.state.trajectories,
         };
         const new_traj = new_trajectories[run];
 
-        new_traj.simplifySet(threshold);        
+        new_traj.simplifySet(threshold);
         new_trajectories[run] = new_traj;
-        
+
         this.setState({ trajectories: new_trajectories });
     };
 
     toggleDrawer = () => {
-        this.setState({ drawerOpen: !this.state.drawerOpen});
+        this.setState({ drawerOpen: !this.state.drawerOpen });
     }
 
     addFilter = (state) => {
         const runs = this.state.runs;
         const run = runs[state.run];
         const filters = run["filters"];
-        
+
         // get us the ids of all the states in our simplified sequence
-        const stateIds = this.state.trajectories[state.run].simplifiedSequence.uniqueStates;        
-        const sequence = stateIds.map((state) => this.state.globalUniqueStates.get(state.id));        
-                
+        const stateIds = this.state.trajectories[state.run].simplifiedSequence.uniqueStates;
+        const sequence = stateIds.map((state) => this.state.globalUniqueStates.get(state.id));
+
         const fb = new FilterBuilder();
         const filter = fb.buildCustomFilter(state.filter_type, state.attribute, sequence);
-        
+
         filters[filter.id] = filter;
-        
+
         run.filters = filters;
         runs[state.run] = run;
-        this.setState({runs: runs});
+        this.setState({ runs: runs });
     };
 
     propagateChange = (filter) => {
@@ -286,44 +287,44 @@ class App extends React.Component {
         if (filter.options) {
             this_filter.options = filter.options;
         }
-        
+
         this_filter.enabled = filter.enabled;
-        
+
         runs[filter.run]["filters"][filter.id] = this_filter;
-        this.setState({runs: runs});
+        this.setState({ runs: runs });
     };
 
-    
+
     render() {
         return (
             <Box className="App" sx={{ display: 'flex', flexDirection: 'column', gap: '1%' }}>
-                <AppBar position="static">                    
+                <AppBar position="static">
                     <Toolbar>
                         <Typography
-                            sx={{ flexGrow: 1}}
+                            sx={{ flexGrow: 1 }}
                             variant="h6">Trajectory Visualization</Typography>
-                        <Button                            
-                          color="inherit"
-                          ref={this.runListButton}
+                        <Button
+                            color="inherit"
+                            ref={this.runListButton}
                             onClick={
-                            () => {
-                                    this.setState({showRunList: !this.state.showRunList});
+                                () => {
+                                    this.setState({ showRunList: !this.state.showRunList });
                                 }
                             }
                         >Manage trajectories</Button>
                         {Object.keys(this.state.trajectories).length > 0 &&
-                         <Button                            
-                           color="inherit"
-                           onClick={() => {
-                             this.toggleDrawer();
-                           }}>
-                             <MenuIcon/>
-                         </Button> }
+                            <Button
+                                color="inherit"
+                                onClick={() => {
+                                    this.toggleDrawer();
+                                }}>
+                                <MenuIcon />
+                            </Button>}
                     </Toolbar>
                 </AppBar>
 
                 <ControlDrawer
-                    trajectories={this.state.trajectories}                    
+                    trajectories={this.state.trajectories}
                     globalUniqueStates={this.state.globalUniqueStates}
                     runs={this.state.runs}
                     updateRun={this.updateRun}
@@ -334,47 +335,47 @@ class App extends React.Component {
                     addFilter={this.addFilter}
                     propagateChange={this.propagateChange}
                 />
-                <AjaxMenu                     
+                <AjaxMenu
                     anchorEl={this.runListButton.current}
                     api_call="/get_run_list"
                     open={this.state.showRunList}
                     clicked={Object.keys(this.state.trajectories)}
-                    handleClose={() => {this.setState({showRunList: !this.state.showRunList, anchorEl: null})}}
-                    click={(e,v) => {
-                        this.setState({showRunList: !this.state.showRunList}, 
-                                      () => {
-                                          if(e.target.checked) {
-                                              this.selectRun(v);
-                                          } else {
-                                              this.removeRun(v);
-                                          }
-                                      });
+                    handleClose={() => { this.setState({ showRunList: !this.state.showRunList, anchorEl: null }) }}
+                    click={(e, v) => {
+                        this.setState({ showRunList: !this.state.showRunList },
+                            () => {
+                                if (e.target.checked) {
+                                    this.selectRun(v);
+                                } else {
+                                    this.removeRun(v);
+                                }
+                            });
                     }}
-                />                   
-              <VisGrid
-                  trajectories={this.state.trajectories}
-                  globalUniqueStates={this.state.globalUniqueStates}
-                  runs={this.state.runs}
-              />
-                
-            {this.state.currentModal === RUN_MODAL
-                 && (
-                 <LoadRunModal
-                   run={this.state.run}
-                   runFunc={this.load_trajectory}
-                   isOpen={this.state.currentModal === RUN_MODAL}
-                   closeFunc={() => this.toggleModal(RUN_MODAL)}
-                   onRequestClose={() => this.toggleModal(RUN_MODAL)}
-                 />
-            )}
+                />
+                <VisGrid
+                    trajectories={this.state.trajectories}
+                    globalUniqueStates={this.state.globalUniqueStates}
+                    runs={this.state.runs}
+                />
 
-            {this.state.isLoading && (
-              <LoadingModal
-                open={this.state.isLoading}
-                title={this.state.loadingMessage}
-              />
-            )}
-          </Box>
+                {this.state.currentModal === RUN_MODAL
+                    && (
+                        <LoadRunModal
+                            run={this.state.run}
+                            runFunc={this.load_trajectory}
+                            isOpen={this.state.currentModal === RUN_MODAL}
+                            closeFunc={() => this.toggleModal(RUN_MODAL)}
+                            onRequestClose={() => this.toggleModal(RUN_MODAL)}
+                        />
+                    )}
+
+                {this.state.isLoading && (
+                    <LoadingModal
+                        open={this.state.isLoading}
+                        title={this.state.loadingMessage}
+                    />
+                )}
+            </Box>
         );
     }
 }

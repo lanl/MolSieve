@@ -536,7 +536,7 @@ def pcca(run: str, clusters: int, optimal: int, m_min: int, m_max: int):
                                                           run=run,
                                                           discrete=True,
                                                           trajectory=sequence,
-                                                          getOccurrences=False)
+                                                          getOccurrences=True)
     matrix = m.copy()    
     gpcca = gp.GPCCA(np.array(m), z='LM', method='brandts')
 

@@ -1,0 +1,13 @@
+.expandableView {
+    display: flex;
+    flex-direction: column;    
+}
+
+.expandableView_toolbar {
+    display: flex;
+    align-items: center;    
+}
+
+.expandableView_items {
+    flex-grow: 1
+}
