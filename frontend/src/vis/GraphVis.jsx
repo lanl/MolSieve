@@ -98,14 +98,14 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
     const renderGraph = (links, chunks, sSequence, l, g, c, name, trajectory) => {
 
         const colors = trajectory.colors;
-        
+
         const stateNodes = g.selectAll('circle')
               .data(sSequence)
               .enter()
-              .append('circle')
+              .append('circle')        
               .attr('r', 5)
               .attr('id', d => `node_${d.id}`).attr('fill', function(d) {              
-                  return colors[trajectory.idToCluster[d.id]];
+                  return colors[trajectory.idToCluster[d.id]];                  
               }).on('click', function(_,d) {                     
                   setStateClicked(globalUniqueStates.get(d.id));                
               }).on('mouseover', function(_, d) {
@@ -414,7 +414,8 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                     stateNodes.filter((d) => {
                         return globalUniqueStates.get(d.id).seenIn.length > 1;
                     }).attr('fill', 'black').on('mouseover', function(_, d) {
-                            onStateMouseOverMultTraj(this, globalUniqueStates.get(d.id));                
+                        onStateMouseOverMultTraj(this, globalUniqueStates.get(d.id));
+                        setStateHovered({'caller': this, 'stateID': d.id});
                     });                    
 
                     trajRendered[name] = true;                                   
