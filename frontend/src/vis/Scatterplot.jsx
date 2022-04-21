@@ -69,8 +69,15 @@ function Scatterplot({ data, loadingCallback }) {
 
             if (y_attributeList == null) {
                 y_attributeList = [];
-                for (const d of sequence) {
-                    y_attributeList.push(d[y_attribute]);
+                if(y_attribute !== 'timestep') {
+                    for (const d of sequence) {
+                        y_attributeList.push(d[y_attribute]);
+                    }
+                } else {
+                    const start = (data.start) ? data.start : 0;
+                    for(let i = 0; i < sequence.length; i++) {
+                        y_attributeList.push(start + i);
+                    }
                 }
             }
 
