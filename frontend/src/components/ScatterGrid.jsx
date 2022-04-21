@@ -1,32 +1,32 @@
 import {React, useState} from 'react';
-import Grid from '@mui/material/Grid';
 import Button from '@mui/material/Button';
 import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
 import ScatterControl from './ScatterControl';
 
-export default function ScatterGrid({trajectory, globalUniqueStates}) {
+export default function ScatterGrid({trajectory, globalUniqueStates, trajectoryName}) {
 
-    const [scatterCount, setScatterCount] = useState(0);
+    // holds all of the scatterplots for one trajectory
+    const [scatterplots, setScatterplots] = useState([]);
 
-    const scatterplots = [];
-
-    for(let i = 0; i < scatterCount; i++) {
-        const new_plot = (<ScatterControl
-                              trajectory={trajectory}
-                              globalUniqueStates={globalUniqueStates}
-                          />);
-        scatterplots.push(new_plot);
+    const addScatterplot = () => {
+        const new_plot = (<Box gridColumn="span 3">
+                              <ScatterControl
+                                  trajectory={trajectory}
+                                  globalUniqueStates={globalUniqueStates}
+                              /></Box>);
+        setScatterplots([...scatterplots, new_plot]);
     }
     
     return (
-        <Box sx={{flexGrow : 1}}>
-            <Button onClick={() => {
-                        const newCount = scatterCount +1;
-                        setScatterCount(newCount);
-                    }}>Add a new scatterplot</Button>
-            <Grid>
+        <Box sx={{backgroundColor: 'blue'}}>           
+                <Typography variant="h6">{trajectoryName}</Typography>
+                <Button variant="contained" onClick={() => {
+                            addScatterplot()
+                        }}>Add a new scatterplot</Button>
+            <Box display="grid" gap={2} gridTemplateRows='1fr' gridTemplateColumns='repeat(12, 1fr)' sx={{backgroundColor: 'green'}}>
                 {scatterplots}
-            </Grid>
+            </Box>
         </Box>
     );
 }

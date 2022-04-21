@@ -88,7 +88,7 @@ class VisGrid extends React.Component {
                 {safe &&
                  (<ExpandableView title="Sequence View"
                                   heightDependency={Object.keys(this.props.trajectories).length}
-                                  sx={{position: 'fixed', bottom: 0,  minWidth: '25%', minHeight: '15%', zIndex: 9999}}>
+                                  sx={{position: 'fixed', bottom: 0,  minWidth: '25%', minHeight: '15%', zIndex: 1299}}>
                       <TrajectoryChart
                           trajectories={this.props.trajectories}
                           globalUniqueStates={this.props.globalUniqueStates}

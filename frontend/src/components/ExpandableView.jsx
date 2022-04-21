@@ -36,12 +36,12 @@ export default function ExpandableView(props) {
         <Paper sx={containerStyle} className="expandableView">
              <Box className="expandableView_toolbar">
                   <Typography align="center" variant="h6" className="expandableView_items">{props.title}</Typography>
-                    {!expanded &&
+                 {(!expanded && hidden != 'none') &&
                      <Button className="expandableView_items" size="small" onClick={() => {
                                  changeStyle('width', '50%');
                                  setExpanded(true);
                              }}>Expand</Button>}
-                    {expanded &&
+                 {(expanded && hidden != 'none') &&
                      <Button className="expandableView_items" size="small" onClick={() => {
                                  changeStyle('width', '25%');
                                  setExpanded(false);
@@ -50,6 +50,7 @@ export default function ExpandableView(props) {
                  <Button className="expandableView_items" size="small" onClick={() => {
                              setHidden('none');
                              changeStyle('minHeight', '0%');
+                             changeStyle('minWidth', props.sx.minWidth);
                          }}>Hide</Button>
                  }
                  {hidden == 'none' &&

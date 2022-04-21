@@ -1,33 +1,37 @@
 import { React, useEffect, useState, useRef } from "react";
 import { useTrajectoryChartRender } from "../hooks/useTrajectoryChartRender";
-import Box from "@mui/material/Box";
 import tippy from "tippy.js";
 import "tippy.js/dist/tippy.css";
 import * as d3 from "d3";
 
 const margin = { top: 20, bottom: 20, left: 40, right: 25 };
 
-function Scatterplot({ data, loadingCallback }) {
-    const divRef = useRef();
+export default function Scatterplot({ data, loadingCallback }) {
+
+    const divRef = useRef(null);    
     const [width, setWidth] = useState();
     const [height, setHeight] = useState();
 
     const resize = () => {
-        const newWidth = divRef.current.parentElement.clientWidth;
+        const newWidth = ref.current.parentElement.offsetWidth;
         setWidth(newWidth);
 
-        const newHeight = divRef.current.parentElement.clientHeight;
+        const newHeight = ref.current.parentElement.offsetHeight;
         setHeight(newHeight);
     };
 
     useEffect(() => {
+        if(!divRef || !divRef.current) {
+            return;
+        }
+        
         resize();
-    }, [data]);
+    }, [divRef]);
 
     useEffect(() => {
         window.addEventListener("resize", resize());
     }, []);
-
+    
     const ref = useTrajectoryChartRender(
         (svg) => {
             
@@ -87,7 +91,7 @@ function Scatterplot({ data, loadingCallback }) {
             var first = 0;
             var last = 1;
 
-            if (reverse) {
+           if (reverse) {
                 first = 1;
                 last = 0;
             }
@@ -185,16 +189,13 @@ function Scatterplot({ data, loadingCallback }) {
                 loadingCallback();
             }
         },
-        [data.x_attribute, data.y_attribute, data.x_attributeList, data.y_attributeList, width, height]
+        [data.x_attribute, data.y_attribute, width, height]
     );
+
 
     return (
-        <Box ref={divRef} sx={{ height: 300 }}>
-            {width && height && (
-                <svg ref={ref} viewBox={[0, 0, width, height]} />
-            )}
-        </Box>
+        <div ref={divRef}>
+            <svg ref={ref} viewBox={[0,0,width,height]} />
+        </div>
     );
 }
-
-export default Scatterplot;

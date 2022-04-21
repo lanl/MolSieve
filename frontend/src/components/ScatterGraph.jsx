@@ -1,6 +1,6 @@
 import { React, useEffect, useState, useRef } from 'react';
 import ScatterGrid from './ScatterGrid';
-import Box from '@mui/material/Box';
+import Container from '@mui/material/Container';
 
 function usePrevious(value) {
   const ref = useRef();
@@ -10,7 +10,7 @@ function usePrevious(value) {
   return ref.current; //in the end, return the current ref value.
 }
 
-
+// scatter graph is the top level grid of grids
 export default function ScatterGraph({trajectories, display, globalUniqueStates}) {
     
     const [displayProp, setDisplayProp] = useState('block');
@@ -27,18 +27,17 @@ export default function ScatterGraph({trajectories, display, globalUniqueStates}
     }, [display]);
 
     useEffect(() => {
-        const newGrids = grids;
         let difference = null;
         if(prevTrajectories !== undefined) {                  
             difference = Object.keys(trajectories).filter(x => !Object.keys(prevTrajectories).includes(x));
         } else {
             difference = Object.keys(trajectories);
         }
-        newGrids.push(<ScatterGrid key={difference[0]} trajectory={trajectories[difference[0]]} globalUniqueStates={globalUniqueStates}/>);
-        setGrids(newGrids);
+        const newGrid = (<ScatterGrid key={difference[0]} trajectory={trajectories[difference[0]]} globalUniqueStates={globalUniqueStates} trajectoryName={difference[0]}/>);
+        setGrids([...grids, newGrid]);
     }, [Object.keys(trajectories).length]);
         
-    return (<Box sx={{display: displayProp, flexDirection:'column'}}>
+    return (<Container maxWidth={false} sx={{display: displayProp, backgroundColor: 'red', flexDirection: 'column'}}>
                 {grids}
-            </Box>);
+            </Container>);
 }
