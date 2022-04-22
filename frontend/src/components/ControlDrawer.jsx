@@ -60,7 +60,7 @@ function ControlDrawer({trajectories, runs, updateRun, recalculate_clustering, s
     // next, add accordions
     const controls = Object.keys(runs).map((run) => {
         return (
-            <Accordion key={run}>
+            <Accordion disableGutters={true} key={run}>
                 <AccordionSummary
                     expandIcon={<ExpandMoreIcon />}
                 >{run}

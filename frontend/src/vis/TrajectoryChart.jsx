@@ -2,7 +2,6 @@ import {
     React, useEffect, useState, useRef,
 } from 'react';
 import * as d3 from 'd3';
-import Box from '@mui/material/Box';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
 import ListItemText from '@mui/material/ListItemText';
@@ -20,7 +19,7 @@ const PATH_SELECTION = 'path_selection';
 const MULTIPLE_PATH_SELECTION = 'multiple_path_selection';
 
 const margin = {
-    top: 20, bottom: 20, left: 40, right: 25,
+    top: 20, bottom: 20, left: 25, right: 25,
 };
 
 let zBrush = null;
@@ -88,22 +87,21 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
         setStateHighlight((prev) => !prev);
     };
 
-    const divRef = useRef();
+    const divRef = useRef(null);
     const [width, setWidth] = useState();
     const [height, setHeight] = useState();
 
     const resize = () => {
-        const newWidth = divRef.current.parentElement.clientWidth;
+        const newWidth = divRef.current.offsetWidth;
         setWidth(newWidth);
 
-        const newHeight = divRef.current.parentElement.clientHeight;
+        const newHeight = divRef.current.offsetHeight;
         setHeight(newHeight);
     };
 
     useEffect(() => {
         resize();
-
-    }, [trajectories]);
+    }, [divRef]);
 
     useEffect(() => {
         window.addEventListener('resize', resize());
@@ -178,6 +176,11 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
             if (height === undefined || width === undefined) {
                 return;
             }
+
+            //if (Object.keys(trajectories).length === Object.keys(runs).length) {
+            //return;
+            //}
+            
             // clear so we don't draw over-top and cause insane lag
             if (!svg.empty()) {
                 svg.selectAll('*').remove();
@@ -415,18 +418,13 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
     }, [stateHovered, stateHighlight]);
     
     return (        
-        <Box onContextMenu={openContext} ref={divRef} sx={{flexGrow: 1}}>
-            {width
-                && height
-                && Object.keys(trajectories).length
-                === Object.keys(runs).length && (
-                    <svg
-                        id="sequence"
-                        ref={ref}
-                        viewBox={[0, 0, width, height]}
-                    />
-                )}
-        
+        <div ref={divRef}>
+             <svg
+                 onContextMenu={openContext}
+                 id="sequence"
+                 ref={ref}
+                 viewBox={[0, 0, width, height]}
+             />                        
             <Menu
                 open={contextMenu !== null}
                 onClose={closeContext}
@@ -474,7 +472,7 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                     }}
                 />
             )}
-        </Box>
+        </div>
     );
 }
 

@@ -58,7 +58,7 @@ class AnalysisTab extends React.Component {
             let steps = this.state.steps.map(step => {
                 return {'analysisType': step['type'], 'value': step['value']};
             });
-            
+                        
             axios.post('/run_analysis', steps, {params: {
                 run: this.state.run, pathStart: this.state.pathStart,
                 pathEnd: this.state.pathEnd, displayResults: this.state.displayResults,

@@ -4,9 +4,15 @@ import Box from "@mui/material/Box";
 
 import SingleStateModal from "../modals/SingleStateModal";
 import LoadingModal from "../modals/LoadingModal";
-import ExpandableView from "./ExpandableView";
 import GraphVis from "../vis/GraphVis";
 import ScatterGraph from './ScatterGraph';
+
+import Accordion from '@mui/material/Accordion';
+import AccordionSummary from '@mui/material/AccordionSummary';
+import AccordionDetails from '@mui/material/AccordionDetails';
+import Divider from '@mui/material/Divider';
+import Typography from '@mui/material/Typography';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 
 const SINGLE_STATE_MODAL = 'single_state';
 
@@ -86,20 +92,24 @@ class VisGrid extends React.Component {
                                              title="Rendering..."/> }
 
                 {safe &&
-                 (<ExpandableView title="Sequence View"
-                                  heightDependency={Object.keys(this.props.trajectories).length}
-                                  sx={{position: 'fixed', bottom: 0,  minWidth: '25%', minHeight: '15%', zIndex: 1299}}>
-                      <TrajectoryChart
-                          trajectories={this.props.trajectories}
-                          globalUniqueStates={this.props.globalUniqueStates}
-                          runs={this.props.runs}
-                          loadingCallback={this.chartFinishedLoading}
-                          setStateHovered={this.setStateHovered}
-                          setStateClicked={this.setStateClicked}
-                          stateHovered={this.state.stateHovered}
-                          lastEventCaller={this.state.lastEventCaller}
-                      />
-                  </ExpandableView>)
+                 (<Accordion defaultExpanded={true} disableGutters={true} sx={{position: 'fixed', bottom: 0,  maxWidth: '25%', zIndex: 1299}}>
+                      <AccordionSummary
+                          expandIcon={<ExpandMoreIcon />}
+                      ><Typography variant="h6">Sequence View</Typography></AccordionSummary>
+                      <Divider/>
+                      <AccordionDetails>
+                          <TrajectoryChart
+                              trajectories={this.props.trajectories}
+                              globalUniqueStates={this.props.globalUniqueStates}
+                              runs={this.props.runs}
+                              loadingCallback={this.chartFinishedLoading}
+                              setStateHovered={this.setStateHovered}
+                              setStateClicked={this.setStateClicked}
+                              stateHovered={this.state.stateHovered}
+                              lastEventCaller={this.state.lastEventCaller}
+                          />
+                      </AccordionDetails>
+                  </Accordion>)
                 }        
                 
                 {safe &&

@@ -200,16 +200,16 @@ async def run_analysis(steps: List[AnalysisStep],
     start = timer()
 
     if pathStart is None or pathEnd is None:
-        if config.IMPATIENT:
-            state_atom_dict = loadTestPickle(run, 'state_atom_dict')
-        else:
-            q = qb.generate_trajectory(run,
-                                       "ASC", ('relation', 'timestep'),
-                                       include_atoms=True,
-                                       ase_mode=True)
-            state_atom_dict = converter.query_to_ASE(
-                driver, qb, q, get_atom_type(getMetadata(run)['parameters']))
-            saveTestPickle(run, 'state_atom_dict', state_atom_dict)
+#        if config.IMPATIENT:
+ #           state_atom_dict = loadTestPickle(run, 'state_atom_dict')
+ #       else:
+        q = qb.generate_trajectory(run,
+                                   "ASC", ('relation', 'timestep'),
+                                   include_atoms=True)
+                                
+        state_atom_dict = converter.query_to_ASE(
+            driver, qb, q, get_atom_type(getMetadata(run)['parameters']))
+   #     saveTestPickle(run, 'state_atom_dict', state_atom_dict)
     else:
         if pathStart == pathEnd:
             q = qb.generate_get_node('State', ('timestep', pathStart),
