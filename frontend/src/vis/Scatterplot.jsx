@@ -13,23 +13,22 @@ export default function Scatterplot({ data, loadingCallback }) {
     const [height, setHeight] = useState();
 
     const resize = () => {
-        const newWidth = ref.current.parentElement.offsetWidth;
+        if(!divRef || !divRef.current) {
+            return;
+        }
+        const newWidth = divRef.current.offsetWidth;
         setWidth(newWidth);
 
-        const newHeight = ref.current.parentElement.offsetHeight;
+        const newHeight = divRef.current.offsetHeight;
         setHeight(newHeight);
     };
 
     useEffect(() => {
-        if(!divRef || !divRef.current) {
-            return;
-        }
-        
         resize();
     }, [divRef]);
 
     useEffect(() => {
-        window.addEventListener("resize", resize());
+        window.addEventListener("resize", resize);
     }, []);
     
     const ref = useTrajectoryChartRender(
@@ -188,11 +187,7 @@ export default function Scatterplot({ data, loadingCallback }) {
             if(loadingCallback !== undefined) {
                 loadingCallback();
             }
-        },
-        [data.x_attribute, data.y_attribute, width, height]
-    );
-
-
+        }, [data, width, height]);
     return (
         <div ref={divRef}>
             <svg ref={ref} viewBox={[0,0,width,height]} />

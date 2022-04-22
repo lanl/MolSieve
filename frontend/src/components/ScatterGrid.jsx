@@ -10,21 +10,24 @@ export default function ScatterGrid({trajectory, globalUniqueStates, trajectoryN
     const [scatterplots, setScatterplots] = useState([]);
 
     const addScatterplot = () => {
-        const new_plot = (<Box gridColumn="span 3">
+        const new_plot = (<Box gridColumn="span 1">
                               <ScatterControl
                                   trajectory={trajectory}
                                   globalUniqueStates={globalUniqueStates}
-                              /></Box>);
+                              />
+                          </Box>);
         setScatterplots([...scatterplots, new_plot]);
     }
     
     return (
-        <Box sx={{backgroundColor: 'blue'}}>           
+        <Box display="flex" gap={2} flexDirection="column">
+            <Box display="flex" flexDirection="row" gap={5}>
                 <Typography variant="h6">{trajectoryName}</Typography>
                 <Button variant="contained" onClick={() => {
                             addScatterplot()
                         }}>Add a new scatterplot</Button>
-            <Box display="grid" gap={2} gridTemplateRows='1fr' gridTemplateColumns='repeat(12, 1fr)' sx={{backgroundColor: 'green'}}>
+            </Box>
+            <Box display="grid" sx={{ gridColumnGap:"10px", gridTemplateColumns:'repeat(3, 1fr)'}}>
                 {scatterplots}
             </Box>
         </Box>

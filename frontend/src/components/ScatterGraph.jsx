@@ -37,7 +37,7 @@ export default function ScatterGraph({trajectories, display, globalUniqueStates}
         setGrids([...grids, newGrid]);
     }, [Object.keys(trajectories).length]);
         
-    return (<Container maxWidth={false} sx={{display: displayProp, backgroundColor: 'red', flexDirection: 'column'}}>
+    return (<Container maxWidth={false} sx={{display: displayProp, flexDirection: 'column' }}>
                 {grids}
             </Container>);
 }
