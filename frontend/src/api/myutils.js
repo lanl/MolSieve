@@ -57,37 +57,22 @@ export function extractPropertyString(props, d) {
     return propertyString;
 }
 
-export function onStateMouseOverMultTraj(node, d) {
-    let content = "";
-
-    const propertyString = extractPropertyString(Object.keys(d), d);
-
-    content += `${propertyString}`
-    
-    tippy(node, {
-        allowHTML: true,
-        content: content,
-        arrow: true,
-        maxWidth: 'none',
-    });    
-}
-
 export function onStateMouseOver(node, d, trajectory, name) {    
     // https://atomiks.github.io/tippyjs/v6/addons/#singleton
     // can improve performance further
     let content = "";
     
     if(name !== undefined) {
-        content += `<b>Run</b>: ${name}<br>`;
+        content += `<b>Run</b>: ${name} `;
     }
-        
+    
     if(trajectory !== undefined) {
-        const propertyString = extractPropertyString(trajectory.properties, d);
         const fuzzyMemberships = trajectory.fuzzy_memberships[trajectory.current_clustering][d.id];
-        content += `<b>Fuzzy memberships</b>: ${fuzzyMemberships}
-        <br>${propertyString}`;
+        content += `<b>Fuzzy memberships</b>: ${fuzzyMemberships}<br/>`;
     }
-
+    
+    const propertyString = extractPropertyString(Object.keys(d), d);
+    content += `${propertyString}`
     
     tippy(node, {
         allowHTML: true,

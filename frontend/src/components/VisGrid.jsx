@@ -44,7 +44,7 @@ class VisGrid extends React.Component {
         this.setState({ isLoading: false });
     }
 
-    setStateHovered = (stateInfo) => {        
+    setStateHovered = (stateInfo) => {
         this.setState({stateHovered: stateInfo});            
     }
 
@@ -106,7 +106,6 @@ class VisGrid extends React.Component {
                               setStateHovered={this.setStateHovered}
                               setStateClicked={this.setStateClicked}
                               stateHovered={this.state.stateHovered}
-                              lastEventCaller={this.state.lastEventCaller}
                           />
                       </AccordionDetails>
                   </Accordion>)
@@ -121,25 +120,27 @@ class VisGrid extends React.Component {
                      setStateHovered={this.setStateHovered}
                      setStateClicked={this.setStateClicked}
                      loadingCallback={this.chartFinishedLoading}
-                     stateHovered={this.state.stateHovered}
-                     lastEventCaller={this.state.lastEventCaller}
+                     stateHovered={this.state.stateHovered}                     
                  />
                 }
 
                 {safe &&                 
-                 <ScatterGraph display={!this.props.graphMode} trajectories={this.props.trajectories}
+                 <ScatterGraph display={!this.props.graphMode}
+                               trajectories={this.props.trajectories}
                                globalUniqueStates={this.props.globalUniqueStates}
+                               setStateHovered={this.setStateHovered}
+                               setStateClicked={this.setStateClicked}                             
                  />
                 }
                                          
             {this.state.currentModal === SINGLE_STATE_MODAL && (
-                    <SingleStateModal
-                        open={this.state.currentModal === SINGLE_STATE_MODAL}
-                        state={this.props.globalUniqueStates.get(this.state.stateClicked.id)}
-                        closeFunc={() => {
-                            this.toggleModal(SINGLE_STATE_MODAL);                                                        
-                        }}
-                    />
+                <SingleStateModal
+                    open={this.state.currentModal === SINGLE_STATE_MODAL}
+                    state={this.props.globalUniqueStates.get(this.state.stateClicked.id)}
+                    closeFunc={() => {
+                        this.toggleModal(SINGLE_STATE_MODAL);                                                        
+                    }}
+                />
             )}
         </Box>
         );

@@ -8,7 +8,7 @@ import Select from '@mui/material/Select';
 import Scatterplot from '../vis/Scatterplot';
 import Divider from '@mui/material/Divider';
 
-export default function ScatterControl({trajectory, globalUniqueStates}) {
+export default function ScatterControl({trajectory, globalUniqueStates, setStateHovered, setStateClicked, trajectoryName }) {
 
     // holds a scatterplot per user-defined number of scatterplots
 
@@ -21,8 +21,7 @@ export default function ScatterControl({trajectory, globalUniqueStates}) {
     for(const s of trajectory.simplifiedSequence.sequence) {
         vals.push(globalUniqueStates.get(s.id));
     }
-
-
+    
     useEffect(() => {
         if(xAttribute === 'timestep') {
             const timesteps = trajectory.simplifiedSequence.sequence.map((s) => {
@@ -95,9 +94,16 @@ export default function ScatterControl({trajectory, globalUniqueStates}) {
                         trajectory: trajectory,
                         x_attributeList: xAttributeList,
                         y_attributeList: yAttributeList
-                    }}                            
-                />
+                    }}
+                    globalUniqueStates={globalUniqueStates}
+                    setStateHovered={setStateHovered}
+                    setStateClicked={setStateClicked}
+             
+                    trajectoryName={trajectoryName}
+                />                
             </>
-           ); 
+           );
+
+    //stateHovered={stateHovered}
 }
 

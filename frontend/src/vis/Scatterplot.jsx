@@ -1,12 +1,12 @@
 import { React, useEffect, useState, useRef } from "react";
 import { useTrajectoryChartRender } from "../hooks/useTrajectoryChartRender";
-import tippy from "tippy.js";
-import "tippy.js/dist/tippy.css";
+import { onStateMouseOver } from "../api/myutils";
 import * as d3 from "d3";
+import '../css/vis.css';
 
 const margin = { top: 20, bottom: 20, left: 40, right: 25 };
 
-export default function Scatterplot({ data, loadingCallback }) {
+export default function Scatterplot({ data, globalUniqueStates, loadingCallback, setStateHovered, setStateClicked, stateHovered, trajectoryName }) {
 
     const divRef = useRef(null);    
     const [width, setWidth] = useState();
@@ -57,30 +57,16 @@ export default function Scatterplot({ data, loadingCallback }) {
             if (path == null) path = false;
 
             if (x_attributeList == null) {
-                x_attributeList = [];
-                if(x_attribute !== 'timestep') {
-                    for (const d of sequence) {
-                        x_attributeList.push(d[x_attribute]);
-                    }
-                } else {
-                    const start = (data.start) ? data.start : 0;
-                    for(let i = 0; i < sequence.length; i++) {
-                        x_attributeList.push(start + i);
-                    }
+                x_attributeList = [];                
+                for (const d of sequence) {
+                    x_attributeList.push(d[x_attribute]);
                 }
             }
 
             if (y_attributeList == null) {
                 y_attributeList = [];
-                if(y_attribute !== 'timestep') {
-                    for (const d of sequence) {
-                        y_attributeList.push(d[y_attribute]);
-                    }
-                } else {
-                    const start = (data.start) ? data.start : 0;
-                    for(let i = 0; i < sequence.length; i++) {
-                        y_attributeList.push(start + i);
-                    }
+                for (const d of sequence) {
+                    y_attributeList.push(d[y_attribute]);
                 }
             }
 
@@ -106,7 +92,9 @@ export default function Scatterplot({ data, loadingCallback }) {
                 .range([height - margin.bottom, margin.top])
                 .domain([ytent[first], ytent[last]]);
 
-            svg.selectAll("rect")
+            const g = svg.append("g").attr('id',`g_${trajectoryName}`);
+            
+            g.selectAll("rect")
                 .data(sequence)
                 .enter()
                 .append("rect")
@@ -123,24 +111,20 @@ export default function Scatterplot({ data, loadingCallback }) {
                 .attr("height", 5)
                 .attr("fill", function (d) {
                     return colors[idToCluster[d.id]];
-                })
-                .on("mouseover", function (event) {
-                    const i = event.currentTarget.getAttribute("index");
-                    tippy(this, {
-                        allowHTML: true,
-                        content:
-                            "<b>X: " +
-                            x_attribute +
-                            "</b>: " +
-                            x_attributeList[i] +
-                            "<br><b> Y: " +
-                            y_attribute +
-                            "</b>: " +
-                            y_attributeList[i],
-                        arrow: true,
-                        maxWidth: "none",
-                    });
-                });
+                }).on("click", function(_,d) {
+                    setStateClicked(globalUniqueStates.get(d.id));    
+                })                
+                .on("mouseover", function (_, d) {                    
+                    onStateMouseOver(this, globalUniqueStates.get(d.id), data.trajectory, trajectoryName);
+                    const timesteps = data.trajectory.simplifiedSequence.idToTimestep.get(d.id);
+                    if(timesteps.length === 1) {
+                        setStateHovered({'caller': this, 'stateID': d.id, 'name': trajectoryName, 'timestep': timesteps[0]});
+                    } else {
+                        setStateHovered({'caller': this, 'stateID': d.id, 'name': trajectoryName, 'timesteps': timesteps});
+                    }    
+                }).on('mouseout', function() {
+                  setStateHovered(null);
+              });
 
             if (path) {
                 var datum = [];
@@ -188,6 +172,21 @@ export default function Scatterplot({ data, loadingCallback }) {
                 loadingCallback();
             }
         }, [data, width, height]);
+
+    useEffect(() => {                
+        if(stateHovered !== undefined && stateHovered !== null) {
+            d3.select(ref.current).select(`#g_${trajectoryName}`).selectAll('rect:not(.invisible)').filter(function(dp) {                                    
+                return (dp.id !== stateHovered.stateID);
+            }).classed("highlightedInvisible", true);
+                
+            d3.select(ref.current).selectAll('rect:not(.highlightedInvisible)').classed("highlightedStates", true);
+        } else {
+            d3.select(ref.current).selectAll(".highlightedInvisible").classed("highlightedInvisible", false);
+            d3.select(ref.current).selectAll('.highlightedStates').classed("highlightedStates", false);            
+            d3.select(ref.current).selectAll('.highlightedState').classed("highlightedState", false);
+        }
+    }, [stateHovered]);
+
     return (
         <div ref={divRef}>
             <svg ref={ref} viewBox={[0,0,width,height]} />

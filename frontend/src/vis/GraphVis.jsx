@@ -3,7 +3,7 @@ import {
 } from 'react';
 import * as d3 from 'd3';
 import '../css/vis.css';
-import { onStateMouseOver, onChunkMouseOver, onStateMouseOverMultTraj } from '../api/myutils';
+import { onStateMouseOver, onChunkMouseOver } from '../api/myutils';
 import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
 import {apply_filters} from '../api/filters';
 import { useSnackbar } from 'notistack';
@@ -19,7 +19,6 @@ import Box from '@mui/material/Box';
 let container = null;
 let zoom = null;
 const trajRendered = {};
-
 
 function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStateClicked, setStateHovered, loadingCallback, display }) {
 
@@ -428,7 +427,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                     stateNodes.filter((d) => {
                         return globalUniqueStates.get(d.id).seenIn.length > 1;
                     }).attr('fill', 'black').on('mouseover', function(_, d) {
-                        onStateMouseOverMultTraj(this, globalUniqueStates.get(d.id));
+                        onStateMouseOver(this, globalUniqueStates.get(d.id));
                         setStateHovered({'caller': this, 'stateID': d.id});
                     });                    
 
@@ -469,7 +468,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
     }, [runs]);
 
     useEffect(() => {
-        if(stateHovered !== undefined && stateHovered !== null) {                        
+        if(stateHovered !== undefined && stateHovered !== null && display) {                        
             const {caller, name, stateID} = stateHovered;
 
             if(trajRendered[name]) {
