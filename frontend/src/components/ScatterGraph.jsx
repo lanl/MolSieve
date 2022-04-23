@@ -26,16 +26,7 @@ export default function ScatterGraph({trajectories, display, globalUniqueStates,
         }
     }, [display]);
 
-    useEffect(() => {
-        /*console.log(trajectories);
-        let difference = null;
-        if(prevTrajectories !== undefined) {                  
-            difference = Object.keys(trajectories).filter(x => !Object.keys(prevTrajectories).includes(x));
-        } else {
-            difference = Object.keys(trajectories);
-        }
-        if(difference.length > 1 || prevTrajectories === undefined) {*/
-        
+    useEffect(() => {        
         const newGrids = Object.keys(trajectories).map((trajectoryName) => {
             return (<ScatterGrid key={trajectoryName}
                                  trajectory={trajectories[trajectoryName]}
@@ -45,7 +36,6 @@ export default function ScatterGraph({trajectories, display, globalUniqueStates,
                                  setStateClicked={setStateClicked}                                      
                     />)});
         setGrids(newGrids);
-        //}
     },[trajectories, globalUniqueStates]);
     
     return (<Container maxWidth={false} sx={{display: displayProp, flexDirection: 'column' }}>

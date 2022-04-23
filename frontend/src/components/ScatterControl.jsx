@@ -9,15 +9,16 @@ import Scatterplot from '../vis/Scatterplot';
 import Divider from '@mui/material/Divider';
 import TextField from '@mui/material/TextField';
 
-export default function ScatterControl({trajectory, globalUniqueStates, setStateHovered, setStateClicked, trajectoryName, count }) {
+
+export default function ScatterControl({trajectory, globalUniqueStates, setStateHovered, setStateClicked, trajectoryName, id }) {
 
     // holds a scatterplot per user-defined number of scatterplots
-
+    
     const [xAttribute, setXAttribute] = useState(trajectory.properties[0]);
     const [yAttribute, setYAttribute] = useState(trajectory.properties[0]);
     const [xAttributeList, setXAttributeList] = useState(null);
     const [yAttributeList, setYAttributeList] = useState(null);
-    const [scatterplotID, setScatterplotID] = useState(`${trajectoryName}_${count}`);
+    const [scatterplotID, setScatterplotID] = useState(`${trajectoryName}_${id}`);
 
     const vals = [];
     for(const s of trajectory.simplifiedSequence.sequence) {

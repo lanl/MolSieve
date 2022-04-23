@@ -32,7 +32,6 @@ export default function Scatterplot({ data, globalUniqueStates, loadingCallback,
     }, []);
 
     useEffect(() => {
-        console.log(`Changed id to ${scatterplotID}`);
         ref.current.setAttribute('id', scatterplotID);
     }, [scatterplotID]);
     
