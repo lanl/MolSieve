@@ -19,7 +19,7 @@ export default function ScatterGrid({trajectory, globalUniqueStates, trajectoryN
                             trajectoryName={trajectoryName}
                             setStateHovered={setStateHovered}
                             setStateClicked={setStateClicked}
-                            
+                            count={i}
                         />
                     </Box>);
         scatterplots.push(sc);

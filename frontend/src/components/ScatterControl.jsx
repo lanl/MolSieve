@@ -1,14 +1,15 @@
 import {React, useState, useEffect} from 'react';
 
 import MenuItem from '@mui/material/MenuItem';
-import Box from '@mui/material/Box';
+import Stack from '@mui/material/Stack';
 import FormControl from '@mui/material/FormControl';
 import FormHelperText from '@mui/material/FormHelperText';
 import Select from '@mui/material/Select';
 import Scatterplot from '../vis/Scatterplot';
 import Divider from '@mui/material/Divider';
+import TextField from '@mui/material/TextField';
 
-export default function ScatterControl({trajectory, globalUniqueStates, setStateHovered, setStateClicked, trajectoryName }) {
+export default function ScatterControl({trajectory, globalUniqueStates, setStateHovered, setStateClicked, trajectoryName, count }) {
 
     // holds a scatterplot per user-defined number of scatterplots
 
@@ -16,6 +17,7 @@ export default function ScatterControl({trajectory, globalUniqueStates, setState
     const [yAttribute, setYAttribute] = useState(trajectory.properties[0]);
     const [xAttributeList, setXAttributeList] = useState(null);
     const [yAttributeList, setYAttributeList] = useState(null);
+    const [scatterplotID, setScatterplotID] = useState(`${trajectoryName}_${count}`);
 
     const vals = [];
     for(const s of trajectory.simplifiedSequence.sequence) {
@@ -55,9 +57,13 @@ export default function ScatterControl({trajectory, globalUniqueStates, setState
     });
 
     return (<>
-            <Box sx={{display: 'flex', justifyContent: 'space-evenly'}}>
-            <FormControl>
-                <Select                
+                <Stack spacing={1}>
+                    <TextField label="Scatterplot ID" value={scatterplotID} onChange={(e) => {
+                                   setScatterplotID(e.target.value);
+                               }} variant="standard"/>
+                    <Stack direction="row" justifyContent="center" spacing={2}>
+                        <FormControl>
+                            <Select                
                     value={xAttribute}
                     onChange={(e) => {
                         setXAttribute(e.target.value);
@@ -83,7 +89,8 @@ export default function ScatterControl({trajectory, globalUniqueStates, setState
                 </Select>
                 <FormHelperText>Y attribute</FormHelperText>
             </FormControl>
-            </Box>
+                        </Stack>
+            </Stack>
             <Divider />            
                 <Scatterplot
                     data={{
@@ -98,7 +105,7 @@ export default function ScatterControl({trajectory, globalUniqueStates, setState
                     globalUniqueStates={globalUniqueStates}
                     setStateHovered={setStateHovered}
                     setStateClicked={setStateClicked}
-             
+                    scatterplotID={scatterplotID}
                     trajectoryName={trajectoryName}
                 />                
             </>

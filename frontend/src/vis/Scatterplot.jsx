@@ -6,7 +6,7 @@ import '../css/vis.css';
 
 const margin = { top: 20, bottom: 20, left: 40, right: 25 };
 
-export default function Scatterplot({ data, globalUniqueStates, loadingCallback, setStateHovered, setStateClicked, stateHovered, trajectoryName }) {
+export default function Scatterplot({ data, globalUniqueStates, loadingCallback, setStateHovered, setStateClicked, stateHovered, trajectoryName, scatterplotID }) {
 
     const divRef = useRef(null);    
     const [width, setWidth] = useState();
@@ -30,6 +30,11 @@ export default function Scatterplot({ data, globalUniqueStates, loadingCallback,
     useEffect(() => {
         window.addEventListener("resize", resize);
     }, []);
+
+    useEffect(() => {
+        console.log(`Changed id to ${scatterplotID}`);
+        ref.current.setAttribute('id', scatterplotID);
+    }, [scatterplotID]);
     
     const ref = useTrajectoryChartRender(
         (svg) => {
