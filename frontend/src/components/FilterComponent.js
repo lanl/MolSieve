@@ -4,6 +4,9 @@ import Box from '@mui/material/Box';
 import Checkbox from '@mui/material/Checkbox';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import Slider from '@mui/material/Slider';
+import Button from '@mui/material/Button';
+import SettingsIcon from '@mui/icons-material/Settings';
+import AjaxMenu from './AjaxMenu';
 
 const RANGE_SLIDER = "range";
 const SLIDER = "slider";
@@ -13,14 +16,17 @@ class FilterComponent extends React.Component {
     constructor(props) {
         super(props);
         const filter = this.props.filter;
-
+        this.openMenuButton = React.createRef();
         this.state = {
             options: filter.options,
             enabled: false,
             run: this.props.run,
             id: filter.id,
             extents: filter.extents,
+            menuOpen: false,
+            enabledFor: filter.enabledFor
         };
+        
     }
 
     checkAndPropagateChange = () => {
@@ -30,8 +36,13 @@ class FilterComponent extends React.Component {
     };
 
     propagateChange = () => {
+        console.log(this.state);
         this.props.propagateChange(this.state);
     };
+
+    toggleMenu = () => {
+        this.setState({menuOpen: !this.state.menuOpen});
+    }
 
     setValue = (e) => {
         let options = this.state.options;
@@ -43,6 +54,16 @@ class FilterComponent extends React.Component {
         let options = this.state.options;
         options.val = v;
         this.setState({ options });
+    };
+
+    setEnabledFor = (e,v) => {
+        if (e.target.checked) {
+            this.setState({enabledFor: [...this.state.enabledFor, v]}, () => {this.propagateChange()});
+        } else {
+            const idx = this.state.enabledFor.indexOf(v);                                   
+            this.setState({enabledFor: this.state.enabledFor.filter((_,i) => i !== idx)}, () => {this.propagateChange()});
+        }
+
     };
 
     setMode = (e) => {
@@ -132,12 +153,33 @@ class FilterComponent extends React.Component {
             slider = this.render_slider(filter, slider_label);
             break;
         }
+        
+        // width 100 - dirty, but it'll have to do for now
         return (
-            <Box>
-                <FormControlLabel control={<Checkbox checked={this.state.enabled} onChange={() => { this.checkAndPropagateChange(); }}/>} label={filter.checkBoxLabel}/>
-                {slider && slider}
-                {filter.children && filter.children(this.actions)}
-            </Box>
+            <>
+                <Box sx={{width:'100%'}}>
+                    <Button sx={{float: 'right'}} ref={this.openMenuButton} onClick={this.toggleMenu}><SettingsIcon/></Button>
+                    <FormControlLabel control={<Checkbox checked={this.state.enabled} onChange={() => { this.checkAndPropagateChange(); }}/>} label={filter.checkBoxLabel}/>
+                    {slider && slider}
+                    {filter.children && filter.children(this.actions)}
+                </Box>
+                <AjaxMenu itemFunction={() => {
+                              const elements = document.getElementsByClassName("vis")
+                              let ids = [];
+
+                              for(const el of elements) {
+                                  ids.push(el.getAttribute('id'));
+                              }
+                              
+                              return ids;
+                          }}
+                          open={this.state.menuOpen}
+                          anchorEl={this.openMenuButton.current}
+                          click={this.setEnabledFor}
+                          handleClose={() => { this.setState({ menuOpen: !this.state.menuOpen, anchorEl: null }) }}
+                          clicked={this.props.filter.enabledFor}
+                />
+            </>
         );
     }
 }

@@ -419,7 +419,7 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
     
     return (        
         <div ref={divRef}>
-             <svg
+             <svg className="vis"
                  onContextMenu={openContext}
                  id="sequence"
                  ref={ref}

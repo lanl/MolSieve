@@ -20,6 +20,7 @@ const TOGGLE = "toggle";
 class Filter {
     enabled = false;
     func;
+    enabledFor = ['sequence', 'graph'];
 }
 
 class FilterBuilder {
@@ -67,7 +68,7 @@ class FilterBuilder {
         );
         this.filter.type = SLIDER;
         this.filter.group = 'g';
-        this.filter.restrict = ['sequence'];
+        this.filter.enabledFor = ['sequence'];
         this.filter.className = ['transitions'];
 
         return this.getFilter();

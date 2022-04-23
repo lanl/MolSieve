@@ -555,7 +555,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
         <Box ref={divRef} onContextMenu={openContext} sx={{'display': displayProp}}>
                 
                 {width && height && Object.keys(trajectories).length === Object.keys(runs).length
-                 && <svg id="graph" ref={ref} viewBox={[0,0,width,height]}/>}
+                 && <svg id="graph" className="vis" ref={ref} viewBox={[0,0,width,height]}/>}
 
                 <Menu
                     open={contextMenu !== null}

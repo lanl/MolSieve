@@ -1,4 +1,4 @@
-import React from "react";
+import {React, useState, useEffect} from "react";
 import axios from "axios";
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
@@ -7,88 +7,74 @@ import ListItemText from '@mui/material/ListItemText';
 import Checkbox from '@mui/material/Checkbox';
 import CircularProgress from '@mui/material/CircularProgress';
 
-class AjaxMenu extends React.Component {
+export default function AjaxMenu(props) {
 
-    constructor(props) {
-        super(props);
+    const [isLoaded, setIsLoaded] = useState(false);
+    const [items, setItems] = useState([]);
+    const [clicked, setClicked] = useState([]);
+    const [lastEvent, setLastEvent] = useState(null);
 
-        this.state = {
-            isLoaded: false,
-            items: [],
-            clicked: []
+    useEffect(() => {
+        if(props.open) {
+            if(props.api_call !== undefined && props.api_call !== '') {
+                axios
+                    .get(props.api_call)
+                    .then((response) => {
+                        setItems(response.data);                        
+                    })
+                    .catch((e) => {
+                        alert(e);
+                    });
+            } else if(props.itemFunction !== undefined) {
+                setItems(props.itemFunction());
+            }
         }
-    }
 
-  componentDidMount() {    
-      if(this.props.api_call !== undefined && this.props.api_call !== '') {
-            axios
-                .get(this.props.api_call)
-                .then((response) => {
-                    this.setState({ isLoaded: true, items: response.data });
-                })
-                .catch((e) => {
-                    alert(e);
-                });
+        if(props.clicked !== undefined) {
+            setClicked(props.clicked);
         }
-  }
+        
+    }, [props.open]);
 
-  handleChange = (e) => {
-    if (e.target.checked) {
-      this.setState({clicked: [...this.state.clicked, e.target.value]}, () => {
-        if (this.props.click) {
-          this.props.click(e, e.target.value);
-        }
-      });            
-    } else {
-      let newClicked = [...this.state.clicked];
-      newClicked.splice(newClicked.indexOf(e.target.value), 1);
-      this.setState({clicked: newClicked}, () => {
-        if (this.props.click) {
-          this.props.click(e, e.target.value);
-        }
-      });            
-    }
-  }
-
-    click = (e) => {
+    useEffect(() => {
+        setIsLoaded(true);
+    }, [items]);
+  
+    const handleChange = (e) => {
         if (e.target.checked) {
-            this.setState({clicked: [...this.state.clicked, e.target.value]}, () => {
-                if (this.props.click) {
-                    this.props.click(e, this.state.clicked);
-                }
-            });
+            setClicked([...clicked, e.target.value]);
+            setLastEvent(e);
         } else {
-            let newClicked = [...this.state.clicked];
-            newClicked.splice(newClicked.indexOf(e.target.value), 1);
-            this.setState({clicked: newClicked}, () => {
-                if (this.props.click) {
-                    this.props.click(e, this.state.clicked);
-                }
-            });            
+            const idx = clicked.indexOf(e.target.value);                                   
+            setClicked(clicked.filter((_,i) => i !== idx));
+            setLastEvent(e);
         }
     }
 
-    render() {
-      const { isLoaded, items } = this.state;
+    useEffect(() => {
+        if (lastEvent && props.click) {
+            props.click(lastEvent, lastEvent.target.value);
+        }
+    }, [lastEvent]);
 
-        return (<Menu
-                  anchorEl={this.props.anchorEl}
-                  open={this.props.open}
-                  onClose={this.props.handleClose}>
+    return (<Menu
+                anchorEl={props.anchorEl}
+                open={props.open}
+                onClose={props.handleClose}>
                   
-                  {!isLoaded && (
+                {!isLoaded && (
                     <MenuItem>                
-                      <CircularProgress color="grey" />
+                        <CircularProgress color="grey" />
                     </MenuItem>)
                   }
                   
-                  {isLoaded &&
-                   items.map((item, idx) => {
+                {isLoaded &&
+                 items.map((item, idx) => {
                     return (<MenuItem key={idx}>
                         <ListItemIcon>
                           <Checkbox
-                            checked={this.state.clicked.includes(item)}
-                            onChange={(e) => {this.handleChange(e);}}
+                            checked={clicked.includes(item)}
+                            onChange={(e) => {handleChange(e);}}
                             value={item}
                           />
                         </ListItemIcon>
@@ -100,7 +86,5 @@ class AjaxMenu extends React.Component {
                    })
                   }
                 </Menu>);              
-    }
 }
 
-export default AjaxMenu;

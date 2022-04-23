@@ -289,6 +289,8 @@ class App extends React.Component {
             this_filter.options = filter.options;
         }
 
+        this_filter.enabledFor = filter.enabledFor;
+
         this_filter.enabled = filter.enabled;
 
         runs[filter.run]["filters"][filter.id] = this_filter;
@@ -351,7 +353,7 @@ class App extends React.Component {
                 <AjaxMenu
                     anchorEl={this.runListButton.current}
                     api_call="/get_run_list"
-                    open={this.state.showRunList}
+                    open={this.state.showRunList}                    
                     clicked={Object.keys(this.state.trajectories)}
                     handleClose={() => { this.setState({ showRunList: !this.state.showRunList, anchorEl: null }) }}
                     click={(e, v) => {

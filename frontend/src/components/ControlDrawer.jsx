@@ -13,6 +13,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 
 import Button from '@mui/material/Button';
 import Slider from '@mui/material/Slider';
+import Typography from '@mui/material/Typography';
 
 import Drawer from '@mui/material/Drawer';
 
@@ -24,6 +25,8 @@ import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogTitle';
 import DialogActions from '@mui/material/DialogActions';
+
+import Divider from '@mui/material/Divider';
 
 const ADD_FILTER_MODAL = "add-filter-modal";
 const METADATA_MODAL = "metadata-modal";
@@ -63,19 +66,24 @@ function ControlDrawer({trajectories, runs, updateRun, recalculate_clustering, s
             <Accordion disableGutters={true} key={run}>
                 <AccordionSummary
                     expandIcon={<ExpandMoreIcon />}
-                >{run}
+                >
+                     <Typography variant="h6">{run}</Typography>
+
                 </AccordionSummary>
+                <Divider/>
                 <AccordionDetails>
+                    <Button
+                        onClick={() => {
+                            setCurrentRun(run), () => {
+                                toggleModal(METADATA_MODAL);   
+                            };
+                        }}>
+                        Display metadata
+                    </Button>
                     <List key={run}>
+
                         <ListItem>
-                            <Button size="small" variant="outlined"
-                                    onClick={() => {
-                                        setCurrentRun(run), () => {
-                                            toggleModal(METADATA_MODAL);   
-                                };
-                            }}>
-                                Display metadata
-                            </Button>
+                            <ListItemText><Typography>Number of PCCA clusters</Typography></ListItemText>
                         </ListItem>
                 <ListItem>
                     <Slider
@@ -94,13 +102,13 @@ function ControlDrawer({trajectories, runs, updateRun, recalculate_clustering, s
                             );
                         }}
                         value={runs[run]["current_clustering"]}
+                        marks={[{value: 2, label: '2'}, {value: 20, label: '20'}]}
                     />
                 </ListItem>
-                <ListItem>
-                    <ListItemText secondary={runs[run]["current_clustering"] + " clusters"}>                            
-                    </ListItemText>
-                </ListItem>
-                <ListItem>
+                        <ListItem>
+                            <ListItemText><Typography>Simplification threshold</Typography></ListItemText>
+                        </ListItem>
+                        <ListItem>
                     <Slider step={0.05}
                             min={0}
                             max={1}
@@ -112,15 +120,14 @@ function ControlDrawer({trajectories, runs, updateRun, recalculate_clustering, s
                                 updateRun(run, "chunkingThreshold", e.target.value);
                             }}
                             value={runs[run].chunkingThreshold}
+                            marks={[{value: 0, label: '0%'}, {value: 1, label: '100%'}]}
                     />
-                </ListItem>
-                <ListItem>
-                    <ListItemText secondary={`${runs[run]["chunkingThreshold"] * 100}% chunking threshold`}/>                            
-                </ListItem>                        
-
+                </ListItem>              
+                        <Divider/>
                 {Object.keys(runs[run]["filters"]).length > 0 &&
                  Object.keys(runs[run]["filters"]).map((key, idx) => {
                      const filter = runs[run]["filters"][key];
+
                      return (
                          <ListItem key={idx}>
                              <FilterComponent

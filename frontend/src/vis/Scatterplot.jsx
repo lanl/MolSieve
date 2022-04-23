@@ -193,7 +193,7 @@ export default function Scatterplot({ data, globalUniqueStates, loadingCallback,
 
     return (
         <div ref={divRef}>
-            <svg ref={ref} viewBox={[0,0,width,height]} />
+            <svg ref={ref} className="vis" viewBox={[0,0,width,height]} />
         </div>
     );
 }
