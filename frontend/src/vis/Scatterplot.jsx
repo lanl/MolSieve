@@ -1,12 +1,13 @@
 import { React, useEffect, useState, useRef } from "react";
 import { useTrajectoryChartRender } from "../hooks/useTrajectoryChartRender";
 import { onStateMouseOver } from "../api/myutils";
+import { apply_filters } from '../api/filters';
 import * as d3 from "d3";
 import '../css/vis.css';
 
 const margin = { top: 20, bottom: 20, left: 40, right: 25 };
 
-export default function Scatterplot({ data, globalUniqueStates, loadingCallback, setStateHovered, setStateClicked, stateHovered, trajectoryName, scatterplotID }) {
+export default function Scatterplot({ data, globalUniqueStates, loadingCallback, setStateHovered, setStateClicked, stateHovered, trajectoryName, scatterplotID, runs, trajectory }) {
 
     const divRef = useRef(null);    
     const [width, setWidth] = useState();
@@ -50,7 +51,7 @@ export default function Scatterplot({ data, globalUniqueStates, loadingCallback,
             let y_attribute = data.y_attribute;
             let x_attributeList = data.x_attributeList;
             let y_attributeList = data.y_attributeList;
-            const idToCluster = data.trajectory.idToCluster;
+            const idToCluster = trajectory.idToCluster;
             let reverse = data.reverse;
             let path = data.path;
             let sequence = data.sequence;
@@ -119,8 +120,8 @@ export default function Scatterplot({ data, globalUniqueStates, loadingCallback,
                     setStateClicked(globalUniqueStates.get(d.id));    
                 })                
                 .on("mouseover", function (_, d) {                    
-                    onStateMouseOver(this, globalUniqueStates.get(d.id), data.trajectory, trajectoryName);
-                    const timesteps = data.trajectory.simplifiedSequence.idToTimestep.get(d.id);
+                    onStateMouseOver(this, globalUniqueStates.get(d.id), trajectory, trajectoryName);
+                    const timesteps = trajectory.simplifiedSequence.idToTimestep.get(d.id);
                     if(timesteps.length === 1) {
                         setStateHovered({'caller': this, 'stateID': d.id, 'name': trajectoryName, 'timestep': timesteps[0]});
                     } else {
@@ -191,6 +192,20 @@ export default function Scatterplot({ data, globalUniqueStates, loadingCallback,
         }
     }, [stateHovered]);
 
+     useEffect(() => {
+         if (ref !== undefined && ref.current !== undefined) {
+             const trajectories = {};
+             trajectories[trajectoryName] = trajectory;
+             trajectory.name = trajectoryName;
+             apply_filters(trajectories, runs, globalUniqueStates, ref);
+         }
+
+         if(loadingCallback !== undefined) {                        
+             loadingCallback();
+         }
+     }, [runs]);
+
+    
     return (
         <div ref={divRef}>
             <svg ref={ref} className="vis" viewBox={[0,0,width,height]} />

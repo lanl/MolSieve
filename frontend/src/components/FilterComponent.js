@@ -36,7 +36,6 @@ class FilterComponent extends React.Component {
     };
 
     propagateChange = () => {
-        console.log(this.state);
         this.props.propagateChange(this.state);
     };
 

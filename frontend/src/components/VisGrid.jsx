@@ -126,6 +126,7 @@ class VisGrid extends React.Component {
 
                 {safe &&                 
                  <ScatterGraph display={!this.props.graphMode}
+                               runs={this.props.runs}
                                trajectories={this.props.trajectories}
                                globalUniqueStates={this.props.globalUniqueStates}
                                setStateHovered={this.setStateHovered}

@@ -1,6 +1,6 @@
-import { React, useState, useEffect } from 'react';
-import ScatterGrid from './ScatterGrid';
-import Container from '@mui/material/Container';
+import { React, useState, useEffect } from "react";
+import ScatterGrid from "./ScatterGrid";
+import Container from "@mui/material/Container";
 
 /*function usePrevious(value) {
   const ref = useRef();
@@ -11,34 +11,49 @@ import Container from '@mui/material/Container';
 }*/
 
 // scatter graph is the top level grid of grids
-export default function ScatterGraph({trajectories, display, globalUniqueStates, setStateHovered, setStateClicked}) {
-    
-    const [displayProp, setDisplayProp] = useState('block');
+export default function ScatterGraph({
+    trajectories,
+    display,
+    globalUniqueStates,
+    setStateHovered,
+    setStateClicked,
+    runs,
+}) {
+    const [displayProp, setDisplayProp] = useState("block");
     const [grids, setGrids] = useState([]);
 
     //const prevTrajectories = usePrevious(trajectories);
-    
+
     useEffect(() => {
-        if(display === undefined || display === true) {
-            setDisplayProp('flex');
+        if (display === undefined || display === true) {
+            setDisplayProp("flex");
         } else {
-            setDisplayProp('none');
+            setDisplayProp("none");
         }
     }, [display]);
 
-    useEffect(() => {        
+    useEffect(() => {
         const newGrids = Object.keys(trajectories).map((trajectoryName) => {
-            return (<ScatterGrid key={trajectoryName}
-                                 trajectory={trajectories[trajectoryName]}
-                                 globalUniqueStates={globalUniqueStates}
-                                 trajectoryName={trajectoryName}
-                                 setStateHovered={setStateHovered}
-                                 setStateClicked={setStateClicked}                                      
-                    />)});
+            return (
+                <ScatterGrid
+                    key={trajectoryName}
+                    trajectory={trajectories[trajectoryName]}
+                    globalUniqueStates={globalUniqueStates}
+                    trajectoryName={trajectoryName}
+                    setStateHovered={setStateHovered}
+                    runs={runs}
+                    setStateClicked={setStateClicked}
+                />
+            );
+        });
         setGrids(newGrids);
-    },[trajectories, globalUniqueStates]);
-    
-    return (<Container maxWidth={false} sx={{display: displayProp, flexDirection: 'column' }}>
-                {grids}
-            </Container>);
+    }, [trajectories, globalUniqueStates, runs]);
+
+    return (
+        <Container
+            maxWidth={false}
+            sx={{ display: displayProp, flexDirection: "column" }}>
+            {grids}
+        </Container>
+    );
 }
