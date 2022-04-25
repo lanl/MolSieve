@@ -5,25 +5,107 @@ import { apply_filters } from '../api/filters';
 import * as d3 from "d3";
 import '../css/vis.css';
 
+import MenuItem from "@mui/material/MenuItem";
+import Menu from "@mui/material/Menu";
+import FormControl from "@mui/material/FormControl";
+import Select from "@mui/material/Select";
+import FormHelperText from "@mui/material/FormHelperText";
+
+
 const margin = { top: 20, bottom: 20, left: 40, right: 25 };
 
-export default function Scatterplot({ data, globalUniqueStates, loadingCallback, setStateHovered, setStateClicked, stateHovered, trajectoryName, scatterplotID, runs, trajectory }) {
-
-    const divRef = useRef(null);    
+export default function Scatterplot({globalUniqueStates, loadingCallback, stateHovered, trajectoryName, id, runs, trajectory, setStateClicked, setStateHovered, title }) {    
+    const divRef = useRef(null);
+    
     const [width, setWidth] = useState();
     const [height, setHeight] = useState();
 
-    const [x_attributeList, setXAttributeList] = useState([]);
-    const [y_attributeList, setYAttributeList] = useState([]);
+    const [xAttribute, setXAttribute] = useState(trajectory.properties[0]);
+    const [yAttribute, setYAttribute] = useState(trajectory.properties[0]);
+    
+    const [xAttributeList, setXAttributeList] = useState(null);
+    const [yAttributeList, setYAttributeList] = useState(null);
 
+    const [contextMenu, setContextMenu] = useState(null);
+    const openContext = (event) => {
+        event.preventDefault();
+        setContextMenu(
+            contextMenu === null
+                ? {
+                    mouseX: event.clientX - 2,
+                    mouseY: event.clientY - 4,
+                }
+                : null,
+        );
+    };
+
+    const closeContext = () => {
+        setContextMenu(null);
+    };
+
+    useEffect(() => {
+        if (xAttribute === "timestep") {
+            const timesteps = trajectory.simplifiedSequence.sequence.map(
+                (s) => {
+                    return s.timestep;
+                }
+            );
+            setXAttributeList(timesteps);
+        } else {
+            const ids = trajectory.simplifiedSequence.sequence.map((s) => {
+                return s.id;
+            });
+            
+            const uniqueStates = ids.map((id) => {
+                return globalUniqueStates.get(id);
+            });
+
+            setXAttributeList(uniqueStates.map((s) => {
+                return s[xAttribute];
+            }));
+        }
+    }, [xAttribute, trajectory.chunkingThreshold, trajectory.current_clustering, globalUniqueStates]);
+
+    useEffect(() => {
+        if (yAttribute === "timestep") {
+            const timesteps = trajectory.simplifiedSequence.sequence.map(
+                (s) => {
+                    return s.timestep;
+                }
+            );
+            setYAttributeList(timesteps);
+        } else {
+            const ids = trajectory.simplifiedSequence.sequence.map((s) => {
+                return s.id;
+            });
+                
+            const uniqueStates = ids.map((id) => {
+                return globalUniqueStates.get(id);
+            });
+
+            setYAttributeList(uniqueStates.map((s) => {
+                return s[yAttribute];
+            }));
+
+        }
+    }, [yAttribute, trajectory.chunkingThreshold, trajectory.current_clustering, globalUniqueStates]);
+
+    let options = trajectory.properties.map((property) => {
+        return (
+            <MenuItem key={property} value={property}>
+                {property}
+            </MenuItem>
+        );
+    });
+    
     const resize = () => {
         if(!divRef || !divRef.current) {
             return;
         }
-        const newWidth = divRef.current.offsetWidth;
+        const newWidth = divRef.current.parentElement.offsetWidth;
         setWidth(newWidth);
 
-        const newHeight = divRef.current.offsetHeight;
+        const newHeight = divRef.current.parentElement.offsetHeight;
         setHeight(newHeight);
     };
 
@@ -36,49 +118,8 @@ export default function Scatterplot({ data, globalUniqueStates, loadingCallback,
     }, []);
 
     useEffect(() => {
-        ref.current.setAttribute('id', scatterplotID);
-    }, [scatterplotID]);
-
-    useEffect(() => {
-        if (data.x_attributeList == null) {            
-            
-            const ids = trajectory.simplifiedSequence.sequence.map((s) => {
-                return s.id;
-            });
-
-            const uniqueStates = ids.map((id) => {
-                return globalUniqueStates.get(id);
-            });
-
-            setXAttributeList(uniqueStates.map((s) => {
-                return s[data.x_attribute];
-            }));
-            
-        } else {
-            setXAttributeList(data.x_attributeList);
-        }
-    }, [data, trajectory]);
-
-    useEffect(() => {
-        if (data.y_attributeList == null) {            
-            
-            const ids = trajectory.simplifiedSequence.sequence.map((s) => {
-                return s.id;
-            });
-
-            const uniqueStates = ids.map((id) => {
-                return globalUniqueStates.get(id);
-            });
-
-            setYAttributeList(uniqueStates.map((s) => {
-                return s[data.y_attribute];
-            }));
-            
-        } else {
-            setYAttributeList(data.y_attributeList);
-        }
-    }, [data, trajectory]);
-
+        ref.current.setAttribute('id', id);
+    }, [id]);
 
     
     const ref = useTrajectoryChartRender(
@@ -96,6 +137,7 @@ export default function Scatterplot({ data, globalUniqueStates, loadingCallback,
             
             const idToCluster = trajectory.idToCluster;
             const sequence = trajectory.simplifiedSequence.sequence;
+            
             //let reverse = data.reverse;
             //let path = data.path;
             //let title = data.title;
@@ -104,8 +146,8 @@ export default function Scatterplot({ data, globalUniqueStates, loadingCallback,
             //if (reverse == null) reverse = false;
             //if (path == null) path = false;
          
-            const xtent = d3.extent(x_attributeList);
-            const ytent = d3.extent(y_attributeList);
+            const xtent = d3.extent(xAttributeList);
+            const ytent = d3.extent(yAttributeList);
 
             const first = 0;
             const last = 1;
@@ -113,9 +155,8 @@ export default function Scatterplot({ data, globalUniqueStates, loadingCallback,
            /*if (reverse) {
                 first = 1;
                 last = 0;
-            }*/
+                }*/
 
-            // 1.25 for breathing room between axis and values
             const scale_x = d3
                 .scaleLinear()
                 .range([margin.left, width - margin.right])
@@ -128,15 +169,15 @@ export default function Scatterplot({ data, globalUniqueStates, loadingCallback,
 
             const g = svg.append("g").attr('id',`g_${trajectoryName}`);
             
-            g.selectAll("rect")
+            const points = g.selectAll("rect")
                 .data(sequence)
                 .enter()
                 .append("rect")
                 .attr("x", function (_, i) {
-                    return scale_x(x_attributeList[i]);
+                    return scale_x(xAttributeList[i]);
                 })
                 .attr("y", function (_, i) {
-                    return scale_y(y_attributeList[i]);
+                    return scale_y(yAttributeList[i]);
                 })
                 .attr("index", function (_, i) {
                     return i;
@@ -145,20 +186,28 @@ export default function Scatterplot({ data, globalUniqueStates, loadingCallback,
                 .attr("height", 5)
                 .attr("fill", function (d) {
                     return colors[idToCluster[d.id]];
-                }).on("click", function(_,d) {                    
+                });
+
+            if(setStateClicked) {
+                points.on("click", function(_,d) {                    
                     setStateClicked(globalUniqueStates.get(d.id));    
-                })                
-                .on("mouseover", function (_, d) {                    
+                });
+            }
+            
+            if(setStateHovered) {
+                points.on("mouseover", function (_, d) {                    
                     onStateMouseOver(this, globalUniqueStates.get(d.id), trajectory, trajectoryName);
+
                     const timesteps = trajectory.simplifiedSequence.idToTimestep.get(d.id);
                     if(timesteps.length === 1) {
                         setStateHovered({'caller': this, 'stateID': d.id, 'name': trajectoryName, 'timestep': timesteps[0]});
                     } else {
                         setStateHovered({'caller': this, 'stateID': d.id, 'name': trajectoryName, 'timesteps': timesteps});
-                    }    
+                    }  
                 }).on('mouseout', function() {
-                  setStateHovered(null);
-              });
+                   setStateHovered(null);
+                });
+            }
 
             /*if (path) {
                 var datum = [];
@@ -191,8 +240,8 @@ export default function Scatterplot({ data, globalUniqueStates, loadingCallback,
                 .attr("transform", `translate(${yAxisPos},0)`)
                 .call(d3.axisLeft().scale(scale_y));
 
-            /*if (title === null || title === "") {
-                title = x_attribute + " vs " + y_attribute;
+            if (title === null || title === "") {
+                title = xAttribute + " vs " + yAttribute;
             }
 
             svg.append("text")
@@ -200,12 +249,12 @@ export default function Scatterplot({ data, globalUniqueStates, loadingCallback,
                 .attr("y", margin.top)
                 .attr("text-anchor", "middle")
                 .style("font-size", "12px")
-                .text(title);*/
+                .text(title);
 
             if(loadingCallback !== undefined) {
                 loadingCallback();
             }
-        }, [trajectory, data, width, height]);
+        }, [trajectory.chunkingThreshold, trajectory.current_clustering, width, height, xAttributeList, yAttributeList]);
 
     useEffect(() => {                
         if(stateHovered !== undefined && stateHovered !== null) {
@@ -232,12 +281,55 @@ export default function Scatterplot({ data, globalUniqueStates, loadingCallback,
          if(loadingCallback !== undefined) {                        
              loadingCallback();
          }
-     }, [runs, data]);
+     }, [runs]);
 
     
     return (
         <div ref={divRef}>
-            <svg ref={ref} className="vis" viewBox={[0,0,width,height]} />
+            <svg ref={ref} onContextMenu={openContext} className="vis" viewBox={[0,0,width,height]} />
+            <Menu
+                open={contextMenu !== null}
+                onClose={closeContext}
+                onContextMenu={openContext}
+                anchorReference="anchorPosition"
+                anchorPosition={
+                    contextMenu !== null
+                        ? { top: contextMenu.mouseY, left: contextMenu.mouseX }
+                        : undefined
+                }
+            >
+                <MenuItem>
+                    <FormControl>
+                    <Select
+                            value={xAttribute}
+                            onChange={(e) => {
+                                setXAttribute(e.target.value);
+                            }}>
+                            {options}
+                        <MenuItem key="timestep" value="timestep">
+                            timestep
+                        </MenuItem>
+                    </Select>
+                        <FormHelperText>X attribute</FormHelperText>
+                    </FormControl>
+                </MenuItem>
+
+                <MenuItem>
+                    <FormControl>
+                        <Select
+                            value={yAttribute}
+                            onChange={(e) => {
+                                setYAttribute(e.target.value);
+                            }}>
+                            {options}
+                            <MenuItem key="timestep" value="timestep">
+                                timestep
+                            </MenuItem>
+                        </Select>
+                        <FormHelperText>Y attribute</FormHelperText>
+                    </FormControl>
+            </MenuItem>
+            </Menu>            
         </div>
     );
 }

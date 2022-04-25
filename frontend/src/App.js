@@ -247,15 +247,10 @@ class App extends React.Component {
     };
 
     simplifySet = (run, threshold) => {
-        const new_trajectories = {
-            ...this.state.trajectories,
-        };
-        const new_traj = new_trajectories[run];
-
+        const new_traj = this.state.trajectories[run];
         new_traj.simplifySet(threshold);
-        new_trajectories[run] = new_traj;
 
-        this.setState({ trajectories: new_trajectories });
+        this.setState({ trajectories: {...this.state.trajectories, [run]: new_traj }});
     };
 
     toggleDrawer = () => {

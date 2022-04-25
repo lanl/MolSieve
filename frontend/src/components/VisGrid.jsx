@@ -6,7 +6,7 @@ import SingleStateModal from "../modals/SingleStateModal";
 import LoadingModal from "../modals/LoadingModal";
 import GraphVis from "../vis/GraphVis";
 import ScatterGrid from "./ScatterGrid";
-import ScatterControl from "./ScatterControl";
+import Scatterplot from "../vis/Scatterplot";
 
 import Button from "@mui/material/Button";
 import Accordion from '@mui/material/Accordion';
@@ -56,7 +56,7 @@ class VisGrid extends React.Component {
     }
     
     changeTimestep = (e) => {        
-        if(this.state.stateHovered !== null) {
+        if(this.state.stateHovered !== null) {            
             // timestep = index into simplifiedSequence array            
             let timestep = null;
             
@@ -92,29 +92,37 @@ class VisGrid extends React.Component {
 
     deletePlot = (e) => {
         const plot = e.target.getAttribute("data-value");
-        this.setState({scatterplots: { plot, ...this.state.scatterplots}}, console.log(this.state));
+        console.log(plot);
+        const newScatters = {...this.state.scatterplots};
+        console.log(newScatters[plot]);
+        delete newScatters[plot];
+
+        console.log(newScatters);
+        this.setState({ scatterplots: newScatters}, () => {console.log(this.state);});
     };
-        
+
+
     render() {
         const runs = Object.keys(this.props.runs);
         const trajs = Object.keys(this.props.trajectories);
         const safe = (runs.length === trajs.length && runs.length > 0 && trajs.length > 0) ? true : false;
 
         const scatterplots = Object.keys(this.state.scatterplots).map((sc) => {
-            const sc_props = this.state.scatterplots[sc];
-            return(<ScatterControl
+            const sc_props = this.state.scatterplots[sc];            
+            return (<Scatterplot
                        key={sc}
                        trajectory={this.props.trajectories[sc_props.name]}
-                       globalUniqueStates={this.props.globalUniqueStates}
+                       globalUniqueStates={this.props.globalUniqueStates}                       
                        trajectoryName={sc_props.name}
-                       setStateHovered={this.setStateHovered}
-                       setStateClicked={this.setStateClicked}
                        id={sc}
+                       setStateClicked={this.setStateClicked}
+                       setStateHovered={this.setStateHovered}
                        runs={this.props.runs}
-                   />);
+                       stateHovered={this.state.stateHovered}
+                       title={sc}
+                   />);            
         });
 
-        
         return (
             <Box sx={{flexGrow: 1}}>
                 {this.state.isLoading && <LoadingModal

@@ -597,7 +597,7 @@ def pcca(run: str, clusters: int, optimal: int, m_min: int, m_max: int):
     # TODO: add as metadata in vis
     # j.update({'dominant_eigenvalues': gpcca.dominant_eigenvalues.tolist()})
     # j.update({'minChi': gpcca.minChi(m_min, m_max)})
-
+    print(gpcca.n_m)
     #print(j)
 
     saveTestJson(run, 'optimal_pcca', j)

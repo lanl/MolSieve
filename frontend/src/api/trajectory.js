@@ -122,8 +122,9 @@ class Trajectory {
                 return {'id': state};
         });
 
-        this.simplifiedSequence = { sequence: simplifiedSequence, uniqueStates: uniqueStates, chunks: chunks, interleaved: interleaved, idToTimestep: idToTimestep };        
-    }
+        this.simplifiedSequence = { sequence: simplifiedSequence, uniqueStates: uniqueStates, chunks: chunks, interleaved: interleaved, idToTimestep: idToTimestep };
+        this.chunkingThreshold = chunkingThreshold;
+    }    
     
     set_colors(colorArray) {
         let i = 0;        

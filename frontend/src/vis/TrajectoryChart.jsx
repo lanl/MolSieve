@@ -1,5 +1,5 @@
 import {
-    React, useEffect, useState, useRef,
+    React, useEffect, useState, useRef
 } from 'react';
 import * as d3 from 'd3';
 import Menu from '@mui/material/Menu';
@@ -49,7 +49,7 @@ function useKeyDown(key, action) {
 }
 
 function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallback, setStateHovered, setStateClicked, stateHovered }) {
-    
+
     const [currentModal, setCurrentModal] = useState();
 
     const toggleModal = (key) => {
@@ -177,10 +177,6 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                 return;
             }
 
-            //if (Object.keys(trajectories).length === Object.keys(runs).length) {
-            //return;
-            //}
-            
             // clear so we don't draw over-top and cause insane lag
             if (!svg.empty()) {
                 svg.selectAll('*').remove();
