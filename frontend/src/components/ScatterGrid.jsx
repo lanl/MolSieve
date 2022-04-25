@@ -1,72 +1,45 @@
 import { React, useState, useEffect } from "react";
 import Button from "@mui/material/Button";
 import Box from "@mui/material/Box";
-import Typography from "@mui/material/Typography";
-import ScatterControl from "./ScatterControl";
+import Container from "@mui/material/Container";
 
 export default function ScatterGrid({
-    trajectory,
-    globalUniqueStates,
-    trajectoryName,
-    setStateHovered,
-    setStateClicked,
-    runs,
+    display,
+    deletePlot,
+    children,
+    control,
 }) {
-    // holds all of the scatterplots for one trajectory
-    const [scatterplots, setScatterplots] = useState([]);
-    const [count, setCount] = useState(0);
-    const [graphs, setGraphs] = useState(null);
 
-    const addScatterplot = (id) => {
-        setScatterplots([...scatterplots, id]);
-    };
-
-    const deletePlot = (e) => {
-        const plot = e.target.getAttribute("data-value");
-        const idx = scatterplots.findIndex((el) => el === plot);
-        setScatterplots(scatterplots.filter((_, i) => i !== idx));
-    };
+    const [displayProp, setDisplayProp] = useState("flex");
 
     useEffect(() => {
-        const newGraphs = scatterplots.map((id) => {
-            return (
-                <Box gridColumn="span 1" key={`${id}`}>
-                    <Button
-                        sx={{ float: "right" }}
-                        data-value={`${id}`}
-                        onClick={(e) => {
-                            deletePlot(e);
-                        }}>
-                        X
-                    </Button>
-                    <ScatterControl
-                        trajectory={trajectory}
-                        globalUniqueStates={globalUniqueStates}
-                        trajectoryName={trajectoryName}
-                        setStateHovered={setStateHovered}
-                        setStateClicked={setStateClicked}
-                        id={id}
-                        runs={runs}
-                    />
-                </Box>
-            );
-        });
-        setGraphs(newGraphs);
-    }, [scatterplots, runs, trajectory]);
+        if (display === undefined || display === true) {
+            setDisplayProp("flex");
+        } else {
+            setDisplayProp("none");
+        }
+    }, [display]);
+   
+    const graphs = children.map((child, id) => {
+        return (
+            <Box gridColumn="span 1" key={`gridChild_${id}`}>
+                <Button
+                    sx={{ float: "right" }}
+                    data-value={`$gridChild_${id}`}
+                    onClick={(e) => {
+                        deletePlot(e);
+                    }}>
+                    X
+                </Button>
+                {child}
+            </Box>);
+    });
 
     return (
-        <Box display="flex" gap={2} flexDirection="column">
-            <Box display="flex" flexDirection="row" gap={5}>
-                <Typography variant="h6">{trajectoryName}</Typography>
-                <Button
-                    variant="contained"
-                    onClick={() => {
-                        setCount((prev) => prev + 1);
-                        addScatterplot(`${trajectoryName}_sc_${count}`);
-                    }}>
-                    Add a new scatterplot
-                </Button>
-            </Box>
+        <Container
+            maxWidth={false}
+            sx={{ display: displayProp, flexDirection: "column" }}>               
+            {control}
             <Box
                 display="grid"
                 sx={{
@@ -75,7 +48,7 @@ export default function ScatterGrid({
                 }}>
                 {graphs}
             </Box>
-        </Box>
+        </Container>
     );
 
     //stateHovered={stateHovered}

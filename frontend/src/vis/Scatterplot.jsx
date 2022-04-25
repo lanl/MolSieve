@@ -13,6 +13,9 @@ export default function Scatterplot({ data, globalUniqueStates, loadingCallback,
     const [width, setWidth] = useState();
     const [height, setHeight] = useState();
 
+    const [x_attributeList, setXAttributeList] = useState([]);
+    const [y_attributeList, setYAttributeList] = useState([]);
+
     const resize = () => {
         if(!divRef || !divRef.current) {
             return;
@@ -35,9 +38,53 @@ export default function Scatterplot({ data, globalUniqueStates, loadingCallback,
     useEffect(() => {
         ref.current.setAttribute('id', scatterplotID);
     }, [scatterplotID]);
+
+    useEffect(() => {
+        if (data.x_attributeList == null) {            
+            
+            const ids = trajectory.simplifiedSequence.sequence.map((s) => {
+                return s.id;
+            });
+
+            const uniqueStates = ids.map((id) => {
+                return globalUniqueStates.get(id);
+            });
+
+            setXAttributeList(uniqueStates.map((s) => {
+                return s[data.x_attribute];
+            }));
+            
+        } else {
+            setXAttributeList(data.x_attributeList);
+        }
+    }, [data, trajectory]);
+
+    useEffect(() => {
+        if (data.y_attributeList == null) {            
+            
+            const ids = trajectory.simplifiedSequence.sequence.map((s) => {
+                return s.id;
+            });
+
+            const uniqueStates = ids.map((id) => {
+                return globalUniqueStates.get(id);
+            });
+
+            setYAttributeList(uniqueStates.map((s) => {
+                return s[data.y_attribute];
+            }));
+            
+        } else {
+            setYAttributeList(data.y_attributeList);
+        }
+    }, [data, trajectory]);
+
+
     
     const ref = useTrajectoryChartRender(
         (svg) => {
+
+            console.log('re-draw');
             
             if (height === undefined || width === undefined) {
                 return;
@@ -46,53 +93,35 @@ export default function Scatterplot({ data, globalUniqueStates, loadingCallback,
             if (!svg.empty()) {
                 svg.selectAll("*").remove();
             }
-
-            let x_attribute = data.x_attribute;
-            let y_attribute = data.y_attribute;
-            let x_attributeList = data.x_attributeList;
-            let y_attributeList = data.y_attributeList;
-            const idToCluster = trajectory.idToCluster;
-            let reverse = data.reverse;
-            let path = data.path;
-            let sequence = data.sequence;
-            let title = data.title;
-            let colors = data.colors;            
             
-            if (reverse == null) reverse = false;
-            if (path == null) path = false;
+            const idToCluster = trajectory.idToCluster;
+            const sequence = trajectory.simplifiedSequence.sequence;
+            //let reverse = data.reverse;
+            //let path = data.path;
+            //let title = data.title;
+            const colors = trajectory.colors;            
+            
+            //if (reverse == null) reverse = false;
+            //if (path == null) path = false;
+         
+            const xtent = d3.extent(x_attributeList);
+            const ytent = d3.extent(y_attributeList);
 
-            if (x_attributeList == null) {
-                x_attributeList = [];                
-                for (const d of sequence) {
-                    x_attributeList.push(d[x_attribute]);
-                }
-            }
+            const first = 0;
+            const last = 1;
 
-            if (y_attributeList == null) {
-                y_attributeList = [];
-                for (const d of sequence) {
-                    y_attributeList.push(d[y_attribute]);
-                }
-            }
-
-            var xtent = d3.extent(x_attributeList);
-            var ytent = d3.extent(y_attributeList);
-
-            var first = 0;
-            var last = 1;
-
-           if (reverse) {
+           /*if (reverse) {
                 first = 1;
                 last = 0;
-            }
+            }*/
 
             // 1.25 for breathing room between axis and values
-            var scale_x = d3
+            const scale_x = d3
                 .scaleLinear()
                 .range([margin.left, width - margin.right])
                 .domain([xtent[0], xtent[1]]);
 
-            var scale_y = d3
+            const scale_y = d3
                 .scaleLinear()
                 .range([height - margin.bottom, margin.top])
                 .domain([ytent[first], ytent[last]]);
@@ -116,7 +145,7 @@ export default function Scatterplot({ data, globalUniqueStates, loadingCallback,
                 .attr("height", 5)
                 .attr("fill", function (d) {
                     return colors[idToCluster[d.id]];
-                }).on("click", function(_,d) {
+                }).on("click", function(_,d) {                    
                     setStateClicked(globalUniqueStates.get(d.id));    
                 })                
                 .on("mouseover", function (_, d) {                    
@@ -131,7 +160,7 @@ export default function Scatterplot({ data, globalUniqueStates, loadingCallback,
                   setStateHovered(null);
               });
 
-            if (path) {
+            /*if (path) {
                 var datum = [];
                 for (var i = 0; i < sequence.length; i++) {
                     const d = { x: x_attributeList[i], y: y_attributeList[i] };
@@ -148,12 +177,12 @@ export default function Scatterplot({ data, globalUniqueStates, loadingCallback,
                     .attr("d", line)
                     .attr("stroke", "black")
                     .attr("fill", "none");
-            }
+            }*/
 
             // decorations
 
-            var yAxisPos = margin.left;
-            var xAxisPos = height - margin.bottom;
+            const yAxisPos = margin.left;
+            const xAxisPos = height - margin.bottom;
 
             svg.append("g")
                 .attr("transform", `translate(0,${xAxisPos})`)
@@ -162,7 +191,7 @@ export default function Scatterplot({ data, globalUniqueStates, loadingCallback,
                 .attr("transform", `translate(${yAxisPos},0)`)
                 .call(d3.axisLeft().scale(scale_y));
 
-            if (title === null || title === "") {
+            /*if (title === null || title === "") {
                 title = x_attribute + " vs " + y_attribute;
             }
 
@@ -171,12 +200,12 @@ export default function Scatterplot({ data, globalUniqueStates, loadingCallback,
                 .attr("y", margin.top)
                 .attr("text-anchor", "middle")
                 .style("font-size", "12px")
-                .text(title);
+                .text(title);*/
 
             if(loadingCallback !== undefined) {
                 loadingCallback();
             }
-        }, [data, width, height]);
+        }, [trajectory, data, width, height]);
 
     useEffect(() => {                
         if(stateHovered !== undefined && stateHovered !== null) {
@@ -203,7 +232,7 @@ export default function Scatterplot({ data, globalUniqueStates, loadingCallback,
          if(loadingCallback !== undefined) {                        
              loadingCallback();
          }
-     }, [runs]);
+     }, [runs, data]);
 
     
     return (

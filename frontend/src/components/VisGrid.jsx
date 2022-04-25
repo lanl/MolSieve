@@ -5,8 +5,10 @@ import Box from "@mui/material/Box";
 import SingleStateModal from "../modals/SingleStateModal";
 import LoadingModal from "../modals/LoadingModal";
 import GraphVis from "../vis/GraphVis";
-import ScatterGraph from './ScatterGraph';
+import ScatterGrid from "./ScatterGrid";
+import ScatterControl from "./ScatterControl";
 
+import Button from "@mui/material/Button";
 import Accordion from '@mui/material/Accordion';
 import AccordionSummary from '@mui/material/AccordionSummary';
 import AccordionDetails from '@mui/material/AccordionDetails';
@@ -27,6 +29,7 @@ class VisGrid extends React.Component {
             isLoading: false,
             stateHovered: null,
             stateClicked: null,
+            scatterplots: {}
         };
     }
 
@@ -79,12 +82,39 @@ class VisGrid extends React.Component {
         this.setState({stateClicked: state}, () => {
             this.toggleModal(SINGLE_STATE_MODAL)});
     }
+
+    addScatterplot = (name) => {        
+        const count = Object.keys(this.state.scatterplots).length;
+        const id = `${name}_sc_${count}`;
+        const sc = {'name' : name};
+        this.setState({scatterplots: { ...this.state.scatterplots, [id]: sc}}, console.log(this.state));        
+    }
+
+    deletePlot = (e) => {
+        const plot = e.target.getAttribute("data-value");
+        this.setState({scatterplots: { plot, ...this.state.scatterplots}}, console.log(this.state));
+    };
         
     render() {
         const runs = Object.keys(this.props.runs);
         const trajs = Object.keys(this.props.trajectories);
         const safe = (runs.length === trajs.length && runs.length > 0 && trajs.length > 0) ? true : false;
 
+        const scatterplots = Object.keys(this.state.scatterplots).map((sc) => {
+            const sc_props = this.state.scatterplots[sc];
+            return(<ScatterControl
+                       key={sc}
+                       trajectory={this.props.trajectories[sc_props.name]}
+                       globalUniqueStates={this.props.globalUniqueStates}
+                       trajectoryName={sc_props.name}
+                       setStateHovered={this.setStateHovered}
+                       setStateClicked={this.setStateClicked}
+                       id={sc}
+                       runs={this.props.runs}
+                   />);
+        });
+
+        
         return (
             <Box sx={{flexGrow: 1}}>
                 {this.state.isLoading && <LoadingModal
@@ -124,15 +154,21 @@ class VisGrid extends React.Component {
                  />
                 }
 
-                {safe &&                 
-                 <ScatterGraph display={!this.props.graphMode}
-                               runs={this.props.runs}
-                               trajectories={this.props.trajectories}
-                               globalUniqueStates={this.props.globalUniqueStates}
-                               setStateHovered={this.setStateHovered}
-                               setStateClicked={this.setStateClicked}                             
-                 />
-                }
+                {safe && (<ScatterGrid
+                              display={!this.props.graphMode}
+                              control={
+                                  <Box display="flex" flexDirection="row" gap={5}>                             
+                                      <Button
+                                          variant="contained"
+                                          onClick={() => {                                     
+                                              this.addScatterplot('nano_pt');
+                                          }}>
+                                          Add a new scatterplot
+                                      </Button>
+                                  </Box>}
+                              deletePlot={this.deletePlot}>
+                              {scatterplots}
+                          </ScatterGrid>)}
                                          
             {this.state.currentModal === SINGLE_STATE_MODAL && (
                 <SingleStateModal
