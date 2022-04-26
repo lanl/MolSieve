@@ -9,8 +9,7 @@ import CircularProgress from '@mui/material/CircularProgress';
 
 export default function AjaxMenu(props) {
 
-    const [isLoaded, setIsLoaded] = useState(false);
-    const [items, setItems] = useState([]);
+    const [items, setItems] = useState(null);
     const [clicked, setClicked] = useState([]);
     const [lastEvent, setLastEvent] = useState(null);
 
@@ -35,10 +34,6 @@ export default function AjaxMenu(props) {
         }
         
     }, [props.open]);
-
-    useEffect(() => {
-        setIsLoaded(true);
-    }, [items]);
   
     const handleChange = (e) => {
         if (e.target.checked) {
@@ -62,13 +57,13 @@ export default function AjaxMenu(props) {
                 open={props.open}
                 onClose={props.handleClose}>
                   
-                {!isLoaded && (
+                {!items && (
                     <MenuItem>                
                         <CircularProgress color="grey" />
                     </MenuItem>)
                   }
                   
-                {isLoaded &&
+                {items &&
                  items.map((item, idx) => {
                     return (<MenuItem key={idx}>
                         <ListItemIcon>
