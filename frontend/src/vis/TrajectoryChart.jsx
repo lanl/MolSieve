@@ -65,7 +65,6 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
 
     const [iExtents, setInternalExtents] = useState([]);
 
-
     const [stateHighlight, setStateHighlight] = useState(false);
 
     const toggleStateHighlight = () => {
@@ -135,9 +134,9 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
 
         if(pushExtent && iExtents.length > 0) {
             setExtents([...iExtents]);
-            setPushExtent(false);
             setInternalExtents([]);
         }
+        setPushExtent(false);
     }, [pushExtent]);
     
     useKeyDown('z', zoom);
