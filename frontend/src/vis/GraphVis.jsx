@@ -23,6 +23,7 @@ const trajRendered = {};
 function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStateClicked, setStateHovered, loadingCallback, sx }) {
 
     const divRef = useRef();
+    
     const [width, setWidth] = useState();
     const [height, setHeight] = useState();
     
@@ -442,7 +443,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
         const vh = bbox.height;
         const defaultView = `${vx} ${vy} ${vw} ${vh}`;        
 
-        svg.attr("viewBox", defaultView).attr("preserveAspectRatio", "xMidYMid meet").call(zoom);
+        svg.attr("viewBox", defaultView).attr("preserveAspectRatio", "none").call(zoom);
 
         setInCommon(inCommon);
         loadingCallback();
@@ -542,11 +543,10 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
 
     
     return (
-        <Box ref={divRef} onContextMenu={openContext} sx={sx}>
-                
-                {width && height && Object.keys(trajectories).length === Object.keys(runs).length
-                 && <svg id="graph" className="vis" preserveAspectRatio="none" ref={ref} viewBox={[0,0,width,height]}/>}
-
+        <>
+        <Box ref={divRef} sx={sx}>                
+            <svg id="graph" onContextMenu={openContext} className="vis" ref={ref} viewBox={[0,0,width,height]}/>
+        </Box>
                 <Menu
                     open={contextMenu !== null}
                     onClose={closeContext}
@@ -609,7 +609,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                         <ListItemText>Set relation opacity to transition probability</ListItemText>                
                     </MenuItem>      
                 </Menu>                            
-            </Box>);    
+            </>);    
 }
 
 

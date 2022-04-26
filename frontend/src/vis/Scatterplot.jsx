@@ -10,6 +10,7 @@ import Menu from "@mui/material/Menu";
 import FormControl from "@mui/material/FormControl";
 import Select from "@mui/material/Select";
 import FormHelperText from "@mui/material/FormHelperText";
+import Box from '@mui/material/Box';
 
 
 const margin = { top: 20, bottom: 20, left: 40, right: 25 };
@@ -111,10 +112,10 @@ export default function Scatterplot({globalUniqueStates, loadingCallback, stateH
         if(!divRef || !divRef.current) {
             return;
         }
-        const newWidth = divRef.current.parentElement.offsetWidth;
+        const newWidth = divRef.current.offsetWidth;
         setWidth(newWidth);
 
-        const newHeight = divRef.current.parentElement.offsetHeight;
+        const newHeight = divRef.current.offsetHeight;
         setHeight(newHeight);
     };
 
@@ -289,8 +290,10 @@ export default function Scatterplot({globalUniqueStates, loadingCallback, stateH
 
     
     return (
-        <div ref={divRef} sx={sx}>
+        <>
+        <Box ref={divRef} sx={sx}>
             <svg ref={ref} onContextMenu={openContext} className="vis" viewBox={[0,0,width,height]} />
+        </Box>
             <Menu
                 open={contextMenu !== null}
                 onClose={closeContext}
@@ -329,6 +332,6 @@ export default function Scatterplot({globalUniqueStates, loadingCallback, stateH
                     </FormControl>
             </MenuItem>
             </Menu>            
-        </div>
+        </>
     );
 }

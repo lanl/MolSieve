@@ -28,7 +28,7 @@ export default function ScatterGrid({
     });
 
     return (
-        <Box display="inline-flex" flexDirection="column" style={sx}>               
+        <Box display="flex" flexDirection="column" sx={sx}>               
             {control}
             <Box
                 display="grid"
@@ -40,6 +40,4 @@ export default function ScatterGrid({
             </Box>
         </Box>
     );
-
-    //stateHovered={stateHovered}
 }

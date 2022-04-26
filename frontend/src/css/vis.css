@@ -35,3 +35,7 @@
 .arrowed {    
     marker-end: url(#arrow);
 }
+
+.vis {
+    display:'inline-block';
+}

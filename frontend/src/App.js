@@ -10,7 +10,7 @@ import LoadRunModal from './modals/LoadRunModal';
 import LoadingModal from './modals/LoadingModal';
 import Trajectory from './api/trajectory';
 import FilterBuilder from './api/FilterBuilder';
-import VisGrid from './components/VisGrid';
+import VisArea from './components/VisArea';
 import MenuIcon from '@mui/icons-material/Menu';
 import { api_loadPCCA, api_loadSequence, api_load_metadata } from './api/ajax';
 import ControlDrawer from './components/ControlDrawer';
@@ -294,7 +294,7 @@ class App extends React.Component {
 
     render() {
         return (
-            <Box className="App" sx={{ display: 'flex', flexDirection: 'column', gap: '1%' }}>
+            <Box sx={{display:'flex', flexDirection: 'column'}}>
                 <AppBar position="static">
                     <Toolbar>
                         <Typography
@@ -320,6 +320,13 @@ class App extends React.Component {
                     </Toolbar>
                 </AppBar>
 
+                <VisArea
+                    sx={{display:'flex', alignItems:'stretch', flex: 1}}
+                    trajectories={this.state.trajectories}
+                    globalUniqueStates={this.state.globalUniqueStates}
+                    runs={this.state.runs}
+                />
+
                 <ControlDrawer
                     trajectories={this.state.trajectories}
                     runs={this.state.runs}
@@ -331,7 +338,8 @@ class App extends React.Component {
                     addFilter={this.addFilter}
                     propagateChange={this.propagateChange}
                 />
-                <AjaxMenu
+
+                 <AjaxMenu
                     anchorEl={this.runListButton.current}
                     api_call="/get_run_list"
                     open={this.state.showRunList}                    
@@ -347,14 +355,9 @@ class App extends React.Component {
                                 }
                             });
                     }}
-                />
-                <VisGrid
-                    trajectories={this.state.trajectories}
-                    globalUniqueStates={this.state.globalUniqueStates}
-                    runs={this.state.runs}
-                />
+                 />
 
-                {this.state.currentModal === RUN_MODAL
+                                {this.state.currentModal === RUN_MODAL
                     && (
                         <LoadRunModal
                             run={this.state.run}
@@ -372,6 +375,8 @@ class App extends React.Component {
                     />
                 )}
             </Box>
+
+
         );
     }
 }
