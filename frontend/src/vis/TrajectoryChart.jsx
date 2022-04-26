@@ -77,6 +77,10 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
     const [height, setHeight] = useState();
 
     const resize = () => {
+        if(!divRef || !divRef.current) {
+            return;
+        }
+
         const newWidth = divRef.current.offsetWidth;
         setWidth(newWidth);
 
@@ -129,7 +133,7 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
             d3.selectAll('.brush').remove();
         }
 
-        if(pushExtent) {
+        if(pushExtent && iExtents.length > 0) {
             setExtents([...iExtents]);
             setPushExtent(false);
             setInternalExtents([]);
@@ -184,11 +188,10 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
             const chunkGroup = svg.append('g').attr('id', 'chunk');            
             const importantGroup = svg.append('g').attr('id', 'sequence_important');                        
             
-            for (const [name, trajectory] of Object.entries(trajectories)) {                
-                const sSequence = trajectory.simplifiedSequence.sequence;
-                const chunks = trajectory.simplifiedSequence.chunks;                
-                const colors = trajectory.colors;
-                const currentClustering = trajectory.idToCluster;
+            for (const [name, trajectory] of Object.entries(trajectories)) {
+
+                const {colors, idToCluster, simplifiedSequence} = trajectory;
+                const {sequence, chunks} = simplifiedSequence;                                
 
                 trajectory.name = name;
                 
@@ -196,7 +199,7 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                 tickNames.push(name);
 
                 g.selectAll('rect')
-                    .data(sSequence, (d) => d)
+                    .data(sequence, (d) => d)
                     .enter()
                     .append('rect')
                     .attr('x', (d) => scaleX(d.timestep))
@@ -205,14 +208,14 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                     .attr('height', 25)
                     .attr('opacity', 1.0)
                     .attr('fill', (d) => {                        
-                        return colors[currentClustering[d.id]];
+                        return colors[idToCluster[d.id]];
                     })                    
                     .on('click', function (_, d) {                        
                         setStateClicked(globalUniqueStates.get(d.id));                                      
                     })
                     .on('mouseover', function(_, d) {                                                
                         onStateMouseOver(this, globalUniqueStates.get(d.id), trajectory, name);                                                        
-                        setStateHovered({'caller': this, 'stateID': d.id, 'name': name, 'timestep': sSequence.indexOf(d)});                            
+                        setStateHovered({'caller': this, 'stateID': d.id, 'name': name, 'timestep': sequence.indexOf(d)});                            
                     })
                     .on('mouseout', function() {                        
                         setStateHovered(null);
@@ -230,7 +233,7 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                     .attr('stroke', 'black')
                     .attr('opacity', 1.0)
                     .attr('fill', (d) => {
-                        return colors[currentClustering[-d.id]];
+                        return colors[idToCluster[-d.id]];
                     })                    
                     .on('mouseover', function(_, d) {
                         onChunkMouseOver(this, d, name);                            

@@ -544,9 +544,9 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
     
     return (
         <>
-        <Box ref={divRef} sx={sx}>                
-            <svg id="graph" onContextMenu={openContext} className="vis" ref={ref} viewBox={[0,0,width,height]}/>
-        </Box>
+            <Box ref={divRef} sx={sx}>                
+                <svg id="graph" onContextMenu={openContext} className="vis" ref={ref} viewBox={[0,0,width,height]}/>
+            </Box>
                 <Menu
                     open={contextMenu !== null}
                     onClose={closeContext}

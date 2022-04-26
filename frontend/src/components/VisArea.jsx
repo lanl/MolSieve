@@ -15,6 +15,7 @@ import AccordionDetails from '@mui/material/AccordionDetails';
 import Divider from '@mui/material/Divider';
 import Typography from '@mui/material/Typography';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import SelectionVis from '../vis/SelectionVis';
 
 const SINGLE_STATE_MODAL = 'single_state';
 
@@ -30,11 +31,13 @@ class VisArea extends React.Component {
             stateHovered: null,
             stateClicked: null,
             scatterplots: {},
+            subSequences: []
         };
     }
     
     setExtents = (extent) => {
-        console.log(extent);
+        this.setState({subSequences: [...this.state.subSequences, extent]});
+
     }
     
     toggleModal = (key) => {
@@ -122,6 +125,14 @@ class VisArea extends React.Component {
                        title={sc}
                    />);            
         });
+        
+        const subSequenceCharts = this.state.subSequences.map((ss, idx) => {
+            return (<Box key={`ss_${idx}`} sx={{flexGrow: 1}}>
+                        <SelectionVis 
+                            trajectories={this.props.trajectories}
+                            extents={ss} />
+                    </Box>);
+        });
 
         return (
             <>
@@ -177,7 +188,8 @@ class VisArea extends React.Component {
                           expandIcon={<ExpandMoreIcon />}
                       ><Typography variant="h6">Sub-sequence View</Typography></AccordionSummary>
                       <Divider/>
-                      <AccordionDetails>
+                      <AccordionDetails sx={{height: '200px', display:'flex', flexDirection: 'column', overflow: 'auto'}}>
+                          {subSequenceCharts}
                       </AccordionDetails>
                   </Accordion>     
                   <Accordion defaultExpanded={true} disableGutters={true}>
