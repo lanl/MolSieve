@@ -7,16 +7,13 @@ import MenuItem from '@mui/material/MenuItem';
 import ListItemText from '@mui/material/ListItemText';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import Checkbox from '@mui/material/Checkbox';
-import MultiplePathSelectionModal from '../modals/MultiplePathSelectionModal';
-import SelectionModal from '../modals/SelectionModal';
+//import MultiplePathSelectionModal from '../modals/MultiplePathSelectionModal';
+//import SelectionModal from '../modals/SelectionModal';
 import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
 import { onStateMouseOver, onChunkMouseOver } from '../api/myutils';
 import '../css/vis.css';
 import {apply_filters} from '../api/filters';
-
-
-const PATH_SELECTION = 'path_selection';
-const MULTIPLE_PATH_SELECTION = 'multiple_path_selection';
+import Box from '@mui/material/Box';
 
 const margin = {
     top: 20, bottom: 20, left: 25, right: 25,
@@ -24,7 +21,6 @@ const margin = {
 
 let zBrush = null;
 let sBrush = null;
-let msBrush = null;
 
 function useKeyUp(key, action) {
     useEffect(() => {
@@ -48,18 +44,7 @@ function useKeyDown(key, action) {
     }, []);
 }
 
-function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallback, setStateHovered, setStateClicked, stateHovered }) {
-
-    const [currentModal, setCurrentModal] = useState();
-
-    const toggleModal = (key) => {
-        if (currentModal) {
-            setCurrentModal();
-            setActionCompleted();
-            return;
-        }
-        setCurrentModal(key);
-    };
+function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallback, setStateHovered, setStateClicked, stateHovered, setExtents}) {
 
     const [contextMenu, setContextMenu] = useState(null);
     const openContext = (event) => {
@@ -78,9 +63,9 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
         setContextMenu(null);
     };
 
-    const [extents, setExtents] = useState([]);
-    const [actionCompleted, setActionCompleted] = useState('');
-    const [modalTitle, setModalTitle] = useState('');    
+    const [iExtents, setInternalExtents] = useState([]);
+
+
     const [stateHighlight, setStateHighlight] = useState(false);
 
     const toggleStateHighlight = () => {
@@ -133,44 +118,28 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
         }
     };
 
-    useKeyDown('z', zoom);
-    useKeyDown('Control', selectionBrush);
+    const [pushExtent, setPushExtent] = useState(false);
 
-    const multipleSelectionBrush = () => {
-        if (msBrush != null) {
-            d3.select(ref.current)
-                .append('g')
-                .attr('class', 'brush')
-                .call(msBrush);
-        }
-    };
+    const completeSelection = () => {        
+        setPushExtent(true);        
+    }
 
-    const completeMultipleSelection = () => {
+    useEffect(() => {
         if (!d3.selectAll('.brush').empty()) {
             d3.selectAll('.brush').remove();
         }
 
-        setModalTitle('Multiple Path Selection');
-        //setActionCompleted(MULTIPLE_PATH_SELECTION);
-    };
-
-    useKeyDown('Shift', multipleSelectionBrush);
-    useKeyUp('Shift', completeMultipleSelection);
-
-    useEffect(() => {
-        switch (actionCompleted) {            
-        case MULTIPLE_PATH_SELECTION:            
-            if (extents.length < 2) break;
-            toggleModal(actionCompleted);
-            break;
-        case PATH_SELECTION:            
-            toggleModal(actionCompleted);
-            break;                
-        default:
-                break;
-            }
-        }, [actionCompleted]);
-
+        if(pushExtent) {
+            setExtents([...iExtents]);
+            setPushExtent(false);
+            setInternalExtents([]);
+        }
+    }, [pushExtent]);
+    
+    useKeyDown('z', zoom);
+    useKeyDown('Shift', selectionBrush);
+    useKeyUp('Shift', completeSelection);
+    
     const ref = useTrajectoryChartRender(
         (svg) => {
             if (height === undefined || width === undefined) {
@@ -315,36 +284,6 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                     d3.select('.brush').remove();
                 });
 
-            // multiple path selection
-            msBrush = d3
-                .brush()
-                .keyModifiers(false)
-                .extent([
-                    [margin.left, margin.top],
-                    [width - margin.right, height - margin.bottom],
-                ])
-                .on('end', (e) => {
-                    const extent = e.selection;
-                    if (extent) {
-                        const currName = Object.keys(trajectories)[Math.round(scaleY.invert(extent[0][1]))];
-                        if (currName !== null && currName !== undefined) {
-                            const begin = Math.round(scaleX.invert(extent[0][0]));                            
-                            const end = Math.round(scaleX.invert(extent[1][0]));
-                            
-                            if(begin !== undefined && end !== undefined) {
-                                const xtent = {
-                                    name: currName,
-                                    begin,
-                                    end,
-                                };                                
-                                setExtents((prev) => [...prev, xtent]);
-                            } else {                                
-                                alert("Invalid selection. Please try again.")
-                            }
-                        }
-                    }
-                });
-
             // single path selection
             sBrush = d3
                 .brush()
@@ -368,15 +307,13 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                                     begin,
                                     end,
                                 };
-                                setExtents([...extents, xtent]);
-                                setActionCompleted(PATH_SELECTION);
+                                setInternalExtents((prev) => [...prev, xtent]);                                
+                                //setActionCompleted(PATH_SELECTION);
                             } else {
                                 alert("Invalid selection. Please try again.");
                             }
                         }
                     }
-                    d3.select(this).remove();
-                    d3.select('.brush').remove();
                 });                       
             loadingCallback();
         },
@@ -413,14 +350,16 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
         }
     }, [stateHovered, stateHighlight]);
     
-    return (<div ref={divRef}>
-             <svg className="vis"
-                 onContextMenu={openContext}
-                 id="sequence"
-                 ref={ref}
-                 preserveAspectRatio="none"
-                 viewBox={[0, 0, width, height]}
-             />                        
+    return (<>
+                <Box ref={divRef}>
+                    <svg className="vis"
+                         onContextMenu={openContext}
+                         id="sequence"
+                         ref={ref}
+                         preserveAspectRatio="none"
+                         viewBox={[0, 0, width, height]}
+                    />
+                </Box>  
             <Menu
                 open={contextMenu !== null}
                 onClose={closeContext}
@@ -441,14 +380,17 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                     <ListItemText>Toggle state highlighting</ListItemText>
                 </MenuItem>
             </Menu>            
-            {currentModal === PATH_SELECTION && (
-                    <SelectionModal
-                title={modalTitle}
-                open={currentModal === PATH_SELECTION}
-                trajectories={trajectories}
-                globalUniqueStates={globalUniqueStates}
-                extents={extents}
-                closeFunc={() => {
+        </>);
+}
+
+/*             {currentModal === PATH_SELECTION && (
+                <SelectionModal
+                    title={modalTitle}
+                    open={currentModal === PATH_SELECTION}
+                    trajectories={trajectories}
+                    globalUniqueStates={globalUniqueStates}
+                    extents={extents}
+                    closeFunc={() => {
                         setExtents([]);
                         setActionCompleted('');
                         toggleModal(PATH_SELECTION);
@@ -467,9 +409,20 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                         toggleModal(MULTIPLE_PATH_SELECTION);
                     }}
                 />
-            )}
-        </div>);
-}
+                )}
 
+                    const [modalTitle, setModalTitle] = useState('');    
+    const [currentModal, setCurrentModal] = useState();
+
+    const toggleModal = (key) => {
+        if (currentModal) {
+            setCurrentModal();
+            setActionCompleted();
+            return;
+        }
+        setCurrentModal(key);
+    };
+
+*/
 
 export default TrajectoryChart;

@@ -18,7 +18,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 
 const SINGLE_STATE_MODAL = 'single_state';
 
-class VisGrid extends React.Component {
+class VisArea extends React.Component {
     constructor(props) {
         super(props);       
 
@@ -29,10 +29,14 @@ class VisGrid extends React.Component {
             isLoading: false,
             stateHovered: null,
             stateClicked: null,
-            scatterplots: {}
+            scatterplots: {},
         };
     }
-
+    
+    setExtents = (extent) => {
+        console.log(extent);
+    }
+    
     toggleModal = (key) => {
         if (this.state.currentModal) {
             this.setState({
@@ -121,7 +125,7 @@ class VisGrid extends React.Component {
 
         return (
             <>
-            <Box sx={{flexGrow: 1, display:'flex', alignItems:'stretch'}}>
+                <Box sx={this.props.sx}>
                 {this.state.isLoading && <LoadingModal
                                              open={this.state.isLoading}
                                              title="Rendering..."/> }
@@ -129,7 +133,7 @@ class VisGrid extends React.Component {
                 
                 {safe &&                 
                  <GraphVis
-                     sx={{flexGrow: 1, minWidth: '50%', maxWidth: '50%', height:'100%'}}
+                     sx={{flexBasis: '50%', border: 1}}
                      trajectories={this.props.trajectories}
                      runs={this.props.runs}
                      globalUniqueStates={this.props.globalUniqueStates}
@@ -141,7 +145,7 @@ class VisGrid extends React.Component {
                 }
 
                 {safe && (<ScatterGrid
-                              sx={{flexGrow: 1, minWidth: '50%', maxWidth: '50%'}}
+                              sx={{flexBasis: '50%', border: 1, flexGrow: 0}}
                               control={
                                   <Box display="flex" flexDirection="row" gap={5}>                             
                                       <Button
@@ -167,7 +171,16 @@ class VisGrid extends React.Component {
             )}
             </Box>
             {safe &&
-                 (<Accordion defaultExpanded={true} disableGutters={true} sx={{position: 'fixed', bottom: 0,  maxWidth: '25%', zIndex: 1299}}>
+             (<Box sx={{position: 'fixed', bottom: 0, zIndex: 1299, maxWidth: '25%'}}>
+                  <Accordion defaultExpanded={false} disableGutters={true}>
+                      <AccordionSummary
+                          expandIcon={<ExpandMoreIcon />}
+                      ><Typography variant="h6">Sub-sequence View</Typography></AccordionSummary>
+                      <Divider/>
+                      <AccordionDetails>
+                      </AccordionDetails>
+                  </Accordion>     
+                  <Accordion defaultExpanded={true} disableGutters={true}>
                       <AccordionSummary
                           expandIcon={<ExpandMoreIcon />}
                       ><Typography variant="h6">Sequence View</Typography></AccordionSummary>
@@ -181,13 +194,15 @@ class VisGrid extends React.Component {
                               setStateHovered={this.setStateHovered}
                               setStateClicked={this.setStateClicked}
                               stateHovered={this.state.stateHovered}
+                              setExtents={this.setExtents}                              
                           />
                       </AccordionDetails>
-                  </Accordion>)
+                  </Accordion>
+              </Box>)
             }        
             </>
         );
     }
 }
 
-export default VisGrid;
+export default VisArea;
