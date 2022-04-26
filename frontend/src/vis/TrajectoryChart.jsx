@@ -418,6 +418,7 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                  onContextMenu={openContext}
                  id="sequence"
                  ref={ref}
+                 preserveAspectRatio="none"
                  viewBox={[0, 0, width, height]}
              />                        
             <Menu

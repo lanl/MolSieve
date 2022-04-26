@@ -92,12 +92,8 @@ class VisGrid extends React.Component {
 
     deletePlot = (e) => {
         const plot = e.target.getAttribute("data-value");
-        console.log(plot);
         const newScatters = {...this.state.scatterplots};
-        console.log(newScatters[plot]);
         delete newScatters[plot];
-
-        console.log(newScatters);
         this.setState({ scatterplots: newScatters}, () => {console.log(this.state);});
     };
 
@@ -112,7 +108,7 @@ class VisGrid extends React.Component {
             return (<Scatterplot
                        key={sc}
                        trajectory={this.props.trajectories[sc_props.name]}
-                       globalUniqueStates={this.props.globalUniqueStates}                       
+                       globalUniqueStates={this.props.globalUniqueStates}       
                        trajectoryName={sc_props.name}
                        id={sc}
                        setStateClicked={this.setStateClicked}
@@ -124,34 +120,16 @@ class VisGrid extends React.Component {
         });
 
         return (
-            <Box sx={{flexGrow: 1}}>
+            <>
+            <Box sx={{flexGrow: 1, display:'flex', alignItems:'stretch'}}>
                 {this.state.isLoading && <LoadingModal
                                              open={this.state.isLoading}
                                              title="Rendering..."/> }
 
-                {safe &&
-                 (<Accordion defaultExpanded={true} disableGutters={true} sx={{position: 'fixed', bottom: 0,  maxWidth: '25%', zIndex: 1299}}>
-                      <AccordionSummary
-                          expandIcon={<ExpandMoreIcon />}
-                      ><Typography variant="h6">Sequence View</Typography></AccordionSummary>
-                      <Divider/>
-                      <AccordionDetails>
-                          <TrajectoryChart
-                              trajectories={this.props.trajectories}
-                              globalUniqueStates={this.props.globalUniqueStates}
-                              runs={this.props.runs}
-                              loadingCallback={this.chartFinishedLoading}
-                              setStateHovered={this.setStateHovered}
-                              setStateClicked={this.setStateClicked}
-                              stateHovered={this.state.stateHovered}
-                          />
-                      </AccordionDetails>
-                  </Accordion>)
-                }        
                 
-                {safe &&
+                {safe &&                 
                  <GraphVis
-                     display={this.props.graphMode}
+                     sx={{flexGrow: 1, minWidth: '50%', maxWidth: '50%', height:'100%'}}
                      trajectories={this.props.trajectories}
                      runs={this.props.runs}
                      globalUniqueStates={this.props.globalUniqueStates}
@@ -163,7 +141,7 @@ class VisGrid extends React.Component {
                 }
 
                 {safe && (<ScatterGrid
-                              display={!this.props.graphMode}
+                              sx={{flexGrow: 1, minWidth: '50%', maxWidth: '50%'}}
                               control={
                                   <Box display="flex" flexDirection="row" gap={5}>                             
                                       <Button
@@ -187,7 +165,27 @@ class VisGrid extends React.Component {
                     }}
                 />
             )}
-        </Box>
+            </Box>
+            {safe &&
+                 (<Accordion defaultExpanded={true} disableGutters={true} sx={{position: 'fixed', bottom: 0,  maxWidth: '25%', zIndex: 1299}}>
+                      <AccordionSummary
+                          expandIcon={<ExpandMoreIcon />}
+                      ><Typography variant="h6">Sequence View</Typography></AccordionSummary>
+                      <Divider/>
+                      <AccordionDetails>
+                          <TrajectoryChart
+                              trajectories={this.props.trajectories}
+                              globalUniqueStates={this.props.globalUniqueStates}
+                              runs={this.props.runs}
+                              loadingCallback={this.chartFinishedLoading}
+                              setStateHovered={this.setStateHovered}
+                              setStateClicked={this.setStateClicked}
+                              stateHovered={this.state.stateHovered}
+                          />
+                      </AccordionDetails>
+                  </Accordion>)
+            }        
+            </>
         );
     }
 }

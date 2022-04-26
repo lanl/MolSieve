@@ -20,26 +20,12 @@ let container = null;
 let zoom = null;
 const trajRendered = {};
 
-function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStateClicked, setStateHovered, loadingCallback, display }) {
+function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStateClicked, setStateHovered, loadingCallback, sx }) {
 
     const divRef = useRef();
     const [width, setWidth] = useState();
     const [height, setHeight] = useState();
-
-    if(display === undefined) {
-        display = true;
-    }
-
-    const [displayProp, setDisplayProp] = useState('block');
-
-    useEffect(() => {
-        if(display === undefined || display === true) {
-            setDisplayProp('block');
-        } else {
-            setDisplayProp('none');
-        }
-    }, [display]);
-
+    
     const [contextMenu, setContextMenu] = useState(null);
     
     const [seperateTrajectories, setSeperateTrajectories] = useState(true);
@@ -93,16 +79,20 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
     };
     
     const resize = () => {
-        const newWidth = divRef.current.parentElement.clientWidth;
+        if(!divRef || !divRef.current) {
+            return;
+        }
+        const newWidth = divRef.current.offsetWidth;
         setWidth(newWidth);
 
-        const newHeight = divRef.current.parentElement.clientHeight;
+        const newHeight = divRef.current.offsetHeight;
         setHeight(newHeight);
+       
     };
     
     useEffect(() => {
         resize();
-    }, [trajectories]);
+    }, [divRef]);
 
     useEffect(() => {
         window.addEventListener('resize', resize());
@@ -468,7 +458,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
     }, [runs]);
 
     useEffect(() => {
-        if(stateHovered !== undefined && stateHovered !== null && display) {                        
+        if(stateHovered !== undefined && stateHovered !== null) {                        
             const {caller, name, stateID} = stateHovered;
 
             if(trajRendered[name]) {
@@ -552,10 +542,10 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
 
     
     return (
-        <Box ref={divRef} onContextMenu={openContext} sx={{'display': displayProp}}>
+        <Box ref={divRef} onContextMenu={openContext} sx={sx}>
                 
                 {width && height && Object.keys(trajectories).length === Object.keys(runs).length
-                 && <svg id="graph" className="vis" ref={ref} viewBox={[0,0,width,height]}/>}
+                 && <svg id="graph" className="vis" preserveAspectRatio="none" ref={ref} viewBox={[0,0,width,height]}/>}
 
                 <Menu
                     open={contextMenu !== null}
@@ -568,7 +558,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                     }
                 >
                     {Object.keys(trajectories).length > 1 &&
-                     <Box>
+                     <>
                          <MenuItem>
                              <ListItemIcon>
                                  <Checkbox
@@ -588,7 +578,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                              </ListItemIcon>
                              <ListItemText>Show only states in common</ListItemText>                
                          </MenuItem>
-                     </Box>
+                     </>
                     }
                      <MenuItem>
                          <ListItemIcon>

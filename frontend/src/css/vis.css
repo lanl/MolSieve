@@ -1,5 +1,7 @@
-.highlightedState, .highlightedStates {
+.highlightedState {
     stroke: black;
+}
+.highlightedStates {
 }
 
 .nodeInCommon {
@@ -22,8 +24,12 @@
     opacity: 0.01
 }
 
-.MIN, .MAX, .RANGE, .RELATION, .chunks, .invisible, .inCommonInvisible, .highlightedInvisible {
+.MIN, .MAX, .RANGE, .RELATION, .chunks, .invisible, .inCommonInvisible {
     visibility: hidden;
+}
+
+.highlightedInvisible {
+    opacity: 0.3;
 }
 
 .arrowed {    

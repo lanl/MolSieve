@@ -14,7 +14,7 @@ import FormHelperText from "@mui/material/FormHelperText";
 
 const margin = { top: 20, bottom: 20, left: 40, right: 25 };
 
-export default function Scatterplot({globalUniqueStates, loadingCallback, stateHovered, trajectoryName, id, runs, trajectory, setStateClicked, setStateHovered, title }) {    
+export default function Scatterplot({globalUniqueStates, loadingCallback, stateHovered, trajectoryName, id, runs, trajectory, setStateClicked, setStateHovered, title,sx }) {    
     const divRef = useRef(null);
     
     const [width, setWidth] = useState();
@@ -97,6 +97,15 @@ export default function Scatterplot({globalUniqueStates, loadingCallback, stateH
             </MenuItem>
         );
     });
+
+    options.push(<MenuItem key="timestep" value="timestep">
+                     timestep
+                 </MenuItem>);
+
+    options.push(<MenuItem key="id" value="id">
+                     id
+                 </MenuItem>);
+
     
     const resize = () => {
         if(!divRef || !divRef.current) {
@@ -124,8 +133,6 @@ export default function Scatterplot({globalUniqueStates, loadingCallback, stateH
     
     const ref = useTrajectoryChartRender(
         (svg) => {
-
-            console.log('re-draw');
             
             if (height === undefined || width === undefined) {
                 return;
@@ -179,11 +186,8 @@ export default function Scatterplot({globalUniqueStates, loadingCallback, stateH
                 .attr("y", function (_, i) {
                     return scale_y(yAttributeList[i]);
                 })
-                .attr("index", function (_, i) {
-                    return i;
-                })
-                .attr("width", 5)
-                .attr("height", 5)
+                  .attr("width", 5)
+                  .attr("height", 5)
                 .attr("fill", function (d) {
                     return colors[idToCluster[d.id]];
                 });
@@ -285,13 +289,14 @@ export default function Scatterplot({globalUniqueStates, loadingCallback, stateH
 
     
     return (
-        <div ref={divRef}>
+        <div ref={divRef} sx={sx}>
             <svg ref={ref} onContextMenu={openContext} className="vis" viewBox={[0,0,width,height]} />
             <Menu
                 open={contextMenu !== null}
                 onClose={closeContext}
                 onContextMenu={openContext}
                 anchorReference="anchorPosition"
+                preserveAspectRatio="none"
                 anchorPosition={
                     contextMenu !== null
                         ? { top: contextMenu.mouseY, left: contextMenu.mouseX }
@@ -306,9 +311,6 @@ export default function Scatterplot({globalUniqueStates, loadingCallback, stateH
                                 setXAttribute(e.target.value);
                             }}>
                             {options}
-                        <MenuItem key="timestep" value="timestep">
-                            timestep
-                        </MenuItem>
                     </Select>
                         <FormHelperText>X attribute</FormHelperText>
                     </FormControl>
@@ -322,9 +324,6 @@ export default function Scatterplot({globalUniqueStates, loadingCallback, stateH
                                 setYAttribute(e.target.value);
                             }}>
                             {options}
-                            <MenuItem key="timestep" value="timestep">
-                                timestep
-                            </MenuItem>
                         </Select>
                         <FormHelperText>Y attribute</FormHelperText>
                     </FormControl>

@@ -154,7 +154,7 @@ class AddFilterModal extends React.Component {
                     <Button
                         size="small"
                         variant="contained"
-                        color="error"
+                        color="secondary"
                         onClick={this.closeFunc}
                         style={{ margin: "5px" }}
                     >
