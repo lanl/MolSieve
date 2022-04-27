@@ -19,7 +19,7 @@ import SelectionVis from '../vis/SelectionVis';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
 
 import Stack from '@mui/material/Stack';
-
+import Button from '@mui/material/Button';
 
 const SINGLE_STATE_MODAL = 'single_state';
 
@@ -41,7 +41,6 @@ class VisArea extends React.Component {
     
     setExtents = (extent) => {
         this.setState({subSequences: [...this.state.subSequences, extent]});
-
     }
     
     toggleModal = (key) => {
@@ -95,18 +94,28 @@ class VisArea extends React.Component {
     }
 
     addScatterplot = (name) => {
-        console.log(name);
         const count = Object.keys(this.state.scatterplots).length;
         const id = `${name}_sc_${count}`;
         const sc = {'name' : name};
-        this.setState({scatterplots: { ...this.state.scatterplots, [id]: sc}}, console.log(this.state));        
+        this.setState({scatterplots: { ...this.state.scatterplots, [id]: sc}});        
+    }
+
+    addSubsequenceScatterplot = (extent) => {
+        let newPlots = {...this.state.scatterplots};
+        for (const xtent of extent) {            
+            const title = `${xtent.name}_${xtent.begin}_${xtent.end}`;
+            const sc = {'name': xtent.name, 'begin': xtent.begin, 'end': xtent.end};
+            newPlots = {...newPlots, [title]: sc};
+        }     
+        
+        this.setState({scatterplots: newPlots}, ()=>{console.log(this.state)});
     }
 
     deletePlot = (e) => {
         const plot = e.target.getAttribute("data-value");
         const newScatters = {...this.state.scatterplots};
         delete newScatters[plot];
-        this.setState({ scatterplots: newScatters}, () => {console.log(this.state);});
+        this.setState({ scatterplots: newScatters});
     };
 
 
@@ -128,11 +137,14 @@ class VisArea extends React.Component {
                        runs={this.props.runs}
                        stateHovered={this.state.stateHovered}
                        title={sc}
+                       begin={sc_props.begin}
+                       end={sc_props.end}
                    />);            
         });
         
         const subSequenceCharts = this.state.subSequences.map((ss, idx) => {
             return (<Box key={`ss_${idx}`} sx={{minHeight: '50px', border: 1}}>
+                        <Button onClick={() => {this.addSubsequenceScatterplot(ss)}}>Add scatter</Button>
                         <SelectionVis 
                             trajectories={this.props.trajectories}
                             extents={ss} />

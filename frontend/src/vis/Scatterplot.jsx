@@ -15,7 +15,7 @@ import Box from '@mui/material/Box';
 
 const margin = { top: 20, bottom: 20, left: 40, right: 25 };
 
-export default function Scatterplot({globalUniqueStates, loadingCallback, stateHovered, trajectoryName, id, runs, trajectory, setStateClicked, setStateHovered, title,sx }) {    
+export default function Scatterplot({globalUniqueStates, loadingCallback, stateHovered, trajectoryName, id, runs, trajectory, setStateClicked, setStateHovered, title,sx, begin, end }) {    
     const divRef = useRef(null);
     
     const [width, setWidth] = useState();
@@ -46,16 +46,25 @@ export default function Scatterplot({globalUniqueStates, loadingCallback, stateH
 
     useEffect(() => {
         if (xAttribute === "timestep") {
-            const timesteps = trajectory.simplifiedSequence.sequence.map(
+            let timesteps = trajectory.simplifiedSequence.sequence.map(
                 (s) => {
                     return s.timestep;
                 }
             );
+
+            if(begin && end) {
+                timesteps = timesteps.slice(begin, end);
+            }
+
             setXAttributeList(timesteps);
         } else {
-            const ids = trajectory.simplifiedSequence.sequence.map((s) => {
+            let ids = trajectory.simplifiedSequence.sequence.map((s) => {
                 return s.id;
             });
+
+            if(begin && end) {
+                ids = ids.slice(begin, end);            
+            }
             
             const uniqueStates = ids.map((id) => {
                 return globalUniqueStates.get(id);
@@ -69,17 +78,26 @@ export default function Scatterplot({globalUniqueStates, loadingCallback, stateH
 
     useEffect(() => {
         if (yAttribute === "timestep") {
-            const timesteps = trajectory.simplifiedSequence.sequence.map(
+            let timesteps = trajectory.simplifiedSequence.sequence.map(
                 (s) => {
                     return s.timestep;
                 }
             );
+
+            if(begin && end) {
+                timesteps = timesteps.slice(begin, end);
+            }
+            
             setYAttributeList(timesteps);
         } else {
-            const ids = trajectory.simplifiedSequence.sequence.map((s) => {
+            let ids = trajectory.simplifiedSequence.sequence.map((s) => {
                 return s.id;
             });
-                
+
+            if(begin && end) {
+                ids = ids.slice(begin, end);            
+            }
+            
             const uniqueStates = ids.map((id) => {
                 return globalUniqueStates.get(id);
             });
@@ -144,7 +162,11 @@ export default function Scatterplot({globalUniqueStates, loadingCallback, stateH
             }
             
             const idToCluster = trajectory.idToCluster;
-            const sequence = trajectory.simplifiedSequence.sequence;
+            let sequence = trajectory.simplifiedSequence.sequence;
+
+            if(begin && end) {
+                sequence = sequence.slice(begin, end);
+            }
             
             //let reverse = data.reverse;
             //let path = data.path;
@@ -232,8 +254,6 @@ export default function Scatterplot({globalUniqueStates, loadingCallback, stateH
                     .attr("stroke", "black")
                     .attr("fill", "none");
             }*/
-
-            // decorations
 
             const yAxisPos = margin.left;
             const xAxisPos = height - margin.bottom;
