@@ -1,4 +1,4 @@
-import { React, useEffect, useState, useRef } from "react";
+import { React, useEffect, useState, useRef, memo } from "react";
 import Box from "@mui/material/Box";
 import * as d3 from "d3";
 import { useTrajectoryChartRender } from "../hooks/useTrajectoryChartRender";
@@ -90,7 +90,7 @@ function SelectionVis({ trajectories, extents, loadingCallback }) {
                         .append("rect")
                         .attr("x", (d) => scaleX(d.timestep))
                         .attr("y", () => scaleY(count))
-                        .attr("width", 5)
+                        .attr("width", 1)
                         .attr("height", 10)
                         .attr("fill", (d) => {
                             return colors[idToCluster[d.id]];
@@ -166,5 +166,5 @@ function SelectionVis({ trajectories, extents, loadingCallback }) {
         </Box>
     );
 }
-
-export default SelectionVis;
+// no need to re-render
+export default memo(SelectionVis);

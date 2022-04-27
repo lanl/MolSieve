@@ -8,7 +8,7 @@ import GraphVis from "../vis/GraphVis";
 import ScatterGrid from "./ScatterGrid";
 import Scatterplot from "../vis/Scatterplot";
 
-import Button from "@mui/material/Button";
+import ButtonWithOpenMenu from "../components/ButtonWithOpenMenu";
 import Accordion from '@mui/material/Accordion';
 import AccordionSummary from '@mui/material/AccordionSummary';
 import AccordionDetails from '@mui/material/AccordionDetails';
@@ -16,6 +16,10 @@ import Divider from '@mui/material/Divider';
 import Typography from '@mui/material/Typography';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import SelectionVis from '../vis/SelectionVis';
+import AddCircleIcon from '@mui/icons-material/AddCircle';
+
+import Stack from '@mui/material/Stack';
+
 
 const SINGLE_STATE_MODAL = 'single_state';
 
@@ -90,7 +94,8 @@ class VisArea extends React.Component {
             this.toggleModal(SINGLE_STATE_MODAL)});
     }
 
-    addScatterplot = (name) => {        
+    addScatterplot = (name) => {
+        console.log(name);
         const count = Object.keys(this.state.scatterplots).length;
         const id = `${name}_sc_${count}`;
         const sc = {'name' : name};
@@ -127,7 +132,7 @@ class VisArea extends React.Component {
         });
         
         const subSequenceCharts = this.state.subSequences.map((ss, idx) => {
-            return (<Box key={`ss_${idx}`} sx={{flexGrow: 1}}>
+            return (<Box key={`ss_${idx}`} sx={{minHeight: '50px', border: 1}}>
                         <SelectionVis 
                             trajectories={this.props.trajectories}
                             extents={ss} />
@@ -158,14 +163,9 @@ class VisArea extends React.Component {
                 {safe && (<ScatterGrid
                               sx={{flexBasis: '50%', border: 1, flexGrow: 0}}
                               control={
-                                  <Box display="flex" flexDirection="row" gap={5}>                             
-                                      <Button
-                                          variant="contained"
-                                          onClick={() => {                                     
-                                              this.addScatterplot('nano_pt');
-                                          }}>
-                                          Add a new scatterplot
-                                      </Button>
+                                  <Box display="flex" justifyContent="center" gap={1}>
+                                      <Typography variant="h6">Scatterplot View</Typography>
+                                      <ButtonWithOpenMenu buttonText={<AddCircleIcon/>} func={this.addScatterplot} data={Object.keys(this.props.trajectories)}/>
                                   </Box>}
                               deletePlot={this.deletePlot}>
                               {scatterplots}
@@ -188,8 +188,10 @@ class VisArea extends React.Component {
                           expandIcon={<ExpandMoreIcon />}
                       ><Typography variant="h6">Sub-sequence View</Typography></AccordionSummary>
                       <Divider/>
-                      <AccordionDetails sx={{height: '200px', display:'flex', flexDirection: 'column', overflow: 'auto'}}>
-                          {subSequenceCharts}
+                      <AccordionDetails>
+                          <Stack direction="column" sx={{overflow: 'scroll'}}>
+                              {subSequenceCharts}
+                          </Stack>
                       </AccordionDetails>
                   </Accordion>     
                   <Accordion defaultExpanded={true} disableGutters={true}>

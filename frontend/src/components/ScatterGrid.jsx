@@ -1,7 +1,7 @@
 import { React } from "react";
 import Button from "@mui/material/Button";
 import Box from "@mui/material/Box";
-
+import Divider from "@mui/material/Divider";
 
 export default function ScatterGrid({
     deletePlot,
@@ -28,8 +28,9 @@ export default function ScatterGrid({
     });
 
     return (
-        <Box display="flex" flexDirection="column" sx={sx}>               
+        <Box display="flex" flexDirection="column" sx={sx}>
             {control}
+            <Divider/>
             <Box
                 display="grid"
                 sx={{
