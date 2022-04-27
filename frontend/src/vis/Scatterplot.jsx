@@ -15,7 +15,7 @@ import Box from '@mui/material/Box';
 
 const margin = { top: 20, bottom: 20, left: 40, right: 25 };
 
-export default function Scatterplot({globalUniqueStates, loadingCallback, stateHovered, trajectoryName, id, runs, trajectory, setStateClicked, setStateHovered, title,sx, begin, end }) {    
+export default function Scatterplot({globalUniqueStates, loadingCallback, stateHovered, trajectoryName, id, runs, trajectory, setStateClicked, setStateHovered, title, sx, uniqueStates }) {    
     const divRef = useRef(null);
     
     const [width, setWidth] = useState();
@@ -28,6 +28,15 @@ export default function Scatterplot({globalUniqueStates, loadingCallback, stateH
     const [yAttributeList, setYAttributeList] = useState(null);
 
     const [contextMenu, setContextMenu] = useState(null);
+
+    const getSequence = () => {
+        if(uniqueStates) {
+            return uniqueStates;
+        } else {
+            return trajectory.simplifiedSequence.uniqueStates;
+        }
+    }
+    
     const openContext = (event) => {
         event.preventDefault();
         setContextMenu(
@@ -45,68 +54,40 @@ export default function Scatterplot({globalUniqueStates, loadingCallback, stateH
     };
 
     useEffect(() => {
-        if (xAttribute === "timestep") {
-            let timesteps = trajectory.simplifiedSequence.sequence.map(
-                (s) => {
-                    return s.timestep;
-                }
-            );
 
-            if(begin && end) {
-                timesteps = timesteps.slice(begin, end);
-            }
+        console.log(getSequence);
+        const ids = getSequence().map((s) => {
+            return s.id;
+        });
 
-            setXAttributeList(timesteps);
-        } else {
-            let ids = trajectory.simplifiedSequence.sequence.map((s) => {
-                return s.id;
-            });
+        console.log(ids);
 
-            if(begin && end) {
-                ids = ids.slice(begin, end);            
-            }
-            
-            const uniqueStates = ids.map((id) => {
-                return globalUniqueStates.get(id);
-            });
+        const uniqueStates = ids.map((id) => {
+            return globalUniqueStates.get(id);
+        });
 
-            setXAttributeList(uniqueStates.map((s) => {
-                return s[xAttribute];
-            }));
-        }
+        
+        console.log(uniqueStates);
+        
+        setXAttributeList(uniqueStates.map((s) => {
+            return s[xAttribute];
+        }));
+        
     }, [xAttribute, trajectory.chunkingThreshold, trajectory.current_clustering, globalUniqueStates]);
 
     useEffect(() => {
-        if (yAttribute === "timestep") {
-            let timesteps = trajectory.simplifiedSequence.sequence.map(
-                (s) => {
-                    return s.timestep;
-                }
-            );
-
-            if(begin && end) {
-                timesteps = timesteps.slice(begin, end);
-            }
+        let ids = getSequence().map((s) => {
+            return s.id;
+        });
             
-            setYAttributeList(timesteps);
-        } else {
-            let ids = trajectory.simplifiedSequence.sequence.map((s) => {
-                return s.id;
-            });
+        const uniqueStates = ids.map((id) => {
+            return globalUniqueStates.get(id);
+        });
 
-            if(begin && end) {
-                ids = ids.slice(begin, end);            
-            }
-            
-            const uniqueStates = ids.map((id) => {
-                return globalUniqueStates.get(id);
-            });
-
-            setYAttributeList(uniqueStates.map((s) => {
-                return s[yAttribute];
-            }));
-
-        }
+        setYAttributeList(uniqueStates.map((s) => {
+            return s[yAttribute];
+        }));
+        
     }, [yAttribute, trajectory.chunkingThreshold, trajectory.current_clustering, globalUniqueStates]);
 
     let options = trajectory.properties.map((property) => {
@@ -116,10 +97,6 @@ export default function Scatterplot({globalUniqueStates, loadingCallback, stateH
             </MenuItem>
         );
     });
-
-    options.push(<MenuItem key="timestep" value="timestep">
-                     timestep
-                 </MenuItem>);
 
     options.push(<MenuItem key="id" value="id">
                      id
@@ -162,11 +139,7 @@ export default function Scatterplot({globalUniqueStates, loadingCallback, stateH
             }
             
             const idToCluster = trajectory.idToCluster;
-            let sequence = trajectory.simplifiedSequence.sequence;
-
-            if(begin && end) {
-                sequence = sequence.slice(begin, end);
-            }
+            const sequence = getSequence();
             
             //let reverse = data.reverse;
             //let path = data.path;

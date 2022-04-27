@@ -40,7 +40,17 @@ class VisArea extends React.Component {
     }
     
     setExtents = (extent) => {
-        this.setState({subSequences: [...this.state.subSequences, extent]});
+        const modEx = [];
+        for(const ex of extent) {
+            const ids = this.props.trajectories[ex.name].sequence.slice(ex.begin, ex.end + 1);
+            const uniqueStates = [...new Set(ids)].map((state) => {
+                return {'id': state};
+            });
+            
+            const newEx = {...ex, states: uniqueStates};
+            modEx.push(newEx);
+        }
+        this.setState({subSequences: [...this.state.subSequences, modEx]});
     }
     
     toggleModal = (key) => {
@@ -104,11 +114,10 @@ class VisArea extends React.Component {
         let newPlots = {...this.state.scatterplots};
         for (const xtent of extent) {            
             const title = `${xtent.name}_${xtent.begin}_${xtent.end}`;
-            const sc = {'name': xtent.name, 'begin': xtent.begin, 'end': xtent.end};
-            newPlots = {...newPlots, [title]: sc};
+            newPlots = {...newPlots, [title]: {...xtent}};
         }     
         
-        this.setState({scatterplots: newPlots}, ()=>{console.log(this.state)});
+        this.setState({scatterplots: newPlots});
     }
 
     deletePlot = (e) => {
@@ -127,18 +136,17 @@ class VisArea extends React.Component {
         const scatterplots = Object.keys(this.state.scatterplots).map((sc) => {
             const sc_props = this.state.scatterplots[sc];            
             return (<Scatterplot
-                       key={sc}
-                       trajectory={this.props.trajectories[sc_props.name]}
-                       globalUniqueStates={this.props.globalUniqueStates}       
-                       trajectoryName={sc_props.name}
-                       id={sc}
-                       setStateClicked={this.setStateClicked}
-                       setStateHovered={this.setStateHovered}
-                       runs={this.props.runs}
-                       stateHovered={this.state.stateHovered}
-                       title={sc}
-                       begin={sc_props.begin}
-                       end={sc_props.end}
+                        key={sc}
+                        trajectory={this.props.trajectories[sc_props.name]}
+                        globalUniqueStates={this.props.globalUniqueStates}       
+                        trajectoryName={sc_props.name}
+                        id={sc}
+                        setStateClicked={this.setStateClicked}
+                        setStateHovered={this.setStateHovered}
+                        runs={this.props.runs}
+                        stateHovered={this.state.stateHovered}
+                        title={sc}
+                        uniqueStates={sc_props.states}
                    />);            
         });
         
