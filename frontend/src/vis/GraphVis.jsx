@@ -1,11 +1,14 @@
 import {
-    React, useEffect, useState, useRef
-} from 'react';
+    React, useEffect, useState } from 'react';
 import * as d3 from 'd3';
 import '../css/vis.css';
 import { onStateMouseOver, onChunkMouseOver } from '../api/myutils';
+import { apply_filters } from '../api/filters';
+
 import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
-import {apply_filters} from '../api/filters';
+import { useContextMenu } from '../hooks/useContextMenu';
+import { useResize } from '../hooks/useResize';
+
 import { useSnackbar } from 'notistack';
 
 import Menu from '@mui/material/Menu';
@@ -16,19 +19,18 @@ import Checkbox from '@mui/material/Checkbox';
 import ProgressBox from '../components/ProgressBox';
 import Box from '@mui/material/Box';
 
+//import useKeyUp from '../hooks/useKeyUp';
+//import useKeyDown from '../hooks/useKeyDown';
+
 let container = null;
 let zoom = null;
 const trajRendered = {};
 
 function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStateClicked, setStateHovered, loadingCallback, sx }) {
 
-    const divRef = useRef();
-    
-    const [width, setWidth] = useState();
-    const [height, setHeight] = useState();
-    
-    const [contextMenu, setContextMenu] = useState(null);
-    
+    const {contextMenu, toggleMenu} = useContextMenu();
+    const {width, height, divRef} = useResize();
+        
     const [seperateTrajectories, setSeperateTrajectories] = useState(true);
     const [inCommon, setInCommon] = useState([]);
     const [showInCommon, setShowInCommon] = useState(false);
@@ -61,43 +63,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
         setShowTransitionProb((prev) => !prev);
     }
 
-    const { enqueueSnackbar, closeSnackbar } = useSnackbar();
-    const openContext = (event) => {
-        event.preventDefault();
-        setContextMenu(
-            contextMenu === null
-                ? {
-                    mouseX: event.clientX - 2,
-                    mouseY: event.clientY - 4,
-                }
-                : null,
-        );
-    };
-
-    
-    const closeContext = () => {
-        setContextMenu(null);
-    };
-    
-    const resize = () => {
-        if(!divRef || !divRef.current) {
-            return;
-        }
-        const newWidth = divRef.current.offsetWidth;
-        setWidth(newWidth);
-
-        const newHeight = divRef.current.offsetHeight;
-        setHeight(newHeight);
-       
-    };
-    
-    useEffect(() => {
-        resize();
-    }, [divRef]);
-
-    useEffect(() => {
-        window.addEventListener('resize', resize());
-    }, []);
+    const { enqueueSnackbar, closeSnackbar } = useSnackbar();    
     
     const renderGraph = (links, chunks, sSequence, l, g, c, name, trajectory) => {
 
@@ -545,11 +511,11 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
     return (
         <>
             <Box ref={divRef} sx={sx}>                
-                <svg id="graph" onContextMenu={openContext} className="vis" ref={ref} viewBox={[0,0,width,height]}/>
+                <svg id="graph" onContextMenu={toggleMenu} className="vis" ref={ref} viewBox={[0,0,width,height]}/>
             </Box>
                 <Menu
                     open={contextMenu !== null}
-                    onClose={closeContext}
+                    onClose={toggleMenu}
                     anchorReference="anchorPosition"
                     anchorPosition={
                         contextMenu !== null

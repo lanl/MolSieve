@@ -1,19 +1,22 @@
-import {
-    React, useEffect, useState, useRef
-} from 'react';
+import { React, useEffect, useState } from 'react';
 import * as d3 from 'd3';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
 import ListItemText from '@mui/material/ListItemText';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import Checkbox from '@mui/material/Checkbox';
-//import MultiplePathSelectionModal from '../modals/MultiplePathSelectionModal';
-//import SelectionModal from '../modals/SelectionModal';
-import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
-import { onStateMouseOver, onChunkMouseOver } from '../api/myutils';
-import '../css/vis.css';
-import {apply_filters} from '../api/filters';
 import Box from '@mui/material/Box';
+
+import useKeyUp from '../hooks/useKeyUp';
+import useKeyDown from '../hooks/useKeyDown';
+
+import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
+import { useContextMenu } from '../hooks/useContextMenu';
+import { useResize } from '../hooks/useResize';
+
+import '../css/vis.css';
+import { onStateMouseOver, onChunkMouseOver } from '../api/myutils';
+import {apply_filters} from '../api/filters';
 
 const margin = {
     top: 20, bottom: 20, left: 25, right: 25,
@@ -22,78 +25,17 @@ const margin = {
 let zBrush = null;
 let sBrush = null;
 
-function useKeyUp(key, action) {
-    useEffect(() => {
-        function onKeyup(e) {
-            if (e.key === key) action(e);
-        }
-        window.addEventListener('keyup', onKeyup);
-        return () => window.removeEventListener('keyup', onKeyup);
-    }, []);
-}
-
-function useKeyDown(key, action) {
-    useEffect(() => {
-        function onKeydown(e) {
-            if (!e.repeat) {
-                if (e.key === key) action(e);
-            }
-        }
-        window.addEventListener('keydown', onKeydown);
-        return () => window.removeEventListener('keydown', onKeydown);
-    }, []);
-}
-
-function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallback, setStateHovered, setStateClicked, stateHovered, setExtents}) {
-
-    const [contextMenu, setContextMenu] = useState(null);
-    const openContext = (event) => {
-        event.preventDefault();
-        setContextMenu(
-            contextMenu === null
-                ? {
-                    mouseX: event.clientX - 2,
-                    mouseY: event.clientY - 4,
-                }
-                : null,
-        );
-    };
-
-    const closeContext = () => {
-        setContextMenu(null);
-    };
-
+function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallback, setStateHovered, setStateClicked, stateHovered, setExtents}) {   
+    
     const [iExtents, setInternalExtents] = useState([]);
-
+    const {contextMenu, toggleMenu} = useContextMenu();
+    const {width, height, divRef} = useResize();
+    
     const [stateHighlight, setStateHighlight] = useState(false);
-
+    
     const toggleStateHighlight = () => {
         setStateHighlight((prev) => !prev);
     };
-
-    const divRef = useRef(null);
-    const [width, setWidth] = useState();
-    const [height, setHeight] = useState();
-
-    const resize = () => {
-        if(!divRef || !divRef.current) {
-            return;
-        }
-
-        const newWidth = divRef.current.offsetWidth;
-        setWidth(newWidth);
-
-        const newHeight = divRef.current.offsetHeight;
-        setHeight(newHeight);
-    };
-
-    useEffect(() => {
-        resize();
-    }, [divRef]);
-
-    useEffect(() => {
-        window.addEventListener('resize', resize());
-    }, []);
 
     const zoom = () => {
         if (zBrush != null) {
@@ -110,6 +52,7 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
 
     const selectionBrush = () => {
         if (sBrush != null) {
+            
             if (!d3.selectAll('.brush').empty()) {
                 d3.selectAll('.brush').remove();
             }
@@ -127,6 +70,10 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
         setPushExtent(true);        
     }
 
+    useKeyDown('z', zoom);
+    useKeyDown('Shift', selectionBrush);
+    useKeyUp('Shift', completeSelection);   
+
     useEffect(() => {
         if (!d3.selectAll('.brush').empty()) {
             d3.selectAll('.brush').remove();
@@ -139,9 +86,6 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
         setPushExtent(false);
     }, [pushExtent]);
     
-    useKeyDown('z', zoom);
-    useKeyDown('Shift', selectionBrush);
-    useKeyUp('Shift', completeSelection);
     
     const ref = useTrajectoryChartRender(
         (svg) => {
@@ -317,6 +261,8 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                         }
                     }
                 });                       
+
+            
             loadingCallback();
         },
         [width, height, trajectories],
@@ -351,11 +297,12 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
             d3.select('#sequence_important').selectAll('.highlightedState').classed("highlightedState", false);
         }
     }, [stateHovered, stateHighlight]);
+
     
     return (<>
                 <Box ref={divRef}>
                     <svg className="vis"
-                         onContextMenu={openContext}
+                         onContextMenu={toggleMenu}
                          id="sequence"
                          ref={ref}
                          preserveAspectRatio="none"
@@ -364,7 +311,7 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                 </Box>  
             <Menu
                 open={contextMenu !== null}
-                onClose={closeContext}
+                onClose={toggleMenu}
                 anchorReference="anchorPosition"
                 anchorPosition={
                     contextMenu !== null

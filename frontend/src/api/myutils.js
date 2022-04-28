@@ -74,6 +74,7 @@ export function onStateMouseOver(node, d, trajectory, name) {
     const propertyString = extractPropertyString(Object.keys(d), d);
     content += `${propertyString}`
     
+
     tippy(node, {
         allowHTML: true,
         content: content,

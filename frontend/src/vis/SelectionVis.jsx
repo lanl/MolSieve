@@ -1,7 +1,9 @@
-import { React, useEffect, useState, useRef, memo } from "react";
+import { React, memo } from "react";
 import Box from "@mui/material/Box";
 import * as d3 from "d3";
 import { useTrajectoryChartRender } from "../hooks/useTrajectoryChartRender";
+import { useResize } from '../hooks/useResize';
+
 import "../css/vis.css";
 
 const margin = {
@@ -12,30 +14,8 @@ const margin = {
 };
 
 function SelectionVis({ trajectories, extents, loadingCallback }) {
-    const divRef = useRef();
-    const [width, setWidth] = useState();
-    const [height, setHeight] = useState();
-
-    const resize = () => {
-        if (!divRef || !divRef.current) {
-            return;
-        }
-
-        const newWidth = divRef.current.parentElement.offsetWidth;
-        setWidth(newWidth);
-
-        const newHeight = divRef.current.parentElement.offsetHeight;
-        setHeight(newHeight);
-    };
-
-    useEffect(() => {
-        resize();
-    }, [divRef]);
-
-    useEffect(() => {
-        window.addEventListener("resize", resize());
-    }, []);
-
+    const {width, height, divRef} = useResize();
+    
     const ref = useTrajectoryChartRender(
         (svg) => {
             if (height === undefined || width === undefined) {

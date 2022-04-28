@@ -16,13 +16,16 @@
         "sourceType": "module"
     },
     "plugins": [
-        "react"
+        "react",
+        "react-hooks"
     ],
     "rules": {
 	"react/prop-types": 0,        
         "no-plusplus": 0,
         "indent": 0,
         "max-len": 0,
-        "no-inner-declarations": 0
+        "no-inner-declarations": 0,
+        "react-hooks/rules-of-hooks": "error", // Checks rules of Hooks
+        "react-hooks/exhaustive-deps": "warn" // Checks effect dependencies
     }
 }

@@ -1,8 +1,13 @@
-import { React, useEffect, useState, useRef } from "react";
+import { React, useEffect, useState } from "react";
+import * as d3 from "d3";
+
 import { useTrajectoryChartRender } from "../hooks/useTrajectoryChartRender";
+import { useContextMenu } from '../hooks/useContextMenu';
+import { useResize } from '../hooks/useResize';
+
 import { onStateMouseOver } from "../api/myutils";
 import { apply_filters } from '../api/filters';
-import * as d3 from "d3";
+
 import '../css/vis.css';
 
 import MenuItem from "@mui/material/MenuItem";
@@ -12,22 +17,18 @@ import Select from "@mui/material/Select";
 import FormHelperText from "@mui/material/FormHelperText";
 import Box from '@mui/material/Box';
 
-
 const margin = { top: 20, bottom: 20, left: 40, right: 25 };
 
 export default function Scatterplot({globalUniqueStates, loadingCallback, stateHovered, trajectoryName, id, runs, trajectory, setStateClicked, setStateHovered, title, sx, uniqueStates }) {    
-    const divRef = useRef(null);
-    
-    const [width, setWidth] = useState();
-    const [height, setHeight] = useState();
 
+    const {contextMenu, toggleMenu} = useContextMenu();
+    const {width, height, divRef} = useResize();
+       
     const [xAttribute, setXAttribute] = useState(trajectory.properties[0]);
     const [yAttribute, setYAttribute] = useState(trajectory.properties[0]);
     
     const [xAttributeList, setXAttributeList] = useState(null);
     const [yAttributeList, setYAttributeList] = useState(null);
-
-    const [contextMenu, setContextMenu] = useState(null);
 
     const getSequence = () => {
         if(uniqueStates) {
@@ -37,60 +38,27 @@ export default function Scatterplot({globalUniqueStates, loadingCallback, stateH
         }
     }
     
-    const openContext = (event) => {
-        event.preventDefault();
-        setContextMenu(
-            contextMenu === null
-                ? {
-                    mouseX: event.clientX - 2,
-                    mouseY: event.clientY - 4,
-                }
-                : null,
-        );
-    };
+    const useAttributeList = (setAttributeList, attribute) => {    
+        useEffect(() => {
+            const ids = getSequence().map((s) => {
+                return s.id;
+            });
 
-    const closeContext = () => {
-        setContextMenu(null);
-    };
-
-    useEffect(() => {
-
-        console.log(getSequence);
-        const ids = getSequence().map((s) => {
-            return s.id;
-        });
-
-        console.log(ids);
-
-        const uniqueStates = ids.map((id) => {
-            return globalUniqueStates.get(id);
-        });
-
-        
-        console.log(uniqueStates);
-        
-        setXAttributeList(uniqueStates.map((s) => {
-            return s[xAttribute];
-        }));
-        
-    }, [xAttribute, trajectory.chunkingThreshold, trajectory.current_clustering, globalUniqueStates]);
-
-    useEffect(() => {
-        let ids = getSequence().map((s) => {
-            return s.id;
-        });
+            const uniqueStates = ids.map((id) => {
+                return globalUniqueStates.get(id);
+            });
             
-        const uniqueStates = ids.map((id) => {
-            return globalUniqueStates.get(id);
-        });
+            setAttributeList(uniqueStates.map((s) => {
+                return s[attribute];
+            }));
 
-        setYAttributeList(uniqueStates.map((s) => {
-            return s[yAttribute];
-        }));
-        
-    }, [yAttribute, trajectory.chunkingThreshold, trajectory.current_clustering, globalUniqueStates]);
+        }, [globalUniqueStates, attribute, trajectory.chunkingThreshold, trajectory.current_clustering]);
+    }
 
-    let options = trajectory.properties.map((property) => {
+    useAttributeList(setXAttributeList, xAttribute);
+    useAttributeList(setYAttributeList, yAttribute);   
+
+    const options = trajectory.properties.map((property) => {
         return (
             <MenuItem key={property} value={property}>
                 {property}
@@ -98,34 +66,13 @@ export default function Scatterplot({globalUniqueStates, loadingCallback, stateH
         );
     });
 
-    options.push(<MenuItem key="id" value="id">
+    options.push(<MenuItem key="id" value="id"> 
                      id
                  </MenuItem>);
-
-    
-    const resize = () => {
-        if(!divRef || !divRef.current) {
-            return;
-        }
-        const newWidth = divRef.current.offsetWidth;
-        setWidth(newWidth);
-
-        const newHeight = divRef.current.offsetHeight;
-        setHeight(newHeight);
-    };
-
-    useEffect(() => {
-        resize();
-    }, [divRef]);
-
-    useEffect(() => {
-        window.addEventListener("resize", resize);
-    }, []);
 
     useEffect(() => {
         ref.current.setAttribute('id', id);
     }, [id]);
-
     
     const ref = useTrajectoryChartRender(
         (svg) => {
@@ -285,12 +232,11 @@ export default function Scatterplot({globalUniqueStates, loadingCallback, stateH
     return (
         <>
         <Box ref={divRef} sx={sx}>
-            <svg ref={ref} onContextMenu={openContext} className="vis" viewBox={[0,0,width,height]} />
+            <svg ref={ref} onContextMenu={toggleMenu} className="vis" viewBox={[0,0,width,height]} />
         </Box>
             <Menu
                 open={contextMenu !== null}
-                onClose={closeContext}
-                onContextMenu={openContext}
+                onClose={toggleMenu}
                 anchorReference="anchorPosition"
                 preserveAspectRatio="none"
                 anchorPosition={

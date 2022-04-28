@@ -127,6 +127,9 @@ class VisArea extends React.Component {
         this.setState({ scatterplots: newScatters});
     };
 
+    // essentially the same as useCallback
+    setStateClickedProp = this.setStateClicked.bind(this);
+    setStateHoveredProp = this.setStateHovered.bind(this);
 
     render() {
         const runs = Object.keys(this.props.runs);
@@ -141,8 +144,8 @@ class VisArea extends React.Component {
                         globalUniqueStates={this.props.globalUniqueStates}       
                         trajectoryName={sc_props.name}
                         id={sc}
-                        setStateClicked={this.setStateClicked}
-                        setStateHovered={this.setStateHovered}
+                        setStateClicked={this.setStateClickedProp}
+                        setStateHovered={this.setStateHoveredProp}
                         runs={this.props.runs}
                         stateHovered={this.state.stateHovered}
                         title={sc}
@@ -173,8 +176,8 @@ class VisArea extends React.Component {
                      trajectories={this.props.trajectories}
                      runs={this.props.runs}
                      globalUniqueStates={this.props.globalUniqueStates}
-                     setStateHovered={this.setStateHovered}
-                     setStateClicked={this.setStateClicked}
+                     setStateHovered={this.setStateHoveredProp}
+                     setStateClicked={this.setStateClickedProp}
                      loadingCallback={this.chartFinishedLoading}
                      stateHovered={this.state.stateHovered}                     
                  />
@@ -191,7 +194,7 @@ class VisArea extends React.Component {
                               {scatterplots}
                           </ScatterGrid>)}
                                          
-            {this.state.currentModal === SINGLE_STATE_MODAL && (
+z            {this.state.currentModal === SINGLE_STATE_MODAL && (
                 <SingleStateModal
                     open={this.state.currentModal === SINGLE_STATE_MODAL}
                     state={this.props.globalUniqueStates.get(this.state.stateClicked.id)}
@@ -225,8 +228,8 @@ class VisArea extends React.Component {
                               globalUniqueStates={this.props.globalUniqueStates}
                               runs={this.props.runs}
                               loadingCallback={this.chartFinishedLoading}
-                              setStateHovered={this.setStateHovered}
-                              setStateClicked={this.setStateClicked}
+                              setStateHovered={this.setStateHoveredProp}
+                              setStateClicked={this.setStateClickedProp}
                               stateHovered={this.state.stateHovered}
                               setExtents={this.setExtents}                              
                           />
