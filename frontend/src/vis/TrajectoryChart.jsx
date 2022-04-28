@@ -13,6 +13,7 @@ import useKeyDown from '../hooks/useKeyDown';
 import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
 import { useContextMenu } from '../hooks/useContextMenu';
 import { useResize } from '../hooks/useResize';
+import { useExtents} from '../hooks/useExtents';
 
 import '../css/vis.css';
 import { onStateMouseOver, onChunkMouseOver } from '../api/myutils';
@@ -25,9 +26,7 @@ const margin = {
 let zBrush = null;
 let sBrush = null;
 
-function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallback, setStateHovered, setStateClicked, stateHovered, setExtents}) {   
-    
-    const [iExtents, setInternalExtents] = useState([]);
+function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallback, setStateHovered, setStateClicked, stateHovered, setExtents}) {       
     const {contextMenu, toggleMenu} = useContextMenu();
     const {width, height, divRef} = useResize();
     
@@ -51,42 +50,24 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
     };
 
     const selectionBrush = () => {
-        if (sBrush != null) {
-            
+        if (sBrush != null) {            
             if (!d3.selectAll('.brush').empty()) {
                 d3.selectAll('.brush').remove();
             }
-
+            
             d3.select(ref.current)
                 .append('g')
                 .attr('class', 'brush')
                 .call(sBrush);
         }
-    };
-
-    const [pushExtent, setPushExtent] = useState(false);
-
-    const completeSelection = () => {        
-        setPushExtent(true);        
     }
 
-    useKeyDown('z', zoom);
+    const {setInternalExtents, completeSelection} = useExtents(setExtents);    
+
     useKeyDown('Shift', selectionBrush);
-    useKeyUp('Shift', completeSelection);   
-
-    useEffect(() => {
-        if (!d3.selectAll('.brush').empty()) {
-            d3.selectAll('.brush').remove();
-        }
-
-        if(pushExtent && iExtents.length > 0) {
-            setExtents([...iExtents]);
-            setInternalExtents([]);
-        }
-        setPushExtent(false);
-    }, [pushExtent]);
-    
-    
+    useKeyUp('Shift', completeSelection);      
+    useKeyDown('z', zoom);
+       
     const ref = useTrajectoryChartRender(
         (svg) => {
             if (height === undefined || width === undefined) {
@@ -230,7 +211,6 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                     d3.select('.brush').remove();
                 });
 
-            // single path selection
             sBrush = d3
                 .brush()
                 .keyModifiers(false)
@@ -268,10 +248,12 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
         [width, height, trajectories],
     );
 
-     useEffect(() => {
-            if (ref !== undefined && ref.current !== undefined) {
-                apply_filters(trajectories, runs, globalUniqueStates, ref);
-            }
+    
+
+    useEffect(() => {
+        if (ref !== undefined && ref.current !== undefined) {
+            apply_filters(trajectories, runs, globalUniqueStates, ref);
+        }
         loadingCallback();
      }, [runs]);
 

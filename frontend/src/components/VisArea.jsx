@@ -130,6 +130,7 @@ class VisArea extends React.Component {
     // essentially the same as useCallback
     setStateClickedProp = this.setStateClicked.bind(this);
     setStateHoveredProp = this.setStateHovered.bind(this);
+    setExtentsProp = this.setExtents.bind(this);
 
     render() {
         const runs = Object.keys(this.props.runs);
@@ -231,7 +232,7 @@ z            {this.state.currentModal === SINGLE_STATE_MODAL && (
                               setStateHovered={this.setStateHoveredProp}
                               setStateClicked={this.setStateClickedProp}
                               stateHovered={this.state.stateHovered}
-                              setExtents={this.setExtents}                              
+                              setExtents={this.setExtentsProp}                              
                           />
                       </AccordionDetails>
                   </Accordion>
