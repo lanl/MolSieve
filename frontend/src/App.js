@@ -12,7 +12,7 @@ import Trajectory from './api/trajectory';
 import FilterBuilder from './api/FilterBuilder';
 import VisArea from './components/VisArea';
 import MenuIcon from '@mui/icons-material/Menu';
-import { api_loadPCCA, api_loadSequence, api_load_metadata } from './api/ajax';
+import { api_loadPCCA, api_loadSequence, api_load_metadata, api_load_property } from './api/ajax';
 import ControlDrawer from './components/ControlDrawer';
 
 const RUN_MODAL = 'run_modal';
@@ -34,7 +34,8 @@ class App extends React.Component {
                 '#cab2d6', '#6a3d9a', '#ffff99', '#b15928', '#8dd3c7', '#ffffb3', '#bebada', '#fb8072',
                 '#80b1d3', '#fdb462', '#b3de69', '#fccde5', '#d9d9d9', '#bc80bd', '#ccebc5', '#ffed6f'],
             globalUniqueStates: new Map(),
-            commonList: new Map()
+            commonList: new Map(),
+            properties: []
         };
     }
 
@@ -222,6 +223,56 @@ class App extends React.Component {
         return runs;
     }
 
+    setProperties = (_, properties) => {
+        // if old has something that new doesn't, there was a removal
+        const removed = this.state.properties.filter(x => !properties.includes(x));       
+        
+        // if new has something that old doesn't, there was an addition
+        const added = properties.filter(x => !this.state.properties.includes(x));
+
+        let globalUniqueStates = this.state.globalUniqueStates;
+        
+        if(added.length > 0) {
+            api_load_property(added[0], globalUniqueStates)
+                .then((data) => {
+                    globalUniqueStates = this.addPropToStates(data.propertyList, globalUniqueStates);
+                    this.setState({properties: properties,
+                                   globalUniqueStates: globalUniqueStates},
+                                  () => {
+                                      console.log(this.state);
+                                  });                                  
+                });
+        } else {
+            for(const r of removed) {
+                globalUniqueStates = this.removePropFromStates(r, globalUniqueStates);
+            }
+            this.setState({properties: properties,
+                           globalUniqueStates: globalUniqueStates}, () => { console.log(this.state) });            
+        }        
+    }
+
+    addPropToStates = (propertyList, globalUniqueStates) => {
+        for (const prop of propertyList) {
+            if (globalUniqueStates.has(prop.id)) {
+                const previous = globalUniqueStates.get(prop.id);
+                globalUniqueStates.set(prop.id, Object.assign(previous, prop));                
+            } else {
+                globalUniqueStates.set(prop.id, prop);
+            }
+        }
+        return globalUniqueStates;
+    }
+
+    removePropFromStates = (prop, globalUniqueStates) => {
+        for(const s of globalUniqueStates) {
+            if(s[prop] !== undefined && s[prop] !== null) {
+                delete s[prop];
+            }
+        }
+
+        return globalUniqueStates;
+    }
+    
     calculateGlobalUniqueStates = (newUniqueStates, run) => {
         const globalUniqueStates = this.state.globalUniqueStates;
         for (const s of newUniqueStates) {
@@ -229,7 +280,6 @@ class App extends React.Component {
                 const previous = globalUniqueStates.get(s.id);
                 previous.seenIn = [...previous.seenIn, run];
                 globalUniqueStates.set(s.id, Object.assign(previous, s));
-
             }
             else {
                 s.seenIn = [run];
@@ -337,6 +387,7 @@ class App extends React.Component {
                     toggleDrawer={this.toggleDrawer}
                     addFilter={this.addFilter}
                     propagateChange={this.propagateChange}
+                    setProperties={this.setProperties}
                 />
 
                  <AjaxMenu
@@ -357,7 +408,7 @@ class App extends React.Component {
                     }}
                  />
 
-                                {this.state.currentModal === RUN_MODAL
+                {this.state.currentModal === RUN_MODAL
                     && (
                         <LoadRunModal
                             run={this.state.run}

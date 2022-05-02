@@ -187,6 +187,17 @@ export function api_load_metadata(run, trajectory) {
     });
 }
 
+export function api_load_property(property) {
+    return new Promise(function(resolve, reject) {
+        axios.get("/load_property", { params: {prop: property} })
+            .then((response) => {
+                return resolve(response.data);
+            }).catch((e) => {
+                reject(e);
+            });
+    });
+}
+
 //TODO: add comment
 export function api_calculate_NEB(run, start, end, interpolate, maxSteps, fmax,saveResults) {
     return new Promise(function (resolve, reject) {

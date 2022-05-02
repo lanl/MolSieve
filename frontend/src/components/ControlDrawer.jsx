@@ -13,13 +13,10 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 
 import Button from '@mui/material/Button';
 import Slider from '@mui/material/Slider';
+
 import Typography from '@mui/material/Typography';
 
 import Drawer from '@mui/material/Drawer';
-
-import AddFilterModal from '../modals/AddFilterModal';
-
-import FilterComponent from './FilterComponent';
 
 import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
@@ -28,11 +25,14 @@ import DialogActions from '@mui/material/DialogActions';
 
 import Divider from '@mui/material/Divider';
 
+import AddFilterModal from '../modals/AddFilterModal';
+import FilterComponent from './FilterComponent';
+import CheckboxTable from './CheckboxTable';
+
 const ADD_FILTER_MODAL = "add-filter-modal";
 const METADATA_MODAL = "metadata-modal";
 
-
-function ControlDrawer({trajectories, runs, updateRun, recalculate_clustering, simplifySet, drawerOpen, toggleDrawer, addFilter, propagateChange}) {
+function ControlDrawer({trajectories, runs, updateRun, recalculate_clustering, simplifySet, drawerOpen, toggleDrawer, addFilter, propagateChange, setProperties}) {
     const [currentModal, setCurrentModal] = useState();
     const [currentRun, setCurrentRun] = useState(null);
     
@@ -60,7 +60,6 @@ function ControlDrawer({trajectories, runs, updateRun, recalculate_clustering, s
         }         
     };
 
-    // next, add accordions
     const controls = Object.keys(runs).map((run) => {
         return (
             <Accordion disableGutters={true} key={run}>
@@ -158,6 +157,20 @@ function ControlDrawer({trajectories, runs, updateRun, recalculate_clustering, s
     return (
         <Box>
             <Drawer anchor="right" variant="persistent" open={drawerOpen}>
+                <Accordion disableGutters={true}>
+                    <AccordionSummary
+                        expandIcon={<ExpandMoreIcon />}>
+                        <Typography variant="h6">Properties</Typography>
+                    </AccordionSummary>
+                     <Divider/>
+                    <AccordionDetails>
+                        <CheckboxTable
+                            header="Property"
+                            api_call={`/get_property_list`}
+                            click={setProperties}
+                        />                        
+                    </AccordionDetails>
+                </Accordion>
                 {controls}
                 <Button color="secondary" size="small" variant="contained" onClick={() => {
                             toggleDrawer();

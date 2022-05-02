@@ -7,7 +7,6 @@ import TableContainer from "@mui/material/TableContainer";
 import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
 import CircularProgress from "@mui/material/CircularProgress";
-import Paper from "@mui/material/Paper";
 import Box from "@mui/material/Box";
 import axios from "axios";
 
@@ -37,7 +36,6 @@ class CheckboxTable extends React.Component {
     }
 
     click = (e) => {
-        
         // build list of clicked checkboxes
         if(this.state.allowOnlyOneSelected) {
             if (e.target.checked) {
@@ -120,7 +118,7 @@ class CheckboxTable extends React.Component {
                 }
             }
             return (
-                <TableContainer component={Paper}>
+                <TableContainer>
                     <Table size="small">
                         <TableHead>
                             <TableRow>

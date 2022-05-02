@@ -344,8 +344,9 @@ def calculate_path_similarity(extents: dict):
 
 
 @app.get('/load_property')
-def load_property(run: str, prop: str):
-    """ Loads the given property for all the nodes found in the run.
+def load_property(prop: str):
+    """
+    Loads the given property for all applicable nodes
 
     :param run: The run that the properties belong to.
     :param prop: The property to load.
@@ -357,17 +358,17 @@ def load_property(run: str, prop: str):
     driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687",
                                         auth=("neo4j", "secret"))
     
-    qb = querybuilder.Neo4jQueryBuilder([('State', run, 'State', 'ONE-TO-ONE'),
-                                         ('Atom', 'PART_OF', 'State',
-                                          'MANY-TO-ONE')])
+    qb = querybuilder.Neo4jQueryBuilder()
 
     query = qb.generate_get_all_nodes(
-        "State", node_attributes=uniqueStateAttributes, relation=run)
+        "State", node_attributes=uniqueStateAttributes, ignoreNull = True)
 
+    j = {}
     with driver.session() as session:
         result = session.run(query.text)
-        
-    return result.data()
+        j["propertyList"] = result.data()
+
+    return j
 
 
 # perhaps run this first and then the PCCA
@@ -444,15 +445,16 @@ def load_sequence(run: str, properties: str):
 
 
 @app.get('/get_property_list')
-def get_property_list(run: str):
+def get_property_list():
     driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687",
                                         auth=("neo4j", "secret"))
+
+    # sample 1000 nodes from the database and return a list of properties
     j = []
     with driver.session() as session:
         try:
             result = session.run(
-                "MATCH (n:State)-[:{run}]-(:State) with n LIMIT 1 UNWIND keys(n) as key RETURN DISTINCT key;"
-                .format(run=run))
+                "MATCH (n:State) with n LIMIT 1000 UNWIND keys(n) as key RETURN DISTINCT key;")
             j = [r[0] for r in result.values()]
 
         except neo4j.exceptions.ServiceUnavailable as exception:

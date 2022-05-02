@@ -13,7 +13,6 @@ import Checkbox from '@mui/material/Checkbox';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import TextField from "@mui/material/TextField";
 
-import CheckboxTable from "../components/CheckboxTable";
 import {TabPanel} from "../api/myutils";
 import AnalysisTab from './AnalysisTab';
 
@@ -26,8 +25,6 @@ class LoadRunModal extends React.Component {
         
         this.state = {
             values: defaultValues.slice(),
-            clicked: null,
-            run: null,
             clusters: -1,
             optimal: 1,
             tabIdx: 0,
@@ -36,31 +33,22 @@ class LoadRunModal extends React.Component {
         };
     }
 
-    pullClicked = (_, clicked) => {
-        this.setState({clicked: [...clicked]});
-    };
-
     closeFunc = () => {
         this.props.closeFunc();
     };
 
-    componentDidMount() {
-        this.setState({ run: this.props.run,
-                        clicked: [`${this.props.run}_occurrences`, "number"]
-                      });
-    }
-
+    
     runFunc = () => {
         this.closeFunc();
         const chunkingThreshold = (this.state.simplifySequence) ? this.state.chunkingThreshold : 1;
 
         this.props.runFunc(
-            this.state.run,
+            this.props.run,
             -1,
             1,
             this.state.values[0],
             this.state.values[1],
-            this.state.clicked,
+            [`${this.props.run}_occurrences`, "number"],
             chunkingThreshold
         );
     };
@@ -71,14 +59,10 @@ class LoadRunModal extends React.Component {
 
     render() {
         if (this.props.isOpen) {
-            let defaults = [`${this.props.run}_occurrences`, "number"];
-
             return (
                 <Dialog
                     onBackdropClick={() => this.closeFunc()}
-                    open={this.props.isOpen}
-                    fullWidth={true}
-                    maxWidth="lg"                    
+                    open={this.props.isOpen}                
                 >
                     <DialogTitle>
                         {this.props.run}                        
@@ -134,14 +118,7 @@ class LoadRunModal extends React.Component {
                                 defaultValue={ this.state.chunkingThreshold }
                                 onChange={(e) => {this.setState({chunkingThreshold: e.target.value})}}
                              />
-                        </Stack>
-                        <p>Select which properties you wish to analyze.</p>
-                        <CheckboxTable
-                            click={this.pullClicked}
-                            defaults={defaults}
-                            header="Properties"
-                            api_call={`/get_property_list?run=${this.props.run}`}
-                        />
+                        </Stack>                        
                     </DialogContent>
                     <DialogActions>
                         <Button
@@ -176,4 +153,10 @@ class LoadRunModal extends React.Component {
     }
 }
 
+/*<CheckboxTable
+  click={this.pullClicked}
+  defaults={defaults}
+  header="Properties"
+  api_call={`/get_property_list?run=${this.props.run}`}
+/>*/
 export default LoadRunModal;
