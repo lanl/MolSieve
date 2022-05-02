@@ -67,7 +67,7 @@ class VisArea extends React.Component {
             modEx.push(newEx);
         }
         console.log(extent);
-        //        this.addSubsequenceScatterplot(modEx);                
+        this.addSubsequenceScatterplot(modEx);                
     }
     
     toggleModal = (key) => {
@@ -129,8 +129,15 @@ class VisArea extends React.Component {
 
     addSubsequenceScatterplot = (extent) => {
         let newPlots = {...this.state.scatterplots};
-        for (const xtent of extent) {            
-            const title = `${xtent.name}_${xtent.begin}_${xtent.end}`;
+        for (const xtent of extent) {
+            let title = ""
+            if(xtent.begin && xtent.end) {
+                title = `${xtent.name}_${xtent.begin}_${xtent.end}`;
+            } else {
+                for(const s of xtent.states) {
+                    title += `${s.id},`
+                }
+            }
             newPlots = {...newPlots, [title]: {...xtent}};
         }     
         
@@ -160,6 +167,7 @@ class VisArea extends React.Component {
             return (<Scatterplot
                         key={sc}
                         trajectory={this.props.trajectories[sc_props.name]}
+                        trajectories={this.props.trajectories}
                         globalUniqueStates={this.props.globalUniqueStates}       
                         trajectoryName={sc_props.name}
                         id={sc}

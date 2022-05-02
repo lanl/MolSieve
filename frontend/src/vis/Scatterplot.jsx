@@ -19,13 +19,13 @@ import Box from '@mui/material/Box';
 
 const margin = { top: 20, bottom: 20, left: 40, right: 25 };
 
-export default function Scatterplot({globalUniqueStates, loadingCallback, stateHovered, id, runs, trajectory, trajectoryName, setStateClicked, setStateHovered, title, sx, uniqueStates }) {    
+export default function Scatterplot({globalUniqueStates, loadingCallback, stateHovered, id, runs, trajectory, trajectoryName, setStateClicked, setStateHovered, title, sx, uniqueStates, properties, trajectories }) {    
 
     const {contextMenu, toggleMenu} = useContextMenu();
     const {width, height, divRef} = useResize();
        
-    const [xAttribute, setXAttribute] = useState(trajectory.properties[0]);
-    const [yAttribute, setYAttribute] = useState(trajectory.properties[0]);
+    const [xAttribute, setXAttribute] = useState(properties[0]);
+    const [yAttribute, setYAttribute] = useState(properties[0]);
     
     const [xAttributeList, setXAttributeList] = useState(null);
     const [yAttributeList, setYAttributeList] = useState(null);
@@ -52,13 +52,13 @@ export default function Scatterplot({globalUniqueStates, loadingCallback, stateH
                 return s[attribute];
             }));
 
-        }, [globalUniqueStates, attribute, trajectory.chunkingThreshold, trajectory.current_clustering]);
+        }, [globalUniqueStates, attribute]);
     }
 
     useAttributeList(setXAttributeList, xAttribute);
     useAttributeList(setYAttributeList, yAttribute);   
 
-    const options = trajectory.properties.map((property) => {
+    const options = properties.map((property) => {
         return (
             <MenuItem key={property} value={property}>
                 {property}
@@ -141,6 +141,12 @@ export default function Scatterplot({globalUniqueStates, loadingCallback, stateH
                 points.attr("fill", function (d) {
                     return trajectory.colors[trajectory.idToCluster[d.id]];
                 });
+            } else {
+                points.attr("fill", function (d) {
+                    const state = globalUniqueStates.get(d.id);                    
+                    const traj = trajectories[state.seenIn[0]];                                        
+                    return traj.colors[traj.idToCluster[d.id]];
+                });
             }
             
             
@@ -205,18 +211,17 @@ export default function Scatterplot({globalUniqueStates, loadingCallback, stateH
             if (title === null || title === "") {
                 title = xAttribute + " vs " + yAttribute;
             }
-
             svg.append("text")
                 .attr("x", width / 2)
                 .attr("y", margin.top)
                 .attr("text-anchor", "middle")
                 .style("font-size", "12px")
                 .text(title);
-
+            
             if(loadingCallback !== undefined) {
                 loadingCallback();
             }
-        }, [trajectory.chunkingThreshold, trajectory.current_clustering, width, height, xAttributeList, yAttributeList]);
+        }, [width, height, xAttributeList, yAttributeList]);
 
     useEffect(() => {                
         if(stateHovered !== undefined && stateHovered !== null) {
