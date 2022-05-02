@@ -13,7 +13,7 @@ const margin = {
     right: 25,
 };
 
-function SelectionVis({ trajectories, extents, loadingCallback }) {
+function SelectionVis({ trajectories, extents, loadingCallback, style }) {
     const {width, height, divRef} = useResize();
     
     const ref = useTrajectoryChartRender(
@@ -134,7 +134,7 @@ function SelectionVis({ trajectories, extents, loadingCallback }) {
     );
 
     return (
-        <Box ref={divRef}>
+        <Box ref={divRef} sx={style.sx}>
             {width && height && (
                 <svg
                     ref={ref}

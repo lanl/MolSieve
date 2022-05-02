@@ -19,7 +19,7 @@ import Box from '@mui/material/Box';
 
 const margin = { top: 20, bottom: 20, left: 40, right: 25 };
 
-export default function Scatterplot({globalUniqueStates, loadingCallback, stateHovered, trajectoryName, id, runs, trajectory, setStateClicked, setStateHovered, title, sx, uniqueStates }) {    
+export default function Scatterplot({globalUniqueStates, loadingCallback, stateHovered, id, runs, trajectory, trajectoryName, setStateClicked, setStateHovered, title, sx, uniqueStates }) {    
 
     const {contextMenu, toggleMenu} = useContextMenu();
     const {width, height, divRef} = useResize();
@@ -85,14 +85,15 @@ export default function Scatterplot({globalUniqueStates, loadingCallback, stateH
                 svg.selectAll("*").remove();
             }
             
-            const idToCluster = trajectory.idToCluster;
+            
             const sequence = getSequence();
             
             //let reverse = data.reverse;
             //let path = data.path;
             //let title = data.title;
-            const colors = trajectory.colors;            
-            
+            //const colors = trajectory.colors;            
+            //const idToCluster = trajectory.idToCluster;
+
             //if (reverse == null) reverse = false;
             //if (path == null) path = false;
          
@@ -117,24 +118,32 @@ export default function Scatterplot({globalUniqueStates, loadingCallback, stateH
                 .range([height - margin.bottom, margin.top])
                 .domain([ytent[first], ytent[last]]);
 
-            const g = svg.append("g").attr('id',`g_${trajectoryName}`);
+            const g = svg.append("g")
+
+            if(trajectoryName !== undefined) {
+                g.attr('id',`g_${trajectoryName}`);
+            }
             
             const points = g.selectAll("rect")
-                .data(sequence)
-                .enter()
-                .append("rect")
-                .attr("x", function (_, i) {
-                    return scale_x(xAttributeList[i]);
-                })
-                .attr("y", function (_, i) {
-                    return scale_y(yAttributeList[i]);
-                })
+                  .data(sequence)
+                  .enter()
+                  .append("rect")
+                  .attr("x", function (_, i) {
+                      return scale_x(xAttributeList[i]);
+                  })
+                  .attr("y", function (_, i) {
+                      return scale_y(yAttributeList[i]);
+                  })
                   .attr("width", 5)
                   .attr("height", 5)
-                .attr("fill", function (d) {
-                    return colors[idToCluster[d.id]];
-                });
 
+            if(trajectory) {
+                points.attr("fill", function (d) {
+                    return trajectory.colors[trajectory.idToCluster[d.id]];
+                });
+            }
+            
+            
             if(setStateClicked) {
                 points.on("click", function(_,d) {                    
                     setStateClicked(globalUniqueStates.get(d.id));    
@@ -142,19 +151,27 @@ export default function Scatterplot({globalUniqueStates, loadingCallback, stateH
             }
             
             if(setStateHovered) {
-                points.on("mouseover", function (_, d) {                    
-                    onStateMouseOver(this, globalUniqueStates.get(d.id), trajectory, trajectoryName);
 
-                    const timesteps = trajectory.simplifiedSequence.idToTimestep.get(d.id);
-                    if(timesteps.length === 1) {
-                        setStateHovered({'caller': this, 'stateID': d.id, 'name': trajectoryName, 'timestep': timesteps[0]});
-                    } else {
-                        setStateHovered({'caller': this, 'stateID': d.id, 'name': trajectoryName, 'timesteps': timesteps});
-                    }  
-                }).on('mouseout', function() {
-                   setStateHovered(null);
-                });
+                if(trajectory && trajectoryName) {
+                    points.on("mouseover", function (_, d) {                    
+                        onStateMouseOver(this, globalUniqueStates.get(d.id), trajectory, trajectoryName);
+                        const timesteps = trajectory.simplifiedSequence.idToTimestep.get(d.id);
+                        if(timesteps.length === 1) {
+                            setStateHovered({'caller': this, 'stateID': d.id, 'name': trajectoryName, 'timestep': timesteps[0]});
+                        } else {
+                            setStateHovered({'caller': this, 'stateID': d.id, 'name': trajectoryName, 'timesteps': timesteps});
+                        }  
+                    }).on('mouseout', function() {
+                        setStateHovered(null);
+                    });
+                } else {
+                    points.on("mouseover", function (_, d) {                    
+                        onStateMouseOver(this, globalUniqueStates.get(d.id));
+                    });
+                }
             }
+                             
+                             
 
             /*if (path) {
                 var datum = [];
@@ -203,7 +220,8 @@ export default function Scatterplot({globalUniqueStates, loadingCallback, stateH
 
     useEffect(() => {                
         if(stateHovered !== undefined && stateHovered !== null) {
-            d3.select(ref.current).select(`#g_${trajectoryName}`).selectAll('rect:not(.invisible)').filter(function(dp) {                                    
+            //.select(`#g_${trajectoryName}`)
+            d3.select(ref.current).selectAll('rect:not(.invisible)').filter(function(dp) {                                    
                 return (dp.id !== stateHovered.stateID);
             }).classed("highlightedInvisible", true);
                 
@@ -216,7 +234,7 @@ export default function Scatterplot({globalUniqueStates, loadingCallback, stateH
     }, [stateHovered]);
 
      useEffect(() => {
-         if (ref !== undefined && ref.current !== undefined) {
+         if (ref !== undefined && ref.current !== undefined && trajectoryName !== undefined) {
              const trajectories = {};
              trajectories[trajectoryName] = trajectory;
              trajectory.name = trajectoryName;
@@ -226,6 +244,7 @@ export default function Scatterplot({globalUniqueStates, loadingCallback, stateH
          if(loadingCallback !== undefined) {                        
              loadingCallback();
          }
+         
      }, [runs]);
 
     

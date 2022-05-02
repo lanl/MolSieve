@@ -9,11 +9,12 @@ import Box from '@mui/material/Box';
 
 import useKeyUp from '../hooks/useKeyUp';
 import useKeyDown from '../hooks/useKeyDown';
+import {useExtents} from '../hooks/useExtents';
 
 import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
 import { useContextMenu } from '../hooks/useContextMenu';
 import { useResize } from '../hooks/useResize';
-import { useExtents} from '../hooks/useExtents';
+
 
 import '../css/vis.css';
 import { onStateMouseOver, onChunkMouseOver } from '../api/myutils';
@@ -168,11 +169,11 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                 count++;
             }
 
-            const xAxisPos = height - margin.bottom;
+
             const xAxis = svg.append('g');
-            xAxis.attr("transform", `translate(0,${xAxisPos})`);
+            xAxis.attr("transform", `translate(0,0)`);
             
-            xAxis.call(d3.axisTop(scaleX).tickValues(scaleX.ticks().filter(tick => Number.isInteger(tick)))
+            xAxis.call(d3.axisBottom(scaleX).tickValues(scaleX.ticks().filter(tick => Number.isInteger(tick)))
                        .tickFormat(d3.format('d')));
             
             // reset zoom
@@ -219,8 +220,7 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                     [width - margin.right, height - margin.bottom],
                 ])
                 .on('end', function(e) {
-                    const extent = e.selection;
-                    
+                    const extent = e.selection;                    
                     if (extent) {
                         const currName = Object.keys(trajectories)[Math.round(scaleY.invert(extent[0][1]))];
                         if (currName !== null && currName !== undefined) {
@@ -240,9 +240,7 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                             }
                         }
                     }
-                });                       
-
-            
+                });                                   
             loadingCallback();
         },
         [width, height, trajectories],

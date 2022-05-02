@@ -19,22 +19,42 @@ import Checkbox from '@mui/material/Checkbox';
 import ProgressBox from '../components/ProgressBox';
 import Box from '@mui/material/Box';
 
-//import useKeyUp from '../hooks/useKeyUp';
-//import useKeyDown from '../hooks/useKeyDown';
+import useKeyUp from '../hooks/useKeyUp';
+import useKeyDown from '../hooks/useKeyDown';
+import {useExtents} from '../hooks/useExtents';
 
 let container = null;
 let zoom = null;
 const trajRendered = {};
+let sBrush = null;
 
-function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStateClicked, setStateHovered, loadingCallback, sx }) {
+function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStateClicked, setStateHovered, loadingCallback, style, setExtents }) {
 
     const {contextMenu, toggleMenu} = useContextMenu();
     const {width, height, divRef} = useResize();
-        
+
+    const {setInternalExtents, completeSelection} = useExtents(setExtents);
+
+    const selectionBrush = () => {
+        if (sBrush != null) {            
+            if (!d3.selectAll('.brush').empty()) {
+                d3.selectAll('.brush').remove();
+            }
+            
+            d3.select(ref.current)
+                .append('g')
+                .attr('class', 'brush')
+                .call(sBrush);
+        }
+    }
+    
+    useKeyDown('s', selectionBrush);
+    useKeyUp('s', completeSelection);      
+    
     const [seperateTrajectories, setSeperateTrajectories] = useState(true);
     const [inCommon, setInCommon] = useState([]);
     const [showInCommon, setShowInCommon] = useState(false);
-
+    
     const [progressVal, setProgress] = useState(0);
     
     const toggleShowInCommon = () => {
@@ -115,6 +135,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                 return d.transitionProb;
             });
         }
+
                      
         return {stateNodes, chunkNodes, linkNodes};
     }
@@ -146,8 +167,8 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
             .attr('d', "M 0,-5L10,0L0,5");
         
         container = svg.append('g')
-              .attr('id', 'container')
-              .attr('transform', "translate(0,0)scale(1,1)");
+            .attr('id', 'container')
+            .attr('transform', "translate(0,0)scale(1,1)");
 
         const linkGroup = container.append('g').attr('id', 'links');
         const importantGroup = container.append('g').attr('id', 'important');
@@ -396,6 +417,8 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
             }
         }
         // the trick to zooming like this is to move the container without moving the SVG's viewport
+
+
         
         zoom = d3.zoom().on('zoom', function(e) {
             container.attr("transform", e.transform);  
@@ -414,6 +437,34 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
         setInCommon(inCommon);
         loadingCallback();
 
+        sBrush = d3
+            .brush()
+            .keyModifiers(false)
+            .on('start brush', function(e) {
+                const zt = d3.zoomTransform(container.node());
+                const extent = e.selection;
+                d3.select(ref.current).select('#important').selectAll('.highlightedState').classed("highlightedState", false);  
+
+                d3.select(ref.current).select('#important').selectAll('circle').filter(function(d) {
+                    const x = zt.k*d.x + zt.x;
+                    const y = zt.k*d.y + zt.y;
+                    
+                    return (extent[0][0] <= x && x < extent[1][0] &&
+                            extent[0][1] <= y && y < extent[1][1]);                    
+                }).classed("highlightedState", true); 
+            }).on('end', function(e) {
+                const zt = d3.zoomTransform(container.node());
+                const extent = e.selection;                
+                const nodes = d3.select(ref.current).select('#important').selectAll('circle').filter(function(d) {
+                    const x = zt.k*d.x + zt.x;
+                    const y = zt.k*d.y + zt.y;
+                    
+                    return (extent[0][0] <= x && x < extent[1][0] &&
+                            extent[0][1] <= y && y < extent[1][1]);                    
+                }).data();
+                d3.select(ref.current).select('#important').selectAll('.highlightedState').classed("highlightedState", false);
+                setInternalExtents([{'states': nodes}]);
+            });                       
          
     }, [width, height, trajectories, seperateTrajectories]);
 
@@ -510,7 +561,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
     
     return (
         <>
-            <Box ref={divRef} sx={sx}>                
+            <Box ref={divRef} sx={style.sx} className={style.className}>                
                 <svg id="graph" onContextMenu={toggleMenu} className="vis" ref={ref} viewBox={[0,0,width,height]}/>
             </Box>
                 <Menu
