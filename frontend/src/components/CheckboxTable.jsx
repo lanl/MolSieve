@@ -1,4 +1,4 @@
-import React from "react";
+import {React, useState, useEffect} from "react";
 import "../css/App.css";
 import Table from "@mui/material/Table";
 import TableBody from "@mui/material/TableBody";
@@ -10,119 +10,60 @@ import CircularProgress from "@mui/material/CircularProgress";
 import Box from "@mui/material/Box";
 import axios from "axios";
 
-class CheckboxTable extends React.Component {
-    constructor(props) {
-        super(props);
+export default function CheckboxTable ({click, api_call, itemProps, clickedProps, header}) {
 
-        let allowOnlyOneSelected = false;
-        let clickedType = [];
-
-        if(this.props.allowOnlyOneSelected !== undefined) {
-            allowOnlyOneSelected = this.props.allowOnlyOneSelected;
-        } 
-        
-        if (allowOnlyOneSelected) {
-            clickedType = "";
-        }
-        
-        this.state = {
-            isLoaded: false,
-            items: [],
-            click: () => void 0,
-            clicked: clickedType,
-            allowOnlyOneSelected: allowOnlyOneSelected,
-            lastClicked: null
-        };
-    }
-
-    click = (e) => {
+    const [items, setItems] = useState([]);
+    const [isLoaded, setIsLoaded] = useState(false);
+    
+    const clickFunc = (e) => {
         // build list of clicked checkboxes
-        if(this.state.allowOnlyOneSelected) {
-            if (e.target.checked) {
-                if(this.state.lastClicked) {
-                    let chk = this.state.lastClicked;
-                    chk.checked = false;
-                }
-                
-                this.setState({clicked: e.target.value, lastClicked: e.target}, () => {
-                    if (this.props.click) {
-                        this.props.click(e, this.state.clicked);
-                    }});
-            } else {
-                this.setState({clicked: ""}, () => {
-                    if (this.props.click) {
-                        this.props.click(e, this.state.clicked);
-                    }});
-            }
-                        
+        if (e.target.checked) {
+            console.log([...clickedProps, e.target.value]);
+            click([...clickedProps, e.target.value]);
         } else {
-            if (e.target.checked) {
-                this.setState({clicked: [...this.state.clicked, e.target.value]}, () => {
-                    if (this.props.click) {
-                        this.props.click(e, this.state.clicked);
-                    }
-                });            
-            } else {
-                let newClicked = [...this.state.clicked];
-                newClicked.splice(newClicked.indexOf(e.target.value), 1);
-                this.setState({clicked: newClicked}, () => {
-                    if (this.props.click) {
-                        this.props.click(e, this.state.clicked);
-                    }
-                });            
-            }
-        }
+            const idx = clickedProps.indexOf(e.target.value);
+            const propsCopy = [...clickedProps];
+            propsCopy.splice(idx,1);
+            console.log(propsCopy);
+            click(propsCopy);
+        }        
     };
 
-    componentDidMount() {
-        if(this.props.api_call !== undefined && this.props.api_call !== '') {
-            axios
-                .get(this.props.api_call)
+
+    useEffect(() => {
+        if(api_call !== undefined && api_call !== '') {
+            axios.get(api_call)
                 .then((response) => {
-                    this.setState({ isLoaded: true, items: response.data });
+                    setItems(response.data);
                 })
                 .catch((e) => {
                     alert(e);
                 });
         } else {
-            this.setState({isLoaded: true, items: this.props.items});
-        }
+            setItems(itemProps);
+        }       
 
-        if (this.props.defaults !== undefined) {
-            this.setState({ clicked: this.props.defaults });
-        }
-    }
-
-    render() {
-        const { isLoaded, items } = this.state;
-        if (!isLoaded) {
-            return (
-                <Box
-                    sx={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                    }}>
-                    <CircularProgress color="grey" />
-                </Box>
-            );
+        setIsLoaded(true);
+    }, []);
+    
+    if (!isLoaded) {
+        return (
+            <Box
+                sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                }}>
+                <CircularProgress color="grey" />
+            </Box>
+        );
         } else {
-            let defaults = this.props.defaults;
-            if(this.props.defaults === undefined) {
-                defaults = [];
-            }
-
-            for(const d of defaults) {
-                if(!items.includes(d)) {
-                    items.push(d);
-                }
-            }
             return (
                 <TableContainer>
                     <Table size="small">
                         <TableHead>
                             <TableRow>
-                                <TableCell>{this.props.header}</TableCell>
+                                <TableCell>{header}</TableCell>
                                 <TableCell>Load?</TableCell>
                             </TableRow>
                         </TableHead>
@@ -132,18 +73,10 @@ class CheckboxTable extends React.Component {
                                     <TableCell>{i}</TableCell>
                                     <TableCell>
                                         <input
-                                            onClick={this.click}
+                                            onClick={clickFunc}
                                             type="checkbox"
                                             value={i}
-                                            readOnly={defaults.includes(
-                                                i
-                                            )}
-                                            disabled={defaults.includes(
-                                                i
-                                            )}
-                                            defaultChecked={defaults.includes(
-                                                i
-                                            )}></input>
+                                            defaultChecked={clickedProps.includes(i)}></input>
                                     </TableCell>
                                 </TableRow>
                             ))}
@@ -153,6 +86,3 @@ class CheckboxTable extends React.Component {
             );
         }
     }
-}
-
-export default CheckboxTable;

@@ -32,7 +32,7 @@ import CheckboxTable from './CheckboxTable';
 const ADD_FILTER_MODAL = "add-filter-modal";
 const METADATA_MODAL = "metadata-modal";
 
-function ControlDrawer({trajectories, runs, updateRun, recalculate_clustering, simplifySet, drawerOpen, toggleDrawer, addFilter, propagateChange, setProperties}) {
+function ControlDrawer({trajectories, runs, updateRun, recalculate_clustering, simplifySet, drawerOpen, toggleDrawer, addFilter, propagateChange, setProperties, properties}) {
     const [currentModal, setCurrentModal] = useState();
     const [currentRun, setCurrentRun] = useState(null);
     
@@ -168,6 +168,7 @@ function ControlDrawer({trajectories, runs, updateRun, recalculate_clustering, s
                             header="Property"
                             api_call={`/get_property_list`}
                             click={setProperties}
+                            clickedProps={properties}
                         />                        
                     </AccordionDetails>
                 </Accordion>
@@ -185,6 +186,7 @@ function ControlDrawer({trajectories, runs, updateRun, recalculate_clustering, s
                  <AddFilterModal
                      title={`Add filter for ${currentRun}`}
                      open={currentModal === ADD_FILTER_MODAL}
+                     properties={properties}
                      trajectory={
                          trajectories[currentRun]
                      }

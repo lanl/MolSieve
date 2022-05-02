@@ -21,19 +21,17 @@ class AddFilterModal extends React.Component {
         this.state = {
             attribute: null,
             filter_type: null,
-            properties: null,
             tabIdx: 0
         };
     }
 
     componentDidMount() {
-        const properties = this.props.trajectory.properties;
+        const properties = this.props.properties;
         this.setState({
             run: this.props.run,
             attribute: properties[0],
             relation_attribute: properties[0],
-            filter_type: "MIN",
-            properties: [...this.props.trajectory.properties],
+            filter_type: "MIN"
         });
     }
 
@@ -51,7 +49,7 @@ class AddFilterModal extends React.Component {
     }
 
     render() {
-        var options = this.props.trajectory.properties.map((property) => {
+        var options = this.props.properties.map((property) => {
             return (
                 <MenuItem key={property} value={property}>
                     {property}
@@ -69,7 +67,7 @@ class AddFilterModal extends React.Component {
                     <Tabs value={this.state.tabIdx} onChange={(_, v) => {
                               this.setState({tabIdx: v}, () => {
                                   if(this.state.tabIdx === 0) {
-                                      this.setState({filter_type: 'MIN', attribute: this.state.properties[0]})
+                                      this.setState({filter_type: 'MIN', attribute: this.props.properties[0]})
                                   } else {
                                       this.setState({filter_type: 'RELATION'});
                                   }

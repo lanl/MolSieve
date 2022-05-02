@@ -1,7 +1,6 @@
 class Trajectory {
     // sequence is an array of ids that indexes into the globalUniqueState array
     sequence;
-    properties;
     // dict of id to cluster id
     idToCluster = {};
     optimal_cluster_value;

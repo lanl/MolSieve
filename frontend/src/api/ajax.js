@@ -191,7 +191,7 @@ export function api_load_property(property) {
     return new Promise(function(resolve, reject) {
         axios.get("/load_property", { params: {prop: property} })
             .then((response) => {
-                return resolve(response.data);
+                return resolve(response.data.propertyList);
             }).catch((e) => {
                 reject(e);
             });

@@ -167,6 +167,7 @@ class VisArea extends React.Component {
                         setStateHovered={this.setStateHoveredProp}
                         runs={this.props.runs}
                         stateHovered={this.state.stateHovered}
+                        properties={this.props.properties}
                         title={sc}
                         uniqueStates={sc_props.states}
                    />);            

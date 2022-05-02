@@ -161,8 +161,7 @@ class App extends React.Component {
                 newTraj.uniqueStates = data.uniqueStates.map((state) => {
                     return state.id;
                 });
-
-                newTraj.properties = [...properties]; // questionable if we need it
+                
                 const newUniqueStates = this.calculateGlobalUniqueStates(data.uniqueStates, run);
 
                 this.load_PCCA(run, clusters, optimal, m_min, m_max, newTraj)
@@ -183,13 +182,13 @@ class App extends React.Component {
                             newColors.splice(0, removed);
 
                             const newRuns = this.initFilters(run, newTraj);
-
                             this.setState({
                                 isLoading: false,
                                 runs: newRuns,
                                 trajectories: newTrajectories,
                                 colors: newColors,
-                                globalUniqueStates: newUniqueStates
+                                globalUniqueStates: newUniqueStates,
+                                properties: [...properties]
                             });
 
                         });
@@ -223,7 +222,7 @@ class App extends React.Component {
         return runs;
     }
 
-    setProperties = (_, properties) => {
+    setProperties = (properties) => {
         // if old has something that new doesn't, there was a removal
         const removed = this.state.properties.filter(x => !properties.includes(x));       
         
@@ -231,28 +230,24 @@ class App extends React.Component {
         const added = properties.filter(x => !this.state.properties.includes(x));
 
         let globalUniqueStates = this.state.globalUniqueStates;
-
-        console.log(removed);
-        console.log(added);
         
         if(added.length > 0) {
             api_load_property(added[0], globalUniqueStates)
                 .then((data) => {
-                    globalUniqueStates = this.addPropToStates(data.propertyList, globalUniqueStates);
-                    this.setState({properties: properties,
-                                   globalUniqueStates: globalUniqueStates},
-                                  () => {
-                                      console.log(this.state);
-                                  });                                  
+                    globalUniqueStates = this.addPropToStates(data, globalUniqueStates);
+                    this.setState({properties: [...this.state.properties, added[0]],
+                                   globalUniqueStates: globalUniqueStates});
                 });
         } else {
+            let propertiesCopy = [...this.state.properties];
             for(const r of removed) {
                 globalUniqueStates = this.removePropFromStates(r, globalUniqueStates);
-                console.log(r);
-                console.log(globalUniqueStates);
+                const idx = propertiesCopy.indexOf(r);
+                propertiesCopy.splice(idx,1);
             }
-            this.setState({properties: properties,
-                           globalUniqueStates: globalUniqueStates}, () => { console.log(this.state) });            
+
+            this.setState({properties: propertiesCopy,
+                           globalUniqueStates: globalUniqueStates});            
         }        
     }
 
@@ -381,9 +376,10 @@ class App extends React.Component {
                     trajectories={this.state.trajectories}
                     globalUniqueStates={this.state.globalUniqueStates}
                     runs={this.state.runs}
+                    properties={this.state.properties}
                 />
 
-                <ControlDrawer
+               {Object.keys(this.state.trajectories).length > 0 && <ControlDrawer
                     trajectories={this.state.trajectories}
                     runs={this.state.runs}
                     updateRun={this.updateRun}
@@ -393,8 +389,9 @@ class App extends React.Component {
                     toggleDrawer={this.toggleDrawer}
                     addFilter={this.addFilter}
                     propagateChange={this.propagateChange}
+                    properties={this.state.properties}
                     setProperties={this.setProperties}
-                />
+                                                                   />}
 
                  <AjaxMenu
                     anchorEl={this.runListButton.current}
