@@ -231,6 +231,9 @@ class App extends React.Component {
         const added = properties.filter(x => !this.state.properties.includes(x));
 
         let globalUniqueStates = this.state.globalUniqueStates;
+
+        console.log(removed);
+        console.log(added);
         
         if(added.length > 0) {
             api_load_property(added[0], globalUniqueStates)
@@ -245,6 +248,8 @@ class App extends React.Component {
         } else {
             for(const r of removed) {
                 globalUniqueStates = this.removePropFromStates(r, globalUniqueStates);
+                console.log(r);
+                console.log(globalUniqueStates);
             }
             this.setState({properties: properties,
                            globalUniqueStates: globalUniqueStates}, () => { console.log(this.state) });            
@@ -264,9 +269,10 @@ class App extends React.Component {
     }
 
     removePropFromStates = (prop, globalUniqueStates) => {
-        for(const s of globalUniqueStates) {
+        for(let s of globalUniqueStates.values()) {
             if(s[prop] !== undefined && s[prop] !== null) {
                 delete s[prop];
+                globalUniqueStates.set(s.id, s);
             }
         }
 
