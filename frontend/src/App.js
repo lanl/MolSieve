@@ -189,7 +189,7 @@ class App extends React.Component {
                                 trajectories: newTrajectories,
                                 colors: newColors,
                                 globalUniqueStates: newUniqueStates,
-                                properties: [...properties]
+                                properties: [...new Set([...this.state.properties, ...properties])]
                             });
 
                         });

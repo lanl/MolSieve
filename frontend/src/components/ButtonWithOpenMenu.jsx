@@ -36,7 +36,7 @@ export default function ButtonWithOptionMenu({func, data, buttonText}) {
     return (<>
             <IconButton
                 size="small"
-                color="primary"
+                color="secondary"
                 onClick={click}>
                 {buttonText}
             </IconButton>

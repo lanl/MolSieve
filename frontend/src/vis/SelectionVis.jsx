@@ -13,7 +13,7 @@ const margin = {
     right: 25,
 };
 
-function SelectionVis({ trajectories, extents, loadingCallback, style, globalUniqueStates }) {
+function SelectionVis({ trajectories, extents, loadingCallback, style, globalUniqueStates, titleProp }) {
     const {width, height, divRef} = useResize();
     
     const ref = useTrajectoryChartRender(
@@ -44,8 +44,8 @@ function SelectionVis({ trajectories, extents, loadingCallback, style, globalUni
                     const state = globalUniqueStates.get(id);
                     for(const seen of state.seenIn) {
                         const traj = trajectories[seen];
-                        console.log(traj);
                         const timesteps = traj.idToTimestep.get(id);
+
                         for(const t of timesteps) {
                             const newEx = {'name': `${seen}`, 'begin': t, 'end': t};
                             safeExtents = [...safeExtents, newEx];
@@ -54,8 +54,6 @@ function SelectionVis({ trajectories, extents, loadingCallback, style, globalUni
                 }
             }
 
-            
-            
             const groupedExtents = d3.group(safeExtents, (d) => d.name);
             const maxLength = d3.max(
                 Object.values(trajectories),
@@ -75,7 +73,7 @@ function SelectionVis({ trajectories, extents, loadingCallback, style, globalUni
             let count = 0;
 
             for (const [name, extentArray] of groupedExtents.entries()) {
-                const { sequence, colors, idToCluster } = trajectories[name];
+                const { sequence } = trajectories[name];
 
                 const g = svg.append('g');
                 const ig = svg.append('g');
@@ -102,10 +100,12 @@ function SelectionVis({ trajectories, extents, loadingCallback, style, globalUni
                         .attr("y", () => scaleY(count))
                         .attr("width", 1)
                         .attr("height", 10)
-                        .attr("fill", (d) => {
-                            return colors[idToCluster[d.id]];
+                        .attr("fill", function (d) {
+                            const state = globalUniqueStates.get(d.id);                    
+                            const traj = trajectories[state.seenIn[0]];                                        
+                            return traj.colors[traj.idToCluster[state.id]];
                         });
-
+                    
                     let ignore = null;
                                         
                     // if the extents don't cover the first element
@@ -139,14 +139,19 @@ function SelectionVis({ trajectories, extents, loadingCallback, style, globalUni
                     .attr("width", (d) => scaleX(d.end) - scaleX(d.begin))
                     .attr("height", 10)
                     .attr("fill", "none")
-                    .attr("stroke", "black");
-
-                let title = `${name} `;
-
-                for (const extent of extents) {
-                    title += `${extent.begin} - ${extent.end} `;
+                    .attr("stroke", "lightgray");
+                
+                let title = null;
+                
+                if (titleProp == null || titleProp == undefined) {
+                    title = `${name} `;
+                    for (const extent of extents) {
+                        title += `${extent.begin} - ${extent.end} `;
+                    }
+                } else {
+                    title = titleProp;
                 }
-
+                
                 svg.append('text')
                     .attr('x', width / 2)
                     .attr('y', margin.top)

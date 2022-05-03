@@ -17,6 +17,7 @@ export default function ScatterGrid({
                     <Button
                         sx={{ float: "right" }}
                         data-value={`${child.props.id}`}
+                        color="secondary"
                         onClick={(e) => {
                             deletePlot(e);
                         }}>

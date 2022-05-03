@@ -58,6 +58,7 @@ class VisArea extends React.Component {
 
     setExtentsUniqueStates = (extent) => {
         const modEx = [];
+        
         for(const ex of extent) {
             const ids = ex.states.map((state) => {
                 return {'id': state.id};
@@ -129,19 +130,12 @@ class VisArea extends React.Component {
 
     addSubsequenceScatterplot = (extent) => {
         const count = Object.keys(this.state.scatterplots).length;
-        let title = ""
-        let stateArray = [];
+        const stateArray = [];
         for (const xtent of extent) {                        
-            for(const s of xtent.states) {
-                title += `${s.id},`
-            }
-
             stateArray.push(...xtent.states);
         }
-
-        title += `${count}`;
+        const title = `subsc_${count}`;
         
-
         this.setState({scatterplots: {...this.state.scatterplots, [title]: {'states': stateArray}}});
     }
 
@@ -182,14 +176,15 @@ class VisArea extends React.Component {
         });
         
         const subSequenceCharts = this.state.subSequences.map((ss, idx) => {
-            return (<Box key={`ss_${idx}`} sx={{minHeight: '50px', border: 1}}>
-                        <Button onClick={() => {this.addSubsequenceScatterplot(ss)}}>Add scatter</Button>
+            return (<Box key={`ss_${idx}`} className="lightBorder" sx={{minHeight: '50px'}}>
+                        <Button color="secondary" onClick={() => {this.addSubsequenceScatterplot(ss)}}>Add scatter</Button>
                         <SelectionVis
                             style={{
                                 sx:{minHeight: '50px'}
                             }}
                             globalUniqueStates={this.props.globalUniqueStates}                            
                             trajectories={this.props.trajectories}
+                            titleProp={`ss_${idx}`}
                             extents={ss} />
                     </Box>);
         });
@@ -207,7 +202,9 @@ class VisArea extends React.Component {
                       <Accordion defaultExpanded={true} disableGutters={true}>
                           <AccordionSummary
                               expandIcon={<ExpandMoreIcon />}
-                          ><Typography variant="h6">Sequence View</Typography></AccordionSummary>
+                          ><Typography
+                            color="secondary"
+                            variant="h6">Sequence View</Typography></AccordionSummary>
                           <Divider/>
                           <AccordionDetails>
                               <TrajectoryChart
@@ -225,7 +222,9 @@ class VisArea extends React.Component {
                       <Accordion defaultExpanded={false} disableGutters={true}>
                           <AccordionSummary
                               expandIcon={<ExpandMoreIcon />}
-                          ><Typography variant="h6">Sub-sequence View</Typography></AccordionSummary>
+                          ><Typography
+                               color="secondary"
+                               variant="h6">Sub-sequence View</Typography></AccordionSummary>
                           <Divider/>
                           <AccordionDetails sx={{overflow: 'scroll'}}>
                               <Stack direction="column">
@@ -258,8 +257,10 @@ class VisArea extends React.Component {
                                   className="lightBorder"
                                   sx={{flexBasis: '50%', flexGrow: 0}}
                                   control={
-                                      <Box display="flex" justifyContent="center" gap={1}>
-                                          <Typography variant="h6">Scatterplot View</Typography>
+                                      <Box display="flex" justifyContent="center"gap={1}>
+                                          <Typography
+                                              color="secondary"
+                                              variant="h6">Scatterplot View</Typography>
                                           <ButtonWithOpenMenu buttonText={<AddCircleIcon/>} func={this.addScatterplot} data={Object.keys(this.props.trajectories)}/>
                                       </Box>}
                               deletePlot={this.deletePlot}>

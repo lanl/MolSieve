@@ -129,7 +129,14 @@ export default function Scatterplot({globalUniqueStates, loadingCallback, stateH
                       const state = globalUniqueStates.get(d.id);                    
                       const traj = trajectories[state.seenIn[0]];                                        
                       return traj.colors[traj.idToCluster[d.id]];
-                  });                    
+                  }).attr("display", function(_,i) {
+                      if(xAttributeList[i] === undefined || yAttributeList[i] === undefined) {
+                          return "none";
+                      } else {
+                          return "inline";
+                      }
+                  });
+                            
             
             if(setStateClicked) {
                 points.on("click", function(_,d) {                    
@@ -217,7 +224,6 @@ export default function Scatterplot({globalUniqueStates, loadingCallback, stateH
 
      useEffect(() => {
          if (ref !== undefined && ref.current !== undefined && trajectoryName !== undefined) {
-             const trajectories = {};
              apply_filters(trajectories, runs, globalUniqueStates, ref);
          }
 
