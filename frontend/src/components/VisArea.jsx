@@ -170,6 +170,7 @@ class VisArea extends React.Component {
                         runs={this.props.runs}
                         stateHovered={this.state.stateHovered}
                         properties={this.props.properties}
+                        setExtents={this.setExtentsUniqueStatesProp}
                         title={sc}
                         sequence={(sc_props.name !== undefined) ? this.props.trajectories[sc_props.name].simplifiedSequence.sequence : sc_props.states}
                    />);            

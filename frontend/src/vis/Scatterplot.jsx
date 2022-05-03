@@ -17,10 +17,14 @@ import Select from "@mui/material/Select";
 import FormHelperText from "@mui/material/FormHelperText";
 import Box from '@mui/material/Box';
 
+import useKeyUp from '../hooks/useKeyUp';
+import useKeyDown from '../hooks/useKeyDown';
+import {useExtents} from '../hooks/useExtents';
+
 const margin = { top: 20, bottom: 20, left: 40, right: 25 };
+let sBrush = null;
 
-export default function Scatterplot({globalUniqueStates, loadingCallback, stateHovered, id, runs, trajectoryName, setStateClicked, setStateHovered, title, sx, sequence, properties, trajectories }) {    
-
+export default function Scatterplot({globalUniqueStates, loadingCallback, stateHovered, id, runs, trajectoryName, setStateClicked, setStateHovered, title, sx, sequence, properties, trajectories, setExtents }) {  
     const {contextMenu, toggleMenu} = useContextMenu();
     const {width, height, divRef} = useResize();
        
@@ -29,6 +33,24 @@ export default function Scatterplot({globalUniqueStates, loadingCallback, stateH
     
     const [xAttributeList, setXAttributeList] = useState(null);
     const [yAttributeList, setYAttributeList] = useState(null);
+
+    const {setInternalExtents, completeSelection} = useExtents(setExtents);
+
+    const selectionBrush = () => {
+        if (sBrush != null) {            
+            if (!d3.selectAll('.brush').empty()) {
+                d3.selectAll('.brush').remove();
+            }
+            
+            d3.select(ref.current)
+                .append('g')
+                .attr('class', 'brush')
+                .call(sBrush);
+        }
+    }
+    
+    useKeyDown('f', selectionBrush);
+    useKeyUp('f', completeSelection);      
     
     const useAttributeList = (setAttributeList, attribute) => {    
         useEffect(() => {
@@ -159,10 +181,7 @@ export default function Scatterplot({globalUniqueStates, loadingCallback, stateH
                     setStateHovered(null);
                 });
             }
-        
-                             
-                             
-
+                                                                 
             /*if (path) {
                 var datum = [];
                 for (var i = 0; i < sequence.length; i++) {
@@ -201,6 +220,34 @@ export default function Scatterplot({globalUniqueStates, loadingCallback, stateH
                 .attr("text-anchor", "middle")
                 .style("font-size", "12px")
                 .text(title);
+
+            sBrush = d3
+                .brush()
+                .keyModifiers(false)
+                .on('start brush', function(e) {                    
+                    const [[x0, y0], [x1, y1]] = e.selection;                     
+                    d3.select(ref.current).selectAll('.highlightedState').classed("highlightedState", false);  
+                    d3.select(ref.current).selectAll('rect').filter(function(_,i) {
+                        const x = scale_x(xAttributeList[i]);
+                        const y = scale_y(yAttributeList[i]);
+                        
+                        return (x0 <= x && x < x1 &&
+                                y0 <= y && y < y1);          
+                    }).classed("highlightedState", true); 
+                }).on('end', function(e) {
+                    const [[x0, y0], [x1, y1]] = e.selection;
+                    const nodes = d3.select(ref.current).selectAll('rect').filter(function(_,i) {
+                        const x = scale_x(xAttributeList[i]);
+                        const y = scale_y(yAttributeList[i]);
+                        
+                        return (x0 <= x && x < x1 &&
+                                y0 <= y && y < y1);                    
+                    }).data();
+                    console.log(nodes);
+                    d3.select(ref.current).selectAll('.highlightedState').classed("highlightedState", false);
+
+                    setInternalExtents([{'states': nodes}]);
+                });                             
             
             if(loadingCallback !== undefined) {
                 loadingCallback();
