@@ -171,7 +171,7 @@ class App extends React.Component {
                             // could be an option
                             newTraj.chunkingThreshold = chunkingThreshold;
                             newTraj.simplifySet(chunkingThreshold);
-
+                            newTraj.calculateIDToTimestepMap();
                             const removed = newTraj.set_colors(this.state.colors);
                             const newTrajectories = {
                                 ...this.state.trajectories,
@@ -180,8 +180,9 @@ class App extends React.Component {
                             newTrajectories[run] = newTraj;
                             const newColors = [...this.state.colors];
                             newColors.splice(0, removed);
-
+                            
                             const newRuns = this.initFilters(run, newTraj);
+                            
                             this.setState({
                                 isLoading: false,
                                 runs: newRuns,

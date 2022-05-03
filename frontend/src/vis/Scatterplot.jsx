@@ -19,7 +19,7 @@ import Box from '@mui/material/Box';
 
 const margin = { top: 20, bottom: 20, left: 40, right: 25 };
 
-export default function Scatterplot({globalUniqueStates, loadingCallback, stateHovered, id, runs, trajectory, trajectoryName, setStateClicked, setStateHovered, title, sx, uniqueStates, properties, trajectories }) {    
+export default function Scatterplot({globalUniqueStates, loadingCallback, stateHovered, id, runs, trajectoryName, setStateClicked, setStateHovered, title, sx, sequence, properties, trajectories }) {    
 
     const {contextMenu, toggleMenu} = useContextMenu();
     const {width, height, divRef} = useResize();
@@ -29,18 +29,10 @@ export default function Scatterplot({globalUniqueStates, loadingCallback, stateH
     
     const [xAttributeList, setXAttributeList] = useState(null);
     const [yAttributeList, setYAttributeList] = useState(null);
-
-    const getSequence = () => {
-        if(uniqueStates) {
-            return uniqueStates;
-        } else {
-            return trajectory.simplifiedSequence.uniqueStates;
-        }
-    }
     
     const useAttributeList = (setAttributeList, attribute) => {    
         useEffect(() => {
-            const ids = getSequence().map((s) => {
+            const ids = sequence.map((s) => {
                 return s.id;
             });
 
@@ -52,7 +44,7 @@ export default function Scatterplot({globalUniqueStates, loadingCallback, stateH
                 return s[attribute];
             }));
 
-        }, [globalUniqueStates, attribute]);
+        }, [globalUniqueStates, attribute, sequence]);
     }
 
     useAttributeList(setXAttributeList, xAttribute);
@@ -83,11 +75,8 @@ export default function Scatterplot({globalUniqueStates, loadingCallback, stateH
 
             if (!svg.empty()) {
                 svg.selectAll("*").remove();
-            }
-            
-            
-            const sequence = getSequence();
-            
+            }            
+                       
             //let reverse = data.reverse;
             //let path = data.path;
             //let title = data.title;
@@ -136,19 +125,11 @@ export default function Scatterplot({globalUniqueStates, loadingCallback, stateH
                   })
                   .attr("width", 5)
                   .attr("height", 5)
-
-            if(trajectory) {
-                points.attr("fill", function (d) {
-                    return trajectory.colors[trajectory.idToCluster[d.id]];
-                });
-            } else {
-                points.attr("fill", function (d) {
-                    const state = globalUniqueStates.get(d.id);                    
-                    const traj = trajectories[state.seenIn[0]];                                        
-                    return traj.colors[traj.idToCluster[d.id]];
-                });
-            }
-            
+                  .attr("fill", function (d) {
+                      const state = globalUniqueStates.get(d.id);                    
+                      const traj = trajectories[state.seenIn[0]];                                        
+                      return traj.colors[traj.idToCluster[d.id]];
+                  });                    
             
             if(setStateClicked) {
                 points.on("click", function(_,d) {                    
@@ -156,26 +137,22 @@ export default function Scatterplot({globalUniqueStates, loadingCallback, stateH
                 });
             }
             
-            if(setStateHovered) {
-
-                if(trajectory && trajectoryName) {
-                    points.on("mouseover", function (_, d) {                    
-                        onStateMouseOver(this, globalUniqueStates.get(d.id), trajectory, trajectoryName);
-                        const timesteps = trajectory.simplifiedSequence.idToTimestep.get(d.id);
-                        if(timesteps.length === 1) {
-                            setStateHovered({'caller': this, 'stateID': d.id, 'name': trajectoryName, 'timestep': timesteps[0]});
-                        } else {
-                            setStateHovered({'caller': this, 'stateID': d.id, 'name': trajectoryName, 'timesteps': timesteps});
-                        }  
-                    }).on('mouseout', function() {
-                        setStateHovered(null);
-                    });
-                } else {
-                    points.on("mouseover", function (_, d) {                    
-                        onStateMouseOver(this, globalUniqueStates.get(d.id));
-                    });
-                }
+            if(setStateHovered) {                
+                points.on("mouseover", function (_, d) {                    
+                    onStateMouseOver(this, globalUniqueStates.get(d.id));
+                    const state = globalUniqueStates.get(d.id);                                            
+                    const traj = trajectories[state.seenIn[0]];      
+                    const timesteps = traj.simplifiedSequence.idToTimestep.get(d.id);
+                    if(timesteps.length === 1) {
+                        setStateHovered({'caller': this, 'stateID': d.id, 'name': trajectoryName, 'timestep': timesteps[0]});
+                    } else {
+                        setStateHovered({'caller': this, 'stateID': d.id, 'name': trajectoryName, 'timesteps': timesteps});
+                    }  
+                }).on('mouseout', function() {
+                    setStateHovered(null);
+                });
             }
+        
                              
                              
 
@@ -221,7 +198,7 @@ export default function Scatterplot({globalUniqueStates, loadingCallback, stateH
             if(loadingCallback !== undefined) {
                 loadingCallback();
             }
-        }, [width, height, xAttributeList, yAttributeList]);
+        }, [width, height, xAttributeList, yAttributeList, sequence]);
 
     useEffect(() => {                
         if(stateHovered !== undefined && stateHovered !== null) {
@@ -241,8 +218,6 @@ export default function Scatterplot({globalUniqueStates, loadingCallback, stateH
      useEffect(() => {
          if (ref !== undefined && ref.current !== undefined && trajectoryName !== undefined) {
              const trajectories = {};
-             trajectories[trajectoryName] = trajectory;
-             trajectory.name = trajectoryName;
              apply_filters(trajectories, runs, globalUniqueStates, ref);
          }
 

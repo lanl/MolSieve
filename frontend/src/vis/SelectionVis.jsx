@@ -13,7 +13,7 @@ const margin = {
     right: 25,
 };
 
-function SelectionVis({ trajectories, extents, loadingCallback, style }) {
+function SelectionVis({ trajectories, extents, loadingCallback, style, globalUniqueStates }) {
     const {width, height, divRef} = useResize();
     
     const ref = useTrajectoryChartRender(
@@ -26,7 +26,37 @@ function SelectionVis({ trajectories, extents, loadingCallback, style }) {
                 svg.selectAll("*").remove();
             }
 
-            const groupedExtents = d3.group(extents, (d) => d.name);
+            let safeExtents = [];            
+            const statesSeen = new Set();
+            for(let ex of extents) {
+                if(!ex.begin && !ex.end) {
+                    for(const e of ex.states) {
+                        statesSeen.add(e.id);
+                    }                                             
+                } else {
+                    safeExtents = [...safeExtents, ex];
+                }
+                
+            }            
+            
+            if(statesSeen.size > 0) {
+                for(const id of statesSeen) {
+                    const state = globalUniqueStates.get(id);
+                    for(const seen of state.seenIn) {
+                        const traj = trajectories[seen];
+                        console.log(traj);
+                        const timesteps = traj.idToTimestep.get(id);
+                        for(const t of timesteps) {
+                            const newEx = {'name': `${seen}`, 'begin': t, 'end': t};
+                            safeExtents = [...safeExtents, newEx];
+                        }
+                    }
+                }
+            }
+
+            
+            
+            const groupedExtents = d3.group(safeExtents, (d) => d.name);
             const maxLength = d3.max(
                 Object.values(trajectories),
                 (t) => t.sequence.length

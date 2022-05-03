@@ -62,12 +62,11 @@ class VisArea extends React.Component {
             const ids = ex.states.map((state) => {
                 return {'id': state.id};
             });
-
+            
             const newEx = {...ex, states: ids};
             modEx.push(newEx);
-        }
-        console.log(extent);
-        this.addSubsequenceScatterplot(modEx);                
+        }        
+        this.setState({subSequences: [...this.state.subSequences, modEx]});          
     }
     
     toggleModal = (key) => {
@@ -124,24 +123,26 @@ class VisArea extends React.Component {
         const count = Object.keys(this.state.scatterplots).length;
         const id = `${name}_sc_${count}`;
         const sc = {'name' : name};
+
         this.setState({scatterplots: { ...this.state.scatterplots, [id]: sc}});        
     }
 
     addSubsequenceScatterplot = (extent) => {
-        let newPlots = {...this.state.scatterplots};
-        for (const xtent of extent) {
-            let title = ""
-            if(xtent.begin && xtent.end) {
-                title = `${xtent.name}_${xtent.begin}_${xtent.end}`;
-            } else {
-                for(const s of xtent.states) {
-                    title += `${s.id},`
-                }
+        const count = Object.keys(this.state.scatterplots).length;
+        let title = ""
+        let stateArray = [];
+        for (const xtent of extent) {                        
+            for(const s of xtent.states) {
+                title += `${s.id},`
             }
-            newPlots = {...newPlots, [title]: {...xtent}};
-        }     
+
+            stateArray.push(...xtent.states);
+        }
+
+        title += `${count}`;
         
-        this.setState({scatterplots: newPlots});
+
+        this.setState({scatterplots: {...this.state.scatterplots, [title]: {'states': stateArray}}});
     }
 
     deletePlot = (e) => {
@@ -166,7 +167,6 @@ class VisArea extends React.Component {
             const sc_props = this.state.scatterplots[sc];            
             return (<Scatterplot
                         key={sc}
-                        trajectory={this.props.trajectories[sc_props.name]}
                         trajectories={this.props.trajectories}
                         globalUniqueStates={this.props.globalUniqueStates}       
                         trajectoryName={sc_props.name}
@@ -177,7 +177,7 @@ class VisArea extends React.Component {
                         stateHovered={this.state.stateHovered}
                         properties={this.props.properties}
                         title={sc}
-                        uniqueStates={sc_props.states}
+                        sequence={(sc_props.name !== undefined) ? this.props.trajectories[sc_props.name].simplifiedSequence.sequence : sc_props.states}
                    />);            
         });
         
@@ -188,6 +188,7 @@ class VisArea extends React.Component {
                             style={{
                                 sx:{minHeight: '50px'}
                             }}
+                            globalUniqueStates={this.props.globalUniqueStates}                            
                             trajectories={this.props.trajectories}
                             extents={ss} />
                     </Box>);

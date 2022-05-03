@@ -303,7 +303,8 @@ export function apply_filters(trajectories, runs, globalUniqueStates, ref) {
     for (const [name, trajectory] of Object.entries(trajectories)) {             
         if (Object.keys(runs[name].filters).length > 0) {
             for (const k of Object.keys(runs[name].filters)) {
-                const filter = runs[name].filters[k];                
+                const filter = runs[name].filters[k];
+                trajectory.name = name;
                 undoFilter(trajectory, d3.select(ref.current), filter);
             }
         }
@@ -315,6 +316,7 @@ export function apply_filters(trajectories, runs, globalUniqueStates, ref) {
                 const filter = runs[name].filters[k];                
                 if (filter.enabled) {
                     if(filter.enabledFor.includes(ref.current.getAttribute('id'))) {
+                        trajectory.name = name;
                         filter.func(trajectory, d3.select(ref.current), globalUniqueStates)
                     }
                 }

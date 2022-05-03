@@ -3,6 +3,7 @@ class Trajectory {
     sequence;
     // dict of id to cluster id
     idToCluster = {};
+    idToTimestep = new Map();
     optimal_cluster_value;
     feasible_clusters;
     clusterings = {};
@@ -57,6 +58,17 @@ class Trajectory {
             for (let i = 0; i < howMany; i++) {
                 this.colors.push(colorArray[i]);
             }
+        }
+    }
+
+    calculateIDToTimestepMap() {                                                 
+        for(const s of this.sequence) {
+            if(this.idToTimestep.has(s)) {
+                const timestepList = this.idToTimestep.get(s);
+                this.idToTimestep.set(s, [...timestepList, this.sequence.indexOf(s, timestepList.at(-1) +1)]);
+            } else {
+                this.idToTimestep.set(s, [this.sequence.indexOf(s)]);
+            }            
         }
     }
     
