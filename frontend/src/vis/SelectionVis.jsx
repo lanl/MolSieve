@@ -82,7 +82,6 @@ function SelectionVis({ trajectories, extents, loadingCallback, style, globalUni
                     return d3.ascending(a.begin, b.begin);
                 });
 
-
                 const ignored = [];
                 
                 for(const [idx, extent] of extentArray.entries()) {

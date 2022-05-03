@@ -18,7 +18,6 @@ import {DataGrid} from '@mui/x-data-grid';
 import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 
-
 const OVITO = 'ovito_modifier';
 const PYTHON = 'python_script';
 const CYPHER_QUERY = 'cypher_query';
@@ -27,25 +26,11 @@ class AnalysisTab extends React.Component {
     constructor(props) {
         super(props);
 
-        let pathStart = null;
-        let pathEnd = null;
-
-        if(this.props.pathStart !== undefined) {
-            pathStart = this.props.pathStart;
-        }
-
-        if(this.props.pathEnd !== undefined) {
-            pathEnd = this.props.pathEnd;
-        }
-        
         this.state = {
-            run: this.props.run,
             steps: [],
             newStep: OVITO,
             isLoading: false,
             response: null,
-            pathStart: pathStart,
-            pathEnd: pathEnd,
             displayResults: true,
             saveResults: true
         }
@@ -58,12 +43,14 @@ class AnalysisTab extends React.Component {
             let steps = this.state.steps.map(step => {
                 return {'analysisType': step['type'], 'value': step['value']};
             });
-                        
-            axios.post('/run_analysis', steps, {params: {
-                run: this.state.run, pathStart: this.state.pathStart,
-                pathEnd: this.state.pathEnd, displayResults: this.state.displayResults,
-                saveResults: this.state.saveResults
-            }}).then((response) => {
+            
+            axios.post('/run_analysis', {
+                steps: steps,
+                run: this.props.run,
+                displayResults: this.state.displayResults,
+                saveResults: this.state.saveResults,
+                states: this.props.states.map((state) => { return state.id })
+            }).then((response) => {
                 this.setState({isLoading: false, response: response.data});
             }).catch((e) => {
                 alert(e);
@@ -117,11 +104,13 @@ class AnalysisTab extends React.Component {
     }
 
     render() {
-        var steps = (this.state.steps.length > 0) ? this.state.steps.map((step, idx) => {
+        console.log(this.props);
+        
+        const steps = (this.state.steps.length > 0) ? this.state.steps.map((step, idx) => {
             return (<ListItem key={idx}><h2>{`${idx + 1}. `}</h2>{step.render}</ListItem>);
         }): null;        
         
-        var dataGrids = (this.state.response !== null ? Object.keys(this.state.response).map((response, idx) => {
+        const dataGrids = (this.state.response !== null ? Object.keys(this.state.response).map((response, idx) => {
             
             const data = Object.values(this.state.response[response]);
                        
@@ -143,6 +132,7 @@ class AnalysisTab extends React.Component {
             if(response === 'info') {
                 return null;
             }
+            
             return (<Stack key={idx} sx={{'height': 350}}><h1>Step {idx + 1}</h1><DataGrid rows={rows} columns={columns}/></Stack>)
         }) : null);        
         
@@ -186,5 +176,10 @@ class AnalysisTab extends React.Component {
     }
     
 }
+
+AnalysisTab.defaultProps = {
+    states: [],
+    run: null
+};
 
 export default AnalysisTab;

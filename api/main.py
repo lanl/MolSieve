@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Body
 from pydantic import BaseModel
 from typing import Optional, List
 
@@ -183,43 +183,33 @@ async def generate_ovito_animation(run: str, start: int, end: int):
 
 @app.post('/run_analysis')
 async def run_analysis(steps: List[AnalysisStep],
-                       run: str,
-                       pathStart: int = None,
-                       pathEnd: int = None,
-                       displayResults: bool = True,
-                       saveResults: bool = True):
+                       run: Optional[str] = Body(None),
+                       states: Optional[List[int]] = Body([]),
+                       displayResults: bool = Body(True),
+                       saveResults: bool = Body(True)):
     driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687",
                                         auth=("neo4j", "secret"))
 
-    qb = querybuilder.Neo4jQueryBuilder([('State', run, 'State', 'ONE-TO-ONE'),
-                                         ('Atom', 'PART_OF', 'State',
-                                          'MANY-TO-ONE')])
 
     state_atom_dict = None
-
     start = timer()
 
-    if pathStart is None or pathEnd is None:
-#        if config.IMPATIENT:
- #           state_atom_dict = loadTestPickle(run, 'state_atom_dict')
- #       else:
+    if run is not None and len(states) == 0:
+        qb = querybuilder.Neo4jQueryBuilder([('State', run, 'State', 'ONE-TO-ONE'),
+                                             ('Atom', 'PART_OF', 'State', 'MANY-TO-ONE')])
         q = qb.generate_trajectory(run,
                                    "ASC", ('relation', 'timestep'),
                                    include_atoms=True)
-                                
+        
         state_atom_dict = converter.query_to_ASE(
             driver, qb, q, get_atom_type(getMetadata(run)['parameters']))
-   #     saveTestPickle(run, 'state_atom_dict', state_atom_dict)
     else:
-        if pathStart == pathEnd:
-            q = qb.generate_get_node('State', ('timestep', pathStart),
-                                     'PART_OF')
-            state_atom_dict = converter.query_to_ASE(
-                driver, qb, q, get_atom_type(getMetadata(run)['parameters']))
-        else:
-            q = qb.generate_get_path(pathStart, pathEnd, run, 'timestep')
-            state_atom_dict = converter.query_to_ASE(
-                driver, qb, q, get_atom_type(getMetadata(run)['parameters']))
+        qb = querybuilder.Neo4jQueryBuilder([('Atom', 'PART_OF', 'State', 'MANY-TO-ONE')])
+        q = qb.generate_get_node_list('State', states, "PART_OF")
+        print(q.text)
+        # what if atom types are mixed?
+        state_atom_dict = converter.query_to_ASE(
+            driver, qb, q, 'Pt')
 
     # TODO: Server-sent event to notify atoms have been converted
     results = {}

@@ -165,6 +165,15 @@ export function getMinProperty(property, sequence) {
     return min;
 }
 
+/** Quick utility function to check if an extent is a path or only a group of states. */
+export function isPath(extent) {
+    if(extent.begin && extent.end) {
+        return true;
+    }
+    
+    return false;
+}
+
 /** Gets the maximum value of the given property within the sequence.
  * @param {string} property - the property you're interested in
  * @param {Array<Object>} sequence - the array of states to search through

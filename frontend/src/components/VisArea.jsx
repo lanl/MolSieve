@@ -1,18 +1,4 @@
 import React from "react";
-
-import GraphVis from "../vis/GraphVis";
-import Scatterplot from "../vis/Scatterplot";
-import SelectionVis from '../vis/SelectionVis';
-import TrajectoryChart from "../vis/TrajectoryChart";
-
-import SingleStateModal from "../modals/SingleStateModal";
-import LoadingModal from "../modals/LoadingModal";
-
-import ButtonWithOpenMenu from "../components/ButtonWithOpenMenu";
-import ScatterGrid from "./ScatterGrid";
-
-import '../css/App.css';
-
 import Box from "@mui/material/Box";
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
@@ -24,7 +10,22 @@ import Accordion from '@mui/material/Accordion';
 import AccordionSummary from '@mui/material/AccordionSummary';
 import AccordionDetails from '@mui/material/AccordionDetails';
 
+import GraphVis from "../vis/GraphVis";
+import Scatterplot from "../vis/Scatterplot";
+import SelectionVis from '../vis/SelectionVis';
+import TrajectoryChart from "../vis/TrajectoryChart";
+
+import SingleStateModal from "../modals/SingleStateModal";
+import LoadingModal from "../modals/LoadingModal";
+import MultiplePathSelectionModal from '../modals/MultiplePathSelectionModal';
+
+import ButtonWithOpenMenu from "../components/ButtonWithOpenMenu";
+import ScatterGrid from "./ScatterGrid";
+
+import '../css/App.css';
+
 const SINGLE_STATE_MODAL = 'single_state';
+const MULTIPLE_PATH_SELECTION = 'multiple_selection';
 
 class VisArea extends React.Component {
     constructor(props) {
@@ -38,19 +39,21 @@ class VisArea extends React.Component {
             stateHovered: null,
             stateClicked: null,
             scatterplots: {},
-            subSequences: []
+            subSequences: [],
+            selectedExtents: null
         };
-    }
+    }    
     
     setExtents = (extent) => {
         const modEx = [];
+        const count = this.state.subSequences.length;
         for(const ex of extent) {
             const ids = this.props.trajectories[ex.name].sequence.slice(ex.begin, ex.end + 1);
             const uniqueStates = [...new Set(ids)].map((state) => {
                 return {'id': state};
             });
             
-            const newEx = {...ex, states: uniqueStates};
+            const newEx = {...ex, states: uniqueStates, id: `ss_${count}`};
             modEx.push(newEx);
         }
         this.setState({subSequences: [...this.state.subSequences, modEx]});
@@ -58,13 +61,13 @@ class VisArea extends React.Component {
 
     setExtentsUniqueStates = (extent) => {
         const modEx = [];
-        
+        const count = this.state.subSequences.length;
         for(const ex of extent) {
             const ids = ex.states.map((state) => {
                 return {'id': state.id};
             });
             
-            const newEx = {...ex, states: ids};
+            const newEx = {...ex, states: ids, id: `ss_${count}`};
             modEx.push(newEx);
         }        
         this.setState({subSequences: [...this.state.subSequences, modEx]});          
@@ -177,15 +180,19 @@ class VisArea extends React.Component {
         });
         
         const subSequenceCharts = this.state.subSequences.map((ss, idx) => {
-            return (<Box key={`ss_${idx}`} className="lightBorder" sx={{minHeight: '50px'}}>
-                        <Button color="secondary" onClick={() => {this.addSubsequenceScatterplot(ss)}}>Add scatter</Button>
+            return (<Box key={`${ss.id}_${idx}`} className="lightBorder" sx={{minHeight: '50px'}}>
+                        <Stack direction="row" justifyContent="center">
+                            <Button color="secondary" onClick={() => {this.addSubsequenceScatterplot(ss)}}>Add scatterplot</Button>
+                            <Button color="secondary" onClick={() => {this.setState({selectedExtents: ss}, () => {this.toggleModal(MULTIPLE_PATH_SELECTION);})}}>Analysis</Button>
+                            <Button color="secondary" onClick={() => {}}>NEB</Button>
+                        </Stack>
                         <SelectionVis
                             style={{
                                 sx:{minHeight: '50px'}
                             }}
                             globalUniqueStates={this.props.globalUniqueStates}                            
                             trajectories={this.props.trajectories}
-                            titleProp={`ss_${idx}`}
+                            titleProp={`${ss.id}`}
                             extents={ss} />
                     </Box>);
         });
@@ -198,61 +205,60 @@ class VisArea extends React.Component {
                                                  open={this.state.isLoading}
                                                  title="Rendering..."/> }
 
-  {safe &&
-                 (<Box sx={{position:'absolute', zIndex: 1299, maxWidth: '25%'}}>
-                      <Accordion defaultExpanded={true} disableGutters={true}>
-                          <AccordionSummary
-                              expandIcon={<ExpandMoreIcon />}
-                          ><Typography
-                            color="secondary"
-                            variant="h6">Sequence View</Typography></AccordionSummary>
-                          <Divider/>
-                          <AccordionDetails>
-                              <TrajectoryChart
-                                  trajectories={this.props.trajectories}
-                                  globalUniqueStates={this.props.globalUniqueStates}
-                                  runs={this.props.runs}
-                                  loadingCallback={this.chartFinishedLoading}
-                                  setStateHovered={this.setStateHoveredProp}
-                                  setStateClicked={this.setStateClickedProp}
-                                  stateHovered={this.state.stateHovered}
-                                  setExtents={this.setExtentsProp}                              
-                              />
-                          </AccordionDetails>
-                      </Accordion>
-                      <Accordion defaultExpanded={false} disableGutters={true}>
-                          <AccordionSummary
-                              expandIcon={<ExpandMoreIcon />}
-                          ><Typography
-                               color="secondary"
-                               variant="h6">Sub-sequence View</Typography></AccordionSummary>
-                          <Divider/>
-                          <AccordionDetails sx={{overflow: 'scroll'}}>
-                              <Stack direction="column">
-                                  {subSequenceCharts}
-                              </Stack>
-                          </AccordionDetails>
-                      </Accordion>     
-                      
-                  </Box>)
-                }        
+                    {safe &&
+                     (<Box sx={{position:'absolute', zIndex: 1299, maxWidth: '25%'}}>
+                          <Accordion defaultExpanded={true} disableGutters={true}>
+                              <AccordionSummary
+                                  expandIcon={<ExpandMoreIcon />}
+                              ><Typography
+                                   color="secondary"
+                                   variant="h6">Sequence View</Typography></AccordionSummary>
+                              <Divider/>
+                              <AccordionDetails>
+                                  <TrajectoryChart
+                                      trajectories={this.props.trajectories}
+                                      globalUniqueStates={this.props.globalUniqueStates}
+                                      runs={this.props.runs}
+                                      loadingCallback={this.chartFinishedLoading}
+                                      setStateHovered={this.setStateHoveredProp}
+                                      setStateClicked={this.setStateClickedProp}
+                                      stateHovered={this.state.stateHovered}
+                                      setExtents={this.setExtentsProp}                              
+                                  />
+                              </AccordionDetails>
+                          </Accordion>
+                          <Accordion defaultExpanded={false} disableGutters={true}>
+                              <AccordionSummary
+                                  expandIcon={<ExpandMoreIcon />}
+                              ><Typography
+                                   color="secondary"
+                                   variant="h6">Sub-sequence View</Typography></AccordionSummary>
+                              <Divider/>
+                              <AccordionDetails sx={{overflow: 'scroll'}}>
+                                  <Stack direction="column">
+                                      {subSequenceCharts}
+                                  </Stack>
+                              </AccordionDetails>
+                          </Accordion>                               
+                      </Box>)
+                    }        
                                    
-                {safe &&                 
-                 <GraphVis
-                     style={{
-                         sx:{flexBasis: '50%'},
-                         className:"lightBorder"
-                     }}
-                     trajectories={this.props.trajectories}
-                     runs={this.props.runs}
-                     globalUniqueStates={this.props.globalUniqueStates}
-                     setStateHovered={this.setStateHoveredProp}
-                     setStateClicked={this.setStateClickedProp}
-                     loadingCallback={this.chartFinishedLoading}
-                     stateHovered={this.state.stateHovered}
-                     setExtents={this.setExtentsUniqueStatesProp}
-                 />
-                }
+                    {safe &&                 
+                     <GraphVis
+                         style={{
+                             sx:{flexBasis: '50%'},
+                             className:"lightBorder"
+                         }}
+                         trajectories={this.props.trajectories}
+                         runs={this.props.runs}
+                         globalUniqueStates={this.props.globalUniqueStates}
+                         setStateHovered={this.setStateHoveredProp}
+                         setStateClicked={this.setStateClickedProp}
+                         loadingCallback={this.chartFinishedLoading}
+                         stateHovered={this.state.stateHovered}
+                         setExtents={this.setExtentsUniqueStatesProp}
+                     />
+                    }
 
                     {safe && (<ScatterGrid
                                   className="lightBorder"
@@ -268,15 +274,26 @@ class VisArea extends React.Component {
                               {scatterplots}
                           </ScatterGrid>)}
                                          
-            {this.state.currentModal === SINGLE_STATE_MODAL && (
-                <SingleStateModal
-                    open={this.state.currentModal === SINGLE_STATE_MODAL}
-                    state={this.props.globalUniqueStates.get(this.state.stateClicked.id)}
-                    closeFunc={() => {
-                        this.toggleModal(SINGLE_STATE_MODAL);                                                        
-                    }}
-                />
-            )}
+                    {this.state.currentModal === SINGLE_STATE_MODAL && (
+                        <SingleStateModal
+                            open={this.state.currentModal === SINGLE_STATE_MODAL}
+                            state={this.props.globalUniqueStates.get(this.state.stateClicked.id)}
+                            closeFunc={() => {
+                                this.toggleModal(SINGLE_STATE_MODAL);                                                        
+                            }}
+                        />
+                    )}
+                    {this.state.currentModal === MULTIPLE_PATH_SELECTION && (
+                        <MultiplePathSelectionModal                            
+                            open={this.state.currentModal === MULTIPLE_PATH_SELECTION}
+                            trajectories={this.props.trajectories}
+                            extents={this.state.selectedExtents}
+                            properties={this.props.properties}
+                            close={() => {
+                                this.toggleModal(SINGLE_STATE_MODAL);                                                        
+                            }}
+                        />
+                    )}
             </Box>
             </>
         );

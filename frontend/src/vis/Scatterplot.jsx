@@ -243,9 +243,7 @@ export default function Scatterplot({globalUniqueStates, loadingCallback, stateH
                         return (x0 <= x && x < x1 &&
                                 y0 <= y && y < y1);                    
                     }).data();
-                    console.log(nodes);
                     d3.select(ref.current).selectAll('.highlightedState').classed("highlightedState", false);
-
                     setInternalExtents([{'states': nodes}]);
                 });                             
             

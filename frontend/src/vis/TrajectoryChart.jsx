@@ -312,33 +312,7 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
         </>);
 }
 
-/*             {currentModal === PATH_SELECTION && (
-                <SelectionModal
-                    title={modalTitle}
-                    open={currentModal === PATH_SELECTION}
-                    trajectories={trajectories}
-                    globalUniqueStates={globalUniqueStates}
-                    extents={extents}
-                    closeFunc={() => {
-                        setExtents([]);
-                        setActionCompleted('');
-                        toggleModal(PATH_SELECTION);
-                    }}
-                />
-            )}
-            {currentModal === MULTIPLE_PATH_SELECTION && (
-                <MultiplePathSelectionModal
-                    title={modalTitle}
-                    open={currentModal === MULTIPLE_PATH_SELECTION}
-                    trajectories={trajectories}
-                    extents={extents}
-                    closeFunc={() => {
-                        setExtents([]);
-                        setActionCompleted('');
-                        toggleModal(MULTIPLE_PATH_SELECTION);
-                    }}
-                />
-                )}
+/*
 
                     const [modalTitle, setModalTitle] = useState('');    
     const [currentModal, setCurrentModal] = useState();
