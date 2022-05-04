@@ -104,7 +104,6 @@ class AnalysisTab extends React.Component {
     }
 
     render() {
-        console.log(this.props);
         
         const steps = (this.state.steps.length > 0) ? this.state.steps.map((step, idx) => {
             return (<ListItem key={idx}><h2>{`${idx + 1}. `}</h2>{step.render}</ListItem>);
@@ -136,7 +135,7 @@ class AnalysisTab extends React.Component {
             return (<Stack key={idx} sx={{'height': 350}}><h1>Step {idx + 1}</h1><DataGrid rows={rows} columns={columns}/></Stack>)
         }) : null);        
         
-        return (<Box>
+        return (<>
                     <DialogContent>
                         <List>
                             <ListItem key={-1}>
@@ -172,7 +171,7 @@ class AnalysisTab extends React.Component {
                         <Button size="small" disabled={this.state.isLoading} variant="contained" onClick={() => {this.runSteps()}} color="secondary">Run analysis steps</Button>
                         <Button size="small" disabled={this.state.isLoading} variant="contained" onClick={() => {this.props.closeFunc()}}>Cancel</Button>
                     </DialogActions>
-                </Box>);
+                </>);
     }
     
 }

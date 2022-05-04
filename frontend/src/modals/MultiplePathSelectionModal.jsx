@@ -6,7 +6,7 @@ import Dialog from '@mui/material/Dialog';
 //import DialogContent from '@mui/material/DialogContent';
 //import Stack from '@mui/material/Stack';
 //import Select from '@mui/material/Select';
-//import MenuItem from '@mui/material/MenuItem';
+import MenuItem from '@mui/material/MenuItem';
 //import Button from '@mui/material/Button';
 //import FormHelperText from '@mui/material/FormHelperText';
 //import FormControl from '@mui/material/FormControl';
@@ -23,9 +23,9 @@ import {
 //import CheckboxTable from '../components/CheckboxTable';
 
 import AnalysisTab from './AnalysisTab';
-//import KSTestTab from './KSTestTab';
+import KSTestTab from './KSTestTab';
 
-export default function MultiplePathSelectionModal({close, extents}) {
+export default function MultiplePathSelectionModal({properties, close, extents}) {
 
     const [tabIdx, setTabIdx] = useState(0);
     
@@ -85,11 +85,11 @@ export default function MultiplePathSelectionModal({close, extents}) {
     };*/
 
     if (open && extents) {            
-        /*const extent_options = extents.map((extent, i) => (
-            <MenuItem key={i} value={JSON.stringify(extent)}>
-                {`${extent.name} ${extent.begin} - ${extent.end}`}
+        const extent_options = extents.map((extent, i) => (
+            <MenuItem key={i} value={JSON.stringify(extent.states.map((state) => state.id))}>
+                {`${extent.id}`}
             </MenuItem>
-        ));*/
+        ));
 
         /*
         //const extentGroups = d3.group(this.props.extents, (d) => d.name);
@@ -142,10 +142,13 @@ export default function MultiplePathSelectionModal({close, extents}) {
                 <DialogTitle sx={{height: 150}}>
                   Path Selection
                   <Tabs value={tabIdx} onChange={(_, v) => { setTabIdx(v); }}>                    
-                      <Tab label="Kolmogorov-Smirnov Test"/>
+                      <Tab label="Kolmogorov-Smirnov Test"/>                      
                     {analysisTabs}
                   </Tabs>                    
                 </DialogTitle>
+                <TabPanel value={tabIdx} index={0}>
+                    <KSTestTab closeFunc={close} cdf={extent_options} rvs={extent_options} rvsDefault={JSON.stringify(extents[0].states.map((state)=>state.id))} stateProperties={properties} />
+                </TabPanel>
                 {analysisTabsContent}
             </Dialog>
         );
@@ -153,10 +156,6 @@ export default function MultiplePathSelectionModal({close, extents}) {
         return null;
     }
 }
-/*                 <TabPanel value={this.state.tabIdx} index={3}>
-                   <KSTestTab closeFunc={close} cdf={extent_options} rvs={extent_options} rvsDefault={JSON.stringify(this.props.extents[0])} stateProperties={properties} />
-                   </TabPanel>
-*/
 
 //<Tab label="Path Similarity" disabled={this.state.isLoading} />
 /*

@@ -247,7 +247,7 @@ async def run_analysis(steps: List[AnalysisStep],
 
 @app.post('/perform_KS_Test')
 def perform_KSTest(data: dict):
-
+    
     cdf = data['cdf']
     rvs = data['rvs']
     prop = data['property']
@@ -255,40 +255,19 @@ def perform_KSTest(data: dict):
     driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687",
                                         auth=("neo4j", "secret"))
 
-    rvs_run = rvs['name']
-    rvs_start = rvs['begin']['timestep']
-    rvs_end = rvs['end']['timestep']
-
-    rvs_qb = querybuilder.Neo4jQueryBuilder([
-        ('State', rvs_run, 'State', 'ONE-TO-ONE'),
-        ('Atom', 'PART_OF', 'State', 'MANY-TO-ONE')
-    ])
-
-    q = rvs_qb.generate_get_path(rvs_start,
-                                 rvs_end,
-                                 rvs_run,
-                                 'timestep',
-                                 include_atoms=False)
+    qb = querybuilder.Neo4jQueryBuilder()
+    
+    q = qb.generate_get_node_list('State', rvs, attributeList=[prop])
+    print(q.text)
     rvs_df = neomd.converter.query_to_df(driver, q)
+    print(rvs_df)
     rvs_final = rvs_df[prop].to_numpy()
 
+    
     cdf_final = None
 
     if (type(data['cdf']) is dict):
-        cdf_run = cdf['name']
-        cdf_start = cdf['begin']['timestep']
-        cdf_end = cdf['end']['timestep']
-
-        cdf_qb = querybuilder.Neo4jQueryBuilder([
-            ('State', cdf_run, 'State', 'ONE-TO-ONE'),
-            ('Atom', 'PART_OF', 'State', 'MANY-TO-ONE')
-        ])
-
-        q = cdf_qb.generate_get_path(cdf_start,
-                                     cdf_end,
-                                     cdf_run,
-                                     'timestep',
-                                     include_atoms=False)
+        q = qb.generate_get_node_list('State', cdf)
         cdf_df = neomd.converter.query_to_df(driver, q)
         cdf_final = cdf_df[prop].to_numpy()
     else:

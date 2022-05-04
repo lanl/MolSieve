@@ -8,9 +8,10 @@ import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
 import CircularProgress from "@mui/material/CircularProgress";
 import Box from "@mui/material/Box";
+import Checkbox from '@mui/material/Checkbox';
 import axios from "axios";
 
-export default function CheckboxTable ({click, api_call, itemProps, clickedProps, header}) {
+export default function CheckboxTable({click, api_call, itemProps, clickedProps = [], header}) {
 
     const [items, setItems] = useState([]);
     const [isLoaded, setIsLoaded] = useState(false);
@@ -18,13 +19,11 @@ export default function CheckboxTable ({click, api_call, itemProps, clickedProps
     const clickFunc = (e) => {
         // build list of clicked checkboxes
         if (e.target.checked) {
-            console.log([...clickedProps, e.target.value]);
             click([...clickedProps, e.target.value]);
         } else {
             const idx = clickedProps.indexOf(e.target.value);
             const propsCopy = [...clickedProps];
             propsCopy.splice(idx,1);
-            console.log(propsCopy);
             click(propsCopy);
         }        
     };
@@ -72,11 +71,12 @@ export default function CheckboxTable ({click, api_call, itemProps, clickedProps
                                 <TableRow key={i}>
                                     <TableCell>{i}</TableCell>
                                     <TableCell>
-                                        <input
+                                        <Checkbox
                                             onClick={clickFunc}
-                                            type="checkbox"
+                                            color="secondary"
+                                            size="small"
                                             value={i}
-                                            defaultChecked={clickedProps.includes(i)}></input>
+                                            defaultChecked={clickedProps.includes(i)}/>
                                     </TableCell>
                                 </TableRow>
                             ))}

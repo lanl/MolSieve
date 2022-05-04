@@ -24,8 +24,8 @@ class KSTestTab extends React.Component {
         }
     }
 
-    setKSProperty = (_, clicked) => {        
-        this.setState({ksProperty: clicked});
+    setKSProperty = (clicked) => {
+        this.setState({ksProperty: clicked[0]});
     }
 
     setCDF = (v) => {
@@ -40,7 +40,6 @@ class KSTestTab extends React.Component {
 
     performKSTest = () => {        
         this.setState({ isLoading: true });
-
         if(this.state.ksProperty !== "") {            
             api_performKSTest(this.state.rvs, this.state.cdf, this.state.ksProperty).then((data) => {
                 this.setState({ isLoading: false, ksTest: data});
@@ -82,8 +81,7 @@ class KSTestTab extends React.Component {
                                             rvs: e.target.value,
                                         });
                                     }}>
-                                    {this.props.rvs !== undefined && this.props.rvs}
-                                    
+                                    {this.props.rvs !== undefined && this.props.rvs}                                   
                                 </Select>
                                 <FormHelperText>rvs</FormHelperText>
                             </FormControl>
@@ -96,13 +94,13 @@ class KSTestTab extends React.Component {
                                 <FormHelperText>cdf</FormHelperText>                                    
                             </FormControl>
                         </Stack>
-
+                        
                         {this.props.stateProperties !== undefined &&
-                         <CheckboxTable header="State properties" items={this.props.stateProperties} allowOnlyOneSelected click={this.setKSProperty} /> }
+                         <CheckboxTable header="State properties" itemProps={this.props.stateProperties} allowOnlyOneSelected click={this.setKSProperty} /> }
 
                         {this.props.stateProperties === undefined &&
                          <CheckboxTable header="State properties" api_call={`/get_property_list?run=${this.props.currentRun}`} allowOnlyOneSelected click={this.setKSProperty} /> }
-                        
+                  
                         {ksTestText}
                         </DialogContent>
                         <DialogActions>
