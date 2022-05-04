@@ -167,10 +167,10 @@ export function getMinProperty(property, sequence) {
 
 /** Quick utility function to check if an extent is a path or only a group of states. */
 export function isPath(extent) {
-    if(extent.begin && extent.end) {
+    if(extent.begin !== undefined && extent.end !== undefined) {
+
         return true;
-    }
-    
+    } 
     return false;
 }
 

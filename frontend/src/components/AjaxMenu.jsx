@@ -67,11 +67,12 @@ export default function AjaxMenu(props) {
                  items.map((item, idx) => {
                     return (<MenuItem key={idx}>
                         <ListItemIcon>
-                          <Checkbox
-                            checked={clicked.includes(item)}
-                            onChange={(e) => {handleChange(e);}}
-                            value={item}
-                          />
+                            <Checkbox
+                                size="small"
+                                checked={clicked.includes(item)}
+                                onChange={(e) => {handleChange(e);}}
+                                value={item}
+                            />
                         </ListItemIcon>
                         <ListItemText>
                          {item}

@@ -67,7 +67,7 @@ class KSTestTab extends React.Component {
                           P-value: {`${this.state.ksTest['pvalue']}`}</p>);
         }
         
-        return (<Box>
+        return (<>
                     <DialogContent>
                         <p>Please choose how the test should be performed.</p>
                         <Stack
@@ -105,15 +105,15 @@ class KSTestTab extends React.Component {
                         </DialogContent>
                         <DialogActions>
                             <Button
-                                variant="contained"
+                                size="small"
                                 onClick={this.performKSTest}
-                                disabled={this.state.isLoading}
+
                             >
                                 Perform KS Test
                             </Button>
-                            <Button onClick={this.closeFunc} disabled={this.state.isLoading}>Close</Button>
+                            <Button onClick={this.closeFunc} size="small" color="secondary">Close</Button>
                         </DialogActions>
-                    </Box>
+                    </>
                );
     }
 }

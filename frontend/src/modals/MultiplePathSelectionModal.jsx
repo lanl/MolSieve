@@ -87,7 +87,7 @@ export default function MultiplePathSelectionModal({properties, close, extents})
     if (open && extents) {            
         const extent_options = extents.map((extent, i) => (
             <MenuItem key={i} value={JSON.stringify(extent.states.map((state) => state.id))}>
-                {`${extent.id}`}
+                {`extent ${i+1}`}
             </MenuItem>
         ));
 
@@ -121,7 +121,7 @@ export default function MultiplePathSelectionModal({properties, close, extents})
                 );
             });*/
 
-        const analysisTabs = extents.map((extent, idx) => <Tab key={idx + 1} label={`Analysis for ${extent.id}_${idx}`} />);
+        const analysisTabs = extents.map((_, idx) => <Tab key={idx + 1} label={`Analysis for extent ${idx + 1}`} />);
         const analysisTabsContent = extents.map((extent, idx) => (
             <TabPanel value={tabIdx} key={idx + 1} index={idx + 1}>
                 <AnalysisTab                    
@@ -139,7 +139,7 @@ export default function MultiplePathSelectionModal({properties, close, extents})
                 open={open}
                 maxWidth={false}
               >
-                <DialogTitle sx={{height: 150}}>
+                <DialogTitle>
                   Path Selection
                   <Tabs value={tabIdx} onChange={(_, v) => { setTabIdx(v); }}>                    
                       <Tab label="Kolmogorov-Smirnov Test"/>                      

@@ -24,15 +24,36 @@ import {useExtents} from '../hooks/useExtents';
 const margin = { top: 20, bottom: 20, left: 40, right: 25 };
 let sBrush = null;
 
-export default function Scatterplot({globalUniqueStates, loadingCallback, stateHovered, id, runs, trajectoryName, setStateClicked, setStateHovered, title, sx, sequence, properties, trajectories, setExtents }) {  
+export default function Scatterplot ({
+    globalUniqueStates,
+    sequence,
+    trajectories,
+    loadingCallback,
+    stateHovered,
+    runs,
+    id,
+    title,
+    trajectoryName,
+    setStateClicked,
+    setStateHovered,
+    setExtents,    
+    sx,    
+    properties,    
+    xAttributeProp = properties[0],
+    yAttributeProp = properties[1],
+    xAttributeListProp = null,
+    yAttributeListProp = null,
+    enableMenu = true,
+    path = false
+}) {  
     const {contextMenu, toggleMenu} = useContextMenu();
     const {width, height, divRef} = useResize();
        
-    const [xAttribute, setXAttribute] = useState(properties[0]);
-    const [yAttribute, setYAttribute] = useState(properties[0]);
+    const [xAttribute, setXAttribute] = useState(xAttributeProp);
+    const [yAttribute, setYAttribute] = useState(yAttributeProp);
     
-    const [xAttributeList, setXAttributeList] = useState(null);
-    const [yAttributeList, setYAttributeList] = useState(null);
+    const [xAttributeList, setXAttributeList] = useState(xAttributeListProp);
+    const [yAttributeList, setYAttributeList] = useState(yAttributeListProp);
 
     const {setInternalExtents, completeSelection} = useExtents(setExtents);
 
@@ -52,7 +73,7 @@ export default function Scatterplot({globalUniqueStates, loadingCallback, stateH
     useKeyDown('f', selectionBrush);
     useKeyUp('f', completeSelection);      
     
-    const useAttributeList = (setAttributeList, attribute) => {    
+    const useAttributeList = (setAttributeList, attribute, attributeListProp) => {    
         useEffect(() => {
             const ids = sequence.map((s) => {
                 return s.id;
@@ -61,16 +82,19 @@ export default function Scatterplot({globalUniqueStates, loadingCallback, stateH
             const uniqueStates = ids.map((id) => {
                 return globalUniqueStates.get(id);
             });
-            
-            setAttributeList(uniqueStates.map((s) => {
-                return s[attribute];
-            }));
 
+            if(attributeListProp === null || attributeListProp === undefined) {
+                setAttributeList(uniqueStates.map((s) => {
+                    return s[attribute];
+                }));
+            } else {
+                setAttributeList(attributeListProp);
+            }
         }, [globalUniqueStates, attribute, sequence]);
     }
 
-    useAttributeList(setXAttributeList, xAttribute);
-    useAttributeList(setYAttributeList, yAttribute);   
+    useAttributeList(setXAttributeList, xAttribute, xAttributeListProp);
+    useAttributeList(setYAttributeList, yAttribute, yAttributeListProp);   
 
     const options = properties.map((property) => {
         return (
@@ -100,13 +124,11 @@ export default function Scatterplot({globalUniqueStates, loadingCallback, stateH
             }            
                        
             //let reverse = data.reverse;
-            //let path = data.path;
             //let title = data.title;
             //const colors = trajectory.colors;            
             //const idToCluster = trajectory.idToCluster;
 
             //if (reverse == null) reverse = false;
-            //if (path == null) path = false;
          
             const xtent = d3.extent(xAttributeList);
             const ytent = d3.extent(yAttributeList);
@@ -180,12 +202,17 @@ export default function Scatterplot({globalUniqueStates, loadingCallback, stateH
                 }).on('mouseout', function() {
                     setStateHovered(null);
                 });
+            } else {
+                points.on("mouseover", function(_,d) {
+                    onStateMouseOver(this, globalUniqueStates.get(d.id));
+                });
             }
+                         
                                                                  
-            /*if (path) {
+            if (path) {
                 var datum = [];
                 for (var i = 0; i < sequence.length; i++) {
-                    const d = { x: x_attributeList[i], y: y_attributeList[i] };
+                    const d = { x: xAttributeList[i], y: yAttributeList[i] };
                     datum.push(d);
                 }
 
@@ -194,12 +221,13 @@ export default function Scatterplot({globalUniqueStates, loadingCallback, stateH
                     .x((d) => scale_x(d.x))
                     .y((d) => scale_y(d.y))
                     .curve(d3.curveCatmullRom.alpha(0.5));
+
                 svg.append("path")
                     .datum(datum)
                     .attr("d", line)
                     .attr("stroke", "black")
                     .attr("fill", "none");
-            }*/
+            }
 
             const yAxisPos = margin.left;
             const xAxisPos = height - margin.bottom;
@@ -284,17 +312,18 @@ export default function Scatterplot({globalUniqueStates, loadingCallback, stateH
         <Box ref={divRef} sx={sx}>
             <svg ref={ref} onContextMenu={toggleMenu} className="vis" viewBox={[0,0,width,height]} />
         </Box>
-            <Menu
-                open={contextMenu !== null}
-                onClose={toggleMenu}
-                anchorReference="anchorPosition"
-                preserveAspectRatio="none"
-                anchorPosition={
-                    contextMenu !== null
-                        ? { top: contextMenu.mouseY, left: contextMenu.mouseX }
-                        : undefined
-                }
-            >
+            {enableMenu &&
+             <Menu
+                 open={contextMenu !== null}
+                 onClose={toggleMenu}
+                 anchorReference="anchorPosition"
+                 preserveAspectRatio="none"
+                 anchorPosition={
+                     contextMenu !== null
+                         ? { top: contextMenu.mouseY, left: contextMenu.mouseX }
+                     : undefined
+                 }
+             >
                 <MenuItem>
                     <FormControl>
                     <Select
@@ -320,7 +349,8 @@ export default function Scatterplot({globalUniqueStates, loadingCallback, stateH
                         <FormHelperText>Y attribute</FormHelperText>
                     </FormControl>
             </MenuItem>
-            </Menu>            
+             </Menu>
+            }
         </>
     );
 }

@@ -23,9 +23,12 @@ import ButtonWithOpenMenu from "../components/ButtonWithOpenMenu";
 import ScatterGrid from "./ScatterGrid";
 
 import '../css/App.css';
+import {isPath} from '../api/myutils';
+import NEBModal from "../modals/NEBModal";
 
 const SINGLE_STATE_MODAL = 'single_state';
 const MULTIPLE_PATH_SELECTION = 'multiple_selection';
+const NEB = 'neb';
 
 class VisArea extends React.Component {
     constructor(props) {
@@ -46,14 +49,13 @@ class VisArea extends React.Component {
     
     setExtents = (extent) => {
         const modEx = [];
-        const count = this.state.subSequences.length;
         for(const ex of extent) {
             const ids = this.props.trajectories[ex.name].sequence.slice(ex.begin, ex.end + 1);
             const uniqueStates = [...new Set(ids)].map((state) => {
                 return {'id': state};
             });
             
-            const newEx = {...ex, states: uniqueStates, id: `ss_${count}`};
+            const newEx = {...ex, states: uniqueStates};
             modEx.push(newEx);
         }
         this.setState({subSequences: [...this.state.subSequences, modEx]});
@@ -61,13 +63,12 @@ class VisArea extends React.Component {
 
     setExtentsUniqueStates = (extent) => {
         const modEx = [];
-        const count = this.state.subSequences.length;
         for(const ex of extent) {
             const ids = ex.states.map((state) => {
                 return {'id': state.id};
             });
             
-            const newEx = {...ex, states: ids, id: `ss_${count}`};
+            const newEx = {...ex, states: ids};
             modEx.push(newEx);
         }        
         this.setState({subSequences: [...this.state.subSequences, modEx]});          
@@ -131,13 +132,13 @@ class VisArea extends React.Component {
         this.setState({scatterplots: { ...this.state.scatterplots, [id]: sc}});        
     }
 
-    addSubsequenceScatterplot = (extent) => {
+    addSubsequenceScatterplot = (extent, idx) => {
         const count = Object.keys(this.state.scatterplots).length;
         const stateArray = [];
         for (const xtent of extent) {                        
             stateArray.push(...xtent.states);
         }
-        const title = `subsc_${count}`;
+        const title = `ss_${idx}_${count}`;
         
         this.setState({scatterplots: {...this.state.scatterplots, [title]: {'states': stateArray}}});
     }
@@ -180,11 +181,11 @@ class VisArea extends React.Component {
         });
         
         const subSequenceCharts = this.state.subSequences.map((ss, idx) => {
-            return (<Box key={`${ss.id}_${idx}`} className="lightBorder" sx={{minHeight: '50px'}}>
+            return (<Box key={idx} className="lightBorder" sx={{minHeight: '50px'}}>
                         <Stack direction="row" justifyContent="center">
-                            <Button color="secondary" onClick={() => {this.addSubsequenceScatterplot(ss)}}>Add scatterplot</Button>
+                            <Button color="secondary" onClick={() => {this.addSubsequenceScatterplot(ss, idx)}}>Add scatterplot</Button>
                             <Button color="secondary" onClick={() => {this.setState({selectedExtents: ss}, () => {this.toggleModal(MULTIPLE_PATH_SELECTION);})}}>Analysis</Button>
-                            <Button color="secondary" onClick={() => {}}>NEB</Button>
+                            {ss.some(isPath) && <Button color="secondary" onClick={() => {this.setState({selectedExtents: ss}, () => {this.toggleModal(NEB);})}}>NEB</Button>}
                         </Stack>
                         <SelectionVis
                             style={{
@@ -192,7 +193,7 @@ class VisArea extends React.Component {
                             }}
                             globalUniqueStates={this.props.globalUniqueStates}                            
                             trajectories={this.props.trajectories}
-                            titleProp={`${ss.id}`}
+                            titleProp={`ss_${idx}`}
                             extents={ss} />
                     </Box>);
         });
@@ -292,6 +293,15 @@ class VisArea extends React.Component {
                             close={() => {
                                 this.toggleModal(SINGLE_STATE_MODAL);                                                        
                             }}
+                        />
+                    )}
+                    {this.state.currentModal === NEB && (
+                        <NEBModal
+                            open={this.state.currentModal === NEB}
+                            trajectories={this.props.trajectories}
+                            extents={this.state.selectedExtents}
+                            globalUniqueStates={this.props.globalUniqueStates}
+                            closeFunc={() => {this.toggleModal(NEB)}}
                         />
                     )}
             </Box>

@@ -168,8 +168,8 @@ class AnalysisTab extends React.Component {
                         {(!this.state.isLoading && this.state.response !== null) && <p>{this.state.response['info']}</p>}
                     </DialogContent>                                       
                     <DialogActions>
-                        <Button size="small" disabled={this.state.isLoading} variant="contained" onClick={() => {this.runSteps()}} color="secondary">Run analysis steps</Button>
-                        <Button size="small" disabled={this.state.isLoading} variant="contained" onClick={() => {this.props.closeFunc()}}>Cancel</Button>
+                        <Button size="small" onClick={() => {this.runSteps()}}>Run analysis steps</Button>
+                        <Button size="small" color="secondary" onClick={() => {this.props.closeFunc()}}>Close</Button>
                     </DialogActions>
                 </>);
     }
