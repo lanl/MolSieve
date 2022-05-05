@@ -1,56 +1,71 @@
-from fastapi import WebSocket
 from api.models import AnalysisStep
 
 from ..utils import get_atom_type, getMetadata
-from typing import Optional, List, Any
+from typing import Optional, List, Dict, Any
 from .celeryconfig import CeleryConfig
 
 import neo4j
-from celery import Celery
+from celery import Celery, current_task, Task
 from celery.utils.log import get_task_logger
 from neomd import querybuilder, converter, calculator
 from scipy import stats
 import json
-import websocket
+import requests
 
 celery_app = Celery("tasks", backend='redis://localhost:6379/0', broker='redis://localhost:6379/0')
 celery_app.config_from_object(CeleryConfig)
 logger = get_task_logger(__name__)
 
-@celery_app.task(name='run_analysis')
+TASK_START = 'TASK_START'
+TASK_PROGRESS = 'TASK_PROGRESS'
+TASK_COMPLETE = 'TASK_COMPLETE'
+
+def send_update(task_id: str, data: Dict[Any,Any]):
+    requests.post(f"http://localhost:8000/api/update_task/{task_id}", json=data)
+
+class PostingTask(Task):
+    def on_success(self, retval, task_id, args, kwargs):
+        send_update(task_id, {'type': TASK_COMPLETE})
+        return super().on_success(retval, task_id, args, kwargs)
+
+@celery_app.task(name='run_analysis', base=PostingTask)
 def run_analysis_task(steps: List[AnalysisStep],
                       run: Optional[str] = None,
                       states: Optional[List[int]] = [],
                       displayResults: bool = True,
                       saveResults: bool = True):
 
-    ws = websocket.WebSocket()
-    ws.connect("ws://localhost:8000/api/ws")
-    ws.send(json.dumps({'message': 'hello from celery'}))
     
+    task_id = current_task.request.id    
+    send_update(task_id, {'type': TASK_START})
+    current_task.update_state(state='PROGRESS')    
+
     driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687",
                                         auth=("neo4j", "secret"))
     state_atom_dict = None
     
     if run is not None and len(states) == 0:
-        qb = querybuilder.Neo4jQueryBuilder([('State', run, 'State', 'ONE-TO-ONE'),
-                                             ('Atom', 'PART_OF', 'State', 'MANY-TO-ONE')])
+        qb = querybuilder.Neo4jQueryBuilder([('State', run, 'State', 'ONE-TO-ONE'),('Atom', 'PART_OF', 'State', 'MANY-TO-ONE')])
         q = qb.generate_trajectory(run,
                                    "ASC", ('relation', 'timestep'),
                                    include_atoms=True)
+        send_update(task_id, {'type': TASK_PROGRESS, 'message': 'Finished processing nodes.', 'progress': '0.25'})
         
         state_atom_dict = converter.query_to_ASE(
             driver, qb, q, get_atom_type(getMetadata(run)['parameters']))
+        send_update(task_id, {'type': TASK_PROGRESS, 'message': 'Finished converting nodes.', 'progress': '0.5'})
+        current_task.update_state(state='PROGRESS')    
     else:
         qb = querybuilder.Neo4jQueryBuilder([('Atom', 'PART_OF', 'State', 'MANY-TO-ONE')])
         q = qb.generate_get_node_list('State', states, "PART_OF")
-        ws.send(json.dumps({'message': 'finished processing nodes'}))
-
+        
+        send_update(task_id, {'type': TASK_PROGRESS, 'message': 'Finished processing nodes.', 'progress': '0.25'})
+        current_task.update_state(state='PROGRESS')    
         # what if atom types are mixed?
         state_atom_dict = converter.query_to_ASE(
             driver, qb, q, 'Pt')
-        ws.send(json.dumps({'message': 'finished converting nodes'}))
-
+        send_update(task_id, {'type': TASK_PROGRESS, 'message': 'Finished converting nodes.', 'progress': '0.5'})
+        current_task.update_state(state='PROGRESS')    
         
     # TODO: Server-sent event to notify atoms have been converted
     results = {}
@@ -76,8 +91,7 @@ def run_analysis_task(steps: List[AnalysisStep],
         else:
             raise NotImplementedError()
 
-    ws.send(json.dumps(results))
-    return results
+    return json.dumps(results)
 
 @celery_app.task(name='load_property')
 def load_property_task(prop: str):

@@ -9,7 +9,8 @@ import numpy as np
 
 from sse_starlette.sse import EventSourceResponse
 
-from .worker.celery_app import celery_app
+from celery.result import AsyncResult
+from .worker.celery_app import TASK_COMPLETE, celery_app
 
 # image rendering
 from PIL import Image
@@ -19,7 +20,9 @@ import base64
 from .config import config
 from .trajectory import Trajectory
 from .utils import getMetadata, getScipyDistributions, get_atom_type, saveTestJson, loadTestJson
+from .connectionmanager import ConnectionManager
 
+import json
 from .worker.celery_app import celery_app
 from .models import AnalysisStep
 
@@ -30,35 +33,9 @@ trajectories = {}
 
 app = FastAPI()
 router = APIRouter(prefix='/api')
-"""
-async def celeryMonitor(celery_app):
-    state = celery_app.events.State()
 
-    def success(event):
-        print("event finished")
-        print(event)
-    
-    def announce_failed_tasks(event):
-        state.event(event)
-        # task name is sent only with -received event, and state
-        # will keep track of this for us.
-        task = state.tasks.get(event['uuid'])
+cm = ConnectionManager()
 
-        print('TASK FAILED: %s[%s] %s' % (
-            task.name, task.uuid, task.info(),))
-
-    with celery_app.connection() as connection:
-        recv = celery_app.events.Receiver(connection, handlers={
-            'task-failed': announce_failed_tasks,
-            'task-succeeded': success,
-            '*': state.event,
-        })
-        recv.capture(limit=None, timeout=None, wakeup=True)
-
-@router.on_event("startup")
-async def start():        
-    await celeryMonitor(celery_app)
-"""
 @router.get('/get_scipy_distributions')
 def get_scipy_distributions():
     return getScipyDistributions()
@@ -79,17 +56,24 @@ def run_cypher_query(query: str):
 
     return j
 
-@router.websocket("/ws")
-async def ws(websocket: WebSocket):
-    await websocket.accept()
+@router.post('/update_task/{task_id}')
+async def update_task(task_id: str, data: dict):
+    if task_id in cm.active_connections:
+        if data['type'] == TASK_COMPLETE:
+            result = AsyncResult(task_id, app=celery_app)
+            if result.ready():
+                data = result.get()
+                await cm.send(task_id, {'type': TASK_COMPLETE, 'data': json.loads(data)})
+        else:
+            await cm.send(task_id, data)
+
+@router.websocket("/ws/{task_id}")
+async def ws(task_id: str, websocket: WebSocket):
+    await cm.connect(task_id, websocket)
     try:
-        await websocket.send_text("Connected to websocket!")
-        while True:
-            data = await websocket.receive()
-            print(data)
-            await websocket.send_json(data)
+        await websocket.receive()
     except WebSocketDisconnect:
-        await websocket.close()
+        await cm.disconnect(websocket)
 
 @router.get("/generate_ovito_image")
 async def generate_ovito_image(number: str):
@@ -158,24 +142,45 @@ async def generate_ovito_animation(run: str, start: int, end: int):
 
     return {'video': video_string}
 
-def progressCallback(text):
-    print(text)
-
-@router.post('/run_analysis')
+@router.post('/run_analysis', status_code=201)
 async def run_analysis(steps: List[AnalysisStep],
                        run: Optional[str] = Body(None),
                        states: Optional[List[int]] = Body([]),
                        displayResults: bool = Body(True),
                        saveResults: bool = Body(True)):    
+    task = celery_app.send_task('run_analysis', args=(steps, run, states, displayResults, saveResults),)
+    print(type(task))
+    return task.id
 
-    celery_app.send_task('run_analysis', args=(steps, run, states, displayResults, saveResults))
-    return "Task created", 201
-
-
-@router.post('/perform_KS_Test')
+@router.post('/perform_KS_Test', status_code=201)
 def perform_KSTest(data: dict):    
-    celery_app.send_task('perform_KS_Test', args=(data))
-    return "Task created", 201
+    task = celery_app.send_task('perform_KS_Test', args=(data))
+    return task.id
+
+@router.get('/load_property', status_code=201)
+def load_property(prop: str):
+    """
+    Loads the given property for all applicable nodes
+
+    :param run: The run that the properties belong to.
+    :param prop: The property to load.
+
+    :returns: a dict of {id: property}
+    """
+    task = celery_app.send_task('load_property', args=(prop))
+    return task.id
+
+@router.get('/calculate_neb_on_path', status_code=201)
+async def calculate_neb_on_path(run: str,
+                                start: str,
+                                end: str,
+                                interpolate: int = 3,
+                                maxSteps: int = 2500,
+                                fmax: float = 0.01,
+                                saveResults: bool = True):
+    task = celery_app.send_task('calculate_neb_on_path', args=(run,start,end,interpolate,maxSteps,fmax,saveResults))
+    return task.id
+
 
 
 @router.post('/calculate_path_similarity')
@@ -212,18 +217,6 @@ def calculate_path_similarity(extents: dict):
     return score
 
 
-@router.get('/load_property')
-def load_property(prop: str):
-    """
-    Loads the given property for all applicable nodes
-
-    :param run: The run that the properties belong to.
-    :param prop: The property to load.
-
-    :returns: a dict of {id: property}
-    """
-    celery_app.send_task('load_property', args=(prop))
-    return "Task created", 201
 
 # perhaps run this first and then the PCCA
 @router.get('/load_sequence')
@@ -496,16 +489,5 @@ async def message_stream(request: Request):
     return EventSourceResponse(e_gen)
 
 
-@router.get('/calculate_neb_on_path')
-async def calculate_neb_on_path(run: str,
-                                start: str,
-                                end: str,
-                                interpolate: int = 3,
-                                maxSteps: int = 2500,
-                                fmax: float = 0.01,
-                                saveResults: bool = True):
-
-    celery_app.send_task('calculate_neb_on_path', args=(run,start,end,interpolate,maxSteps,fmax,saveResults))
-    return "Task created", 201
 
 app.include_router(router)

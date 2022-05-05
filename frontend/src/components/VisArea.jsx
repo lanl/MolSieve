@@ -95,10 +95,6 @@ class VisArea extends React.Component {
 
     componentDidMount() {
         document.addEventListener("keydown", this.changeTimestep);
-        const client = new WebSocket('ws://localhost:8000/api/ws');
-        client.onmessage = (message) => {
-            console.log(message);
-        }
     }
     
     changeTimestep = (e) => {        

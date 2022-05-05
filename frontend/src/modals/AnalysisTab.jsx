@@ -1,5 +1,4 @@
 import React from "react";
-import Box from '@mui/material/Box';
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import List from "@mui/material/List";
@@ -12,10 +11,7 @@ import FormControl from '@mui/material/FormControl';
 import Checkbox from '@mui/material/Checkbox';
 import Select from "@mui/material/Select";
 import MenuItem from "@mui/material/MenuItem";
-import CircularProgress from "@mui/material/CircularProgress";
 import axios from 'axios';
-import {DataGrid} from '@mui/x-data-grid';
-import Stack from "@mui/material/Stack";
 import TextField from "@mui/material/TextField";
 
 const OVITO = 'ovito_modifier';
@@ -29,8 +25,6 @@ class AnalysisTab extends React.Component {
         this.state = {
             steps: [],
             newStep: OVITO,
-            isLoading: false,
-            response: null,
             displayResults: true,
             saveResults: true
         }
@@ -51,11 +45,14 @@ class AnalysisTab extends React.Component {
                 saveResults: this.state.saveResults,
                 states: this.props.states.map((state) => { return state.id })
             }).then((response) => {
-                console.log(response.data);
-                this.setState({isLoading: false});
+                const client = new WebSocket(`ws://localhost:8000/api/ws/${response.data}`);
+                
+                client.onmessage = (message) => {
+                    console.log(message.data)
+                    console.log("message recieved")
+                }
             }).catch((e) => {
                 alert(e);
-                this.setState({isLoading: false});
             });
         } else {
             alert("Need to have at least one analysis step to run!");
@@ -110,7 +107,7 @@ class AnalysisTab extends React.Component {
             return (<ListItem key={idx}><h2>{`${idx + 1}. `}</h2>{step.render}</ListItem>);
         }): null;        
         
-        const dataGrids = (this.state.response !== null ? Object.keys(this.state.response).map((response, idx) => {
+        /*const dataGrids = (this.state.response !== null ? Object.keys(this.state.response).map((response, idx) => {
             
             const data = Object.values(this.state.response[response]);
                        
@@ -134,7 +131,7 @@ class AnalysisTab extends React.Component {
             }
             
             return (<Stack key={idx} sx={{'height': 350}}><h1>Step {idx + 1}</h1><DataGrid rows={rows} columns={columns}/></Stack>)
-        }) : null);        
+        }) : null);        */
         
         return (<>
                     <DialogContent>
@@ -164,9 +161,7 @@ class AnalysisTab extends React.Component {
                             </ListItem>
                             {steps}
                         </List>
-                        {this.state.isLoading && <CircularProgress/>}
-                        {(!this.state.isLoading && dataGrids !== null && this.state.displayResults) && <Box>{dataGrids}</Box>}
-                        {(!this.state.isLoading && this.state.response !== null) && <p>{this.state.response['info']}</p>}
+                        
                     </DialogContent>                                       
                     <DialogActions>
                         <Button size="small" onClick={() => {this.runSteps()}}>Run analysis steps</Button>
@@ -181,5 +176,8 @@ AnalysisTab.defaultProps = {
     states: [],
     run: null
 };
+
+//{(!this.state.isLoading && dataGrids !== null && this.state.displayResults) && <Box>{dataGrids}</Box>}
+//{(!this.state.isLoading && this.state.response !== null) && <p>{this.state.response['info']}</p>}
 
 export default AnalysisTab;
