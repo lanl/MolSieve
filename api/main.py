@@ -1,21 +1,15 @@
-from fastapi import FastAPI, Request, Body
-from pydantic import BaseModel
-from typing import Optional, List
+from fastapi import FastAPI, Request, Body, APIRouter, WebSocket, WebSocketDisconnect
+from typing import Optional, List, Any
 
 import neo4j
-import neomd
-from neomd import querybuilder, converter, calculator, visualizations
+from neomd import querybuilder, converter, calculator, visualizations, utils
 import os
-from scipy import stats
 import pygpcca as gp
 import numpy as np
-import pandas as pd
-import json
 
 from sse_starlette.sse import EventSourceResponse
 
-from timeit import default_timer as timer
-from datetime import timedelta
+from .worker.celery_app import celery_app
 
 # image rendering
 from PIL import Image
@@ -24,18 +18,10 @@ import base64
 
 from .config import config
 from .trajectory import Trajectory
-from .utils import *
+from .utils import getMetadata, getScipyDistributions, get_atom_type, saveTestJson, loadTestJson
 
-
-class AnalysisStep(BaseModel):
-    analysisType: str
-    value: str
-
-
-class AnalysisRequest(BaseModel):
-    pathStart: Optional[str] = None
-    pathEnd: Optional[str] = None
-
+from .worker.celery_app import celery_app
+from .models import AnalysisStep
 
 os.environ['OVITO_THREAD_COUNT'] = '1'
 os.environ['DISPLAY'] = ''
@@ -43,67 +29,48 @@ os.environ['DISPLAY'] = ''
 trajectories = {}
 
 app = FastAPI()
+router = APIRouter(prefix='/api')
+"""
+async def celeryMonitor(celery_app):
+    state = celery_app.events.State()
 
-def getMetadata(run, getJson=False):
-    """
-        Gets the metadata of a run. If the metadata has not been loaded yet, loads it into memory. There is an option
-        to return a JSON string that can be passed back to the front-end.
+    def success(event):
+        print("event finished")
+        print(event)
+    
+    def announce_failed_tasks(event):
+        state.event(event)
+        # task name is sent only with -received event, and state
+        # will keep track of this for us.
+        task = state.tasks.get(event['uuid'])
 
-        :param string run: Run to retrieve metadata for
-        :param bool getJson: Whether or not to return a JSON string with the metadata information.
+        print('TASK FAILED: %s[%s] %s' % (
+            task.name, task.uuid, task.info(),))
 
-        :returns: a dict of metadata parameters and optionally a JSON string with the metadata information.
-        """
-    if run not in trajectories:
-        trajectories.update({run: Trajectory()})
+    with celery_app.connection() as connection:
+        recv = celery_app.events.Receiver(connection, handlers={
+            'task-failed': announce_failed_tasks,
+            'task-succeeded': success,
+            '*': state.event,
+        })
+        recv.capture(limit=None, timeout=None, wakeup=True)
 
-    if getJson or trajectories[run].metadata is None:
-        j = {}
-        driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687",
-                                            auth=("neo4j", "secret"))
-        with driver.session() as session:
-            try:
-                result = session.run(
-                    "MATCH (n:Metadata {{run: '{run}' }}) RETURN n".format(
-                        run=run))
-                record = result.single()
-                for n in record.values():
-                    for key, value in n.items():
-                        if key == "LAMMPSBootstrapScript":
-                            params = metadata_to_parameters(value)
-                            cmds = metadata_to_cmds(params)
-                            trajectories[run].metadata = {
-                                'parameters': params,
-                                'cmds': cmds
-                            }
-                        j.update({key: value})
-            except neo4j.exceptions.ServiceUnavailable as exception:
-                raise exception
-
-            if getJson:
-                return trajectories[run].metadata, j
-            else:
-                return trajectories[run].metadata
-    else:
-        return trajectories[run].metadata
-
-
-@app.get('/get_scipy_distributions')
+@router.on_event("startup")
+async def start():        
+    await celeryMonitor(celery_app)
+"""
+@router.get('/get_scipy_distributions')
 def get_scipy_distributions():
     return getScipyDistributions()
 
-
-@app.get('/get_ovito_modifiers')
+@router.get('/get_ovito_modifiers')
 def get_ovito_modifiers():
-    return neomd.utils.return_ovito_modifiers()
+    return utils.return_ovito_modifiers()
 
-
-@app.get('/run_cypher_query')
+@router.get('/run_cypher_query')
 def run_cypher_query(query: str):
     driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687",
                                         auth=("neo4j", "secret"))
-
-    print(query)
     j = []
     with driver.session() as session:
         results = session.run(query)
@@ -112,8 +79,19 @@ def run_cypher_query(query: str):
 
     return j
 
+@router.websocket("/ws")
+async def ws(websocket: WebSocket):
+    await websocket.accept()
+    try:
+        await websocket.send_text("Connected to websocket!")
+        while True:
+            data = await websocket.receive()
+            print(data)
+            await websocket.send_json(data)
+    except WebSocketDisconnect:
+        await websocket.close()
 
-@app.get("/generate_ovito_image")
+@router.get("/generate_ovito_image")
 async def generate_ovito_image(number: str):
     driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687",
                                         auth=("neo4j", "secret"))
@@ -141,14 +119,14 @@ async def generate_ovito_image(number: str):
     img.save(rawBytes, "PNG")
     rawBytes.seek(0)
     img_base64 = base64.b64encode(rawBytes.read())
-
+    
     image_string = str(img_base64)
     image_string = image_string.removesuffix("'")
     image_string = image_string.removeprefix("b'")
     return {'image': image_string}
 
 
-@app.get('/generate_ovito_animation')
+@router.get('/generate_ovito_animation')
 async def generate_ovito_animation(run: str, start: int, end: int):
 
     driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687",
@@ -163,14 +141,14 @@ async def generate_ovito_animation(run: str, start: int, end: int):
     metadata = getMetadata(run)
     atomType = get_atom_type(metadata['parameters'])
 
-    attr_atom_dict = neomd.converter.query_to_ASE(driver,
+    attr_atom_dict = converter.query_to_ASE(driver,
                                                   qb,
                                                   q,
                                                   atomType,
                                                   dictKey=('relation',
                                                            'timestep'))
 
-    output_path = neomd.visualizations.render_ASE_list(
+    output_path = visualizations.render_ASE_list(
         attr_atom_dict.values(), list(attr_atom_dict.keys()))
 
     video_string = ""
@@ -180,105 +158,27 @@ async def generate_ovito_animation(run: str, start: int, end: int):
 
     return {'video': video_string}
 
+def progressCallback(text):
+    print(text)
 
-@app.post('/run_analysis')
+@router.post('/run_analysis')
 async def run_analysis(steps: List[AnalysisStep],
                        run: Optional[str] = Body(None),
                        states: Optional[List[int]] = Body([]),
                        displayResults: bool = Body(True),
-                       saveResults: bool = Body(True)):
-    driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687",
-                                        auth=("neo4j", "secret"))
+                       saveResults: bool = Body(True)):    
+
+    celery_app.send_task('run_analysis', args=(steps, run, states, displayResults, saveResults))
+    return "Task created", 201
 
 
-    state_atom_dict = None
-    start = timer()
-
-    if run is not None and len(states) == 0:
-        qb = querybuilder.Neo4jQueryBuilder([('State', run, 'State', 'ONE-TO-ONE'),
-                                             ('Atom', 'PART_OF', 'State', 'MANY-TO-ONE')])
-        q = qb.generate_trajectory(run,
-                                   "ASC", ('relation', 'timestep'),
-                                   include_atoms=True)
-        
-        state_atom_dict = converter.query_to_ASE(
-            driver, qb, q, get_atom_type(getMetadata(run)['parameters']))
-    else:
-        qb = querybuilder.Neo4jQueryBuilder([('Atom', 'PART_OF', 'State', 'MANY-TO-ONE')])
-        q = qb.generate_get_node_list('State', states, "PART_OF")
-        print(q.text)
-        # what if atom types are mixed?
-        state_atom_dict = converter.query_to_ASE(
-            driver, qb, q, 'Pt')
-
-    # TODO: Server-sent event to notify atoms have been converted
-    results = {}
-    for idx, step in enumerate(steps):
-        if step.analysisType == 'ovito_modifier':
-            new_attributes = calculator.apply_ovito_pipeline_modifier(
-                state_atom_dict, analysisType=step.value)
-            #TODO: Event that notifies pipeline has been applied
-            if saveResults:
-                q = None
-                with driver.session() as session:
-                    tx = session.begin_transaction()
-                    for state_number, data in new_attributes.items():
-                        if q is None:
-                            q = qb.generate_update_entity(
-                                data, 'State', 'number', 'node')
-                        data.update({'number': state_number})
-                        tx.run(q.text, data)
-                    tx.commit()
-            if displayResults:
-                results.update({idx: new_attributes})
-            #TODO: Notify user that everything has been written to the database
-        else:
-            raise NotImplementedError()
-
-    end = timer()
-    results.update({
-        'info':
-        'Finished analysis in {time} seconds.'.format(time=timedelta(
-            seconds=end - start))
-    })
-
-    return results
+@router.post('/perform_KS_Test')
+def perform_KSTest(data: dict):    
+    celery_app.send_task('perform_KS_Test', args=(data))
+    return "Task created", 201
 
 
-@app.post('/perform_KS_Test')
-def perform_KSTest(data: dict):
-    
-    cdf = data['cdf']
-    rvs = data['rvs']
-    prop = data['property']
-
-    driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687",
-                                        auth=("neo4j", "secret"))
-
-    qb = querybuilder.Neo4jQueryBuilder()
-    
-    q = qb.generate_get_node_list('State', rvs, attributeList=[prop])
-    print(q.text)
-    rvs_df = neomd.converter.query_to_df(driver, q)
-    print(rvs_df)
-    rvs_final = rvs_df[prop].to_numpy()
-
-    
-    cdf_final = None
-
-    if (type(data['cdf']) is dict):
-        q = qb.generate_get_node_list('State', cdf)
-        cdf_df = neomd.converter.query_to_df(driver, q)
-        cdf_final = cdf_df[prop].to_numpy()
-    else:
-        cdf_final = cdf
-
-    statistic, pvalue = stats.kstest(rvs_final, cdf_final)
-
-    return {'statistic': statistic, 'pvalue': pvalue}
-
-
-@app.post('/calculate_path_similarity')
+@router.post('/calculate_path_similarity')
 def calculate_path_similarity(extents: dict):
     driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687",
                                         auth=("neo4j", "secret"))
@@ -305,14 +205,14 @@ def calculate_path_similarity(extents: dict):
                                'timestep',
                                include_atoms=False)
 
-    score = neomd.calculator.calculate_path_similarity(
+    score = calculator.calculate_path_similarity(
         driver, q1, q2, qb2, extents['state_attributes'],
         extents['atom_attributes'])
 
     return score
 
 
-@app.get('/load_property')
+@router.get('/load_property')
 def load_property(prop: str):
     """
     Loads the given property for all applicable nodes
@@ -322,26 +222,11 @@ def load_property(prop: str):
 
     :returns: a dict of {id: property}
     """
-    
-    uniqueStateAttributes = ["id", prop]
-    driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687",
-                                        auth=("neo4j", "secret"))
-    
-    qb = querybuilder.Neo4jQueryBuilder()
-
-    query = qb.generate_get_all_nodes(
-        "State", node_attributes=uniqueStateAttributes, ignoreNull = True)
-
-    j = {}
-    with driver.session() as session:
-        result = session.run(query.text)
-        j["propertyList"] = result.data()
-
-    return j
-
+    celery_app.send_task('load_property', args=(prop))
+    return "Task created", 201
 
 # perhaps run this first and then the PCCA
-@app.get('/load_sequence')
+@router.get('/load_sequence')
 def load_sequence(run: str, properties: str):
 
     if config.IMPATIENT:
@@ -413,7 +298,7 @@ def load_sequence(run: str, properties: str):
     return j
 
 
-@app.get('/get_property_list')
+@router.get('/get_property_list')
 def get_property_list():
     driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687",
                                         auth=("neo4j", "secret"))
@@ -432,7 +317,7 @@ def get_property_list():
     return j
 
 
-@app.get('/get_atom_properties')
+@router.get('/get_atom_properties')
 def get_atom_properties():
     driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687",
                                         auth=("neo4j", "secret"))
@@ -440,7 +325,7 @@ def get_atom_properties():
     with driver.session() as session:
         try:
             result = session.run(
-                "MATCH (n:Atom) WITH n LIMIT 1 UNWIND keys(n) as key RETURN DISTINCT key;"
+                "MATCH (n:Atom) WITH n LIMIT 1000 UNWIND keys(n) as key RETURN DISTINCT key;"
             )
             j = [r[0] for r in result.values()]
         except neo4j.exceptions.ServiceUnavailable as exception:
@@ -449,7 +334,7 @@ def get_atom_properties():
     return j
 
 
-@app.get('/get_run_list')
+@router.get('/get_run_list')
 def get_run_list(truncateNEB: Optional[bool] = True):
     driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687",
                                         auth=("neo4j", "secret"))
@@ -476,17 +361,14 @@ def get_run_list(truncateNEB: Optional[bool] = True):
     return j
 
 
-@app.get('/get_metadata')
+@router.get('/get_metadata')
 def get_metadata(run: str):
-    driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687",
-                                        auth=("neo4j", "secret"))
-    metadata, j = getMetadata(run, getJson=True)
-
+    _, j = getMetadata(run, getJson=True)
     return j
 
 
 # TODO: make pcca support multiple runs
-@app.get('/pcca')
+@router.get('/pcca')
 def pcca(run: str, clusters: int, optimal: int, m_min: int, m_max: int):
     driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687",
                                         auth=("neo4j", "secret"))
@@ -496,11 +378,9 @@ def pcca(run: str, clusters: int, optimal: int, m_min: int, m_max: int):
             return r
 
     qb = querybuilder.Neo4jQueryBuilder(
-        schema=[("State", run, "State",
-                 "ONE-TO-ONE"), ("Atom", "PART_OF", "State", "MANY-TO-ONE")])
+        schema=[("State", run, "State","ONE-TO-ONE"), ("Atom", "PART_OF", "State", "MANY-TO-ONE")])
 
     sequence = trajectories[run].sequence
-    uniqueStates = trajectories[run].uniqueStates
 
     m, idx_to_id = calculator.calculate_transition_matrix(driver,
                                                           qb,
@@ -610,13 +490,13 @@ async def event_generator(request: Request):
         #await asyncio.sleep(1)
 
 
-@app.get('/stream')
+@router.get('/stream')
 async def message_stream(request: Request):
     e_gen = event_generator(request)
     return EventSourceResponse(e_gen)
 
 
-@app.get('/calculate_neb_on_path')
+@router.get('/calculate_neb_on_path')
 async def calculate_neb_on_path(run: str,
                                 start: str,
                                 end: str,
@@ -625,95 +505,7 @@ async def calculate_neb_on_path(run: str,
                                 fmax: float = 0.01,
                                 saveResults: bool = True):
 
-    driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687",
-                                        auth=("neo4j", "secret"))
+    celery_app.send_task('calculate_neb_on_path', args=(run,start,end,interpolate,maxSteps,fmax,saveResults))
+    return "Task created", 201
 
-    qb = querybuilder.Neo4jQueryBuilder(
-        schema=[("State", run, "State",
-                 "ONE-TO-ONE"), ("Atom", "PART_OF", "State", "MANY-TO-ONE")])
-
-    q = qb.generate_get_path(start, end, run, 'timestep')
-
-    metadata = getMetadata(run)
-    atomType = get_atom_type(metadata['parameters'])
-
-    # converting atoms...
-    # current_status = 'converting atoms'
-
-    attr_atom_dict, relationList = converter.query_to_ASE(driver,
-                                                          qb,
-                                                          q,
-                                                          atomType,
-                                                          getRelationList=True)
-
-    # calculating NEB...
-    #    current_status = 'calculating NEB'
-
-    energyList = []
-    if interpolate < 0:
-        interpolate = 0
-
-    for idx, relation in enumerate(relationList):
-        if idx < len(relationList) - 1:
-            skip = False
-
-            for prop in relation['properties']:
-                if prop[0] == 'symmetry':
-                    print(
-                        "Detected symmetry in transition between {start} and {end}, skipping..."
-                        .format(start=relation['start']['number'],
-                                end=relation['end']['number']))
-                    skip = True
-
-            if skip:
-                energyVal = energyList[-1][-1] if len(energyList) > 0 else 0
-                energyList.append([energyVal for x in range(interpolate + 1)])
-                continue
-
-            # between state x and y...
-            #current_status = 'calculating NEB btwn ' + relation['start']['number'] + ' and an end state'
-            energies = calculator.calculate_neb_for_pair(
-                attr_atom_dict[relation['start']['number']],
-                attr_atom_dict[relation['end']['number']], run, atomType,
-                metadata['cmds'], interpolate, maxSteps, fmax)
-
-            if idx < len(relationList) - 2:
-                energies.pop()
-
-            energyList.append(energies)
-
-        if saveResults:
-            # update by timestep
-            q = None
-
-            with driver.session() as session:
-                tx = session.begin_transaction()
-                for idx, energies in enumerate(energyList):
-                    r = relationList[idx]
-                    timestep = ''
-                    for prop in r['properties']:
-                        if prop[0] == 'timestep':
-                            timestep = prop[1]
-
-                    q = '''MATCH (a:State),
-                                 (b:State)
-                           WHERE a.number = '{state_n1}' AND b.number = '{state_n2}'
-                           MERGE (a)-[:{run}_NEB {{timestep: {timestep}, interpolate: {interpolate},
-                                              maxSteps: {maxSteps}, fmax: {fmax}, energies: '{energies}'}}]->(b);                    
-                        '''.format(state_n1=r['start']['number'],
-                                   state_n2=r['end']['number'],
-                                   run=run,
-                                   timestep=timestep,
-                                   interpolate=interpolate,
-                                   maxSteps=maxSteps,
-                                   fmax=fmax,
-                                   energies=json.dumps(energies))
-
-                    tx.run(q)
-                tx.commit()
-
-    #current_status = 'complete'
-
-    j = {'energies': energyList}
-
-    return j
+app.include_router(router)

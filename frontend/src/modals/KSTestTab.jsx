@@ -88,7 +88,7 @@ class KSTestTab extends React.Component {
                             <FormControl>
                                 <AjaxSelect change={this.setCDF}
                                             defaultValue={this.state.cdf}
-                                            api_call='get_scipy_distributions'>
+                                            api_call='/api/get_scipy_distributions'>
                                     {this.props.cdf !== undefined && this.props.cdf}
                                 </AjaxSelect>                       
                                 <FormHelperText>cdf</FormHelperText>                                    
@@ -99,7 +99,7 @@ class KSTestTab extends React.Component {
                          <CheckboxTable header="State properties" itemProps={this.props.stateProperties} allowOnlyOneSelected click={this.setKSProperty} /> }
 
                         {this.props.stateProperties === undefined &&
-                         <CheckboxTable header="State properties" api_call={`/get_property_list?run=${this.props.currentRun}`} allowOnlyOneSelected click={this.setKSProperty} /> }
+                         <CheckboxTable header="State properties" api_call={`/api/get_property_list?run=${this.props.currentRun}`} allowOnlyOneSelected click={this.setKSProperty} /> }
                   
                         {ksTestText}
                         </DialogContent>

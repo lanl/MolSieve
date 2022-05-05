@@ -190,7 +190,7 @@ export function filter_relationship(trajectory,svg) {
     
     let query = `MATCH ${node}-[r:${run}]-() RETURN DISTINCT ${entityType}.${attribute};`;    
     
-    axios.get('/run_cypher_query',
+    axios.get('/api/run_cypher_query',
               {params:
                {query:
                 query

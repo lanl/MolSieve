@@ -30,15 +30,13 @@ class App extends React.Component {
             trajectories: {},
             runs: {},
             loadingMessage: 'Loading...',
-            colors: ['#b2df8a', '#1f78b4', '#a6cee3', '#33a02c', '#fb9a99', '#e31a1c', '#fdbf6f', '#ff7f00',
-                '#cab2d6', '#6a3d9a', '#ffff99', '#b15928', '#8dd3c7', '#ffffb3', '#bebada', '#fb8072',
-                '#80b1d3', '#fdb462', '#b3de69', '#fccde5', '#d9d9d9', '#bc80bd', '#ccebc5', '#ffed6f'],
+            colors: ["#4e79a7","#f28e2c","#e15759","#76b7b2","#59a14f","#edc949","#af7aa1","#ff9da7","#9c755f","#bab0ab"],
             globalUniqueStates: new Map(),
             commonList: new Map(),
             properties: []
         };
     }
-
+    
     toggleModal = (key) => {
         if (this.state.currentModal) {
             this.setState({
@@ -396,7 +394,7 @@ class App extends React.Component {
 
                  <AjaxMenu
                     anchorEl={this.runListButton.current}
-                    api_call="/get_run_list"
+                    api_call="/api/get_run_list"
                     open={this.state.showRunList}                    
                     clicked={Object.keys(this.state.trajectories)}
                     handleClose={() => { this.setState({ showRunList: !this.state.showRunList, anchorEl: null }) }}
@@ -430,8 +428,6 @@ class App extends React.Component {
                     />
                 )}
             </Box>
-
-
         );
     }
 }

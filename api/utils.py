@@ -2,6 +2,7 @@ import pickle
 import json
 import scipy.stats
 import inspect
+import neo4j
 
 def metadata_to_parameters(raw_metadata):
     """
@@ -80,6 +81,48 @@ def saveTestJson(run, t, j):
         json.dump(j,f, ensure_ascii=False, indent=4)
 
 
+def getMetadata(run, getJson=False):
+    """
+        Gets the metadata of a run. If the metadata has not been loaded yet, loads it into memory. There is an option
+        to return a JSON string that can be passed back to the front-end.
+
+        :param string run: Run to retrieve metadata for
+        :param bool getJson: Whether or not to return a JSON string with the metadata information.
+
+        :returns: a dict of metadata parameters and optionally a JSON string with the metadata information.
+        """
+    j = {}
+    metadata = None
+    driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687",
+                                        auth=("neo4j", "secret"))
+    with driver.session() as session:
+        try:
+            result = session.run(
+                "MATCH (n:Metadata {{run: '{run}' }}) RETURN n".format(
+                    run=run))
+            record = result.single()
+            for n in record.values():
+                for key, value in n.items():
+                    if key == "LAMMPSBootstrapScript":
+                        params = metadata_to_parameters(value)
+                        cmds = metadata_to_cmds(params)
+                        metadata = {
+                            'parameters': params,
+                            'cmds': cmds
+                        }
+                        j.update({key: value})
+        except neo4j.exceptions.ServiceUnavailable as exception:
+            raise exception
+
+        if getJson:
+            return metadata, j
+        else:
+            return metadata
+            
+        
+
+
+        
 def loadTestJson(run, t):
     """
     Reads json file into memory

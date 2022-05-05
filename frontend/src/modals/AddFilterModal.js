@@ -119,7 +119,7 @@ class AddFilterModal extends React.Component {
                     <Box sx={{display: 'flex', alignItems:'center',
                               justifyContent: 'center'}}>
                         <FormControl>
-                            <AjaxSelect api_call='/get_run_list'
+                            <AjaxSelect api_call='/api/get_run_list'
                                         params={{
                                             truncateNEB: false
                                         }} change={this.changeAttribute}/>

@@ -18,7 +18,7 @@ class AjaxVideo extends React.Component {
     // for now will just load Ovito animation
     loadVideo = () => {
         this.setState({isLoading: true});
-        axios.get('/generate_ovito_animation',
+        axios.get('/api/generate_ovito_animation',
                   {params: {'run': this.props.run,
                             'start': this.props.start,
                             'end': this.props.end

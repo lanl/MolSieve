@@ -11,7 +11,7 @@ import axios from 'axios';
 export function api_loadSequence(run, properties) {
     return new Promise((resolve, reject) => {
         axios
-            .get("/load_sequence", {
+            .get("/api/load_sequence", {
                 params: {
                     run: run,
                     properties: properties.toString(),
@@ -38,7 +38,7 @@ export function api_loadSequence(run, properties) {
 export function api_loadPCCA(run, clusters, optimal, m_min, m_max, trajectory) {
     return new Promise((resolve, reject) => {
         axios
-            .get("/pcca", {
+            .get("/api/pcca", {
                 params: {
                     run: run,
                     clusters: clusters,
@@ -120,7 +120,7 @@ export function api_calculate_path_similarity(
     return new Promise(function (resolve, reject) {
         axios
             .post(
-                "/calculate_path_similarity",
+                "/api/calculate_path_similarity",
                 JSON.stringify({
                     p1: JSON.parse(e1),
                     p2: JSON.parse(e2),
@@ -150,7 +150,7 @@ export function api_performKSTest(rvs, cdf, property) {
             processedCdf = cdf;
         }        
         
-        axios.post("/perform_KS_Test",
+        axios.post("/api/perform_KS_Test",
                    JSON.stringify({
                        rvs: JSON.parse(rvs),
                        cdf: processedCdf,
@@ -171,7 +171,7 @@ export function api_performKSTest(rvs, cdf, property) {
 export function api_load_metadata(run, trajectory) {
     return new Promise(function (resolve, reject) {
         axios
-            .get("/get_metadata", { params: { run: run } })
+            .get("/api/get_metadata", { params: { run: run } })
             .then((response) => {
                 if (trajectory === undefined) {
                     resolve(response.data);
@@ -189,7 +189,7 @@ export function api_load_metadata(run, trajectory) {
 
 export function api_load_property(property) {
     return new Promise(function(resolve, reject) {
-        axios.get("/load_property", { params: {prop: property} })
+        axios.get("/api/load_property", { params: {prop: property} })
             .then((response) => {
                 return resolve(response.data.propertyList);
             }).catch((e) => {
@@ -201,7 +201,7 @@ export function api_load_property(property) {
 //TODO: add comment
 export function api_calculate_NEB(run, start, end, interpolate, maxSteps, fmax,saveResults) {
     return new Promise(function (resolve, reject) {
-        axios.get("/calculate_neb_on_path", { params: { run: run, start: start, end: end, interpolate: interpolate, maxSteps: maxSteps, fmax: fmax, saveResults:saveResults }})
+        axios.get("/api/calculate_neb_on_path", { params: { run: run, start: start, end: end, interpolate: interpolate, maxSteps: maxSteps, fmax: fmax, saveResults:saveResults }})
             .then((response) => {
                 //TODO: can add saddlepoint and other calculations here
                 resolve(response.data);
@@ -214,7 +214,7 @@ export function api_calculate_NEB(run, start, end, interpolate, maxSteps, fmax,s
 //TODO: add comment
 export function api_generate_ovito_image(number) {
     return new Promise(function (resolve, reject) {
-        axios.get("/generate_ovito_image", {params: {'number': number}}).then((response) => {
+        axios.get("/api/generate_ovito_image", {params: {'number': number}}).then((response) => {
             resolve(response.data);
         }).catch((e) => {
             reject(e);

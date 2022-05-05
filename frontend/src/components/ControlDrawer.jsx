@@ -166,7 +166,7 @@ function ControlDrawer({trajectories, runs, updateRun, recalculate_clustering, s
                     <AccordionDetails>
                         <CheckboxTable
                             header="Property"
-                            api_call={`/get_property_list`}
+                            api_call={`/api/get_property_list`}
                             click={setProperties}
                             clickedProps={properties}
                         />                        

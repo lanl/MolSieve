@@ -44,14 +44,15 @@ class AnalysisTab extends React.Component {
                 return {'analysisType': step['type'], 'value': step['value']};
             });
             
-            axios.post('/run_analysis', {
+            axios.post('/api/run_analysis', {
                 steps: steps,
                 run: this.props.run,
                 displayResults: this.state.displayResults,
                 saveResults: this.state.saveResults,
                 states: this.props.states.map((state) => { return state.id })
             }).then((response) => {
-                this.setState({isLoading: false, response: response.data});
+                console.log(response.data);
+                this.setState({isLoading: false});
             }).catch((e) => {
                 alert(e);
                 this.setState({isLoading: false});
@@ -64,7 +65,7 @@ class AnalysisTab extends React.Component {
     addStep = () => {
         switch(this.state.newStep) {
         case OVITO:
-            axios.get('/get_ovito_modifiers').then((response) => {                
+            axios.get('/api/get_ovito_modifiers').then((response) => {                
                 let index = this.state.steps.length;
                 let options = response.data.map((val, idx) => (<MenuItem key={idx} value={val}>{val}</MenuItem>));
                 let select = (<Select defaultValue='AcklandJonesModifier' onChange={(e) => {

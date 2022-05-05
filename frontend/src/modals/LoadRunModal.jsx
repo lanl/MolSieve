@@ -153,10 +153,4 @@ class LoadRunModal extends React.Component {
     }
 }
 
-/*<CheckboxTable
-  click={this.pullClicked}
-  defaults={defaults}
-  header="Properties"
-  api_call={`/get_property_list?run=${this.props.run}`}
-/>*/
 export default LoadRunModal;
