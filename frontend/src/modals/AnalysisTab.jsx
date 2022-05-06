@@ -59,7 +59,7 @@ class AnalysisTab extends React.Component {
                     }
                     this.props.enqueueSnackbar(`Task ${response.data} complete`);
                     client.close();
-                }, () => {})                            
+                }, () => {});                            
             }).catch((e) => {
                 alert(e);
             });

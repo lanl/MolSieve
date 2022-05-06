@@ -19,6 +19,7 @@ uvicorn = {extras = ["standard"], version = "^0.17.6"}
 neomd = {path = "../neomd", develop = true}
 opencv-python = "^4.5.5"
 requests = "^2.27.1"
+lammps = {path = "../../../Apps/lammps/python"}
 
 [tool.poetry.dev-dependencies]
 pyright = "^1.1.244"

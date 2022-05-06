@@ -43,10 +43,14 @@ class VisArea extends React.Component {
             stateClicked: null,
             scatterplots: {},
             subSequences: [],
-            selectedExtents: null
+            selectedExtents: null,
+            NEBPlots: []
         };
     }
 
+    addNEBPlot = (energies, drawSequence) => {
+        this.setState({NEBPlots: [...this.state.NEBPlots, {'energies': energies, 'drawSequence': drawSequence}]});
+    }
     
     setExtents = (extent) => {
         const modEx = [];
@@ -162,6 +166,25 @@ class VisArea extends React.Component {
         const trajs = Object.keys(this.props.trajectories);
         const safe = (runs.length === trajs.length && runs.length > 0 && trajs.length > 0) ? true : false;
 
+        const NEBPlots = this.state.NEBPlots.map((plot, idx) => {
+            return (
+                <Box key={idx} className="lightBorder">
+                    <Scatterplot
+                        trajectories={this.props.trajectories}
+                        globalUniqueStates={this.props.globalUniqueStates}                                    
+                        sequence={plot.drawSequence}
+                        yAttributeListProp={plot.energies}
+                        xAttributeProp="timestep"
+                        yAttributeProp="energies"
+                        properties={['timestep','energies']}
+                        xAttributeListProp={plot.drawSequence.map((s) => s.timestep)}
+                        yAttributeList={plot.energies}
+                        path={true}
+                        enableMenu={false}
+                    />
+                </Box>);                                                    
+        });
+        
         const scatterplots = Object.keys(this.state.scatterplots).map((sc) => {
             const sc_props = this.state.scatterplots[sc];            
             return (<Scatterplot
@@ -229,9 +252,10 @@ class VisArea extends React.Component {
                                   />
                               </AccordionDetails>
                           </Accordion>
-                          <Accordion defaultExpanded={false} disableGutters={true}>
-                              <AccordionSummary
-                                  expandIcon={<ExpandMoreIcon />}
+                          {subSequenceCharts.length > 0 &&
+                           <Accordion defaultExpanded={false} disableGutters={true}>
+                               <AccordionSummary
+                                   expandIcon={<ExpandMoreIcon />}
                               ><Typography
                                    color="secondary"
                                    variant="h6">Sub-sequence View</Typography></AccordionSummary>
@@ -241,7 +265,21 @@ class VisArea extends React.Component {
                                       {subSequenceCharts}
                                   </Stack>
                               </AccordionDetails>
-                          </Accordion>                               
+                           </Accordion>}
+                          {NEBPlots.length > 0 &&
+                           <Accordion defaultExpanded={false} disableGutters={true}>
+                               <AccordionSummary
+                                   expandIcon={<ExpandMoreIcon />}
+                              ><Typography
+                                   color="secondary"
+                                   variant="h6">NEB Plots</Typography></AccordionSummary>
+                              <Divider/>
+                              <AccordionDetails sx={{overflow: 'scroll'}}>
+                                  <Stack direction="column">
+                                      {NEBPlots}
+                                  </Stack>
+                              </AccordionDetails>
+                           </Accordion>}
                       </Box>)
                     }        
                                    
@@ -301,6 +339,7 @@ class VisArea extends React.Component {
                             open={this.state.currentModal === NEB}
                             trajectories={this.props.trajectories}
                             extents={this.state.selectedExtents}
+                            addNEBPlot={this.addNEBPlot}
                             globalUniqueStates={this.props.globalUniqueStates}
                             closeFunc={() => {this.toggleModal(NEB)}}
                         />

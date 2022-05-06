@@ -152,7 +152,7 @@ def perform_KSTest(data: dict):
 
     return {'statistic': statistic, 'pvalue': pvalue}
 
-@celery_app.task(name='calculate_neb_on_path')
+@celery_app.task(name='calculate_neb_on_path', base=PostingTask)
 def calculate_neb_on_path(run: str,
                           start: str,
                           end: str,
@@ -160,7 +160,9 @@ def calculate_neb_on_path(run: str,
                           maxSteps: int = 2500,
                           fmax: float = 0.01,
                           saveResults: bool = True):
-
+    
+    task_id = current_task.request.id
+    
     driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687",
                                         auth=("neo4j", "secret"))
 
@@ -170,20 +172,19 @@ def calculate_neb_on_path(run: str,
 
     q = qb.generate_get_path(start, end, run, 'timestep')
 
+    current_task.update_state(state='PROGRESS')    
+    send_update(task_id, {'type': TASK_PROGRESS, 'message': 'Finished getting nodes.', 'progress': '0.1'})
+
     metadata = getMetadata(run)
     atomType = get_atom_type(metadata['parameters'])
-
-    # converting atoms...
-    # current_status = 'converting atoms'
-
+    
     attr_atom_dict, relationList = converter.query_to_ASE(driver,
                                                           qb,
                                                           q,
                                                           atomType,
                                                           getRelationList=True)
-
-    # calculating NEB...
-    #    current_status = 'calculating NEB'
+    current_task.update_state(state='PROGRESS')    
+    send_update(task_id, {'type': TASK_PROGRESS, 'message': 'Finished converting atoms.', 'progress': '0.2'})
 
     energyList = []
     if interpolate < 0:
@@ -206,8 +207,6 @@ def calculate_neb_on_path(run: str,
                 energyList.append([energyVal for x in range(interpolate + 1)])
                 continue
 
-            # between state x and y...
-            #current_status = 'calculating NEB btwn ' + relation['start']['number'] + ' and an end state'
             energies = calculator.calculate_neb_for_pair(
                 attr_atom_dict[relation['start']['number']],
                 attr_atom_dict[relation['end']['number']], run, atomType,
@@ -217,7 +216,10 @@ def calculate_neb_on_path(run: str,
                 energies.pop()
 
             energyList.append(energies)
-
+            
+            current_task.update_state(state='PROGRESS')    
+            send_update(task_id, {'type': TASK_PROGRESS, 'message': f'Image {idx + 1} of {len(relationList)} processed.', 'progress': f'{0.2 + ((idx+1/len(relationList)) - 0.2)}'})
+            
         if saveResults:
             # update by timestep
             q = None
@@ -248,8 +250,6 @@ def calculate_neb_on_path(run: str,
                     tx.run(q)
                 tx.commit()
 
-    #current_status = 'complete'
-
     j = {'energies': energyList}
 
-    return j
+    return json.dumps(j)

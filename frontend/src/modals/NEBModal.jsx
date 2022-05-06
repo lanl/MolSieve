@@ -5,9 +5,7 @@ import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
-import CircularProgress from "@mui/material/CircularProgress";
 import {api_calculate_NEB} from "../api/ajax";
-import Scatterplot from "../vis/Scatterplot";
 import MenuItem from "@mui/material/MenuItem";
 import TextField from "@mui/material/TextField";
 import FormControlLabel from '@mui/material/FormControlLabel';
@@ -17,6 +15,9 @@ import Select from '@mui/material/Select';
 
 import "../css/App.css";
 import {isPath} from "../api/myutils";
+import { onMessageHandler } from '../api/ajax';
+
+import { withSnackbar } from "notistack";
 
 class NEBModal extends React.Component {
 
@@ -28,7 +29,6 @@ class NEBModal extends React.Component {
             energies: [],
             currentExtent: this.props.extents[0],
             drawSequence: [],
-            isLoading: false,
             maxSteps: 2500,
             fmax: 0.01,
             saveResults: true,
@@ -42,40 +42,44 @@ class NEBModal extends React.Component {
         const end = extents["end"];
         
         api_calculate_NEB(run, start, end, this.state.interpolate, this.state.maxSteps, this.state.fmax, this.state.saveResults).then((data) => {
-            
-            
-            let drawSequence = [];
-            let gap = 1 / this.state.interpolate;
-
-            const path = this.props.trajectories[this.state.currentExtent.name].sequence.slice(start, end + 1);
-        
-            const pathVals = path.map((id) => {
-                return this.props.globalUniqueStates.get(id);
-            });
-            
-            for(let i = 0; i < pathVals.length - 1; i++) {
-                const state = {...pathVals[i]};
-                state.timestep = start + i;
-                drawSequence.push(state);
+            const client = new WebSocket(`ws://localhost:8000/api/ws/${data}`);
+            this.props.enqueueSnackbar(`Task ${data} started.`);
                 
-                for(let j = 0; j < this.state.interpolate; j++) {
-                    let stateCopy = { ...state };
-                    stateCopy.timestep += gap * (j + 1);                    
-                    drawSequence.push(stateCopy);
-                }
-            }
+            client.onmessage = onMessageHandler((response) => {
+                const data = response.data;
+                let drawSequence = [];
+                let gap = 1 / this.state.interpolate;
 
-            let unpackedEnergies = [];
-            data.energies.map((energyList) => {               
-                for (const e of energyList) {
-                    unpackedEnergies.push(e);
-                }
-            })
+                const path = this.props.trajectories[this.state.currentExtent.name].sequence.slice(start, end + 1);
+        
+                const pathVals = path.map((id) => {
+                    return this.props.globalUniqueStates.get(id);
+                });
             
-            this.setState({energies: unpackedEnergies, drawSequence: drawSequence, isLoading: false});
+                for(let i = 0; i < pathVals.length - 1; i++) {
+                    const state = {...pathVals[i]};
+                    state.timestep = start + i;
+                    drawSequence.push(state);
+                
+                    for(let j = 0; j < this.state.interpolate; j++) {
+                        let stateCopy = { ...state };
+                        stateCopy.timestep += gap * (j + 1);                    
+                        drawSequence.push(stateCopy);
+                    }
+                }
+
+                let unpackedEnergies = [];
+                data.energies.map((energyList) => {               
+                    for (const e of energyList) {
+                        unpackedEnergies.push(e);
+                    }
+                })
+                this.props.addNEBPlot(unpackedEnergies, drawSequence);
+            }, (data) => {
+                this.props.enqueueSnackbar(data.message);
+            });    
         }).catch((e) => {            
             alert(e);
-            this.setState({isLoading: false});
         });        
         
     }
@@ -146,27 +150,10 @@ class NEBModal extends React.Component {
                                                                />}
                                                       label="Save results to database"/>
                                 </FormControl>                                
-                        {!this.state.isLoading &&
-                         <Scatterplot
-                             trajectories={this.props.trajectories}
-                             globalUniqueStates={this.props.globalUniqueStates}                                    
-                             sequence={this.state.drawSequence}
-                             yAttributeListProp={this.state.energies}
-                             xAttributeProp="timestep"
-                             yAttributeProp="energies"
-                             properties={['timestep','energies']}
-                             xAttributeListProp={this.state.drawSequence.map((s) => s.timestep)}
-                             yAttributeList={this.state.energies}
-                             path={true}
-                             enableMenu={false}
-                         />
-                        }                             
-                         {this.state.isLoading && <CircularProgress color="grey" style={{alignContent: 'center', justifyContent: 'center'}}/>}
                         </Stack>
                     </DialogContent>
                         <DialogActions>
                             <Button onClick={() => {
-                                        this.setState({isLoading: true});
                                         this.calculateNEB()
                                     }} size="small">
                                 Calculate NEB on Path
@@ -187,4 +174,4 @@ class NEBModal extends React.Component {
     }
 }
 
-export default NEBModal;
+export default withSnackbar(NEBModal);
