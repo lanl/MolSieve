@@ -187,6 +187,17 @@ export function api_load_metadata(run, trajectory) {
     });
 }
 
+export function onMessageHandler(onComplete,onProgress) {
+    return (message) => {
+        const data = JSON.parse(message.data);
+        if(data.type == 'TASK_COMPLETE') {
+            onComplete(data);
+        } else {
+            onProgress(data);
+        }        
+    }
+}
+
 export function api_load_property(property) {
     return new Promise(function(resolve, reject) {
         axios.get("/api/load_property", { params: {prop: property} })

@@ -14,6 +14,10 @@ import MenuItem from "@mui/material/MenuItem";
 import axios from 'axios';
 import TextField from "@mui/material/TextField";
 
+import { withSnackbar } from 'notistack';
+
+import { onMessageHandler } from '../api/ajax';
+
 const OVITO = 'ovito_modifier';
 const PYTHON = 'python_script';
 const CYPHER_QUERY = 'cypher_query';
@@ -45,18 +49,17 @@ class AnalysisTab extends React.Component {
                 saveResults: this.state.saveResults,
                 states: this.props.states.map((state) => { return state.id })
             }).then((response) => {
-                const client = new WebSocket(`ws://localhost:8000/api/ws/${response.data}`);                
-                client.onmessage = (message) => {
-                    const data = JSON.parse(message.data);
-                    if(data.type == 'TASK_COMPLETE') {
-                        if(this.state.displayResults) {
-                            console.log(data.data);
-                        }
-                        client.close();
-                    } else {
-                        console.log(data);
+
+                const client = new WebSocket(`ws://localhost:8000/api/ws/${response.data}`);
+                this.props.enqueueSnackbar(`Task ${response.data} started.`);
+                
+                client.onmessage = onMessageHandler((data) => {
+                    if(this.state.displayResults) {
+                        console.log(data.data);
                     }
-                }
+                    this.props.enqueueSnackbar(`Task ${response.data} complete`);
+                    client.close();
+                }, () => {})                            
             }).catch((e) => {
                 alert(e);
             });
@@ -94,7 +97,7 @@ class AnalysisTab extends React.Component {
             break;
         default:
             alert("Unknown analysis step!");
-            return;
+            break;
         }
     }
 
@@ -188,4 +191,4 @@ AnalysisTab.defaultProps = {
 //{(!this.state.isLoading && dataGrids !== null && this.state.displayResults) && <Box>{dataGrids}</Box>}
 //{(!this.state.isLoading && this.state.response !== null) && <p>{this.state.response['info']}</p>}
 
-export default AnalysisTab;
+export default withSnackbar(AnalysisTab);

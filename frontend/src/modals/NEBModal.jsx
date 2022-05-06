@@ -42,6 +42,8 @@ class NEBModal extends React.Component {
         const end = extents["end"];
         
         api_calculate_NEB(run, start, end, this.state.interpolate, this.state.maxSteps, this.state.fmax, this.state.saveResults).then((data) => {
+            
+            
             let drawSequence = [];
             let gap = 1 / this.state.interpolate;
 

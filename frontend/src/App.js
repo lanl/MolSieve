@@ -14,6 +14,7 @@ import VisArea from './components/VisArea';
 import MenuIcon from '@mui/icons-material/Menu';
 import { api_loadPCCA, api_loadSequence, api_load_metadata, api_load_property } from './api/ajax';
 import ControlDrawer from './components/ControlDrawer';
+import { withSnackbar } from 'notistack';
 
 const RUN_MODAL = 'run_modal';
 
@@ -231,11 +232,13 @@ class App extends React.Component {
         let globalUniqueStates = this.state.globalUniqueStates;
         
         if(added.length > 0) {
-            api_load_property(added[0], globalUniqueStates)
-                .then((data) => {
+            api_load_property(added[0])
+                .then((data) => {                    
                     globalUniqueStates = this.addPropToStates(data, globalUniqueStates);
                     this.setState({properties: [...this.state.properties, added[0]],
                                    globalUniqueStates: globalUniqueStates});
+                    this.props.enqueueSnackbar(`Property ${added[0]} loaded.`);
+
                 });
         } else {
             let propertiesCopy = [...this.state.properties];
@@ -440,4 +443,4 @@ class App extends React.Component {
                     multiple paths. Right click to open a context menu.
                   </p>*/
 
-export default App;
+export default withSnackbar(App);

@@ -95,23 +95,32 @@ def run_analysis_task(steps: List[AnalysisStep],
 
     return json.dumps(results)
 
-@celery_app.task(name='load_property')
+"""
+Unused for now, load property usually is pretty fast
+@celery_app.task(name='load_property', base=PostingTask)
 def load_property_task(prop: str):
     uniqueStateAttributes = ["id", prop]
     driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687",
                                         auth=("neo4j", "secret"))
+    task_id = current_task.request.id
     
     qb = querybuilder.Neo4jQueryBuilder()
 
     query = qb.generate_get_all_nodes(
         "State", node_attributes=uniqueStateAttributes, ignoreNull = True)
 
+    send_update(task_id, {'type': TASK_PROGRESS, 'message': 'Retrieved all nodes', 'progress': 0.5})
+    current_task.update_state(state='PROGRESS')  
     j = {}
     with driver.session() as session:
         result = session.run(query.text)
         j["propertyList"] = result.data()
 
-    return j
+    send_update(task_id, {'type': TASK_PROGRESS, 'message': 'Retrieved all properties', 'progress': 1})
+    current_task.update_state(state='PROGRESS')  
+
+    return json.dumps(j)
+"""
 
 @celery_app.task(name='perform_KS_Test')
 def perform_KSTest(data: dict):

@@ -160,14 +160,25 @@ def perform_KSTest(data: dict):
 def load_property(prop: str):
     """
     Loads the given property for all applicable nodes
-
-    :param run: The run that the properties belong to.
     :param prop: The property to load.
 
     :returns: a dict of {id: property}
     """
-    task = celery_app.send_task('load_property', args=(prop))
-    return task.id
+    uniqueStateAttributes = ["id", prop]
+    driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687",
+                                        auth=("neo4j", "secret"))
+    
+    qb = querybuilder.Neo4jQueryBuilder()
+
+    query = qb.generate_get_all_nodes(
+        "State", node_attributes=uniqueStateAttributes, ignoreNull = True)
+
+    j = {}
+    with driver.session() as session:
+        result = session.run(query.text)
+        j["propertyList"] = result.data()
+
+    return j
 
 @router.get('/calculate_neb_on_path', status_code=201)
 async def calculate_neb_on_path(run: str,
