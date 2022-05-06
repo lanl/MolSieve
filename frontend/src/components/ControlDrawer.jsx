@@ -1,7 +1,5 @@
 import { React, useState } from 'react';
 
-import Box from '@mui/material/Box';
-
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
 import ListItemText from '@mui/material/ListItemText';
@@ -24,6 +22,7 @@ import DialogContent from '@mui/material/DialogTitle';
 import DialogActions from '@mui/material/DialogActions';
 
 import Divider from '@mui/material/Divider';
+import AnalysisTab from '../modals/AnalysisTab';
 
 import AddFilterModal from '../modals/AddFilterModal';
 import FilterComponent from './FilterComponent';
@@ -31,6 +30,7 @@ import CheckboxTable from './CheckboxTable';
 
 const ADD_FILTER_MODAL = "add-filter-modal";
 const METADATA_MODAL = "metadata-modal";
+const ANALYSIS_MODAL = "analysis-modal";
 
 function ControlDrawer({trajectories, runs, updateRun, recalculate_clustering, simplifySet, drawerOpen, toggleDrawer, addFilter, propagateChange, setProperties, properties}) {
     const [currentModal, setCurrentModal] = useState();
@@ -71,14 +71,20 @@ function ControlDrawer({trajectories, runs, updateRun, recalculate_clustering, s
                 </AccordionSummary>
                 <Divider/>
                 <AccordionDetails>
-                    <Button
-                        onClick={() => {
-                            setCurrentRun(run), () => {
-                                toggleModal(METADATA_MODAL);   
-                            };
-                        }}>
-                        Display metadata
-                    </Button>
+                        <Button
+                            onClick={() => {
+                                setCurrentRun(run);
+                                toggleModal(METADATA_MODAL);                                                               
+                            }}>
+                            Display metadata
+                        </Button>
+                        <Button
+                            onClick={() => {
+                                setCurrentRun(run);
+                                toggleModal(ANALYSIS_MODAL);   
+                            }}>
+                            Run analysis
+                        </Button>
                     <List key={run}>
 
                         <ListItem>
@@ -155,7 +161,7 @@ function ControlDrawer({trajectories, runs, updateRun, recalculate_clustering, s
     });    
     
     return (
-        <Box>
+        <>
             <Drawer anchor="right" variant="persistent" open={drawerOpen}>
                 <Accordion disableGutters={true}>
                     <AccordionSummary
@@ -197,7 +203,20 @@ function ControlDrawer({trajectories, runs, updateRun, recalculate_clustering, s
                      run={currentRun}
                  />
              )}
-                
+
+            {currentModal == ANALYSIS_MODAL && (
+                    <Dialog
+                        open={currentModal == ANALYSIS_MODAL}
+                        onClose={toggleModal}
+                        onBackdropClick={() => {
+                            toggleModal(null);
+                        }}>
+                        <DialogTitle>
+                            Analysis for {currentRun}
+                        </DialogTitle>
+                        <AnalysisTab run={currentRun} closeFunc={toggleModal}/>
+                    </Dialog>
+            )}
 
             {currentModal === METADATA_MODAL && (
                 <Dialog
@@ -211,10 +230,9 @@ function ControlDrawer({trajectories, runs, updateRun, recalculate_clustering, s
                         Metadata for {currentRun}
                     </DialogTitle>
                     <DialogContent>
-                        {
-                            trajectories[currentRun]
-                                .LAMMPSBootstrapScript
-                        }
+                        <p>{
+                            trajectories[currentRun].LAMMPSBootstrapScript
+                        }</p>
                     </DialogContent>
                     <DialogActions>
                         <Button
@@ -227,7 +245,7 @@ function ControlDrawer({trajectories, runs, updateRun, recalculate_clustering, s
                     </DialogActions>
                 </Dialog>
             )}           
-        </Box>);
+        </>);
 }
 
 export default ControlDrawer;

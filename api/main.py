@@ -73,7 +73,7 @@ async def ws(task_id: str, websocket: WebSocket):
     try:
         await websocket.receive()
     except WebSocketDisconnect:
-        await cm.disconnect(websocket)
+        await cm.disconnect(task_id)
 
 @router.get("/generate_ovito_image")
 async def generate_ovito_image(number: str):
@@ -148,8 +148,7 @@ async def run_analysis(steps: List[AnalysisStep],
                        states: Optional[List[int]] = Body([]),
                        displayResults: bool = Body(True),
                        saveResults: bool = Body(True)):    
-    task = celery_app.send_task('run_analysis', args=(steps, run, states, displayResults, saveResults),)
-    print(type(task))
+    task = celery_app.send_task('run_analysis', args=(steps, run, states, displayResults, saveResults))
     return task.id
 
 @router.post('/perform_KS_Test', status_code=201)

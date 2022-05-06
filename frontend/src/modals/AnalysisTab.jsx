@@ -25,7 +25,7 @@ class AnalysisTab extends React.Component {
         this.state = {
             steps: [],
             newStep: OVITO,
-            displayResults: true,
+            displayResults: false,
             saveResults: true
         }
     }
@@ -45,11 +45,17 @@ class AnalysisTab extends React.Component {
                 saveResults: this.state.saveResults,
                 states: this.props.states.map((state) => { return state.id })
             }).then((response) => {
-                const client = new WebSocket(`ws://localhost:8000/api/ws/${response.data}`);
-                
+                const client = new WebSocket(`ws://localhost:8000/api/ws/${response.data}`);                
                 client.onmessage = (message) => {
-                    console.log(message.data)
-                    console.log("message recieved")
+                    const data = JSON.parse(message.data);
+                    if(data.type == 'TASK_COMPLETE') {
+                        if(this.state.displayResults) {
+                            console.log(data.data);
+                        }
+                        client.close();
+                    } else {
+                        console.log(data);
+                    }
                 }
             }).catch((e) => {
                 alert(e);
@@ -138,10 +144,12 @@ class AnalysisTab extends React.Component {
                         <List>
                             <ListItem key={-1}>
                                 <FormControl>
-                                    <FormControlLabel control={<Checkbox checked={this.state.displayResults}
-                                                                 onChange={(e) => {this.setState({
-                                                                     displayResults: e.target.checked
-                                                                 })}}/>} label="Display results"/>
+                                    <FormControlLabel control={<Checkbox
+                                                                   disabled={this.props.run !== null}
+                                                                   checked={this.state.displayResults}
+                                                                   onChange={(e) => {this.setState({
+                                                                       displayResults: e.target.checked
+                                                                   })}}/>} label="Display results"/>
                                     <FormControlLabel control={<Checkbox checked={this.state.saveResults}
                                                                  onChange={(e) => {this.setState({
                                                                      saveResults: e.target.checked

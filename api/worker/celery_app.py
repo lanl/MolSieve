@@ -37,8 +37,9 @@ def run_analysis_task(steps: List[AnalysisStep],
 
     
     task_id = current_task.request.id    
-    send_update(task_id, {'type': TASK_START})
+
     current_task.update_state(state='PROGRESS')    
+    send_update(task_id, {'type': TASK_START})
 
     driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687",
                                         auth=("neo4j", "secret"))
@@ -49,25 +50,26 @@ def run_analysis_task(steps: List[AnalysisStep],
         q = qb.generate_trajectory(run,
                                    "ASC", ('relation', 'timestep'),
                                    include_atoms=True)
+        current_task.update_state(state='PROGRESS')
         send_update(task_id, {'type': TASK_PROGRESS, 'message': 'Finished processing nodes.', 'progress': '0.25'})
         
         state_atom_dict = converter.query_to_ASE(
             driver, qb, q, get_atom_type(getMetadata(run)['parameters']))
+
+        current_task.update_state(state='PROGRESS')
         send_update(task_id, {'type': TASK_PROGRESS, 'message': 'Finished converting nodes.', 'progress': '0.5'})
-        current_task.update_state(state='PROGRESS')    
     else:
         qb = querybuilder.Neo4jQueryBuilder([('Atom', 'PART_OF', 'State', 'MANY-TO-ONE')])
         q = qb.generate_get_node_list('State', states, "PART_OF")
         
+        current_task.update_state(state='PROGRESS')
         send_update(task_id, {'type': TASK_PROGRESS, 'message': 'Finished processing nodes.', 'progress': '0.25'})
-        current_task.update_state(state='PROGRESS')    
         # what if atom types are mixed?
         state_atom_dict = converter.query_to_ASE(
-            driver, qb, q, 'Pt')
-        send_update(task_id, {'type': TASK_PROGRESS, 'message': 'Finished converting nodes.', 'progress': '0.5'})
+            driver, qb, q, 'Pt')        
         current_task.update_state(state='PROGRESS')    
-        
-    # TODO: Server-sent event to notify atoms have been converted
+        send_update(task_id, {'type': TASK_PROGRESS, 'message': 'Finished converting nodes.', 'progress': '0.5'})
+
     results = {}
     for idx, step in enumerate(steps):
         if step.analysisType == 'ovito_modifier':
