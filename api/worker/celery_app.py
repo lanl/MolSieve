@@ -24,6 +24,10 @@ def send_update(task_id: str, data: Dict[Any,Any]):
     requests.post(f"http://localhost:8000/api/update_task/{task_id}", json=data)
 
 class PostingTask(Task):
+    def before_start(self, task_id, args, kwargs):
+        send_update(task_id, {'type': TASK_START})
+        return super().before_start(task_id,args,kwargs)
+    
     def on_success(self, retval, task_id, args, kwargs):
         send_update(task_id, {'type': TASK_COMPLETE})
         return super().on_success(retval, task_id, args, kwargs)
@@ -37,9 +41,6 @@ def run_analysis_task(steps: List[AnalysisStep],
 
     
     task_id = current_task.request.id    
-
-    current_task.update_state(state='PROGRESS')    
-    send_update(task_id, {'type': TASK_START})
 
     driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687",
                                         auth=("neo4j", "secret"))
@@ -122,23 +123,25 @@ def load_property_task(prop: str):
     return json.dumps(j)
 """
 
-@celery_app.task(name='perform_KS_Test')
+@celery_app.task(name='perform_KS_Test', base=PostingTask)
 def perform_KSTest(data: dict):
     cdf = data['cdf']
     rvs = data['rvs']
     prop = data['property']
+    
+    task_id = current_task.request.id
 
     driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687",
                                         auth=("neo4j", "secret"))
 
-    qb = querybuilder.Neo4jQueryBuilder()
-    
+    qb = querybuilder.Neo4jQueryBuilder()    
     q = qb.generate_get_node_list('State', rvs, attributeList=[prop])
 
+    current_task.update_state(state='PROGRESS')
+    send_update(task_id, {'type': TASK_PROGRESS, 'message': 'Finished processing nodes.', 'progress': '0.5'})
+        
     rvs_df = converter.query_to_df(driver, q)
-
-    rvs_final = rvs_df[prop].to_numpy()
-    
+    rvs_final = rvs_df[prop].to_numpy()    
     cdf_final = None
 
     if (type(data['cdf']) is dict):
@@ -150,7 +153,8 @@ def perform_KSTest(data: dict):
 
     statistic, pvalue = stats.kstest(rvs_final, cdf_final)
 
-    return {'statistic': statistic, 'pvalue': pvalue}
+    
+    return json.dumps({'statistic': statistic, 'pvalue': pvalue})
 
 @celery_app.task(name='calculate_neb_on_path', base=PostingTask)
 def calculate_neb_on_path(run: str,

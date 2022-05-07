@@ -49,17 +49,22 @@ class AnalysisTab extends React.Component {
                 saveResults: this.state.saveResults,
                 states: this.props.states.map((state) => { return state.id })
             }).then((response) => {
-
-                const client = new WebSocket(`ws://localhost:8000/api/ws/${response.data}`);
-                this.props.enqueueSnackbar(`Task ${response.data} started.`);
-                
-                client.onmessage = onMessageHandler((data) => {
-                    if(this.state.displayResults) {
-                        console.log(data.data);
-                    }
-                    this.props.enqueueSnackbar(`Task ${response.data} complete`);
-                    client.close();
-                }, () => {});                            
+                const id = response.data;
+                const client = new WebSocket(`ws://localhost:8000/api/ws/${id}`);                
+                client.onmessage = onMessageHandler(
+                    () => {
+                        this.props.enqueueSnackbar(`Task ${id} started.`);
+                    },
+                    (data) => {
+                        this.props.enqueueSnackbar(`Task ${id}: ${data.message}`);
+                    },
+                    (data) => {
+                        if(this.state.displayResults) {
+                            console.log(data.data);
+                        }
+                        this.props.enqueueSnackbar(`Task ${id} complete.`);
+                        client.close();
+                });                            
             }).catch((e) => {
                 alert(e);
             });

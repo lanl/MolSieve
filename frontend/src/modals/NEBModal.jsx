@@ -41,11 +41,13 @@ class NEBModal extends React.Component {
         const start = extents["begin"];
         const end = extents["end"];
         
-        api_calculate_NEB(run, start, end, this.state.interpolate, this.state.maxSteps, this.state.fmax, this.state.saveResults).then((data) => {
-            const client = new WebSocket(`ws://localhost:8000/api/ws/${data}`);
-            this.props.enqueueSnackbar(`Task ${data} started.`);
-                
-            client.onmessage = onMessageHandler((response) => {
+        api_calculate_NEB(run, start, end, this.state.interpolate, this.state.maxSteps, this.state.fmax, this.state.saveResults).then((id) => {
+            const client = new WebSocket(`ws://localhost:8000/api/ws/${id}`);                
+            client.onmessage = onMessageHandler(() => {
+                this.props.enqueueSnackbar(`Task ${id} started.`);
+            }, (data) => {
+                this.props.enqueueSnackbar(`Task ${id}: ${data.message}`);
+            }, (response) => {
                 const data = response.data;
                 let drawSequence = [];
                 let gap = 1 / this.state.interpolate;
@@ -74,9 +76,8 @@ class NEBModal extends React.Component {
                         unpackedEnergies.push(e);
                     }
                 })
-                this.props.addNEBPlot(unpackedEnergies, drawSequence);
-            }, (data) => {
-                this.props.enqueueSnackbar(data.message);
+                this.props.enqueueSnackbar(`Task ${id} complete.`);
+                this.props.addNEBPlot(unpackedEnergies, drawSequence);                
             });    
         }).catch((e) => {            
             alert(e);

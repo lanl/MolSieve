@@ -187,14 +187,16 @@ export function api_load_metadata(run, trajectory) {
     });
 }
 
-export function onMessageHandler(onComplete,onProgress) {
+export function onMessageHandler(onStart, onProgress, onComplete) {
     return (message) => {
         const data = JSON.parse(message.data);
         if(data.type == 'TASK_COMPLETE') {
             onComplete(data);
+        } else if(data.type == 'TASK_START') {
+            onStart(data);
         } else {
             onProgress(data);
-        }        
+        }
     }
 }
 

@@ -8,8 +8,12 @@ import Stack from "@mui/material/Stack";
 import FormControl from "@mui/material/FormControl";
 import FormHelperText from "@mui/material/FormHelperText";
 import Select from "@mui/material/Select";
+
+import { withSnackbar } from 'notistack';
+
+import {api_performKSTest, onMessageHandler} from "../api/ajax";
+
 import AjaxSelect from "../components/AjaxSelect";
-import {api_performKSTest} from "../api/ajax";
 import CheckboxTable from "../components/CheckboxTable";
 
 class KSTestTab extends React.Component {
@@ -18,7 +22,6 @@ class KSTestTab extends React.Component {
         
         this.state = {
             ksProperty: "",
-            isLoading: false,
             rvs: this.props.rvsDefault,
             cdf: 'norm'
         }
@@ -39,18 +42,26 @@ class KSTestTab extends React.Component {
     };
 
     performKSTest = () => {        
-        this.setState({ isLoading: true });
         if(this.state.ksProperty !== "") {            
-            api_performKSTest(this.state.rvs, this.state.cdf, this.state.ksProperty).then((data) => {
-                this.setState({ isLoading: false, ksTest: data});
+            api_performKSTest(this.state.rvs, this.state.cdf, this.state.ksProperty).then((id) => {
+                const client = new WebSocket(`ws://localhost:8000/api/ws/${id}`);                
+                client.onmessage = onMessageHandler(
+                    () => {
+                        this.props.enqueueSnackbar(`Task ${id} started.`);                        
+                    },
+                    (data) => {
+                        this.props.enqueueSnackbar(`Task ${id}: ${data.message}`);
+                    },
+                    (data) => {
+                        console.log(data.data);
+                        this.props.enqueueSnackbar(`Task ${id} complete.`);
+                        client.close();
+                    });                            
             }).catch((error) => {
                 alert(error);
-                this.setState({isLoading: false});
             });
-
         } else {
             alert("Please select a property to perform the KS test with.")
-            this.setState({isLoading : false});
         }
        
     };
@@ -118,4 +129,4 @@ class KSTestTab extends React.Component {
     }
 }
 
-export default KSTestTab;
+export default withSnackbar(KSTestTab);

@@ -9,6 +9,7 @@ import '@fontsource/roboto/700.css';
 import { SnackbarProvider } from 'notistack';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 
+
 const theme = createTheme({
     palette: {
         type: 'light',
@@ -26,9 +27,10 @@ ReactDOM.render(
       <ThemeProvider theme={theme}>
           <SnackbarProvider
               anchorOrigin={{
-                  vertical: 'top',
-                  horizontal: 'center',
-              }}>
+                  vertical: 'bottom',
+                  horizontal: 'left',
+              }}
+          >
               <App />
           </SnackbarProvider>
       </ThemeProvider>

@@ -11,6 +11,7 @@ from sse_starlette.sse import EventSourceResponse
 
 from celery.result import AsyncResult
 from .worker.celery_app import TASK_COMPLETE, celery_app
+from celery.utils import uuid
 
 # image rendering
 from PIL import Image
@@ -33,8 +34,9 @@ trajectories = {}
 
 app = FastAPI()
 router = APIRouter(prefix='/api')
-
 cm = ConnectionManager()
+
+unprocessed = {}
 
 @router.get('/get_scipy_distributions')
 def get_scipy_distributions():
@@ -70,6 +72,9 @@ async def update_task(task_id: str, data: dict):
 @router.websocket("/ws/{task_id}")
 async def ws(task_id: str, websocket: WebSocket):
     await cm.connect(task_id, websocket)
+    # get the task's parameters, send it off
+    task_params = unprocessed[task_id]
+    celery_app.send_task(task_params['name'], kwargs=task_params['params'], task_id=task_id)
     try:
         await websocket.receive()
     except WebSocketDisconnect:
@@ -148,13 +153,36 @@ async def run_analysis(steps: List[AnalysisStep],
                        states: Optional[List[int]] = Body([]),
                        displayResults: bool = Body(True),
                        saveResults: bool = Body(True)):    
-    task = celery_app.send_task('run_analysis', args=(steps, run, states, displayResults, saveResults))
-    return task.id
+    task_id = uuid() # task = celery_app.send_task('run_analysis', args=(steps, run, states, displayResults, saveResults))
+    unprocessed.update({task_id: {'name': 'run_analysis', 'params': {'steps': steps,
+                                                                        'run': run,
+                                                                        'states': states,
+                                                                        'displayResults': displayResults,
+                                                                        'saveResults': saveResults }}})
+    return task_id
 
 @router.post('/perform_KS_Test', status_code=201)
 def perform_KSTest(data: dict):    
-    task = celery_app.send_task('perform_KS_Test', args=(data))
-    return task.id
+    task_id = uuid() #= celery_app.send_task('perform_KS_Test', args=[data])
+    unprocessed.update({task_id: {'name': 'perform_KS_Test', 'params': {'data': data}}})
+    return task_id
+
+@router.get('/calculate_neb_on_path', status_code=201)
+async def calculate_neb_on_path(run: str,
+                                start: str,
+                                end: str,
+                                interpolate: int = 3,
+                                maxSteps: int = 2500,
+                                fmax: float = 0.01,
+                                saveResults: bool = True):
+    
+    task_id = uuid() #task = celery_app.send_task('calculate_neb_on_path', args=(run,start,end,interpolate,maxSteps,fmax,saveResults))
+    unprocessed.update({task_id: {'name': 'calculate_neb_on_path', 'params': {'run': run, 'start': start,
+                                                                              'end': end, 'interpolate': interpolate,
+                                                                              'maxSteps': maxSteps, 'fmax': fmax,
+                                                                              'saveResults': saveResults }}})
+    return task_id
+
 
 @router.get('/load_property', status_code=201)
 def load_property(prop: str):
@@ -179,18 +207,6 @@ def load_property(prop: str):
         j["propertyList"] = result.data()
 
     return j
-
-@router.get('/calculate_neb_on_path', status_code=201)
-async def calculate_neb_on_path(run: str,
-                                start: str,
-                                end: str,
-                                interpolate: int = 3,
-                                maxSteps: int = 2500,
-                                fmax: float = 0.01,
-                                saveResults: bool = True):
-    task = celery_app.send_task('calculate_neb_on_path', args=(run,start,end,interpolate,maxSteps,fmax,saveResults))
-    return task.id
-
 
 
 @router.post('/calculate_path_similarity')

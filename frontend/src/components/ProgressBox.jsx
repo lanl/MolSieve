@@ -2,16 +2,20 @@ import {React, useState, useEffect} from 'react';
 import Box from '@mui/material/Box';
 import LinearProgress from '@mui/material/LinearProgress';
 
-export default function ProgressBox({name, progressVal}) {
+export default function ProgressBox({messageProp, progressVal}) {
     
     const [progress, setProgress] = useState(0);
-
+    const [message, setMessage] = useState("");
+    
     useEffect(() => {
-        console.log('setting progress');
+        setMessage(messageProp);
+    }, [messageProp]);
+    
+    useEffect(() => {
         setProgress(progressVal);
     }, [progressVal]);
     
-    return (<Box> Loading {name} graph {progress}
+    return (<Box> {message}
                 <LinearProgress variant="determinate" value={progress}/>
             </Box>);
 }
