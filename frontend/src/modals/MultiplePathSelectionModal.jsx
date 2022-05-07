@@ -25,7 +25,7 @@ import {
 import AnalysisTab from './AnalysisTab';
 import KSTestTab from './KSTestTab';
 
-export default function MultiplePathSelectionModal({properties, close, extents}) {
+export default function MultiplePathSelectionModal({properties, close, extents, addKSTestResult, extentsID}) {
 
     const [tabIdx, setTabIdx] = useState(0);
     
@@ -147,7 +147,13 @@ export default function MultiplePathSelectionModal({properties, close, extents})
                   </Tabs>                    
                 </DialogTitle>
                 <TabPanel value={tabIdx} index={0}>
-                    <KSTestTab closeFunc={close} cdf={extent_options} rvs={extent_options} rvsDefault={JSON.stringify(extents[0].states.map((state)=>state.id))} stateProperties={properties} />
+                    <KSTestTab closeFunc={close}
+                               cdf={extent_options}
+                               rvs={extent_options}
+                               extentsID={extentsID}
+                               addKSTestResult={addKSTestResult}
+                               rvsDefault={JSON.stringify(extents[0].states.map((state)=>state.id))}
+                               stateProperties={properties} />
                 </TabPanel>
                 {analysisTabsContent}
             </Dialog>

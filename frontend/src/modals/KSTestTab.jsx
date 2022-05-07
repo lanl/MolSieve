@@ -53,8 +53,8 @@ class KSTestTab extends React.Component {
                         this.props.enqueueSnackbar(`Task ${id}: ${data.message}`);
                     },
                     (data) => {
-                        console.log(data.data);
                         this.props.enqueueSnackbar(`Task ${id} complete.`);
+                        this.props.addKSTestResult(this.state.rvs, this.state.cdf, this.state.ksProperty, data.data.statistic, data.data.pvalue, this.props.extentsID);
                         client.close();
                     });                            
             }).catch((error) => {

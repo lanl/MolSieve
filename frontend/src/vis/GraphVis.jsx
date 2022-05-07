@@ -232,7 +232,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                 const simulationWorker = new Worker(new URL ('workers/force_directed_simulation.js', import.meta.url));
             
                 trajRendered[name] = false;            
-                enqueueSnackbar((<ProgressBox name={name} progressVal={progressVal}/>), {key: name, persist: true, preventDuplicate: true});
+                enqueueSnackbar((<ProgressBox messageProp={`Loading graph for ${name}...`} progressVal={progressVal}/>), {key: name, persist: true, preventDuplicate: true});
 
                 const sequenceMap = new Map();
                 sSequence.map((state) => {
