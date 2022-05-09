@@ -42,8 +42,8 @@ class AjaxSelect extends React.Component {
         }
     }
 
-    setValue = (v) => {
-        this.setState({value: v}, this.props.change(v));
+    setValue = (v, obj) => {
+        this.setState({value: v}, this.props.change(v, obj));
     }
 
     render() {
@@ -52,12 +52,12 @@ class AjaxSelect extends React.Component {
             return (<CircularProgress color="grey" />);
         } else {
             var options = this.state.data.map((d)=> {
-                return (<MenuItem key={d} value={d}>{d}</MenuItem>)
+                return (<MenuItem key={d} name={d}value={d}>{d}</MenuItem>)
             });
             
             return (<Select value={this.state.value}
-                            onChange={(e)=>{
-                                this.setValue(e.target.value);
+                            onChange={(e, obj)=>{
+                                this.setValue(e.target.value, obj);
                             }}>{this.props.children}{options}</Select>);
         }
     }

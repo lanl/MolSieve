@@ -1,8 +1,6 @@
 import React from "react";
-import Box from '@mui/material/Box';
 import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
-import CircularProgress from "@mui/material/CircularProgress";
 import Button from "@mui/material/Button";
 import Stack from "@mui/material/Stack";
 import FormControl from "@mui/material/FormControl";
@@ -23,7 +21,7 @@ class KSTestTab extends React.Component {
         this.state = {
             ksProperty: "",
             rvs: this.props.rvsDefault,
-            cdf: 'norm'
+            cdf: {'value': 'norm', 'name': 'norm'}
         }
     }
 
@@ -31,9 +29,11 @@ class KSTestTab extends React.Component {
         this.setState({ksProperty: clicked[0]});
     }
 
-    setCDF = (v) => {
+    setCDF = (v,obj) => {
+        console.log(v);
+        console.log(obj.props.name);
         this.setState({
-            cdf: v
+            cdf: {'value': v, 'name': obj.props.name}
         });
     }
 
@@ -42,8 +42,10 @@ class KSTestTab extends React.Component {
     };
 
     performKSTest = () => {        
-        if(this.state.ksProperty !== "") {            
-            api_performKSTest(this.state.rvs, this.state.cdf, this.state.ksProperty).then((id) => {
+        if(this.state.ksProperty !== "") {
+            console.log(this.state.rvs);
+            api_performKSTest(this.state.rvs.value, this.state.cdf.value, this.state.ksProperty).then((id) => {
+                
                 const client = new WebSocket(`ws://localhost:8000/api/ws/${id}`);                
                 client.onmessage = onMessageHandler(
                     () => {
@@ -53,8 +55,8 @@ class KSTestTab extends React.Component {
                         this.props.enqueueSnackbar(`Task ${id}: ${data.message}`);
                     },
                     (data) => {
-                        this.props.enqueueSnackbar(`Task ${id} complete.`);
-                        this.props.addKSTestResult(this.state.rvs, this.state.cdf, this.state.ksProperty, data.data.statistic, data.data.pvalue, this.props.extentsID);
+                        this.props.enqueueSnackbar(`Task ${id} complete.`);                        
+                        this.props.addKSTestResult(this.state.rvs.name, this.state.cdf.name, this.state.ksProperty, data.data.statistic, data.data.pvalue, this.props.extentsID);
                         client.close();
                     });                            
             }).catch((error) => {
@@ -67,16 +69,6 @@ class KSTestTab extends React.Component {
     };
 
     render() {
-        var ksTestText = null;
-
-        if (!this.state.ksTest && !this.state.isLoading) {
-            ksTestText = (<p></p>);
-        } else if (this.state.isLoading) {
-            ksTestText = (<Box style={{alignItems: 'center', justifyContent:'center'}}><CircularProgress color="grey" /></Box>);
-        } else {
-            ksTestText = (<p>Statistic: {`${this.state.ksTest['statistic']}`}; <br />
-                          P-value: {`${this.state.ksTest['pvalue']}`}</p>);
-        }
         
         return (<>
                     <DialogContent>
@@ -85,20 +77,20 @@ class KSTestTab extends React.Component {
                             spacing={2}
                             direction="row">
                             <FormControl>
-                                <Select
-                                    value={this.state.rvs}
-                                    onChange={(e) => {
+                                <Select                                    
+                                    value={this.state.rvs.value}
+                                    onChange={(e, obj) => {
                                         this.setState({
-                                            rvs: e.target.value,
+                                            rvs: {'value': e.target.value, 'name': obj.props.name}
                                         });
                                     }}>
-                                    {this.props.rvs !== undefined && this.props.rvs}                                   
+                                     {this.props.rvs !== undefined && this.props.rvs}
                                 </Select>
                                 <FormHelperText>rvs</FormHelperText>
                             </FormControl>
                             <FormControl>
                                 <AjaxSelect change={this.setCDF}
-                                            defaultValue={this.state.cdf}
+                                            defaultValue={this.state.cdf.value}
                                             api_call='/api/get_scipy_distributions'>
                                     {this.props.cdf !== undefined && this.props.cdf}
                                 </AjaxSelect>                       
@@ -111,8 +103,7 @@ class KSTestTab extends React.Component {
 
                         {this.props.stateProperties === undefined &&
                          <CheckboxTable header="State properties" api_call={`/api/get_property_list?run=${this.props.currentRun}`} allowOnlyOneSelected click={this.setKSProperty} /> }
-                  
-                        {ksTestText}
+
                         </DialogContent>
                         <DialogActions>
                             <Button

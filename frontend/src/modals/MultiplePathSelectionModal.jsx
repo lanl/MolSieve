@@ -84,13 +84,18 @@ export default function MultiplePathSelectionModal({properties, close, extents, 
         }
     };*/
 
-    if (open && extents) {            
-        const extent_options = extents.map((extent, i) => (
-            <MenuItem key={i} value={JSON.stringify(extent.states.map((state) => state.id))}>
-                {`extent ${i+1}`}
+    if (open && extents) {
+        const extents_kv = extents.map((extent, i) => (
+            {'name': `extent ${i+1}`, 'value': JSON.stringify(extent.states.map((state) => state.id))}
+        ));
+        
+        const extent_options = extents_kv.map((kv, i) => (
+            <MenuItem key={i} name={kv.name} value={kv.value}>
+                {kv.name}
             </MenuItem>
         ));
 
+        
         /*
         //const extentGroups = d3.group(this.props.extents, (d) => d.name);
         let similarityText = null;
@@ -148,11 +153,11 @@ export default function MultiplePathSelectionModal({properties, close, extents, 
                 </DialogTitle>
                 <TabPanel value={tabIdx} index={0}>
                     <KSTestTab closeFunc={close}
-                               cdf={extent_options}
                                rvs={extent_options}
+                               cdf={extent_options}
+                               rvsDefault={extents_kv[0]}
                                extentsID={extentsID}
                                addKSTestResult={addKSTestResult}
-                               rvsDefault={JSON.stringify(extents[0].states.map((state)=>state.id))}
                                stateProperties={properties} />
                 </TabPanel>
                 {analysisTabsContent}

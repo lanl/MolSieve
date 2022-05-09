@@ -22,6 +22,14 @@ import MultiplePathSelectionModal from '../modals/MultiplePathSelectionModal';
 import ButtonWithOpenMenu from "../components/ButtonWithOpenMenu";
 import ScatterGrid from "./ScatterGrid";
 
+import TableContainer from "@mui/material/TableContainer";
+import Table from "@mui/material/Table";
+import TableBody from "@mui/material/TableBody";
+import TableCell from "@mui/material/TableCell";
+import TableHead from "@mui/material/TableHead";
+import TableRow from "@mui/material/TableRow";
+
+
 import '../css/App.css';
 import {isPath} from '../api/myutils';
 import NEBModal from "../modals/NEBModal";
@@ -232,7 +240,13 @@ class VisArea extends React.Component {
             const KSTestResultsArray = this.state.KSTestResults[id];
             
             const KSTestRender = (KSTestResultsArray !== undefined) ? KSTestResultsArray.map((results, idx) => {
-                return (<p key={idx}>{JSON.stringify(results)}</p>);
+                return (<TableRow key={idx}>
+                            <TableCell>{results.rvs}</TableCell>
+                            <TableCell>{results.cdf}</TableCell>
+                            <TableCell>{results.ksProperty}</TableCell>
+                            <TableCell>{results.statistic}</TableCell>
+                            <TableCell>{results.pvalue}</TableCell>                                                      
+                        </TableRow>);
             }) : null;
             
             return (<Box key={id} className="lightBorder" sx={{minHeight: '50px'}}>
@@ -249,7 +263,35 @@ class VisArea extends React.Component {
                             trajectories={this.props.trajectories}
                             titleProp={id}
                             extents={ss} />
-                        {KSTestRender}
+                        {KSTestResultsArray && (
+                            <>
+                            <Divider/>
+                            <Accordion disableGutters={true}>                                
+                                <AccordionSummary
+                                    expandIcon={<ExpandMoreIcon />}
+                                >
+                                    K-S Test Results
+                                </AccordionSummary>
+                                <Divider/>
+                                <AccordionDetails>
+                                    <TableContainer>
+                                    <Table size="small">
+                                        <TableHead>
+                                            <TableCell>RVS</TableCell>
+                                            <TableCell>CDF</TableCell>
+                                            <TableCell>Property</TableCell>
+                                            <TableCell>Statistic</TableCell>
+                                            <TableCell>P-Value</TableCell>
+                                        </TableHead>
+                                        <TableBody>
+                                            {KSTestRender}
+                                        </TableBody>
+                                    </Table>
+                                    </TableContainer>
+                                </AccordionDetails>
+                            </Accordion>
+                                </>
+                        )}
                     </Box>);
         });
 
