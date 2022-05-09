@@ -213,35 +213,24 @@ def load_property(prop: str):
 def calculate_path_similarity(extents: dict):
     driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687",
                                         auth=("neo4j", "secret"))
-
-    qb1 = querybuilder.Neo4jQueryBuilder([
-        ('State', extents['p1']['name'], 'State', 'ONE-TO-ONE'),
+    
+    extents['state_attributes'].append('id')                                       
+    
+    qb = querybuilder.Neo4jQueryBuilder([    
         ('Atom', 'PART_OF', 'State', 'MANY-TO-ONE')
     ])
 
-    q1 = qb1.generate_get_path(extents['p1']['begin']['timestep'],
-                               extents['p1']['end']['timestep'],
-                               extents['p1']['name'],
-                               'timestep',
-                               include_atoms=False)
+    q1 = qb.generate_get_node_list('State', extents['p1'],                                   
+                                   attributeList = extents['state_attributes'])
 
-    qb2 = querybuilder.Neo4jQueryBuilder([
-        ('State', extents['p1']['name'], 'State', 'ONE-TO-ONE'),
-        ('Atom', 'PART_OF', 'State', 'MANY-TO-ONE')
-    ])
+    q2 = qb.generate_get_node_list('State', extents['p2'],
+                                   attributeList = extents['state_attributes'])
 
-    q2 = qb2.generate_get_path(extents['p2']['begin']['timestep'],
-                               extents['p2']['end']['timestep'],
-                               extents['p2']['name'],
-                               'timestep',
-                               include_atoms=False)
 
-    score = calculator.calculate_path_similarity(
-        driver, q1, q2, qb2, extents['state_attributes'],
-        extents['atom_attributes'])
-
+    score = calculator.calculate_path_similarity(driver, q1, q2, qb,
+                                                 extents['state_attributes'],
+                                                 extents['atom_attributes'])
     return score
-
 
 
 # perhaps run this first and then the PCCA

@@ -112,12 +112,7 @@ class AnalysisTab extends React.Component {
     }
 
     addTextArea = () => {
-        /*let index = this.state.steps.length;
-        let steps = this.state.steps;
-        let step = steps[index];*/
-
-        return (<TextField multiline on/>);
-        
+        return (<TextField multiline on/>);        
     }
 
     render() {
@@ -125,33 +120,7 @@ class AnalysisTab extends React.Component {
         const steps = (this.state.steps.length > 0) ? this.state.steps.map((step, idx) => {
             return (<ListItem key={idx}><h2>{`${idx + 1}. `}</h2>{step.render}</ListItem>);
         }): null;        
-        
-        /*const dataGrids = (this.state.response !== null ? Object.keys(this.state.response).map((response, idx) => {
-            
-            const data = Object.values(this.state.response[response]);
-                       
-            let rows =  [];
-            let columns = [];
-            let rowCount = 0;
-
-            for(let key of Object.keys(data[0])) {
-                columns.push({'field': key, 'headerName': key, 'flex': 1});
-            }
-            
-            for(let state of data) {
-                let row = Object.assign({}, state);                
-                row['id'] = rowCount;
-                rows.push(row);
-                rowCount++;
-            }
-            
-            if(response === 'info') {
-                return null;
-            }
-            
-            return (<Stack key={idx} sx={{'height': 350}}><h1>Step {idx + 1}</h1><DataGrid rows={rows} columns={columns}/></Stack>)
-        }) : null);*/
-        
+                
         return (<>
                     <DialogContent>
                         <List>
@@ -202,8 +171,5 @@ AnalysisTab.defaultProps = {
     states: [],
     run: null
 };
-
-//{(!this.state.isLoading && dataGrids !== null && this.state.displayResults) && <Box>{dataGrids}</Box>}
-//{(!this.state.isLoading && this.state.response !== null) && <p>{this.state.response['info']}</p>}
 
 export default withSnackbar(AnalysisTab);
