@@ -7,7 +7,7 @@ import FormHelperText from '@mui/material/FormHelperText';
 import FormControl from '@mui/material/FormControl';
 import Button from '@mui/material/Button';
 
-import { api_calculate_path_similarity } from '../api/ajax';
+import { api_calculate_path_similarity, onMessageHandler } from '../api/ajax';
 import CheckboxTable from '../components/CheckboxTable';
 
 
@@ -51,8 +51,16 @@ export default function PathSimilarityTab({extents, properties, closeFunc, exten
                 extent2.value,
                 stateProperties,
                 atomProperties,
-            ).then((data) => {
-                console.log(data);
+            ).then((response) => {
+                console.log(response);
+                const id = response;
+                const client = new WebSocket(`ws://localhost:8000/api/ws/${id}`);                
+                client.onmessage = onMessageHandler(
+                    () => {},
+                    () => {},
+                    (data) => {
+                        console.log(data);
+                    });
             }).catch((error) => {
                 alert(error);
             });
@@ -82,6 +90,7 @@ export default function PathSimilarityTab({extents, properties, closeFunc, exten
                                     setExtent2({'value': e.target.value, 'name': obj.props.name});
                                 }}
                             >
+                                
                                 {extent_options}
                             </Select>
                             <FormHelperText>Path 2</FormHelperText>

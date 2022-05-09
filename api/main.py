@@ -181,8 +181,25 @@ async def calculate_neb_on_path(run: str,
                                                                               'end': end, 'interpolate': interpolate,
                                                                               'maxSteps': maxSteps, 'fmax': fmax,
                                                                               'saveResults': saveResults }}})
+
     return task_id
 
+@router.post('/calculate_path_similarity')
+def calculate_path_similarity(
+        p1: List[int],
+        p2: List[int],
+        state_attributes: List[str] = [],
+        atom_attributes: List[str] = []):
+    
+    task_id = uuid()
+    unprocessed.update({task_id: {'name': 'calculate_path_similarity', 'params': {
+        'p1': p1,
+        'p2': p2,
+        'state_attributes': state_attributes,
+        'atom_attributes': atom_attributes
+    }}})
+
+    return task_id
 
 @router.get('/load_property', status_code=201)
 def load_property(prop: str):
@@ -209,28 +226,7 @@ def load_property(prop: str):
     return j
 
 
-@router.post('/calculate_path_similarity')
-def calculate_path_similarity(extents: dict):
-    driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687",
-                                        auth=("neo4j", "secret"))
-    
-    extents['state_attributes'].append('id')                                       
-    
-    qb = querybuilder.Neo4jQueryBuilder([    
-        ('Atom', 'PART_OF', 'State', 'MANY-TO-ONE')
-    ])
 
-    q1 = qb.generate_get_node_list('State', extents['p1'],                                   
-                                   attributeList = extents['state_attributes'])
-
-    q2 = qb.generate_get_node_list('State', extents['p2'],
-                                   attributeList = extents['state_attributes'])
-
-
-    score = calculator.calculate_path_similarity(driver, q1, q2, qb,
-                                                 extents['state_attributes'],
-                                                 extents['atom_attributes'])
-    return score
 
 
 # perhaps run this first and then the PCCA

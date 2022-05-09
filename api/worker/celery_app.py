@@ -256,3 +256,32 @@ def calculate_neb_on_path(run: str,
     j = {'energies': energyList}
 
     return json.dumps(j)
+
+@celery_app.task(name='calculate_path_similarity', base=PostingTask)
+def calculate_path_similarity(
+        p1: List[int],
+        p2: List[int],
+        state_attributes: List[str] = [],
+        atom_attributes: List[str] = []):
+
+    driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687",
+                                        auth=("neo4j", "secret"))
+    
+    state_attributes.append('id')
+    
+    qb = querybuilder.Neo4jQueryBuilder([    
+        ('Atom', 'PART_OF', 'State', 'MANY-TO-ONE')
+    ])
+
+    q1 = qb.generate_get_node_list('State', p1,                                   
+                                   attributeList = state_attributes)
+
+    q2 = qb.generate_get_node_list('State', p2,
+                                   attributeList = state_attributes)
+
+
+    score = calculator.calculate_path_similarity(driver, q1, q2,
+                                                 state_attributes,
+                                                 atom_attributes)
+
+    return json.dumps({'score': score})
