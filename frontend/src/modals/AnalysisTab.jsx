@@ -60,7 +60,12 @@ class AnalysisTab extends React.Component {
                     },
                     (data) => {
                         if(this.state.displayResults) {
-                            console.log(data.data);
+                            let orgData = {}
+                            for(const stepNum of Object.keys(data.data)) {
+                                const datum = Object.values(data.data[stepNum]);
+                                orgData[stepNum] = datum;
+                            }
+                            this.props.addAnalysisResult(orgData, this.props.extentsID);
                         }
                         this.props.enqueueSnackbar(`Task ${id} complete.`);
                         client.close();
@@ -145,24 +150,30 @@ class AnalysisTab extends React.Component {
             }
             
             return (<Stack key={idx} sx={{'height': 350}}><h1>Step {idx + 1}</h1><DataGrid rows={rows} columns={columns}/></Stack>)
-        }) : null);        */
+        }) : null);*/
         
         return (<>
                     <DialogContent>
                         <List>
                             <ListItem key={-1}>
                                 <FormControl>
-                                    <FormControlLabel control={<Checkbox
-                                                                   disabled={this.props.run !== null}
-                                                                   checked={this.state.displayResults}
-                                                                   onChange={(e) => {this.setState({
-                                                                       displayResults: e.target.checked
-                                                                   })}}/>} label="Display results"/>
-                                    <FormControlLabel control={<Checkbox checked={this.state.saveResults}
-                                                                 onChange={(e) => {this.setState({
-                                                                     saveResults: e.target.checked
-                                                                 })}}
-                                                       />} label="Save results to database"/>
+                                    <FormControlLabel
+                                        control={
+                                            <Checkbox
+                                                disabled={this.props.run !== null}
+                                                checked={this.state.displayResults}
+                                                onChange={(e) => {this.setState({
+                                                    displayResults: e.target.checked
+                                                })}}/>}
+                                        label="Display results"/>
+                                    <FormControlLabel
+                                        control={
+                                            <Checkbox
+                                                checked={this.state.saveResults}
+                                                onChange={(e) => {this.setState({
+                                                    saveResults: e.target.checked
+                                                })}}
+                                            />} label="Save results to database"/>
                                 </FormControl>
                                 </ListItem>
                             <ListItem key={this.state.steps.length + 1}>
@@ -176,8 +187,7 @@ class AnalysisTab extends React.Component {
                                 <Button variant="contained" size="small" onClick={() => {this.addStep()}}>Add new analysis step</Button>
                             </ListItem>
                             {steps}
-                        </List>
-                        
+                        </List>                        
                     </DialogContent>                                       
                     <DialogActions>
                         <Button size="small" onClick={() => {this.runSteps()}}>Run analysis steps</Button>

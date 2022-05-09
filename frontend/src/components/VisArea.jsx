@@ -29,6 +29,7 @@ import TableCell from "@mui/material/TableCell";
 import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
 
+import { DataGrid } from "@mui/x-data-grid";
 
 import '../css/App.css';
 import {isPath} from '../api/myutils';
@@ -53,6 +54,7 @@ class VisArea extends React.Component {
             subSequences: {},
             selectedExtents: null,
             KSTestResults: {},
+            analyses: {},
             NEBPlots: []
         };
     }
@@ -129,6 +131,11 @@ class VisArea extends React.Component {
             ...this.state.KSTestResults,
             [extentsID]: (this.state.KSTestResults[extentsID] !== undefined) ? [ ...this.state.KSTestResults[extentsID], results] : [results]
         }});        
+    }
+
+    addAnalysisResult = (analysis, extentsID) => {
+        this.setState({analyses: {...this.state.analyses,
+                                  [extentsID]: (this.state.analyses[extentsID] !== undefined) ? [...this.state.analyses[extentsID], analysis] : [analysis]}});
     }
     
     changeTimestep = (e) => {        
@@ -238,7 +245,7 @@ class VisArea extends React.Component {
             const ss = this.state.subSequences[id];
 
             const KSTestResultsArray = this.state.KSTestResults[id];
-            
+
             const KSTestRender = (KSTestResultsArray !== undefined) ? KSTestResultsArray.map((results, idx) => {
                 return (<TableRow key={idx}>
                             <TableCell>{results.rvs}</TableCell>
@@ -248,6 +255,41 @@ class VisArea extends React.Component {
                             <TableCell>{results.pvalue}</TableCell>                                                      
                         </TableRow>);
             }) : null;
+
+            const Analyses = this.state.analyses[id];
+            
+            const dataGrids = (Analyses !== undefined) ? Object.keys(Analyses).map((count, idx) => {                                
+                const data = Analyses[count];
+                const grids = [];
+
+                for (const step of Object.keys(data)) {                    
+                    const stepData = data[step];
+
+                    let rows =  [];
+                    let columns = [];
+                    let rowCount = 0;
+
+                    for(const key of Object.keys(stepData[0])) {
+                        columns.push({'field': key, 'headerName': key, 'flex': 1});
+                    }
+            
+                    for(const state of stepData) {
+                        let row = Object.assign({}, state);                
+                        row['id'] = rowCount;
+                        rows.push(row);
+                        rowCount++;
+                    }
+                    
+                    if(step === 'info') {
+                        return null;
+                    }
+                    
+                    grids.push(<DataGrid key={`${idx}_${step}`} autoHeight rows={rows} columns={columns}/>);
+                }
+                
+                return grids;
+            }) : null;
+
             
             return (<Box key={id} className="lightBorder" sx={{minHeight: '50px'}}>
                         <Stack direction="row" justifyContent="center">
@@ -290,7 +332,23 @@ class VisArea extends React.Component {
                                     </TableContainer>
                                 </AccordionDetails>
                             </Accordion>
-                                </>
+                            </>
+                        )}
+                        {dataGrids && (
+                            <>
+                                <Divider/>
+                                <Accordion disableGutters={true}>                                
+                                    <AccordionSummary
+                                        expandIcon={<ExpandMoreIcon />}
+                                    >
+                                    Analysis Results
+                                    </AccordionSummary>
+                                    <Divider/>
+                                    <AccordionDetails>
+                                            {dataGrids}
+                                    </AccordionDetails>
+                            </Accordion>
+                            </>                            
                         )}
                     </Box>);
         });
@@ -332,7 +390,7 @@ class VisArea extends React.Component {
                                    color="secondary"
                                    variant="h6">Sub-sequence View</Typography></AccordionSummary>
                               <Divider/>
-                              <AccordionDetails sx={{overflow: 'scroll'}}>
+                              <AccordionDetails>
                                   <Stack direction="column">
                                       {subSequenceCharts}
                                   </Stack>
@@ -372,19 +430,20 @@ class VisArea extends React.Component {
                      />
                     }
 
-                    {safe && (<ScatterGrid
-                                  className="lightBorder"
-                                  sx={{flexBasis: '50%', flexGrow: 0}}
-                                  control={
-                                      <Box display="flex" justifyContent="center"gap={1}>
-                                          <Typography
-                                              color="secondary"
-                                              variant="h6">Scatterplot View</Typography>
-                                          <ButtonWithOpenMenu buttonText={<AddCircleIcon/>} func={this.addScatterplot} data={Object.keys(this.props.trajectories)}/>
-                                      </Box>}
-                              deletePlot={this.deletePlot}>
-                              {scatterplots}
-                          </ScatterGrid>)}
+                    {safe &&
+                     (<ScatterGrid
+                          className="lightBorder"
+                          sx={{flexBasis: '50%', flexGrow: 0}}
+                          control={
+                              <Box display="flex" justifyContent="center" gap={1}>
+                                  <Typography
+                                      color="secondary"
+                                      variant="h6">Scatterplot View</Typography>
+                                  <ButtonWithOpenMenu buttonText={<AddCircleIcon/>} func={this.addScatterplot} data={Object.keys(this.props.trajectories)}/>
+                              </Box>}
+                          deletePlot={this.deletePlot}>
+                          {scatterplots}
+                      </ScatterGrid>)}
                                          
                     {this.state.currentModal === SINGLE_STATE_MODAL && (
                         <SingleStateModal
@@ -403,6 +462,7 @@ class VisArea extends React.Component {
                             extentsID={this.state.selectedExtents.id}
                             properties={this.props.properties}
                             addKSTestResult={this.addKSTestResult}
+                            addAnalysisResult={this.addAnalysisResult}
                             close={() => {
                                 this.toggleModal(SINGLE_STATE_MODAL);                                                        
                             }}

@@ -25,7 +25,7 @@ import {
 import AnalysisTab from './AnalysisTab';
 import KSTestTab from './KSTestTab';
 
-export default function MultiplePathSelectionModal({properties, close, extents, addKSTestResult, extentsID}) {
+export default function MultiplePathSelectionModal({properties, close, extents, addKSTestResult, addAnalysisResult, extentsID}) {
 
     const [tabIdx, setTabIdx] = useState(0);
     
@@ -131,12 +131,15 @@ export default function MultiplePathSelectionModal({properties, close, extents, 
             <TabPanel value={tabIdx} key={idx + 1} index={idx + 1}>
                 <AnalysisTab                    
                     states={extent.states}
+                    extentsID={extentsID}
+                    addAnalysisResult={addAnalysisResult}
                     closeFunc={() => {
                         close();
                     }}
                 />
             </TabPanel>
         ));
+        
         return (
             <Dialog
                 onClose={close}

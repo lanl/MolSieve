@@ -71,8 +71,8 @@ def run_analysis_task(steps: List[AnalysisStep],
         current_task.update_state(state='PROGRESS')    
         send_update(task_id, {'type': TASK_PROGRESS, 'message': 'Finished converting nodes.', 'progress': '0.5'})
 
-    results = {}
-    for idx, step in enumerate(steps):
+    results = []
+    for step in steps:
         if step.analysisType == 'ovito_modifier':
             new_attributes = calculator.apply_ovito_pipeline_modifier(
                 state_atom_dict, analysisType=step.value)
@@ -89,8 +89,7 @@ def run_analysis_task(steps: List[AnalysisStep],
                         tx.run(q.text, data)
                     tx.commit()
             if displayResults:
-                results.update({idx: new_attributes})
-            #TODO: Notify user that everything has been written to the database
+                results.append(new_attributes)
         else:
             raise NotImplementedError()
 
