@@ -1,7 +1,7 @@
 import * as d3 from 'd3';
 import {useState, useEffect, useCallback} from 'react';
 
-export const useExtents = (setExtents) => {
+export const useExtents = (setExtents, onComplete) => {
     const [iExtents, setInternalExtents] = useState([]);
     const [pushExtent, setPushExtent] = useState(false);
     
@@ -18,7 +18,8 @@ export const useExtents = (setExtents) => {
     }, [pushExtent]);
 
     const completeSelection = useCallback(() => {        
-        setPushExtent(true);        
+        setPushExtent(true);
+        onComplete();
     }, []);
 
     return {setInternalExtents, completeSelection};

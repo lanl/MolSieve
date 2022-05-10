@@ -33,7 +33,9 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
     const {contextMenu, toggleMenu} = useContextMenu();
     const {width, height, divRef} = useResize();
 
-    const {setInternalExtents, completeSelection} = useExtents(setExtents);
+    const {setInternalExtents, completeSelection} = useExtents(setExtents, () => {
+        d3.select(ref.current).call(zoom);
+    });
 
     const selectionBrush = () => {
         if (sBrush != null) {            
@@ -417,8 +419,6 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
             }
         }
         // the trick to zooming like this is to move the container without moving the SVG's viewport
-
-
         
         zoom = d3.zoom().on('zoom', function(e) {
             container.attr("transform", e.transform);  
@@ -440,11 +440,13 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
         sBrush = d3
             .brush()
             .keyModifiers(false)
-            .on('start brush', function(e) {
+            .on('brush start', function(e) {
+                // remove zoom on brush start to get rid of cursor getting stuck issue
+                // zoom gets added back after brushing completes
+                d3.select(ref.current).on('.zoom', null);
                 const zt = d3.zoomTransform(container.node());
                 const extent = e.selection;
                 d3.select(ref.current).select('#important').selectAll('.highlightedState').classed("highlightedState", false);  
-
                 d3.select(ref.current).select('#important').selectAll('circle').filter(function(d) {
                     const x = zt.k*d.x + zt.x;
                     const y = zt.k*d.y + zt.y;
@@ -452,7 +454,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                     return (extent[0][0] <= x && x < extent[1][0] &&
                             extent[0][1] <= y && y < extent[1][1]);                    
                 }).classed("highlightedState", true); 
-            }).on('end', function(e) {
+            }).on('end', function(e) {                
                 const zt = d3.zoomTransform(container.node());
                 const extent = e.selection;                
                 const nodes = d3.select(ref.current).select('#important').selectAll('circle').filter(function(d) {
@@ -463,7 +465,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                             extent[0][1] <= y && y < extent[1][1]);                    
                 }).data();
                 d3.select(ref.current).select('#important').selectAll('.highlightedState').classed("highlightedState", false);
-                setInternalExtents([{'states': nodes}]);
+                setInternalExtents((prev) => [...prev, {'states': nodes}]); 
             });                       
          
     }, [width, height, trajectories, seperateTrajectories]);
