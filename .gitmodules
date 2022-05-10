@@ -1,0 +1,6 @@
+[submodule "neomd"]
+	path = neomd
+	url = git@github.com:rostyhn/neomd.git
+[submodule "lammps"]
+	path = lammps
+	url = https://github.com/lammps/lammps

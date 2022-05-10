@@ -16,10 +16,10 @@ scipy = "^1.8.0"
 numpy = "^1.22.3"
 pydantic-requests = "^0.1.4"
 uvicorn = {extras = ["standard"], version = "^0.17.6"}
-neomd = {path = "../neomd", develop = true}
+neomd = {path = "./neomd/", develop = true}
 opencv-python = "^4.5.5"
 requests = "^2.27.1"
-lammps = {path = "../../../Apps/lammps/python"}
+lammps = {path = "./lammps/python"}
 
 [tool.poetry.dev-dependencies]
 pyright = "^1.1.244"

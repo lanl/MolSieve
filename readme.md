@@ -1,9 +1,34 @@
-# Prototype trajectory visualization
+# NeoMDWeb
+Web-server for [NeoMD](https://github.com/rostyhn/neomd). Since the dependencies are difficult to manage, the `docker` image is the recommended way to use this web-server.
 
-To run, make sure that you install everything listed in requirements.txt with `pip install -r requirements.txt`.
+# Manual Installation
+Make sure to bring in all of the submodules using `git submodule update --init --recursive`.
 
-Then set the following environment variables:
+1. Build `LAMMPS` with the following options: 
+   - `MANYBODY`
+   - `OPENMP`
+   - `REPLICA`
+   - `PYTHON`
+   - `BUILD_SHARED_LIBS`
+   - `BUILD_MPI`
+   - `BUILD_OMP`
+   - `LAMMPS_EXCEPTIONS`
+   - `CMAKE_INSTALL_PREFIX` set to $LAMMPS_DIR/install
+   
+2. Install all the Python dependencies using `poetry install --no-dev` - it keeps everything as clean as possible. You can find the installation instructions [here](https://python-poetry.org/docs/). **NOTE: Poetry assumes that LAMMPS has been installed in `lammps/install`.**
 
-Make sure you have either a local copy of Neo4j running on your computer, or use an ssh tunnel to bring that in locally.
+3. Compile the frontend by running `cd frontend; npm run build`.
 
-Then run `uvicorn api.main:app`.
+# Usage
+
+1. Connect / tunnel to a `Neo4j` instance.
+
+2. Start a `redis` instance.
+
+3. Start the `celery` worker(s) by running `poetry run celery -A api.worker.celery_app worker` in the root directory of this project. You can specifiy further options here - this will simply start one worker.
+
+4. Start the `uvicorn` server by running `poetry uvicorn api.main:app`.
+
+5. Start the frontend by running `serve -s build` in the `frontend` directory.
+
+6. Connect to the application in your browser at `http://localhost:3000`.
