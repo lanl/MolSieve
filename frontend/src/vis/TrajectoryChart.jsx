@@ -51,11 +51,7 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
     };
 
     const selectionBrush = () => {
-        if (sBrush != null) {            
-            if (!d3.selectAll('.brush').empty()) {
-                d3.selectAll('.brush').remove();
-            }
-            
+        if (sBrush != null) {                        
             d3.select(ref.current)
                 .append('g')
                 .attr('class', 'brush')
@@ -180,7 +176,7 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
             svg.on('dblclick', () => {
                 // zoom out on double click
                 scaleX.domain([0, maxLength]);
-                xAxis.call(d3.axisTop(scaleX).tickValues(scaleX.ticks().filter(tick => Number.isInteger(tick)))
+                xAxis.call(d3.axisBottom(scaleX).tickValues(scaleX.ticks().filter(tick => Number.isInteger(tick)))
                   .tickFormat(d3.format('d')));
                 importantGroup.selectAll('rect').attr('x', (d) => scaleX(d.timestep)).attr('width', (d) => scaleX(d.timestep + 1) - scaleX(d.timestep));
                 chunkGroup.selectAll('rect').attr('x', (d) => scaleX(d.timestep)).attr('width', (d) => scaleX(d.last + 1) - scaleX(d.timestep));
@@ -196,17 +192,16 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                 .on('end', function(e) {
                     const extent = e.selection;
                     if (extent) {
-                        d3.select('.brush').call(zBrush.move, null);
                         scaleX.domain([
                             scaleX.invert(extent[0]),
                             scaleX.invert(extent[1]),
                         ]);
                         
-                        xAxis.call(d3.axisTop(scaleX).tickValues(scaleX.ticks().filter(tick => Number.isInteger(tick)))
+                        xAxis.call(d3.axisBottom(scaleX).tickValues(scaleX.ticks().filter(tick => Number.isInteger(tick)))
                                    .tickFormat(d3.format('d')));
                         
                         importantGroup.selectAll('rect').attr('x', (d) => scaleX(d.timestep)).attr('width', (d) => scaleX(d.timestep + 1) - scaleX(d.timestep));          
-                        chunkGroup.selectAll('rect').attr('x', (d) => scaleX(d.timestep)).attr('width', (d) => scaleX(d.last + 1) - scaleX(d.timestep));
+                        chunkGroup.selectAll('rect').attr('x', (d) => scaleX(d.timestep)).attr('width', (d) => scaleX(d.last + 1) - scaleX(d.timestep));                        
                     }
                     d3.select(this).remove();
                     d3.select('.brush').remove();
@@ -234,7 +229,6 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                                     end,
                                 };
                                 setInternalExtents((prev) => [...prev, xtent]);                                
-                                //setActionCompleted(PATH_SELECTION);
                             } else {
                                 alert("Invalid selection. Please try again.");
                             }
@@ -311,21 +305,5 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
             </Menu>            
         </>);
 }
-
-/*
-
-                    const [modalTitle, setModalTitle] = useState('');    
-    const [currentModal, setCurrentModal] = useState();
-
-    const toggleModal = (key) => {
-        if (currentModal) {
-            setCurrentModal();
-            setActionCompleted();
-            return;
-        }
-        setCurrentModal(key);
-    };
-
-*/
 
 export default TrajectoryChart;

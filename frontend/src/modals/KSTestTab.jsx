@@ -99,10 +99,11 @@ class KSTestTab extends React.Component {
                         </Stack>
                         
                         {this.props.stateProperties !== undefined &&
-                         <CheckboxTable header="State properties" itemProps={this.props.stateProperties} allowOnlyOneSelected click={this.setKSProperty} /> }
+                         <CheckboxTable header="State properties" itemProps={this.props.stateProperties} selectOnlyOne={true} clickedProps={[this.state.ksProperty]} click={this.setKSProperty} /> }
 
                         {this.props.stateProperties === undefined &&
-                         <CheckboxTable header="State properties" api_call={`/api/get_property_list?run=${this.props.currentRun}`} allowOnlyOneSelected click={this.setKSProperty} /> }
+                         <CheckboxTable header="State properties" api_call={`/api/get_property_list?run=${this.props.currentRun}`}
+                                        selectOnlyOne={true} click={this.setKSProperty} clickedProps={[this.state.ksProperty]} /> }
 
                         </DialogContent>
                         <DialogActions>

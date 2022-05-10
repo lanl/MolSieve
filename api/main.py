@@ -1,5 +1,5 @@
 from fastapi import FastAPI, Request, Body, APIRouter, WebSocket, WebSocketDisconnect
-from typing import Optional, List, Any
+from typing import Optional, List
 
 import neo4j
 from neomd import querybuilder, converter, calculator, visualizations, utils
@@ -115,27 +115,16 @@ async def generate_ovito_image(number: str):
     return {'image': image_string}
 
 
-@router.get('/generate_ovito_animation')
-async def generate_ovito_animation(run: str, start: int, end: int):
-
+@router.post('/generate_ovito_animation')
+async def generate_ovito_animation(title: str, states: List[int] = Body(...)):
     driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687",
                                         auth=("neo4j", "secret"))
 
-    qb = querybuilder.Neo4jQueryBuilder(
-        schema=[("State", run, "State",
-                 "ONE-TO-ONE"), ("Atom", "PART_OF", "State", "MANY-TO-ONE")])
+    qb = querybuilder.Neo4jQueryBuilder([("Atom", "PART_OF", "State", "MANY-TO-ONE")])
 
-    q = qb.generate_get_path(start, end, run, 'timestep')
-
-    metadata = getMetadata(run)
-    atomType = get_atom_type(metadata['parameters'])
-
-    attr_atom_dict = converter.query_to_ASE(driver,
-                                                  qb,
-                                                  q,
-                                                  atomType,
-                                                  dictKey=('relation',
-                                                           'timestep'))
+    q = qb.generate_get_node_list('State', states, 'PART_OF')
+    
+    attr_atom_dict = converter.query_to_ASE(driver, qb, q, 'Pt')
 
     output_path = visualizations.render_ASE_list(
         attr_atom_dict.values(), list(attr_atom_dict.keys()))

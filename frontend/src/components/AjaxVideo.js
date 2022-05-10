@@ -7,29 +7,29 @@ class AjaxVideo extends React.Component {
     constructor(props) {
         super(props);
         this.videoRef = React.createRef();
-        let length = this.props.end - this.props.start;       
         this.state = {
             isLoaded: false,
-            length: length,
             isLoading: false
         }
     }
-
-    // for now will just load Ovito animation
-    loadVideo = () => {
+    
+    loadVideo = () => {        
         this.setState({isLoading: true});
-        axios.get('/api/generate_ovito_animation',
-                  {params: {'run': this.props.run,
-                            'start': this.props.start,
-                            'end': this.props.end
-                           }}).then((response)=> {
-                               const videoData = "data:video/webm;base64," + response.data.video;
-                               this.setState({isLoaded: true, isLoading: false}, () => {
-                    this.videoRef.current.setAttribute("src", videoData);
-                });
-            });    
-    }
+        axios.post('/api/generate_ovito_animation', JSON.stringify(this.props.states), {
+            params: {
+                'title': this.props.title
+            },
+            headers: {
+                "Content-Type": "application/json"
+            }
+           }).then((response)=> {
+               const videoData = "data:video/webm;base64," + response.data.video;
 
+               this.setState({isLoading: false, isLoaded: true}, () => {
+                   this.videoRef.current.setAttribute("src", videoData);
+               });
+           });
+    }                             
 
     componentDidMount() {
         if(!this.state.isLoaded) {
@@ -39,19 +39,23 @@ class AjaxVideo extends React.Component {
         }
     }
 
-    render() {
-         
+    render() {         
         if(!this.state.isLoaded) {
             if(this.state.isLoading) {
-                return (<CircularProgress color="grey"/>);
+                return (<CircularProgress color="secondary"/>);
             } else {
-                return (<Button onClick={()=>{
-                                    this.loadVideo();
-                                }}
-                                size="small">Load video</Button>)
+                return (
+                    <Button
+                        color="secondary"
+                        onClick={()=>{
+                            this.loadVideo();
+                        }}
+                        size="small">
+                        Load video
+                    </Button>)
             }
         } else {
-            return (<video type="video/webm" controls ref={this.videoRef}/>);
+            return (<video type="video/webm" width="100%" controls ref={this.videoRef}/>);
         }
     }
 

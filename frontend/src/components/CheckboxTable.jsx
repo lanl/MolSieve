@@ -11,23 +11,30 @@ import Box from "@mui/material/Box";
 import Checkbox from '@mui/material/Checkbox';
 import axios from "axios";
 
-export default function CheckboxTable({click, api_call, itemProps, clickedProps = [], header}) {
+export default function CheckboxTable({click, api_call, itemProps, clickedProps = [], header, selectOnlyOne = false}) {
 
     const [items, setItems] = useState([]);
     const [isLoaded, setIsLoaded] = useState(false);
     
-    const clickFunc = (e) => {
+    const clickFunc = (e) => {        
         // build list of clicked checkboxes
         if (e.target.checked) {
-            click([...clickedProps, e.target.value]);
+            if(selectOnlyOne) {
+                click([e.target.value]);
+            } else {
+                click([...clickedProps, e.target.value]);
+            }
         } else {
-            const idx = clickedProps.indexOf(e.target.value);
-            const propsCopy = [...clickedProps];
-            propsCopy.splice(idx,1);
-            click(propsCopy);
-        }        
+            if(selectOnlyOne) {
+                click([]);
+            } else {
+                const idx = clickedProps.indexOf(e.target.value);
+                const propsCopy = [...clickedProps];
+                propsCopy.splice(idx,1);
+                click(propsCopy);
+            }
+        }
     };
-
 
     useEffect(() => {
         if(api_call !== undefined && api_call !== '') {

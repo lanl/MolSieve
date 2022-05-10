@@ -9,19 +9,6 @@ import AddCircleIcon from '@mui/icons-material/AddCircle';
 import Accordion from '@mui/material/Accordion';
 import AccordionSummary from '@mui/material/AccordionSummary';
 import AccordionDetails from '@mui/material/AccordionDetails';
-
-import GraphVis from "../vis/GraphVis";
-import Scatterplot from "../vis/Scatterplot";
-import SelectionVis from '../vis/SelectionVis';
-import TrajectoryChart from "../vis/TrajectoryChart";
-
-import SingleStateModal from "../modals/SingleStateModal";
-import LoadingModal from "../modals/LoadingModal";
-import MultiplePathSelectionModal from '../modals/MultiplePathSelectionModal';
-
-import ButtonWithOpenMenu from "../components/ButtonWithOpenMenu";
-import ScatterGrid from "./ScatterGrid";
-
 import TableContainer from "@mui/material/TableContainer";
 import Table from "@mui/material/Table";
 import TableBody from "@mui/material/TableBody";
@@ -30,6 +17,19 @@ import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
 
 import { DataGrid } from "@mui/x-data-grid";
+
+import GraphVis from "../vis/GraphVis";
+import Scatterplot from "../vis/Scatterplot";
+import SelectionVis from '../vis/SelectionVis';
+import TrajectoryChart from "../vis/TrajectoryChart";
+import AjaxVideo from "../components/AjaxVideo";
+
+import SingleStateModal from "../modals/SingleStateModal";
+import LoadingModal from "../modals/LoadingModal";
+import MultiplePathSelectionModal from '../modals/MultiplePathSelectionModal';
+
+import ButtonWithOpenMenu from "../components/ButtonWithOpenMenu";
+import ScatterGrid from "./ScatterGrid";
 
 import '../css/App.css';
 import {isPath} from '../api/myutils';
@@ -247,9 +247,14 @@ class VisArea extends React.Component {
                         sequence={(sc_props.name !== undefined) ? this.props.trajectories[sc_props.name].simplifiedSequence.sequence : sc_props.states}
                    />);            
         });
-        
+
+        // would make sense to put in a seperate component
         const subSequenceCharts = Object.keys(this.state.subSequences).map((id) => {
             const ss = this.state.subSequences[id];
+            
+            const extentVideos = ss.map((extent, idx) => {
+                return (<Box key={idx} gridColumn="span 1"><AjaxVideo title={`extent ${idx+1}`} states={extent.states.map((state) => state.id)}/></Box>);
+            });
 
             const KSTestResultsArray = this.state.KSTestResults[id];
 
@@ -300,7 +305,6 @@ class VisArea extends React.Component {
             const pathSimilarityResults = this.state.similarities[id];            
             
             const pathSimilarityRender = (pathSimilarityResults !== undefined) ? pathSimilarityResults.map((results, idx) => {
-                console.log(results);
                 return (<TableRow key={idx}>
                             <TableCell>{results.e1}</TableCell>
                             <TableCell>{results.e2}</TableCell>                                                    
@@ -323,6 +327,15 @@ class VisArea extends React.Component {
                             trajectories={this.props.trajectories}
                             titleProp={id}
                             extents={ss} />
+                        {extentVideos && (
+                            <Box display="grid"
+                                sx={{
+                                    gridColumnGap: "10px",
+                                    gridTemplateColumns: "repeat(2, 1fr)"
+                                 }}>
+                                {extentVideos}
+                            </Box>
+                        )}
                         {KSTestResultsArray && (
                             <>
                             <Divider/>

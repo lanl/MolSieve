@@ -19,7 +19,10 @@ export const useExtents = (setExtents, onComplete) => {
 
     const completeSelection = useCallback(() => {        
         setPushExtent(true);
-        onComplete();
+
+        if(onComplete !== undefined) {
+            onComplete();
+        }
     }, []);
 
     return {setInternalExtents, completeSelection};
