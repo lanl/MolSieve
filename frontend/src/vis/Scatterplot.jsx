@@ -272,7 +272,7 @@ export default function Scatterplot ({
                                 y0 <= y && y < y1);                    
                     }).data();
                     d3.select(ref.current).selectAll('.highlightedState').classed("highlightedState", false);
-                    setInternalExtents([{'states': nodes}]);
+                    setInternalExtents((prev) => [...prev, {'states': nodes}]); 
                 });                             
             
             if(loadingCallback !== undefined) {
