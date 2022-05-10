@@ -6,25 +6,25 @@ import Select from '@mui/material/Select';
 import FormHelperText from '@mui/material/FormHelperText';
 import FormControl from '@mui/material/FormControl';
 import Button from '@mui/material/Button';
+import { useSnackbar } from 'notistack';
 
 import { api_calculate_path_similarity, onMessageHandler } from '../api/ajax';
 import CheckboxTable from '../components/CheckboxTable';
 
-
-export default function PathSimilarityTab({extents, properties, closeFunc, extent_options}) {
+export default function PathSimilarityTab({extents, properties, closeFunc, extent_options, addPathSimilarityResult, extentsID}) {
     
     const [atomProperties, setAtomProperties] = useState([]);
     const [stateProperties, setStateProperties] = useState([]);
     const [extent1, setExtent1] = useState(extents[0]);
     const [extent2, setExtent2] = useState(extents[1]);
 
+    const { enqueueSnackbar } = useSnackbar();    
+    
     const addAtomProperty = (clicked) => {
-        console.log(clicked);
         setAtomProperties([...clicked]);
     };
 
     const addStateProperty = (clicked) => {
-        console.log(clicked);
         setStateProperties([...clicked]);
     };
 
@@ -56,10 +56,15 @@ export default function PathSimilarityTab({extents, properties, closeFunc, exten
                 const id = response;
                 const client = new WebSocket(`ws://localhost:8000/api/ws/${id}`);                
                 client.onmessage = onMessageHandler(
-                    () => {},
-                    () => {},
+                    () => {
+                        enqueueSnackbar(`Task ${id} started.`);
+                    },
                     (data) => {
-                        console.log(data);
+                        enqueueSnackbar(`Task ${id}: ${data.message}`);
+                    },
+                    (data) => {
+                        enqueueSnackbar(`Task ${id} complete.`);
+                        addPathSimilarityResult(extent1.name,extent2.name, data.data.score, extentsID);
                     });
             }).catch((error) => {
                 alert(error);

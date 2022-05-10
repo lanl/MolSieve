@@ -55,6 +55,7 @@ class VisArea extends React.Component {
             selectedExtents: null,
             KSTestResults: {},
             analyses: {},
+            similarities: {},
             NEBPlots: []
         };
     }
@@ -136,6 +137,12 @@ class VisArea extends React.Component {
     addAnalysisResult = (analysis, extentsID) => {
         this.setState({analyses: {...this.state.analyses,
                                   [extentsID]: (this.state.analyses[extentsID] !== undefined) ? [...this.state.analyses[extentsID], analysis] : [analysis]}});
+    }
+
+    addPathSimilarityResult = (e1, e2, score, extentsID) => {
+        const scoreObj = {'score': score, 'e1': e1, 'e2' : e2};
+        this.setState({similarities: {...this.state.similarities,
+                                      [extentsID]: (this.state.similarities[extentsID] !== undefined) ? [...this.state.similarities[extentsID], scoreObj] : [scoreObj]}});
     }
     
     changeTimestep = (e) => {        
@@ -290,6 +297,17 @@ class VisArea extends React.Component {
                 return grids;
             }) : null;
 
+            const pathSimilarityResults = this.state.similarities[id];            
+            
+            const pathSimilarityRender = (pathSimilarityResults !== undefined) ? pathSimilarityResults.map((results, idx) => {
+                console.log(results);
+                return (<TableRow key={idx}>
+                            <TableCell>{results.e1}</TableCell>
+                            <TableCell>{results.e2}</TableCell>                                                    
+                            <TableCell>{results.score}</TableCell>
+                        </TableRow>);
+                
+            }) : null;
             
             return (<Box key={id} className="lightBorder" sx={{minHeight: '50px'}}>
                         <Stack direction="row" justifyContent="center">
@@ -350,6 +368,32 @@ class VisArea extends React.Component {
                             </Accordion>
                             </>                            
                         )}
+                    {pathSimilarityRender &&
+                     <>
+                         <Divider/>
+                         <Accordion disableGutters={true}>                                
+                             <AccordionSummary
+                                 expandIcon={<ExpandMoreIcon />}
+                             >
+                                 Path Similarity Results
+                             </AccordionSummary>
+                             <Divider/>
+                             <AccordionDetails>
+                                 <TableContainer>
+                                     <Table size="small">
+                                         <TableHead>
+                                            <TableCell>Extent 1</TableCell>
+                                            <TableCell>Extent 2</TableCell>
+                                            <TableCell>Score</TableCell>
+                                        </TableHead>
+                                        <TableBody>
+                                            {pathSimilarityRender}
+                                        </TableBody>
+                                    </Table>
+                                    </TableContainer>
+                                </AccordionDetails>
+                            </Accordion>
+                     </>}
                     </Box>);
         });
 
@@ -463,6 +507,7 @@ class VisArea extends React.Component {
                             properties={this.props.properties}
                             addKSTestResult={this.addKSTestResult}
                             addAnalysisResult={this.addAnalysisResult}
+                            addPathSimilarityResult={this.addPathSimilarityResult}
                             close={() => {
                                 this.toggleModal(SINGLE_STATE_MODAL);                                                        
                             }}

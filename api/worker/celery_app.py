@@ -267,21 +267,24 @@ def calculate_path_similarity(
     driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687",
                                         auth=("neo4j", "secret"))
     
-    state_attributes.append('id')
+    generation_state_attributes = state_attributes.copy()
+    generation_state_attributes.append('id')
     
     qb = querybuilder.Neo4jQueryBuilder([    
         ('Atom', 'PART_OF', 'State', 'MANY-TO-ONE')
     ])
 
     q1 = qb.generate_get_node_list('State', p1,                                   
-                                   attributeList = state_attributes)
+                                   attributeList = generation_state_attributes)
 
     q2 = qb.generate_get_node_list('State', p2,
-                                   attributeList = state_attributes)
+                                   attributeList = generation_state_attributes)
 
 
-    score = calculator.calculate_path_similarity(driver, q1, q2,
+    score = calculator.calculate_path_similarity(driver,
+                                                 q1,
+                                                 q2,
                                                  state_attributes,
                                                  atom_attributes)
-
+    
     return json.dumps({'score': score})

@@ -17,7 +17,7 @@ import AnalysisTab from './AnalysisTab';
 import KSTestTab from './KSTestTab';
 import PathSimilarityTab from './PathSimilarityTab';
 
-export default function MultiplePathSelectionModal({properties, close, extents, addKSTestResult, addAnalysisResult, extentsID}) {
+export default function MultiplePathSelectionModal({properties, close, extents, addKSTestResult, addAnalysisResult, addPathSimilarityResult, extentsID}) {
     const [tabIdx, setTabIdx] = useState(0);
    
     if (open && extents) {
@@ -67,7 +67,8 @@ export default function MultiplePathSelectionModal({properties, close, extents, 
                                rvsDefault={extents_kv[0]}
                                extentsID={extentsID}
                                addKSTestResult={addKSTestResult}
-                               stateProperties={properties} />
+                               stateProperties={properties}
+                    />
                 </TabPanel>
                 {analysisTabsContent}
                 {extents.length > 1 &&
@@ -76,7 +77,9 @@ export default function MultiplePathSelectionModal({properties, close, extents, 
                          extents={extents_kv}
                          properties={properties}
                          closeFunc={close}
+                         extentsID={extentsID}
                          extent_options={extent_options}
+                         addPathSimilarityResult={addPathSimilarityResult}
                      />
                  </TabPanel>}                
             </Dialog>
