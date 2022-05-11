@@ -46,6 +46,7 @@ def get_scipy_distributions():
 def get_ovito_modifiers():
     return utils.return_ovito_modifiers()
 
+# move to celery worker
 @router.get('/run_cypher_query')
 def run_cypher_query(query: str):
     driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687",
@@ -80,6 +81,7 @@ async def ws(task_id: str, websocket: WebSocket):
     except WebSocketDisconnect:
         await cm.disconnect(task_id)
 
+# move to celery worker
 @router.get("/generate_ovito_image")
 async def generate_ovito_image(number: str):
     driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687",
@@ -142,7 +144,7 @@ async def run_analysis(steps: List[AnalysisStep],
                        states: Optional[List[int]] = Body([]),
                        displayResults: bool = Body(True),
                        saveResults: bool = Body(True)):    
-    task_id = uuid() # task = celery_app.send_task('run_analysis', args=(steps, run, states, displayResults, saveResults))
+    task_id = uuid()
     unprocessed.update({task_id: {'name': 'run_analysis', 'params': {'steps': steps,
                                                                         'run': run,
                                                                         'states': states,
@@ -165,12 +167,11 @@ async def calculate_neb_on_path(run: str,
                                 fmax: float = 0.01,
                                 saveResults: bool = True):
     
-    task_id = uuid() #task = celery_app.send_task('calculate_neb_on_path', args=(run,start,end,interpolate,maxSteps,fmax,saveResults))
+    task_id = uuid()
     unprocessed.update({task_id: {'name': 'calculate_neb_on_path', 'params': {'run': run, 'start': start,
                                                                               'end': end, 'interpolate': interpolate,
                                                                               'maxSteps': maxSteps, 'fmax': fmax,
                                                                               'saveResults': saveResults }}})
-
     return task_id
 
 @router.post('/calculate_path_similarity')
@@ -190,6 +191,7 @@ def calculate_path_similarity(
 
     return task_id
 
+# move to celery worker
 @router.get('/load_property', status_code=201)
 def load_property(prop: str):
     """
@@ -214,11 +216,7 @@ def load_property(prop: str):
 
     return j
 
-
-
-
-
-# perhaps run this first and then the PCCA
+# move to celery worker
 @router.get('/load_sequence')
 def load_sequence(run: str, properties: str):
 
@@ -290,7 +288,6 @@ def load_sequence(run: str, properties: str):
 
     return j
 
-
 @router.get('/get_property_list')
 def get_property_list():
     driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687",
@@ -359,8 +356,8 @@ def get_metadata(run: str):
     _, j = getMetadata(run, getJson=True)
     return j
 
-
 # TODO: make pcca support multiple runs
+# move to celery worker
 @router.get('/pcca')
 def pcca(run: str, clusters: int, optimal: int, m_min: int, m_max: int):
     driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687",
@@ -446,48 +443,5 @@ def pcca(run: str, clusters: int, optimal: int, m_min: int, m_max: int):
 
     saveTestJson(run, 'optimal_pcca', j)
     return j
-
-
-async def count(count):
-    count += 1
-    return count
-
-
-async def event_generator(request: Request):
-    previous_status = None
-    count = 0
-
-    while True:
-        if await request.is_disconnected():
-            print('request d/c')
-            break
-
-        if previous_status and previous_status == 'complete':
-            print('state changed to completed')
-            yield {"event": "end", "data": ""}
-            break
-
-        current_status = await count(previous_status)
-
-        if previous_status != current_status:
-            print('new status: ' + current_status)
-            yield {
-                "event": "update",
-                "id": "message_id",
-                "retry": 15000,
-                "data": str(current_status)
-            }
-            previous_status = current_status
-            #current_status += 1
-
-        #await asyncio.sleep(1)
-
-
-@router.get('/stream')
-async def message_stream(request: Request):
-    e_gen = event_generator(request)
-    return EventSourceResponse(e_gen)
-
-
 
 app.include_router(router)

@@ -1,0 +1,36 @@
+services:
+  web:
+    image: neomdweb/backend
+    build:
+      context: .
+      dockerfile: ./dockerfile
+    ports:
+      - 8000:8000
+    depends_on:
+      - redis
+      - celery_worker
+    volumes:
+      - .:/app      
+    command: poetry run uvicorn api.main:app
+
+  redis:
+    image: redis:latest
+
+  worker:
+    image: neomdweb/backend
+    build:
+      context: .
+      dockerfile: ./dockerfile
+    command: poetry run celery -A api.worker.celery_app worker
+    volumes:
+      - .:/app
+    depends_on:
+      - redis
+
+  frontend:
+    image: neomdweb/frontend
+    build:
+      context: ./frontend
+      dockerfile: ./dockerfile
+    command: npm start
+      
