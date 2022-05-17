@@ -23,6 +23,7 @@ from .trajectory import Trajectory
 from .utils import getMetadata, getScipyDistributions, get_atom_type, saveTestJson, loadTestJson
 from .connectionmanager import ConnectionManager
 
+from scipy import sparse
 import json
 from .worker.celery_app import celery_app
 from .models import AnalysisStep
@@ -262,16 +263,19 @@ def load_sequence(run: str, properties: str):
 
     with driver.session() as session:
 
-        if occurrenceString not in run_md.keys():
-            oq = qb.generate_get_occurrences(run, occurrenceString)
-            session.run(oq.text)
+#        if occurrenceString not in run_md.keys():
+        oq = qb.generate_get_occurrences(run, occurrenceString)
+        session.run(oq.text)
 
+        """
+        shave off time by calculating this in the database
         if "AtomCount" not in run_md.keys():
             oq2 = qb.generate_calculate_many_to_one_count("PART_OF",
                                                           saveMetadata=True,
                                                           run=run)
             session.run(oq2.text)
-
+        """
+        
         result = session.run(q.text)
         j['sequence'] = result.value()
 
@@ -331,18 +335,15 @@ def get_run_list(truncateNEB: Optional[bool] = True):
     j = []
     with driver.session() as session:
         try:
-            # get all the types of relations between states - our runs!
             result = session.run(
-                "MATCH (:State)-[r]-(:State) RETURN DISTINCT TYPE(r)")
-            # gets rid of ugly syntax on js side - puts everything in one array; probably a better more elegant way to do this
+                "MATCH (n:State) RETURN DISTINCT labels(n) LIMIT 1000;")
             runs = []
             for r in result.values():
-                if 'NEB' not in r[0]:
-                    runs.append(r[0])
-                    trajectories.update({r[0]: Trajectory()})
-                elif 'NEB' in r[0] and not truncateNEB:
-                    runs.append(r[0])
-                    trajectories.update({r[0]: Trajectory()})
+                for record in r:
+                    for label in record:
+                        if label != 'NEB' and label != 'State':
+                            runs.append(label)
+                            trajectories.update({label: Trajectory()})
 
             j = runs
         except neo4j.exceptions.ServiceUnavailable as exception:
@@ -359,7 +360,7 @@ def get_metadata(run: str):
 # TODO: make pcca support multiple runs
 # move to celery worker
 @router.get('/pcca')
-def pcca(run: str, clusters: int, optimal: int, m_min: int, m_max: int):
+async def pcca(run: str, clusters: int, optimal: int, m_min: int, m_max: int):
     driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687",
                                         auth=("neo4j", "secret"))
     if config.IMPATIENT:
@@ -370,23 +371,21 @@ def pcca(run: str, clusters: int, optimal: int, m_min: int, m_max: int):
     qb = querybuilder.Neo4jQueryBuilder(
         schema=[("State", run, "State","ONE-TO-ONE"), ("Atom", "PART_OF", "State", "MANY-TO-ONE")])
 
-    sequence = trajectories[run].sequence
-
     m, idx_to_id = calculator.calculate_transition_matrix(driver,
                                                           qb,
                                                           run=run,
-                                                          discrete=True,
-                                                          trajectory=sequence,
-                                                          getOccurrences=True)
-    matrix = m.copy()    
-    gpcca = gp.GPCCA(np.array(m), z='LM', method='brandts')
-
+                                                          discrete=True)
+    print("finished loading transition matrix")
+    gpcca = gp.GPCCA(np.array(m.values), z='LM', method='brandts')
+    print("finished calculating optimal pcca values")
     j = {}
     sets = {}
     fuzzy_memberships = {}
     if optimal == 1:
         try:
+            #gpcca.optimize(2)
             gpcca.optimize({'m_min': m_min, 'm_max': m_max})
+            print("finished optimization")
             j.update({'optimal_value': gpcca.n_m})
             feasible_clusters = []
             for cluster_idx, val in enumerate(gpcca.crispness_values):
@@ -394,6 +393,7 @@ def pcca(run: str, clusters: int, optimal: int, m_min: int, m_max: int):
                     feasible_clusters.append(cluster_idx + m_min)
                     # we still want the clustering...
                     gpcca.optimize(cluster_idx + m_min)
+                    print(f"calculating cluster {cluster_idx + m_min}")
                     clusterings = []
                     for s in gpcca.macrostate_sets:
                         newSet = []
@@ -402,8 +402,8 @@ def pcca(run: str, clusters: int, optimal: int, m_min: int, m_max: int):
                         clusterings.append(newSet)
                     sets.update({cluster_idx + m_min: clusterings})
                     id_to_membership = {}
-                    for idx, m in enumerate(gpcca.memberships.tolist()):
-                        id_to_membership.update({idx_to_id[idx]: m})
+                    for idx, mem in enumerate(gpcca.memberships.tolist()):
+                        id_to_membership.update({idx_to_id[idx]: mem})
                     fuzzy_memberships.update(
                         {cluster_idx + m_min: id_to_membership})
             j.update({'feasible_clusters': feasible_clusters})
@@ -425,15 +425,15 @@ def pcca(run: str, clusters: int, optimal: int, m_min: int, m_max: int):
                 clusterings.append(newSet)
             sets.update({clusters: clusterings})
             id_to_membership = {}
-            for idx, m in enumerate(gpcca.memberships.tolist()):
-                id_to_membership.update({idx_to_id[idx]: m})
+            for idx, mem in enumerate(gpcca.memberships.tolist()):
+                id_to_membership.update({idx_to_id[idx]: mem})
             fuzzy_memberships.update({clusters: id_to_membership})
         except ValueError as exception:
             raise exception
 
     j.update({'sets': sets})
-    j.update({'fuzzy_memberships': fuzzy_memberships})    
-    j.update({'occurrence_matrix': matrix.to_numpy().tolist()})
+    j.update({'fuzzy_memberships': fuzzy_memberships})
+    j.update({'occurrence_matrix': np.array(m.values).tolist()})
     # j.update({'currentClustering': currentClustering});
     # TODO: add as metadata in vis
     # j.update({'dominant_eigenvalues': gpcca.dominant_eigenvalues.tolist()})

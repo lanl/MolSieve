@@ -1,3 +1,4 @@
+import os
 import pickle
 import json
 import scipy.stats
@@ -47,11 +48,18 @@ def saveTestPickle(run, t, j):
     :param run: name of the run you're saving
     :param t: type of sequence you're saving
     :param j: dictionary to save
-    """                
+    """
+
+    createDir('api/testing')
+    
     with open('api/testing/{run}_{t}.pickle'.format(run=run,t=t), 'wb') as f:
         pickle.dump(j,f)
 
+def createDir(path):
+    if not os.path.exists(path):
+        os.mkdir(path)
 
+        
 def loadTestPickle(run, t):
     """
     Loads the data saved from the specified pickle file.
@@ -76,7 +84,10 @@ def saveTestJson(run, t, j):
     :param run: name of the run you're saving
     :param t: type of sequence you're saving
     :param j: dictionary to save
-        """                
+        """
+
+    createDir('api/testing')
+    
     with open('api/testing/{run}_{t}.json'.format(run=run,t=t), 'w') as f:              
         json.dump(j,f, ensure_ascii=False, indent=4)
 
@@ -118,11 +129,7 @@ def getMetadata(run, getJson=False):
             return metadata, j
         else:
             return metadata
-            
-        
-
-
-        
+                          
 def loadTestJson(run, t):
     """
     Reads json file into memory
@@ -132,11 +139,11 @@ def loadTestJson(run, t):
         
     :returns: Dict with sequence data
 
-    """
+    """    
     try:
         with open('api/testing/{run}_{t}.json'.format(run=run,t=t), 'r') as f:                        
             return json.loads(f.read())
-    except Exception as e:            
+    except Exception:            
         print("Loading from database instead...")
         return None
 
