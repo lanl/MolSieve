@@ -1,4 +1,4 @@
-import { React, useEffect, useState } from 'react';
+import { React, useEffect, useState, useRef } from 'react';
 import * as d3 from 'd3';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
@@ -7,31 +7,37 @@ import ListItemIcon from '@mui/material/ListItemIcon';
 import Checkbox from '@mui/material/Checkbox';
 import Box from '@mui/material/Box';
 
-import useKeyUp from '../hooks/useKeyUp';
-import useKeyDown from '../hooks/useKeyDown';
-import {useExtents} from '../hooks/useExtents';
+//import useKeyUp from '../hooks/useKeyUp';
+//import useKeyDown from '../hooks/useKeyDown';
+//import {useExtents} from '../hooks/useExtents';
 
-import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
+//import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
 import { useContextMenu } from '../hooks/useContextMenu';
-import { useResize } from '../hooks/useResize';
+//import { useResize } from '../hooks/useResize';
 
 
 import '../css/vis.css';
-import { onStateMouseOver, onChunkMouseOver } from '../api/myutils';
-import {apply_filters} from '../api/filters';
+//import { onStateMouseOver, onChunkMouseOver } from '../api/myutils';
+//import {apply_filters} from '../api/filters';
 
 const margin = {
     top: 20, bottom: 20, left: 25, right: 25,
 };
 
-let zBrush = null;
-let sBrush = null;
+//let zBrush = null;
+//let sBrush = null;
+
+import {Application, Container, Graphics} from "pixi.js";
 
 function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallback, setStateHovered, setStateClicked, stateHovered, setExtents}) {       
-    const {contextMenu, toggleMenu} = useContextMenu();
-    const {width, height, divRef} = useResize();
+    //const {contextMenu, toggleMenu} = useContextMenu();
+    const [pixiApp, setPixiApp] = useState(null);
+    const ref = useRef();
+    //const {width, height, divRef} = useResize();
+
+
     
-    const [stateHighlight, setStateHighlight] = useState(false);
+    /*const [stateHighlight, setStateHighlight] = useState(false);
     
     const toggleStateHighlight = () => {
         setStateHighlight((prev) => !prev);
@@ -57,39 +63,52 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                 .attr('class', 'brush')
                 .call(sBrush);
         }
-    }
+    }*/
 
-    const {setInternalExtents, completeSelection} = useExtents(setExtents);    
+    //const {setInternalExtents, completeSelection} = useExtents(setExtents);    
 
-    useKeyDown('Shift', selectionBrush);
+    /*useKeyDown('Shift', selectionBrush);
     useKeyUp('Shift', completeSelection);      
-    useKeyDown('z', zoom);
-       
-    const ref = useTrajectoryChartRender(
-        (svg) => {
-            if (height === undefined || width === undefined) {
-                return;
+    useKeyDown('z', zoom);*/
+
+    useEffect(() => {
+        if(ref.current) {
+            setPixiApp(new Application({
+                backgroundColor: 0xFFFFFF,
+                resolution: devicePixelRatio,
+                view: ref.current,
+                resizeTo: ref.current.parentElement,
+                //autoStart: false
+            }));
+        }
+    }, [ref]);
+    
+    
+    useEffect(() => {
+        if (!pixiApp) {
+            return;
+        }        
+        
+        //ref.current.appendChild(canvas);
+        const canvas = pixiApp.view;
+        const width = canvas.width;
+        const height = canvas.height;
+        // clear so we don't draw over-top and cause insane lag
+            
+        let count = 0;
+        let maxLength = -Number.MAX_SAFE_INTEGER;
+        let chunkSizes = [1];
+            
+        for (const trajectory of Object.values(trajectories)) {
+            if(trajectory.sequence.length > maxLength) {
+                maxLength = trajectory.sequence.length;
             }
 
-            // clear so we don't draw over-top and cause insane lag
-            if (!svg.empty()) {
-                svg.selectAll('*').remove();
-            }
-            
-            let count = 0;
-            let maxLength = -Number.MAX_SAFE_INTEGER;
-            let chunkSizes = [1];
-            
-            for (const trajectory of Object.values(trajectories)) {
-                if(trajectory.sequence.length > maxLength) {
-                    maxLength = trajectory.sequence.length;
-                }
-
-                chunkSizes.push(...trajectory.simplifiedSequence.chunks.map((chunk) => {
-                    chunk.size = (chunk.last - chunk.timestep);
-                    return chunk.size;
-                }));
-            }            
+            chunkSizes.push(...trajectory.simplifiedSequence.chunks.map((chunk) => {
+                chunk.size = (chunk.last - chunk.timestep);
+                return chunk.size;
+            }));
+        }            
             
             // domain 102.5% of actual length for some breathing room
             const scaleX = d3
@@ -102,35 +121,54 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                 .range([margin.top, height - margin.bottom])
                 .domain([0, Object.keys(trajectories).length]);                                           
             
-            const tickNames = [];
+            const tickNames = [];            
+            
+            //const chunkGroup = new Container(); //svg.append('g').attr('id', 'chunk');            
+            //const importantGroup = new Container(); //svg.append('g').attr('id', 'sequence_important');
 
-            // TODO add modal on state click, to show additional information if interested
-            
-            const chunkGroup = svg.append('g').attr('id', 'chunk');            
-            const importantGroup = svg.append('g').attr('id', 'sequence_important');                        
-            
+//            pixiApp.view.addChild(chunkGroup);
+  //          pixiApp.view.addChild(importantGroup);
+
             for (const [name, trajectory] of Object.entries(trajectories)) {
 
                 const {colors, idToCluster, simplifiedSequence} = trajectory;
                 const {sequence, chunks} = simplifiedSequence;                                
 
+                // create geometries for each color
+                const renderColors = [];
+                for(const c of colors) {
+                    const gfx = new Graphics();
+                    gfx.beginFill(c);
+                    renderColors.push(gfx);
+                }
+                                
                 trajectory.name = name;
                 
-                const g = importantGroup.append('g').attr('id', `g_${name}`);
+                //const g = importantGroup.append('g').attr('id', `g_${name}`);
                 tickNames.push(name);
+                const seqLen = sequence.length;
+                for(let i = 0; i < seqLen; i++) {
+                    const d = sequence[i];
+                    const gfx = renderColors[idToCluster[d.id]];                    
+                    gfx.drawRect(scaleX(d.timestep), scaleY(count),
+                                 scaleX(d.timestep + 1) - scaleX(d.timestep), 25);                        
+                }
 
-                g.selectAll('rect')
-                    .data(sequence, (d) => d)
-                    .enter()
-                    .append('rect')
-                    .attr('x', (d) => scaleX(d.timestep))
-                    .attr('y', () => scaleY(count))
-                    .attr('width', (d) => scaleX(d.timestep + 1) - scaleX(d.timestep))
-                    .attr('height', 25)
-                    .attr('opacity', 1.0)
-                    .attr('fill', (d) => {                        
-                        return colors[idToCluster[d.id]];
-                    })                    
+                const chunkLen = chunks.length;
+                for(let i = 0; i < chunkLen; i++) {
+                    const d = chunks[i];
+                    const gfx = renderColors[idToCluster[-d.id]];                    
+                    gfx.drawRect(scaleX(d.timestep), scaleY(count),
+                                 scaleX(d.last + 1) - scaleX(d.timestep), 25);  
+                }
+
+                for(const gfx of renderColors) {                    
+                    pixiApp.stage.addChild(gfx);
+                }
+
+                console.log(pixiApp);
+                
+                /*
                     .on('click', function (_, d) {                        
                         setStateClicked(globalUniqueStates.get(d.id));                                      
                     })
@@ -140,19 +178,9 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                     })
                     .on('mouseout', function() {                        
                         setStateHovered(null);
-                    });                
+                    }); 
                 
-                const c = chunkGroup.append('g').attr('id', `c_${name}`);
-                
-                c.selectAll('rect').data(chunks)
-                    .enter()
-                    .append('rect')
-                    .attr('x', (d) => scaleX(d.timestep))
-                    .attr('y', () => scaleY(count))
-                    .attr('width', (d) => scaleX(d.last + 1) - scaleX(d.timestep))
-                    .attr('height', 25)
                     .attr('stroke', 'black')
-                    .attr('opacity', 1.0)
                     .attr('fill', (d) => {
                         return colors[idToCluster[-d.id]];
                     })                    
@@ -161,19 +189,19 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                         this.setAttribute('opacity', 0.2);                                                    
                     }).on('mouseout', function() {
                         this.setAttribute('opacity', 1.0);                                                    
-                    });               
+7                    });       */        
                 count++;
             }
 
 
-            const xAxis = svg.append('g');
+            /*const xAxis = svg.append('g');
             xAxis.attr("transform", `translate(0,0)`);
             
             xAxis.call(d3.axisBottom(scaleX).tickValues(scaleX.ticks().filter(tick => Number.isInteger(tick)))
-                       .tickFormat(d3.format('d')));
+                       .tickFormat(d3.format('d')));*/
             
             // reset zoom
-            svg.on('dblclick', () => {
+            /*svg.on('dblclick', () => {
                 // zoom out on double click
                 scaleX.domain([0, maxLength]);
                 xAxis.call(d3.axisBottom(scaleX).tickValues(scaleX.ticks().filter(tick => Number.isInteger(tick)))
@@ -234,15 +262,14 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                             }
                         }
                     }
-                });                                   
+                });*/
             loadingCallback();
-        },
-        [width, height, trajectories],
+        }, [trajectories, pixiApp],
     );
 
     
 
-    useEffect(() => {
+    /*useEffect(() => {
         if (ref !== undefined && ref.current !== undefined) {
             apply_filters(trajectories, runs, globalUniqueStates, ref);
         }
@@ -270,20 +297,25 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
             d3.select('#sequence_important').selectAll('.highlightedStates').classed("highlightedStates", false);            
             d3.select('#sequence_important').selectAll('.highlightedState').classed("highlightedState", false);
         }
-    }, [stateHovered, stateHighlight]);
+    }, [stateHovered, stateHighlight]);*/
 
     
-    return (<>
-                <Box ref={divRef}>
-                    <svg className="vis"
+    return (
+        <div>
+            <canvas ref={ref}/>
+        </div>
+    );
+}
+/*
+  <svg className="vis"
                          onContextMenu={toggleMenu}
                          id="sequence"
                          ref={ref}
                          preserveAspectRatio="none"
                          viewBox={[0, 0, width, height]}
                     />
-                </Box>  
-            <Menu
+  
+              <Menu
                 open={contextMenu !== null}
                 onClose={toggleMenu}
                 anchorReference="anchorPosition"
@@ -303,7 +335,5 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                     <ListItemText>Toggle state highlighting</ListItemText>
                 </MenuItem>
             </Menu>            
-        </>);
-}
-
+*/
 export default TrajectoryChart;

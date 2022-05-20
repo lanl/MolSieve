@@ -61,7 +61,8 @@ export function api_loadPCCA(run, clusters, optimal, m_min, m_max, trajectory) {
                     new_traj.feasible_clusters =
                         clustered_data.feasible_clusters;
 
-                    let count = 0;                    
+                    // calculate this on the backend instead - and shorten it! lots of 0's just wasting space
+                    /*let count = 0;                    
                     for (const list of clustered_data.occurrence_matrix) {
                         const abTransitionProb = new Map();
                         for(let i = 0; i < list.length; i++) {
@@ -71,7 +72,7 @@ export function api_loadPCCA(run, clusters, optimal, m_min, m_max, trajectory) {
                         }
                         new_traj.occurrenceMap.set(new_traj.uniqueStates[count], abTransitionProb);
                         count++;
-                    }                    
+                    }                    */
                     
                     for (var idx of new_traj.feasible_clusters) {
                         new_traj.clusterings[idx] = clustered_data.sets[idx];

@@ -433,7 +433,7 @@ async def pcca(run: str, clusters: int, optimal: int, m_min: int, m_max: int):
 
     j.update({'sets': sets})
     j.update({'fuzzy_memberships': fuzzy_memberships})
-    j.update({'occurrence_matrix': np.array(m.values).tolist()})
+    #j.update({'occurrence_matrix': np.array(m.values).tolist()})
     # j.update({'currentClustering': currentClustering});
     # TODO: add as metadata in vis
     # j.update({'dominant_eigenvalues': gpcca.dominant_eigenvalues.tolist()})

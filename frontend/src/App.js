@@ -31,7 +31,7 @@ class App extends React.Component {
             trajectories: {},
             runs: {},
             loadingMessage: 'Loading...',
-            colors: ["#4e79a7","#f28e2c","#e15759","#76b7b2","#59a14f","#edc949","#af7aa1","#ff9da7","#9c755f","#bab0ab"],
+            colors: [0x4e79a7,0xf28e2c,0xe15759,0x76b7b2,0x59a14f,0xedc949,0xaf7aa1,0xff9da7,0x9c755f,0xbab0ab],
             globalUniqueStates: new Map(),
             commonList: new Map(),
             properties: []
@@ -156,21 +156,26 @@ class App extends React.Component {
         this.load_sequence(run, properties)
             .then((data) => {
                 const newTraj = new Trajectory();
-                newTraj.sequence = data.sequence;
+                newTraj.sequence = Uint32Array.from(data.sequence);
                 newTraj.uniqueStates = data.uniqueStates.map((state) => {
                     return state.id;
                 });
+
+                console.log(newTraj.uniqueStates);
                 
                 const newUniqueStates = this.calculateGlobalUniqueStates(data.uniqueStates, run);
 
                 this.load_PCCA(run, clusters, optimal, m_min, m_max, newTraj)
                     .then((newTraj) => {
                         this.load_metadata(run, newTraj).then((newTraj) => {
+                            console.log("setting clustering info");
                             newTraj.set_cluster_info();
                             // could be an option
                             newTraj.chunkingThreshold = chunkingThreshold;
                             newTraj.simplifySet(chunkingThreshold);
+                            console.log("simplifying set finished");
                             newTraj.calculateIDToTimestepMap();
+                            console.log("id to timestep");
                             const removed = newTraj.set_colors(this.state.colors);
                             const newTrajectories = {
                                 ...this.state.trajectories,

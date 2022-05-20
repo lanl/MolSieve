@@ -17,7 +17,7 @@ class Trajectory {
     simplifiedSequence;
     chunkingThreshold;
     uniqueStates;    
-    occurrenceMap = new Map();
+    //occurrenceMap = new Map();
 
     
     /** Loops through the sequence and applies the clustering to each state.
@@ -28,7 +28,7 @@ class Trajectory {
         // alternatively, just stick in the global unique state array - may take a few more comparisons
         // but will still give the correct answer
         const uniqueStates = [...new Set(this.sequence)];
-        
+
         for (let i = 0; i < uniqueStates.length; i++) {
             for (
                 let j = 0;
@@ -61,15 +61,18 @@ class Trajectory {
         }
     }
 
-    calculateIDToTimestepMap() {                                                 
-        for(const s of this.sequence) {
-            if(this.idToTimestep.has(s)) {
-                const timestepList = this.idToTimestep.get(s);
-                this.idToTimestep.set(s, [...timestepList, this.sequence.indexOf(s, timestepList.at(-1) +1)]);
+    // biggest bottleneck atm
+    calculateIDToTimestepMap() {
+        /*console.log(this.sequence);
+        const seqLen = this.sequence.length;
+        for(let i = 0; i < seqLen; i++) {
+            if(this.idToTimestep.has(this.sequence[i])) {
+                const timestepList = this.idToTimestep.get(this.sequence[i]);
+                this.idToTimestep.set(this.sequence[i], [...timestepList, i]);
             } else {
-                this.idToTimestep.set(s, [this.sequence.indexOf(s)]);
-            }            
-        }
+                this.idToTimestep.set(this.sequence[i], [i]);
+            }
+        }*/
     }
     
     simplifySet(chunkingThreshold) {
@@ -77,7 +80,8 @@ class Trajectory {
         const chunks = [];
         let lastChunk = { timestep: null, last: null, id: null };
         
-        for (const [timestep,id] of this.sequence.entries()) {
+        for (let timestep = 0; timestep < this.sequence.length; timestep++) {
+            const id = this.sequence[timestep];
             // if at least one fuzzy membership is above a threshold, add to lastChunk; i.e its not interesting
             if (Math.max(...this.fuzzy_memberships[this.current_clustering][id]) >= chunkingThreshold) {
                 if (lastChunk.timestep === null) {
@@ -109,30 +113,31 @@ class Trajectory {
         let j = 1;
 
         for(i; i < sorted.length - 1; i++) {
-            interleaved.push({"source": sorted[i].id , "target": sorted[j].id, transitionProb: this.occurrenceMap.get(Math.abs(sorted[i].id)).get(Math.abs(sorted[j].id))});
+            interleaved.push({"source": sorted[i].id , "target": sorted[j].id, transitionProb: 1});//this.occurrenceMap.get(Math.abs(sorted[i].id)).get(Math.abs(sorted[j].id))});
             j++;
         }
+
 
         const sequence = simplifiedSequence.map((state) => {
             return state.id;
         });
-
-        let idToTimestep = new Map();
-                                                 
-        for(const s of simplifiedSequence) {
-            if(idToTimestep.has(s.id)) {
-                const timestepList = idToTimestep.get(s.id);
-                idToTimestep.set(s.id, [...timestepList, simplifiedSequence.indexOf(s)]);
-            } else {
-                idToTimestep.set(s.id, [simplifiedSequence.indexOf(s)]);
-            }            
-        }
-
+        
         // needs to be objects for force graph...
         const uniqueStates = [...new Set(sequence)].map((state) => {
                 return {'id': state};
         });
 
+        const idToTimestep = new Map();
+        for(let i = 0; i < uniqueStates.length; i++) {
+            idToTimestep.set(uniqueStates[i].id, []);
+        }        
+        
+        for(let i = 0; i < simplifiedSequence; i++) {
+            const id = simplifiedSequence[i];
+            const timestepList = idToTimestep.get(id);
+            idToTimestep.set(id, [...timestepList, i]);                  
+        }
+        
         this.simplifiedSequence = { sequence: simplifiedSequence, uniqueStates: uniqueStates, chunks: chunks, interleaved: interleaved, idToTimestep: idToTimestep };
         this.chunkingThreshold = chunkingThreshold;
     }    
