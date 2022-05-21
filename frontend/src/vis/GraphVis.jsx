@@ -120,12 +120,9 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                   return d.size;
               }).attr('fill', function(d) {
                   return trajectory.colors[trajectory.idToCluster[-d.id]];
-              }).on('mouseover', function(_, d) {
-                      this.setAttribute('stroke', 'black');
+              }).on('mouseover', function(_, d) {                      
                       onChunkMouseOver(this, d, name);                 
-              }).on('mouseout', function () {
-                      this.setAttribute('stroke', 'none');                  
-              });                
+              });
 
         const linkNodes = l.selectAll("path")
               .data(links)
@@ -137,7 +134,6 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                 return d.transitionProb;
             });
         }
-
                      
         return {stateNodes, chunkNodes, linkNodes};
     }

@@ -469,7 +469,24 @@ class VisArea extends React.Component {
                            </Accordion>}
                       </Box>)
                     }        
-                                   
+
+                    {safe &&                 
+                     <GraphVis
+                         style={{
+                             sx:{flexBasis: '50%'},
+                             className:"lightBorder"
+                         }}
+                         trajectories={this.props.trajectories}
+                         runs={this.props.runs}
+                         globalUniqueStates={this.props.globalUniqueStates}
+                         setStateHovered={this.setStateHoveredProp}
+                         setStateClicked={this.setStateClickedProp}
+                         loadingCallback={this.chartFinishedLoading}
+                         stateHovered={this.state.stateHovered}
+                         setExtents={this.setExtentsUniqueStatesProp}
+                     />
+                    }
+
 
                     {safe &&
                      (<ScatterGrid

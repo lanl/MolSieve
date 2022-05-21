@@ -31,7 +31,7 @@ class App extends React.Component {
             trajectories: {},
             runs: {},
             loadingMessage: 'Loading...',
-            colors: [0x4e79a7,0xf28e2c,0xe15759,0x76b7b2,0x59a14f,0xedc949,0xaf7aa1,0xff9da7,0x9c755f,0xbab0ab],
+            colors: ['#4e79a7','#f28e2c','#e15759','#76b7b2','#59a14f','#edc949','#af7aa1','#ff9da7','#9c755f','#bab0ab'],
             globalUniqueStates: new Map(),
             commonList: new Map(),
             properties: []

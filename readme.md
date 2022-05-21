@@ -34,7 +34,7 @@ Make sure to bring in all of the submodules using `git submodule update --init -
 
 3. Start the `celery` worker(s) by running `poetry run celery -A api.worker.celery_app worker --detach` in the root directory of this project. You can specifiy further options here - this will simply start one worker.
 
-4. Start the `uvicorn` server by running `poetry uvicorn api.main:app`.
+4. Start the `uvicorn` server by running `poetry run uvicorn api.main:app`.
 
 5. Start the frontend by running `serve -s build` in the `frontend` directory.
 

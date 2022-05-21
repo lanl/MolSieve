@@ -17,7 +17,7 @@ class Trajectory {
     simplifiedSequence;
     chunkingThreshold;
     uniqueStates;    
-    //occurrenceMap = new Map();
+    occurrenceMap;// = new Map();
 
     
     /** Loops through the sequence and applies the clustering to each state.
