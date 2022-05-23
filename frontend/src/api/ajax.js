@@ -60,16 +60,13 @@ export function api_loadPCCA(run, clusters, optimal, m_min, m_max, trajectory) {
                     new_traj.current_clustering = clustered_data.optimal_value;
                     new_traj.feasible_clusters =
                         clustered_data.feasible_clusters;                    
-                    new_traj.occurrenceMap = new Map();
+
+                    for (const id of Object.keys(clustered_data.occurrence_matrix)) {
+                        const abTransitionProb = new Map(Object.entries(clustered_data.occurrence_matrix[parseInt(id)]));                        
+                        new_traj.occurrenceMap.set(parseInt(id), abTransitionProb);
+                    }
                     
-                    const occLen = clustered_data.occurrence_matrix.length;
-                    for (let i = 0; i < occLen; i++) {
-                        const abTransitionProb = new Map();
-                        abTransitionProb.set(Object.entries(clustered_data.occurrence_matrix[i]));
-                        new_traj.occurrenceMap.set(i, abTransitionProb);
-                    }                    
-                    
-                    for (var idx of new_traj.feasible_clusters) {
+                    for (const idx of new_traj.feasible_clusters) {
                         new_traj.clusterings[idx] = clustered_data.sets[idx];
                         new_traj.fuzzy_memberships[idx] =
                             clustered_data.fuzzy_memberships[idx];
