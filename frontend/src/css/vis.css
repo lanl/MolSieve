@@ -33,6 +33,15 @@
     opacity: 0.3;
 }
 
+.importantChunk {
+    stroke: black;
+    cursor: pointer;
+}
+
+.unimportantChunk {
+    opacity: 0.6;
+}
+
 .arrowed {    
     marker-end: url(#arrow);
 }

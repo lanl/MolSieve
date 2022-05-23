@@ -150,13 +150,12 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                     .attr('y', () => scaleY(count))
                     .attr('width', (d) => scaleX(d.last + 1) - scaleX(d.timestep))
                     .attr('height', 25)
-                    .attr('opacity', 0.6)
                     .attr('fill', (d) => {
                         return colors[idToCluster[-d.id]];
                     })                    
                     .on('mouseover', function(_, d) {
                         onChunkMouseOver(this, d, name);                            
-                    });            
+                    }).classed("importantChunk", (d) => d.important).classed("unimportantChunk", (d) => !d.important);            
                 count++;
             }
 
