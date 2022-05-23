@@ -122,7 +122,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                   return trajectory.colors[trajectory.idToCluster[-d.id]];
               }).on('mouseover', function(_, d) {                      
                       onChunkMouseOver(this, d, name);                 
-              });
+              }).classed("importantChunk", (d) => d.important).classed("unimportantChunk", (d) => !d.important);
 
         const linkNodes = l.selectAll("path")
               .data(links)
@@ -155,10 +155,10 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
             .append('marker')
             .attr('id', 'arrow')
             .attr('viewBox','0 -5 10 10')
-            .attr('refX', 15)
-            .attr('refY', -1.5)
-            .attr('markerWidth', 6)
-            .attr('markerHeight', 6)
+            .attr('refX', 0)
+            .attr('refY', 0)
+            .attr('markerWidth', 5)
+            .attr('markerHeight', 5)
             .attr('orient', 'auto')
             .attr('fill', 'black')
             .append('path')
@@ -186,7 +186,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
         // https://coppelia.io/2014/07/an-a-to-z-of-extra-features-for-the-d3-force-layout/
         // http://bl.ocks.org/samuelleach/5497403
         
-        const globalTimeScale = d3.scaleLinear().range([10,125]).domain([0, Math.max(...chunkSizes)]);
+        const globalTimeScale = d3.scaleRadial().range([10,125]).domain([0, Math.max(...chunkSizes)]);
         for (const trajectory of Object.values(trajectories)) {                        
             for(const c of trajectory.simplifiedSequence.chunks) {
                 c.size = globalTimeScale(c.size);
@@ -293,11 +293,18 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                         .attr("cy", function(d) { return d.y; });
                                          
                     linkNodes.attr("d", (d) => {
+                        const rt = (d.target.id >= 0) ? 5 : globalTimeScale(d.target.last - d.target.timestep);
+
                         const dx = d.target.x - d.source.x;
                         const dy = d.target.y - d.source.y;                        
                         const dr = Math.sqrt(dx * dx + dy * dy);
 
-                        return `M${d.source.x},${d.source.y}A${dr},${dr} 0 0,1 ${d.target.x},${d.target.y}`;
+                        const g = Math.atan2(dy,dx);
+
+                        const tx = d.target.x - (Math.cos(g) * (rt * 1.5));
+                        const ty = d.target.y - (Math.sin(g) * (rt * 1.5));
+
+                        return `M${d.source.x},${d.source.y}A${dr},${dr} 0 0,1 ${tx},${ty}`;                      
                     }).attr("stroke", function(d) {
                         return trajectory.colors[trajectory.idToCluster[Math.abs(d.target.id)]];
                     });
@@ -387,11 +394,12 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                         .attr("cy", function(d) { return globalChunkMap.get(d.id).x; });
 
                     linkNodes.attr("d", (d) => {
+                        
                         const source = (d.source >= 0) ? globalSequenceMap.get(d.source) : globalChunkMap.get(d.source);
                         const target = (d.target >= 0) ? globalSequenceMap.get(d.target) : globalChunkMap.get(d.target);
                         
                         const dx = target.x - source.x;
-                        const dy = target.y - source.y;                        
+                        const dy = target.y - source.y;
                         const dr = Math.sqrt(dx * dx + dy * dy);
 
                         return `M${source.x},${source.y}A${dr},${dr} 0 0,1 ${target.x},${target.y}`;
