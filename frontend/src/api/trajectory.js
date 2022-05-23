@@ -77,46 +77,71 @@ class Trajectory {
     
     simplifySet(chunkingThreshold) {     
         const chunks = [];
+        const simplifiedSequence = [];
+        const sizeThreshold = 25;
         let lastChunk = { timestep: null, last: null, id: null };
         let curr_id = 0;
         for (let timestep = 0; timestep < this.sequence.length; timestep++) {
             const id = this.sequence[timestep];
+            let curr_important = true;
             // go through sequence
             // if its above threshold and we've been adding to a chunk, add more, otherwise start a new unimportant chunk
             // below threshold and we've been adding, add more, otherwise start a new important chunk
             // if at least one fuzzy membership is above a threshold, add to lastChunk; i.e its not interesting
             if (Math.max(...this.fuzzy_memberships[this.current_clustering][id]) >= chunkingThreshold) {
-                if (lastChunk.important === false) {
-                    lastChunk.last = timestep;
-                } else {
-                    if(lastChunk.timestep !== null) {
-                        chunks.push(Object.assign({}, lastChunk));
-                    }
-                    lastChunk = { timestep: timestep, last: timestep, firstID: id, id: curr_id++, important: false };
-                }
+                curr_important = false;
+            }
+            
+            if (lastChunk.important === curr_important) {
+                lastChunk.last = timestep;
             } else {
-                if (lastChunk.important === true) {
-                    lastChunk.last = timestep;
-                } else {
-                    if(lastChunk.timestep !== null) {
+                if(lastChunk.timestep !== null) {
+                    if(lastChunk.last - lastChunk.timestep > sizeThreshold) {
                         chunks.push(Object.assign({}, lastChunk));
+                        curr_id--;
+                    } else {
+                        for(let i = lastChunk.timestep; i < lastChunk.last; i++) {
+                            simplifiedSequence.push({timestep: i, id: this.sequence[i]});
+                        }
                     }
-                    lastChunk = { timestep: timestep, last: timestep,  firstID: id, id: curr_id++, important: true };
-                }
+                } 
+                lastChunk = { timestep: timestep, last: timestep, firstID: id, id: curr_id, important: curr_important };
             }
         }
 
         if (lastChunk.timestep !== null) {
             chunks.push(lastChunk);
         }
-       
+
+        let sorted = [...simplifiedSequence, ...chunks].sort((a,b) => a.timestep - b.timestep);
         const interleaved = [];
         
-        for(let i = 0; i < chunks.length - 1; i++) {
-            interleaved.push({"source": i, "target": i+1, transitionProb: 1.0});//this.occurrenceMap.get(Math.abs(sorted[i].id)).get(Math.abs(sorted[j].id)) });
+        for(let i = 0; i < sorted.length - 1; i++) {
+            interleaved.push({source: sorted[i].id, target: sorted[i+1].id, transitionProb: 1.0});//this.occurrenceMap.get(Math.abs(sorted[i].id)).get(Math.abs(sorted[j].id)) });
         }
 
-        this.simplifiedSequence = { sequence: [], uniqueStates: [], chunks: chunks, interleaved: interleaved, idToTimestep: new Map() };
+        console.log(interleaved);
+
+        const sequence = simplifiedSequence.map((state) => {
+            return state.id;
+        });
+
+        const uniqueStates = [...new Set(sequence)].map((state) => {
+                return {'id': state};
+        });
+
+        const idToTimestep = new Map();
+        for(let i = 0; i < uniqueStates.length; i++) {
+            idToTimestep.set(uniqueStates[i].id, []);
+        }        
+        
+        for(let i = 0; i < simplifiedSequence; i++) {
+            const id = simplifiedSequence[i];
+            const timestepList = idToTimestep.get(id);
+            idToTimestep.set(id, [...timestepList, i]);                  
+        }
+
+        this.simplifiedSequence = { sequence: simplifiedSequence, uniqueStates: uniqueStates, chunks: chunks, interleaved: interleaved, idToTimestep: idToTimestep };
         this.chunkingThreshold = chunkingThreshold;
     }    
     

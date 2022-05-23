@@ -242,8 +242,10 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                 });
                 
                 for(const link of links) {
-                    const targetCluster = trajectory.idToCluster[chunks[link.target].firstID];
-                    const sourceCluster = trajectory.idToCluster[chunks[link.source].firstID];
+                    const tc_idx = (link.target > 0) ? link.target : chunks[Math.abs(link.target)].firstID;
+                    const sc_idx = (link.source > 0) ? link.source : chunks[Math.abs(link.source)].firstID;
+                    const targetCluster = trajectory.idToCluster[tc_idx];
+                    const sourceCluster = trajectory.idToCluster[sc_idx];
 
                     const targetNode = sequenceMap.get(link.target);
                     const sourceNode = sequenceMap.get(link.source);
@@ -292,8 +294,8 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                         .attr("cy", (d) => d.y);
                                          
                     linkNodes.attr("d", (d) => {                        
-                        const rt = d.target.size;
-                        const rs = d.source.size;
+                        const rt = (d.target.size) ? d.target.size : 5;
+                        const rs = (d.source.size) ? d.source.size : 5;
                         const dx = d.target.x - d.source.x;
                         const dy = d.target.y - d.source.y;                        
                         const dr = Math.sqrt(dx * dx + dy * dy);
@@ -307,7 +309,8 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
 
                         return `M${sx},${sy}A${dr},${dr} 0 0,1 ${tx},${ty}`;                      
                     }).attr("stroke", function(d) {
-                        return trajectory.colors[trajectory.idToCluster[Math.abs(d.target.firstID)]];
+                        const idx = (d.target.id > 0) ? d.target.id : d.target.firstID;
+                        return trajectory.colors[trajectory.idToCluster[idx]];
                     });
                                         
                     trajRendered[name] = true;                   
@@ -469,7 +472,9 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                             extent[0][1] <= y && y < extent[1][1]);                    
                 }).data();
                 d3.select(ref.current).select('#important').selectAll('.highlightedState').classed("highlightedState", false);
-                setInternalExtents((prev) => [...prev, {'states': nodes}]); 
+                if(nodes.length > 0) {
+                    setInternalExtents((prev) => [...prev, {'states': nodes}]);
+                }
             });                       
          
     }, [width, height, trajectories, seperateTrajectories]);
