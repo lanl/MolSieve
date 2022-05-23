@@ -151,7 +151,7 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                     .attr('width', (d) => scaleX(d.last + 1) - scaleX(d.timestep))
                     .attr('height', 25)
                     .attr('fill', (d) => {
-                        return colors[idToCluster[-d.id]];
+                        return colors[idToCluster[d.firstID]];
                     })                    
                     .on('mouseover', function(_, d) {
                         onChunkMouseOver(this, d, name);                            

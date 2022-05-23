@@ -15,7 +15,7 @@ self.onmessage = (event) => {
     // fix chunks to positions
     const center_x = x_count * width + x_count * traj_gap;    
     const cluster_gap = width / x_measureCount;
-    const halfX = Math.floor(x_measureCount / 2);
+    const halfX = Math.floor(x_measureCount / 2);    
     
     const sim = d3.forceSimulation([...chunks, ...sSequence])
           .force("link", d3.forceLink(links).id(function(d) { return d.id; }))
@@ -31,17 +31,18 @@ self.onmessage = (event) => {
               }
           }))       
           .force("charge", d3.forceManyBody().theta(0.6))
-          .force("collide", d3.forceCollide().iterations(2).radius((d) => {
+          .force("collide", d3.forceCollide().radius((d) => {
                   if(d.size !== undefined && d.size !== null) {
-                      return d.size;
+                      return d.size * 1.25;
                   } else {
-                      return 5;
+                      return 6.125;
                   }                    
           })).stop();
         
-        for (var i = 0, n = Math.ceil(Math.log(sim.alphaMin()) / Math.log(1 - sim.alphaDecay())); i < n; ++i) {
-            self.postMessage({type: "tick", progress: i / n});
-            sim.tick();
-        }
-        self.postMessage({type: "end", chunks: chunks, sSequence: sSequence, links: links});    
+    for (let i = 0, n = Math.ceil(Math.log(sim.alphaMin()) / Math.log(1 - sim.alphaDecay())); i < n; ++i) {
+        self.postMessage({type: "tick", progress: i / n});
+        sim.tick();
+    }
+
+    self.postMessage({type: "end", chunks: chunks, sSequence: sSequence, links: links});    
 };

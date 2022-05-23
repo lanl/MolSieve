@@ -70,7 +70,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
         }
     };
    
-    const [showArrows, setArrows] = useState(false);
+    const [showArrows, setArrows] = useState(true);
     const toggleArrows = () => {
         setArrows((prev) => !prev);
     }
@@ -119,7 +119,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
               .attr('r', (d) => {
                   return d.size;
               }).attr('fill', function(d) {
-                  return trajectory.colors[trajectory.idToCluster[-d.id]];
+                  return trajectory.colors[trajectory.idToCluster[d.firstID]];
               }).on('mouseover', function(_, d) {                      
                       onChunkMouseOver(this, d, name);                 
               }).classed("importantChunk", (d) => d.important).classed("unimportantChunk", (d) => !d.important);
@@ -240,22 +240,21 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                 chunks.map((chunk) => {
                     sequenceMap.set(chunk.id, chunk);
                 });
-
                 
                 for(const link of links) {
-                    const targetCluster = trajectory.idToCluster[Math.abs(link.target)];
-                    const sourceCluster = trajectory.idToCluster[Math.abs(link.source)];
+                    const targetCluster = trajectory.idToCluster[chunks[link.target].firstID];
+                    const sourceCluster = trajectory.idToCluster[chunks[link.source].firstID];
 
                     const targetNode = sequenceMap.get(link.target);
                     const sourceNode = sequenceMap.get(link.source);
                                         
                     targetNode.x_measure = targetCluster;
                     sourceNode.x_measure = sourceCluster;
-
+                    
                     sequenceMap.set(link.target, targetNode);
                     sequenceMap.set(link.source, sourceNode);
-                }        
-                   
+                }
+                
                 simulationWorker.postMessage({
                     chunks: chunks,
                     sSequence: sSequence,
@@ -285,28 +284,30 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                     let { stateNodes, chunkNodes, linkNodes } = renderGraph(simulatedLinks, simulatedChunks, simulatedStates, l, g, c, name, trajectory);
 
                     stateNodes                    
-                        .attr("cx", function(d) { return d.x; })
-                        .attr("cy", function(d) { return d.y; });
+                        .attr("cx", (d) => d.x)
+                        .attr("cy", (d) => d.y);
 
                     chunkNodes
-                        .attr("cx", function(d) { return d.x; })
-                        .attr("cy", function(d) { return d.y; });
+                        .attr("cx", (d) => d.x)
+                        .attr("cy", (d) => d.y);
                                          
-                    linkNodes.attr("d", (d) => {
-                        const rt = (d.target.id >= 0) ? 5 : globalTimeScale(d.target.last - d.target.timestep);
-
+                    linkNodes.attr("d", (d) => {                        
+                        const rt = d.target.size;
+                        const rs = d.source.size;
                         const dx = d.target.x - d.source.x;
                         const dy = d.target.y - d.source.y;                        
                         const dr = Math.sqrt(dx * dx + dy * dy);
 
                         const g = Math.atan2(dy,dx);
 
-                        const tx = d.target.x - (Math.cos(g) * (rt * 1.5));
-                        const ty = d.target.y - (Math.sin(g) * (rt * 1.5));
+                        const sx = d.source.x + (Math.cos(g) * (rs));
+                        const sy = d.source.y + (Math.sin(g) * (rs));
+                        const tx = d.target.x - (Math.cos(g) * (rt + 5));
+                        const ty = d.target.y - (Math.sin(g) * (rt + 5));
 
-                        return `M${d.source.x},${d.source.y}A${dr},${dr} 0 0,1 ${tx},${ty}`;                      
+                        return `M${sx},${sy}A${dr},${dr} 0 0,1 ${tx},${ty}`;                      
                     }).attr("stroke", function(d) {
-                        return trajectory.colors[trajectory.idToCluster[Math.abs(d.target.id)]];
+                        return trajectory.colors[trajectory.idToCluster[Math.abs(d.target.firstID)]];
                     });
                                         
                     trajRendered[name] = true;                   
@@ -393,8 +394,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                         .attr("cx", function(d) { return globalChunkMap.get(d.id).x; })
                         .attr("cy", function(d) { return globalChunkMap.get(d.id).x; });
 
-                    linkNodes.attr("d", (d) => {
-                        
+                    linkNodes.attr("d", (d) => {                        
                         const source = (d.source >= 0) ? globalSequenceMap.get(d.source) : globalChunkMap.get(d.source);
                         const target = (d.target >= 0) ? globalSequenceMap.get(d.target) : globalChunkMap.get(d.target);
                         
@@ -404,7 +404,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
 
                         return `M${source.x},${source.y}A${dr},${dr} 0 0,1 ${target.x},${target.y}`;
                     }).attr("stroke", function(d) {
-                        return trajectory.colors[trajectory.idToCluster[Math.abs(d.target)]];
+                        return trajectory.colors[trajectory.idToCluster[Math.abs(d.target.id)]];
                     });
                     
                     // set nodes with multiple trajectories to black

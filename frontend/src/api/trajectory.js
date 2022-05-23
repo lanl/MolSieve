@@ -78,7 +78,7 @@ class Trajectory {
     simplifySet(chunkingThreshold) {     
         const chunks = [];
         let lastChunk = { timestep: null, last: null, id: null };
-        
+        let curr_id = 0;
         for (let timestep = 0; timestep < this.sequence.length; timestep++) {
             const id = this.sequence[timestep];
             // go through sequence
@@ -92,7 +92,7 @@ class Trajectory {
                     if(lastChunk.timestep !== null) {
                         chunks.push(Object.assign({}, lastChunk));
                     }
-                    lastChunk = { timestep: timestep, last: timestep,  id: -id, important: false };
+                    lastChunk = { timestep: timestep, last: timestep, firstID: id, id: curr_id++, important: false };
                 }
             } else {
                 if (lastChunk.important === true) {
@@ -101,7 +101,7 @@ class Trajectory {
                     if(lastChunk.timestep !== null) {
                         chunks.push(Object.assign({}, lastChunk));
                     }
-                    lastChunk = { timestep: timestep, last: timestep,  id: -id, important: true };
+                    lastChunk = { timestep: timestep, last: timestep,  firstID: id, id: curr_id++, important: true };
                 }
             }
         }
@@ -109,17 +109,11 @@ class Trajectory {
         if (lastChunk.timestep !== null) {
             chunks.push(lastChunk);
         }
-
-        console.log(chunks);
        
         const interleaved = [];
-
-        let i = 0;
-        let j = 1;
         
-        for(i; i < chunks.length - 1; i++) {
-            interleaved.push({"source": chunks[i].id , "target": chunks[j].id});//, transitionProb: this.occurrenceMap.get(Math.abs(sorted[i].id)).get(Math.abs(sorted[j].id)) });
-            j++;
+        for(let i = 0; i < chunks.length - 1; i++) {
+            interleaved.push({"source": i, "target": i+1, transitionProb: 1.0});//this.occurrenceMap.get(Math.abs(sorted[i].id)).get(Math.abs(sorted[j].id)) });
         }
 
         this.simplifiedSequence = { sequence: [], uniqueStates: [], chunks: chunks, interleaved: interleaved, idToTimestep: new Map() };
