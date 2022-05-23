@@ -114,7 +114,7 @@ function ControlDrawer({trajectories, runs, updateRun, recalculate_clustering, s
                             <ListItemText><Typography>Simplification threshold</Typography></ListItemText>
                         </ListItem>
                         <ListItem>
-                    <Slider step={0.05}
+                    <Slider step={0.01}
                             min={0}
                             max={1}
                             onChangeCommitted={() => {

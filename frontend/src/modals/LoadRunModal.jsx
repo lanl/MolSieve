@@ -114,7 +114,7 @@ class LoadRunModal extends React.Component {
                                 disabled={!this.state.simplifySequence}
                                 label="Chunk Threshold"
                                 type="number"
-                                inputProps={{ inputMode: 'numeric', pattern: '[0-9]*', min: 1e-10, step:0.05 }}
+                                inputProps={{ inputMode: 'numeric', pattern: '[0-9]*', min: 1e-10, step:0.01 }}
                                 defaultValue={ this.state.chunkingThreshold }
                                 onChange={(e) => {this.setState({chunkingThreshold: e.target.value})}}
                              />
