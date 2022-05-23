@@ -17,7 +17,7 @@ class Trajectory {
     simplifiedSequence;
     chunkingThreshold;
     uniqueStates;    
-    occurrenceMap;// = new Map();
+    occurrenceMap = new Map();
 
     
     /** Loops through the sequence and applies the clustering to each state.
@@ -75,70 +75,54 @@ class Trajectory {
         }*/
     }
     
-    simplifySet(chunkingThreshold) {
-        const simplifiedSequence = [];        
+    simplifySet(chunkingThreshold) {     
         const chunks = [];
         let lastChunk = { timestep: null, last: null, id: null };
         
         for (let timestep = 0; timestep < this.sequence.length; timestep++) {
             const id = this.sequence[timestep];
+            // go through sequence
+            // if its above threshold and we've been adding to a chunk, add more, otherwise start a new unimportant chunk
+            // below threshold and we've been adding, add more, otherwise start a new important chunk
             // if at least one fuzzy membership is above a threshold, add to lastChunk; i.e its not interesting
             if (Math.max(...this.fuzzy_memberships[this.current_clustering][id]) >= chunkingThreshold) {
-                if (lastChunk.timestep === null) {
-                    lastChunk.timestep = timestep;
-                    lastChunk.id = -id; //figure out clever transform later
+                if (lastChunk.important === false) {
+                    lastChunk.last = timestep;
+                } else {
+                    if(lastChunk.timestep !== null) {
+                        chunks.push(Object.assign({}, lastChunk));
+                    }
+                    lastChunk = { timestep: timestep, last: timestep,  id: -id, important: false };
                 }
-                lastChunk.last = timestep;            
             } else {
-                if (lastChunk.timestep !== null && lastChunk.last !== null) {
-                    let newChunk = {};
-                    newChunk.timestep = lastChunk.timestep;
-                    newChunk.last = lastChunk.last;
-                    newChunk.id = lastChunk.id;                                       
-                    chunks.push(newChunk);
-                    
-                    lastChunk = { timestep: null, last: null,  id: null };
+                if (lastChunk.important === true) {
+                    lastChunk.last = timestep;
+                } else {
+                    if(lastChunk.timestep !== null) {
+                        chunks.push(Object.assign({}, lastChunk));
+                    }
+                    lastChunk = { timestep: timestep, last: timestep,  id: -id, important: true };
                 }
-                simplifiedSequence.push({'timestep': timestep, 'id': id});
             }
         }
 
         if (lastChunk.timestep !== null) {
             chunks.push(lastChunk);
-        }                
+        }
+
+        console.log(chunks);
        
-        let sorted = [...simplifiedSequence, ...chunks].sort((a,b) => a.timestep - b.timestep);
-        let interleaved = [];
+        const interleaved = [];
+
         let i = 0;
         let j = 1;
-
-        for(i; i < sorted.length - 1; i++) {
-            interleaved.push({"source": sorted[i].id , "target": sorted[j].id, transitionProb: 1});//this.occurrenceMap.get(Math.abs(sorted[i].id)).get(Math.abs(sorted[j].id))});
+        
+        for(i; i < chunks.length - 1; i++) {
+            interleaved.push({"source": chunks[i].id , "target": chunks[j].id});//, transitionProb: this.occurrenceMap.get(Math.abs(sorted[i].id)).get(Math.abs(sorted[j].id)) });
             j++;
         }
 
-
-        const sequence = simplifiedSequence.map((state) => {
-            return state.id;
-        });
-        
-        // needs to be objects for force graph...
-        const uniqueStates = [...new Set(sequence)].map((state) => {
-                return {'id': state};
-        });
-
-        const idToTimestep = new Map();
-        for(let i = 0; i < uniqueStates.length; i++) {
-            idToTimestep.set(uniqueStates[i].id, []);
-        }        
-        
-        for(let i = 0; i < simplifiedSequence; i++) {
-            const id = simplifiedSequence[i];
-            const timestepList = idToTimestep.get(id);
-            idToTimestep.set(id, [...timestepList, i]);                  
-        }
-        
-        this.simplifiedSequence = { sequence: simplifiedSequence, uniqueStates: uniqueStates, chunks: chunks, interleaved: interleaved, idToTimestep: idToTimestep };
+        this.simplifiedSequence = { sequence: [], uniqueStates: [], chunks: chunks, interleaved: interleaved, idToTimestep: new Map() };
         this.chunkingThreshold = chunkingThreshold;
     }    
     
