@@ -24,8 +24,8 @@ const margin = {
     top: 20, bottom: 20, left: 25, right: 25,
 };
 
-let zBrush = null;
 let sBrush = null;
+let zoom = null;
 
 function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallback, setStateHovered, setStateClicked, stateHovered, setExtents}) {       
     const {contextMenu, toggleMenu} = useContextMenu();
@@ -37,7 +37,7 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
         setStateHighlight((prev) => !prev);
     };
 
-    const zoom = () => {
+    /*const zoom = () => {
         if (zBrush != null) {
             if (!d3.selectAll('.brush').empty()) {
                 d3.selectAll('.brush').remove();
@@ -48,7 +48,7 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                 .attr('class', 'brush')
                 .call(zBrush);
         }
-    };
+    };*/
 
     const selectionBrush = () => {
         if (sBrush != null) {                        
@@ -63,7 +63,7 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
 
     useKeyDown('Shift', selectionBrush);
     useKeyUp('Shift', completeSelection);      
-    useKeyDown('z', zoom);
+    //zuseKeyDown('z', zoom);
        
     const ref = useTrajectoryChartRender(
         (svg) => {
@@ -165,41 +165,20 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
             
             xAxis.call(d3.axisBottom(scaleX).tickValues(scaleX.ticks().filter(tick => Number.isInteger(tick)))
                        .tickFormat(d3.format('d')));
-            
-            // reset zoom
-            svg.on('dblclick', () => {
-                // zoom out on double click
-                scaleX.domain([0, maxLength]);
-                xAxis.call(d3.axisBottom(scaleX).tickValues(scaleX.ticks().filter(tick => Number.isInteger(tick)))
-                  .tickFormat(d3.format('d')));
-                importantGroup.selectAll('rect').attr('x', (d) => scaleX(d.timestep)).attr('width', (d) => scaleX(d.timestep + 1) - scaleX(d.timestep));
-                chunkGroup.selectAll('rect').attr('x', (d) => scaleX(d.timestep)).attr('width', (d) => scaleX(d.last + 1) - scaleX(d.timestep));
+
+            zoom = d3.zoom().scaleExtent([1,Infinity]).translateExtent([
+                [margin.left, margin.top],
+                [width - margin.right, height - margin.bottom]
+            ]).on("zoom", (e) => {
+                const xz = e.transform.rescaleX(scaleX);
+                console.log(xz);
+                xAxis.call(d3.axisBottom(xz).tickValues(xz.ticks().filter(tick => Number.isInteger(tick)))
+                           .tickFormat(d3.format('d')));
+                importantGroup.selectAll('rect').attr('x', (d) => xz(d.timestep)).attr('width', (d) => xz(d.timestep + 1) - xz(d.timestep));          
+                chunkGroup.selectAll('rect').attr('x', (d) => xz(d.timestep)).attr('width', (d) => xz(d.last + 1) - xz(d.timestep));
             });
 
-            zBrush = d3
-                .brushX()
-                .keyModifiers(false)
-                .extent([
-                    [margin.left, margin.top],
-                    [width - margin.right, height - margin.bottom],
-                ])
-                .on('end', function(e) {
-                    const extent = e.selection;
-                    if (extent) {
-                        scaleX.domain([
-                            scaleX.invert(extent[0]),
-                            scaleX.invert(extent[1]),
-                        ]);
-                        
-                        xAxis.call(d3.axisBottom(scaleX).tickValues(scaleX.ticks().filter(tick => Number.isInteger(tick)))
-                                   .tickFormat(d3.format('d')));
-                        
-                        importantGroup.selectAll('rect').attr('x', (d) => scaleX(d.timestep)).attr('width', (d) => scaleX(d.timestep + 1) - scaleX(d.timestep));          
-                        chunkGroup.selectAll('rect').attr('x', (d) => scaleX(d.timestep)).attr('width', (d) => scaleX(d.last + 1) - scaleX(d.timestep));                        
-                    }
-                    d3.select(this).remove();
-                    d3.select('.brush').remove();
-                });
+            svg.call(zoom);
 
             sBrush = d3
                 .brush()
