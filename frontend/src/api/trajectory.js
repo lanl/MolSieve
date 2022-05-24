@@ -74,11 +74,34 @@ class Trajectory {
             }
         }*/
     }
+
+    splitChunks(chunk, split, sizeThreshold) {
+        const splitChunks = [];
+        let chunkSize = parseInt((chunk.last - chunk.timestep) / split);
+        for(let s = 0; s < split; s++) {
+            const first = chunk.timestep + (s * chunkSize);
+            const last = chunk.timestep + ((s+1) * chunkSize) - 1;
+            const child = {
+                timestep: first,
+                last: last
+            };
+            if(chunkSize > sizeThreshold) {
+                const children = this.splitChunks(child, split, sizeThreshold);
+                child.children = children;
+            }
+            splitChunks.push(child);
+        }
+        return splitChunks;
+    }
     
     simplifySet(chunkingThreshold) {     
         const chunks = [];
         const simplifiedSequence = [];
         const sizeThreshold = 25;
+        const epsilon = 0.0001;
+
+        const split = 4;
+        
         let lastChunk = { timestep: null, last: null, id: null };
         let curr_id = 0;
         for (let timestep = 0; timestep < this.sequence.length; timestep++) {
@@ -88,15 +111,17 @@ class Trajectory {
             // if its above threshold and we've been adding to a chunk, add more, otherwise start a new unimportant chunk
             // below threshold and we've been adding, add more, otherwise start a new important chunk
             // if at least one fuzzy membership is above a threshold, add to lastChunk; i.e its not interesting
-            if (Math.max(...this.fuzzy_memberships[this.current_clustering][id]) >= chunkingThreshold) {
+            if (Math.max(...this.fuzzy_memberships[this.current_clustering][id]) >= (chunkingThreshold + epsilon)) {
                 curr_important = false;
-            }
-            
+            }            
             if (lastChunk.important === curr_important) {
                 lastChunk.last = timestep;
             } else {
-                if(lastChunk.timestep !== null) {
+                if(lastChunk.timestep !== null) {                    
                     if(lastChunk.last - lastChunk.timestep > sizeThreshold) {
+                        if(lastChunk.important) {
+                            lastChunk.children = this.splitChunks(lastChunk, split, sizeThreshold);
+                        }
                         chunks.push(Object.assign({}, lastChunk));
                         curr_id--;
                     } else {
@@ -113,14 +138,14 @@ class Trajectory {
             chunks.push(lastChunk);
         }
 
+        console.log(chunks);
+
         let sorted = [...simplifiedSequence, ...chunks].sort((a,b) => a.timestep - b.timestep);
         const interleaved = [];
         
         for(let i = 0; i < sorted.length - 1; i++) {
             interleaved.push({source: sorted[i].id, target: sorted[i+1].id, transitionProb: 1.0});//this.occurrenceMap.get(Math.abs(sorted[i].id)).get(Math.abs(sorted[j].id)) });
         }
-
-        console.log(interleaved);
 
         const sequence = simplifiedSequence.map((state) => {
             return state.id;
