@@ -132,7 +132,7 @@ class Trajectory {
                         lastChunk.size = lastChunk.last - lastChunk.timestep;                        
                         chunks.set(curr_id, lastChunk);
                     } else {
-                        for(let i = lastChunk.timestep; i < lastChunk.last; i++) {
+                        for(let i = lastChunk.timestep; i <= lastChunk.last; i++) {
                             simplifiedSequence.push({timestep: i, id: this.sequence[i]});
                         }
                     }
