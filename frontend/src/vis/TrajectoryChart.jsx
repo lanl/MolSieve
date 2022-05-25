@@ -21,7 +21,7 @@ import { onStateMouseOver, onChunkMouseOver } from '../api/myutils';
 import {apply_filters} from '../api/filters';
 
 const margin = {
-    top: 20, bottom: 20, left: 25, right: 25,
+    top: 35, bottom: 20, left: 25, right: 25,
 };
 
 let sBrush = null;
@@ -37,19 +37,6 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
         setStateHighlight((prev) => !prev);
     };
 
-    /*const zoom = () => {
-        if (zBrush != null) {
-            if (!d3.selectAll('.brush').empty()) {
-                d3.selectAll('.brush').remove();
-            }
-
-            d3.select(ref.current)
-                .append('g')
-                .attr('class', 'brush')
-                .call(zBrush);
-        }
-    };*/
-
     const selectionBrush = () => {
         if (sBrush != null) {                        
             d3.select(ref.current)
@@ -63,8 +50,7 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
 
     useKeyDown('Shift', selectionBrush);
     useKeyUp('Shift', completeSelection);      
-    //zuseKeyDown('z', zoom);
-       
+
     const ref = useTrajectoryChartRender(
         (svg) => {
             if (height === undefined || width === undefined) {
@@ -85,13 +71,12 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                     maxLength = trajectory.sequence.length;
                 }
 
-                chunkSizes.push(...trajectory.simplifiedSequence.chunks.map((chunk) => {
+                chunkSizes.push(...Array.from(trajectory.simplifiedSequence.chunks.values()).map((chunk) => {
                     chunk.size = (chunk.last - chunk.timestep);
                     return chunk.size;
                 }));
             }            
             
-            // domain 102.5% of actual length for some breathing room
             const scaleX = d3
                 .scaleLinear()
                 .range([margin.left, width - margin.right])
@@ -103,8 +88,6 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                 .domain([0, Object.keys(trajectories).length]);                                           
             
             const tickNames = [];
-
-            // TODO add modal on state click, to show additional information if interested
             
             const chunkGroup = svg.append('g').attr('id', 'chunk');            
             const importantGroup = svg.append('g').attr('id', 'sequence_important');                        
@@ -112,8 +95,9 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
             for (const [name, trajectory] of Object.entries(trajectories)) {
                 
                 const {colors, idToCluster, simplifiedSequence} = trajectory;
-                const {sequence, chunks} = simplifiedSequence;                                
+                let {sequence, chunks} = simplifiedSequence;                                
                 trajectory.name = name;
+                chunks = Array.from(chunks.values());
                 
                 const g = importantGroup.append('g').attr('id', `g_${name}`);
                 tickNames.push(name);
@@ -141,9 +125,10 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                         setStateHovered(null);
                     });                
                 
-                const c = chunkGroup.append('g').attr('id', `c_${name}`);
-                
-                c.selectAll('rect').data(chunks)
+                const c = chunkGroup.append('g').attr('id', `c_${name}`).attr('name', `${name}`);
+
+                c.selectAll('rect')
+                    .data(chunks)
                     .enter()
                     .append('rect')
                     .attr('x', (d) => scaleX(d.timestep))
@@ -155,13 +140,14 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                     })                    
                     .on('mouseover', function(_, d) {
                         onChunkMouseOver(this, d, name);                            
-                    }).classed("importantChunk", (d) => d.important).classed("unimportantChunk", (d) => !d.important);            
+                    })
+                    .classed("importantChunk", (d) => d.important)
+                    .classed("unimportantChunk", (d) => !d.important);            
                 count++;
             }
 
-
-            const xAxis = svg.append('g');
-            xAxis.attr("transform", `translate(0,0)`);
+            const xAxis = svg.append('g')
+                  .attr("transform", `translate(0,0)`);            
             
             xAxis.call(d3.axisBottom(scaleX).tickValues(scaleX.ticks().filter(tick => Number.isInteger(tick)))
                        .tickFormat(d3.format('d')));
@@ -171,14 +157,81 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                 [width - margin.right, height - margin.bottom]
             ]).on("zoom", (e) => {
                 const xz = e.transform.rescaleX(scaleX);
-                console.log(xz);
+                const start = xz.domain()[0];
+                const end = xz.domain()[1];
+                const size = parseInt(parseInt(end - start) / 6);
+
+                // zoom in behavior
+                const chunks = chunkGroup
+                      .selectAll('.importantChunk')
+                      .filter(function(d) {
+                          return (d.timestep >= start && d.last <= end) && (d.childSize > size);
+                      });
+
+                const sequenceGroups = chunks.nodes().map((d) => {
+                    return d.parentNode;
+                });
+                
+                const childrenPulled = chunks.data().map((d) => {                    
+                    return d.children;
+                });
+
+                const childrens = [];
+                for(const ca of childrenPulled) {
+                    for(const c of ca) {                        
+                        childrens.push(c);
+                    }
+                }
+
+                for(const s of sequenceGroups) {
+                    const trajectoryName = s.getAttribute('name');
+                    d3.select(s)
+                        .append('g')
+                        .classed('breakdown', true)
+                        .attr('name', trajectoryName)
+                        .selectAll('rect')
+                        .data(childrens)
+                        .enter()                               
+                        .append('rect')
+                        .attr('x', (d) => {
+                            return xz(d.timestep);
+                        })
+                        .attr('y', () => scaleY(0))
+                        .attr('width', (d) => xz(d.last + 1) - xz(d.timestep))
+                        .attr('height', 25)
+                        .attr('fill',(d) => {                        
+                            const colors = trajectories[trajectoryName].colors;
+                            const idToCluster = trajectories[trajectoryName].idToCluster;                            
+                            return colors[idToCluster[d.firstID]]
+                        }).on('mouseover', function(_, d) {
+                            onChunkMouseOver(this, d, trajectoryName);
+                            console.log(this.parentNode);
+                        })
+                        .classed('importantChunk', true);                                          
+                    count++;
+                }
+                chunks.remove();
+
+                //zoom out behavior
+
+                
+                
+                // geometric zoom for the rest                
                 xAxis.call(d3.axisBottom(xz).tickValues(xz.ticks().filter(tick => Number.isInteger(tick)))
                            .tickFormat(d3.format('d')));
+                xAxis.selectAll("text")
+                    .style("text-anchor", "center")
+                    .attr("transform", "rotate(-15)");
                 importantGroup.selectAll('rect').attr('x', (d) => xz(d.timestep)).attr('width', (d) => xz(d.timestep + 1) - xz(d.timestep));          
                 chunkGroup.selectAll('rect').attr('x', (d) => xz(d.timestep)).attr('width', (d) => xz(d.last + 1) - xz(d.timestep));
+
             });
 
             svg.call(zoom);
+
+            xAxis.selectAll("text")
+                .style("text-anchor", "center")
+                .attr("transform", "rotate(-15)");
 
             sBrush = d3
                 .brush()

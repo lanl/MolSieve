@@ -75,31 +75,36 @@ class Trajectory {
         }*/
     }
 
-    splitChunks(chunk, split, sizeThreshold) {
+    splitChunks(chunk, split, sizeThreshold, sequence, curr_id) {
+        
         const splitChunks = [];
         let chunkSize = parseInt((chunk.last - chunk.timestep) / split);
         for(let s = 0; s < split; s++) {
             const first = chunk.timestep + (s * chunkSize);
-            const last = chunk.timestep + ((s+1) * chunkSize) - 1;
+            const last = (s === split -1) ? chunk.last : chunk.timestep + ((s+1) * chunkSize) - 1;
             const child = {
                 timestep: first,
-                last: last
+                last: last,
+                firstID: sequence[first],
+                id: curr_id--,
+                size: chunkSize
             };
-            if(chunkSize > sizeThreshold) {
-                const children = this.splitChunks(child, split, sizeThreshold);
+            if(parseInt(chunkSize/split) > sizeThreshold) {
+                const {children, childSize, new_id} = this.splitChunks(child, split, sizeThreshold, sequence, curr_id);
                 child.children = children;
+                child.childSize = childSize;
+                curr_id = new_id;
             }
             splitChunks.push(child);
         }
-        return splitChunks;
+        return {'children': splitChunks, 'childSize': chunkSize, 'new_id': curr_id--};
     }
     
     simplifySet(chunkingThreshold) {     
-        const chunks = [];
+        const chunks = new Map();
         const simplifiedSequence = [];
         const sizeThreshold = 25;
         const epsilon = 0.0001;
-
         const split = 4;
         
         let lastChunk = { timestep: null, last: null, id: null };
@@ -120,9 +125,14 @@ class Trajectory {
                 if(lastChunk.timestep !== null) {                    
                     if(lastChunk.last - lastChunk.timestep > sizeThreshold) {
                         if(lastChunk.important) {
-                            lastChunk.children = this.splitChunks(lastChunk, split, sizeThreshold);
+                            const {children, childSize, new_id} = this.splitChunks(lastChunk, split, sizeThreshold, this.sequence, curr_id--);
+                            lastChunk.children = children;
+                            lastChunk.childSize = childSize;
+                            curr_id = new_id;
                         }
-                        chunks.push(Object.assign({}, lastChunk));
+                        lastChunk.size = lastChunk.last - lastChunk.timestep;
+                        
+                        chunks.set(curr_id, lastChunk);
                         curr_id--;
                     } else {
                         for(let i = lastChunk.timestep; i < lastChunk.last; i++) {
@@ -135,12 +145,10 @@ class Trajectory {
         }
 
         if (lastChunk.timestep !== null) {
-            chunks.push(lastChunk);
+            chunks.set(curr_id,lastChunk);
         }
 
-        console.log(chunks);
-
-        let sorted = [...simplifiedSequence, ...chunks].sort((a,b) => a.timestep - b.timestep);
+        let sorted = [...simplifiedSequence, Array.from(chunks.values())].sort((a,b) => a.timestep - b.timestep);
         const interleaved = [];
         
         for(let i = 0; i < sorted.length - 1; i++) {
