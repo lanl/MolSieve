@@ -102,7 +102,7 @@ class Trajectory {
     
     simplifySet(chunkingThreshold) {     
         const chunks = new Map();
-        const simplifiedSequence = [];
+//        const simplifiedSequence = [];
         const sizeThreshold = 25;
         const epsilon = 0.0001;
         const split = 4;
@@ -122,7 +122,7 @@ class Trajectory {
                 lastChunk.last = timestep;
             } else {
                 if(lastChunk.timestep !== null) {                    
-                    if(lastChunk.last - lastChunk.timestep > sizeThreshold) {
+                    //if(lastChunk.last - lastChunk.timestep > sizeThreshold) {
                         curr_id = chunks.size;
                         if(lastChunk.important) {                            
                             const {children, childSize} = this.splitChunks(lastChunk, split, sizeThreshold, curr_id, chunks);
@@ -131,11 +131,11 @@ class Trajectory {
                         }
                         lastChunk.size = lastChunk.last - lastChunk.timestep;                        
                         chunks.set(curr_id, lastChunk);
-                    } else {
+                    /*} else {
                         for(let i = lastChunk.timestep; i <= lastChunk.last; i++) {
                             simplifiedSequence.push({timestep: i, id: this.sequence[i]});
                         }
-                    }
+                    }*/
                 } 
                 lastChunk = { timestep: timestep, last: timestep, firstID: id, id: curr_id, important: curr_important };
             }
@@ -144,10 +144,13 @@ class Trajectory {
         if (lastChunk.timestep !== null) {
             chunks.set(curr_id, lastChunk);
         }
-        
+
+        /*
         const topChunks = Array.from(chunks.values()).filter((d) => d.parentID === undefined);
         const sorted = [...simplifiedSequence, ...topChunks].sort((a,b) => a.timestep - b.timestep);
         const interleaved = [];
+
+        console.log(sorted);
         
         for(let i = 0; i < sorted.length - 1; i++) {
             interleaved.push({source: sorted[i].id, target: sorted[i+1].id, transitionProb: 1.0});//this.occurrenceMap.get(Math.abs(sorted[i].id)).get(Math.abs(sorted[j].id)) });
@@ -170,9 +173,13 @@ class Trajectory {
             const id = simplifiedSequence[i];
             const timestepList = idToTimestep.get(id);
             idToTimestep.set(id, [...timestepList, i]);                  
-        }
+        }*/
 
-        this.simplifiedSequence = { sequence: simplifiedSequence, uniqueStates: uniqueStates, chunks: chunks, interleaved: interleaved, idToTimestep: idToTimestep };
+        this.simplifiedSequence = { //sequence: simplifiedSequence, uniqueStates: uniqueStates,
+            chunks: chunks,
+            //interleaved: interleaved,
+            //idToTimestep: idToTimestep
+        };
         this.chunkingThreshold = chunkingThreshold;
     }    
     

@@ -18,6 +18,8 @@ import { useResize } from '../hooks/useResize';
 
 import '../css/vis.css';
 import { onStateMouseOver, onChunkMouseOver } from '../api/myutils';
+
+
 import {apply_filters} from '../api/filters';
 
 const margin = {
@@ -27,9 +29,9 @@ const margin = {
 let sBrush = null;
 let zoom = null;
 
-let chunkLists = {};
+let visible = {};
 
-function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallback, setStateHovered, setStateClicked, stateHovered, setExtents}) {       
+function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallback,  setStateHovered, setStateClicked, stateHovered, setExtents}) {       
     const {contextMenu, toggleMenu} = useContextMenu();
     const {width, height, divRef} = useResize();
     
@@ -91,37 +93,17 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
             for (const [name, trajectory] of Object.entries(trajectories)) {
                 
                 const {colors, idToCluster, simplifiedSequence} = trajectory;
-                let {sequence, chunks} = simplifiedSequence;                                
+                //                let {sequence, chunks} = simplifiedSequence;
+                let {chunks} = simplifiedSequence;
                 trajectory.name = name;
-                chunkLists[name] = Array.from(chunks.values()).filter((d) => d.parentID === undefined);
 
-                const chunkList = chunkLists[name];
+                visible[name] = {chunkList: [], sequence: [], count: count};
+                visible[name].chunkList = Array.from(chunks.values()).filter((d) => d.parentID === undefined);
+
+                const chunkList = visible[name].chunkList;
                 
-                const g = importantGroup.append('g').attr('id', `g_${name}`);
+                importantGroup.append('g').attr('id', `g_${name}`).attr('name', `${name}`);
                 tickNames.push(name);
-
-                g.selectAll('rect')
-                    .data(sequence, (d) => d)
-                    .enter()
-                    .append('rect')
-                    .attr('x', (d) => scaleX(d.timestep))
-                    .attr('y', () => scaleY(count))
-                    .attr('width', (d) => scaleX(d.timestep + 1) - scaleX(d.timestep))
-                    .attr('height', 25)
-                    .attr('opacity', 1.0)
-                    .attr('fill', (d) => {                        
-                        return colors[idToCluster[d.id]];
-                    })                    
-                    .on('click', function (_, d) {                        
-                        setStateClicked(globalUniqueStates.get(d.id));                                      
-                    })
-                    .on('mouseover', function(_, d) {                                                
-                        onStateMouseOver(this, globalUniqueStates.get(d.id), trajectory, name);                                                        
-                        setStateHovered({'caller': this, 'stateID': d.id, 'name': name, 'timestep': sequence.indexOf(d)});                            
-                    })
-                    .on('mouseout', function() {                        
-                        setStateHovered(null);
-                    });                
                 
                 const c = chunkGroup.append('g').attr('id', `c_${name}`).attr('name', `${name}`);
 
@@ -163,18 +145,59 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                 const breakDownChunks = chunkGroup
                       .selectAll('.importantChunk')
                       .filter(function(d) {
-                          return (d.timestep >= start && d.last <= end) && (d.childSize) && (d.childSize > breakThreshold);
+                          return (d.timestep >= start && d.last <= end);
                       });
 
                 for(const chunk of breakDownChunks) {
                     const trajectoryName = chunk.parentNode.getAttribute('name');
-                    const chunkList = chunkLists[trajectoryName];
-                    const chunks = trajectories[trajectoryName].simplifiedSequence.chunks;
+                    const trajectory = trajectories[trajectoryName];
+                    const chunks = trajectory.simplifiedSequence.chunks;
+
+                    const chunkList = visible[trajectoryName].chunkList;                    
                     const data = d3.select(chunk).data()[0];                    
-                    const newChunks = chunkList.filter((d) => d.id !== data.id);
-                    
-                    for(const child of data.children) {
-                        newChunks.push(chunks.get(child));
+                    let newChunks = null; 
+
+                    if((data.childSize) && (data.childSize > breakThreshold)) {
+                        newChunks = chunkList.filter((d) => d.id !== data.id);
+                        for(const child of data.children) {
+                            newChunks.push(chunks.get(child));
+                        }
+                    } else if((!data.childSize) && data.size > breakThreshold * 5)  {
+                        newChunks = chunkList.filter((d) => d.id !== data.id);
+
+                        const nodeData = visible[trajectoryName].sequence;
+                        for(let i = data.timestep; i <= data.last; i++) {
+                            nodeData.push({timestep: i, id: trajectory.sequence[i]});
+                        }
+                        
+                        const newNodes = d3.select(`#g_${trajectoryName}`)
+                              .selectAll('rect')
+                              .data(nodeData, (d) => d.id);
+                        
+                        newNodes.enter()
+                            .append('rect')
+                            .attr('parentID', data.id)
+                            .attr('x', (d) => scaleX(d.timestep))
+                            .attr('y', () => scaleY(visible[trajectoryName].count))
+                            .attr('width', (d) => scaleX(d.timestep + 1) - scaleX(d.timestep))
+                            .attr('height', 25)
+                            .attr('fill', (d) => {                        
+                                return trajectory.colors[trajectory.idToCluster[d.id]];
+                            })                    
+                            .on('click', function (_, d) {                        
+                                setStateClicked(globalUniqueStates.get(d.id));                                      
+                            })
+                            .on('mouseover', function(_, d) {                                                
+                                onStateMouseOver(this, globalUniqueStates.get(d.id), trajectory, trajectoryName);                                                        
+                                setStateHovered({'caller': this, 'stateID': d.id, 'name': trajectoryName, 'timestep': d.timestep});                            
+                            })
+                            .on('mouseout', function() {                        
+                                setStateHovered(null);
+                            });
+                        
+                        visible[trajectoryName].sequence = nodeData;
+                    } else {
+                        newChunks = chunkList;
                     }
                     
                     const nodes = chunkGroup.select(`#c_${trajectoryName}`)
@@ -186,55 +209,85 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                         .attr('x', (d) => {
                             return xz(d.timestep);
                         })
-                        .attr('y', () => scaleY(0))
+                        .attr('y', () => scaleY(visible[trajectoryName].count))
                         .attr('width', (d) => xz(d.last + 1) - xz(d.timestep))
                         .attr('height', 25)
                         .attr('fill', (d) => {                        
                             const colors = trajectories[trajectoryName].colors;
                             const idToCluster = trajectories[trajectoryName].idToCluster;                            
                             return colors[idToCluster[d.firstID]];
-                            })
+                        })
                         .on('mouseover', function(_, d) {
                             onChunkMouseOver(this, d, trajectoryName);
                         })
                         .classed("breakdown", true)
                         .classed("importantChunk", true);                         
-                    nodes.exit().remove();
-                    
-                    chunkLists[trajectoryName] = newChunks;
+                    nodes.exit().remove();                                       
+                    visible[trajectoryName].chunkList = newChunks;
                 }
                                
                 //zoom out behavior
+                const hideIndividualThreshold = parseInt((end-start) * 0.005);                
+                const individualNodes = importantGroup
+                      .selectAll('rect')
+                      .filter(function(d) {
+                          return (d.timestep >= start && d.timestep <= end) && (xz(d.timestep + 1) - xz(d.timestep) < hideIndividualThreshold);
+                      });
+
+
                 const consolidateThreshold = parseInt((end-start) * 0.05);
                 const nodes = chunkGroup
                       .selectAll('.breakdown')
                       .filter(function(d) {
                           return (d.timestep >= start && d.last <= end) && (d.size < consolidateThreshold);
                       });
-                
+
+
+                let trajectoryName = null;
+                let trajectory = null;
+                let newChunks = [];
                 if(nodes.size() > 0) {
                     const c = nodes.select(function(){ return this.parentNode; });
-                    const trajectoryName = c.attr('name');
-                    const trajectory = trajectories[trajectoryName];
+                    trajectoryName = c.attr('name');
+                    trajectory = trajectories[trajectoryName];
                     const data = nodes.data();
-                    const chunkList = chunkLists[trajectoryName];
-                    const chunks = trajectory.simplifiedSequence.chunks;
-                    const newChunks = chunkList.filter((d) => !data.map((b) => b.id).includes(d.id));
 
+                    const chunkList = visible[trajectoryName].chunkList;
+                    newChunks = chunkList.filter((d) => !data.map((b) => b.id).includes(d.id));
+                    const chunks = trajectory.simplifiedSequence.chunks;
+                    
                     const parentIDs = [...new Set(data.map((d) => d.parentID))];
 
                     for(const parent of parentIDs) {
                         newChunks.push(chunks.get(parent));
                     }
+                } else if(individualNodes.size() > 0) {
+                    const g = individualNodes.select(function() { return this.parentNode; });
+                    trajectoryName = g.attr('name');
+                    trajectory = trajectories[trajectoryName];
+                   
+                    const chunkList = visible[trajectoryName].chunkList;
+                    const parent = parseInt(individualNodes.attr('parentID'));
+          
+                    const chunks = trajectory.simplifiedSequence.chunks;
+                    newChunks = chunkList;
+                    console.log(parent);
+                    console.log(chunks.get(parent));
                     
+                    newChunks.push(chunks.get(parent));                    
+
+                    individualNodes.remove();
+                }
+                
+                if(trajectory && trajectoryName) {
                     const n = d3.select(`#c_${trajectoryName}`)
-                        .selectAll('rect')
-                        .data(newChunks, (d) => d.id);
+                          .selectAll('rect')
+                          .data(newChunks, (d) => d.id);
                     
                     n.enter()
                         .append('rect')
                         .attr('x', (d) => xz(d.timestep))
-                        .attr('y', () => scaleY(0))
+                        .attr('y', () => scaleY(visible[trajectoryName].count))
                         .attr('width', (d) => xz(d.last + 1) - xz(d.timestep))
                         .attr('height', 25)
                         .attr('fill', (d) => {
@@ -246,9 +299,9 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                         .classed("importantChunk", true);
                     
                     n.exit().remove();                                        
-                    chunkLists[trajectoryName] = newChunks;
-                }            
-                                              
+                    visible[trajectoryName].chunkList = newChunks;            
+                }
+                
                 // geometric zoom for the rest                
                 xAxis.call(d3.axisBottom(xz).tickValues(xz.ticks().filter(tick => Number.isInteger(tick)))
                            .tickFormat(d3.format('d')));
