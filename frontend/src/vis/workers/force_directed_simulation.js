@@ -31,9 +31,9 @@ self.onmessage = (event) => {
               }
           }))       
           .force("charge", d3.forceManyBody().theta(0.6))
-          .force("collide", d3.forceCollide().radius((d) => {
-                  if(d.size !== undefined && d.size !== null) {
-                      return d.size * 1.25;
+          .force("collide", d3.forceCollide().iterations(2).radius((d) => {
+                  if(d.cSize !== undefined && d.cSize !== null) {
+                      return d.cSize * 1.25;
                   } else {
                       return 6.125;
                   }                    

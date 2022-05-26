@@ -487,7 +487,6 @@ class VisArea extends React.Component {
                      />
                     }
 
-
                     {safe &&
                      (<ScatterGrid
                           className="lightBorder"
@@ -543,21 +542,5 @@ class VisArea extends React.Component {
         );
     }
 }
- /*                   {safe &&                 
-                     <GraphVis
-                         style={{
-                             sx:{flexBasis: '50%'},
-                             className:"lightBorder"
-                         }}
-                         trajectories={this.props.trajectories}
-                         runs={this.props.runs}
-                         globalUniqueStates={this.props.globalUniqueStates}
-                         setStateHovered={this.setStateHoveredProp}
-                         setStateClicked={this.setStateClickedProp}
-                         loadingCallback={this.chartFinishedLoading}
-                         stateHovered={this.state.stateHovered}
-                         setExtents={this.setExtentsUniqueStatesProp}
-                     />
-                    }*/
 
 export default VisArea;

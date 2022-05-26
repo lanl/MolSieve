@@ -26,6 +26,7 @@ import {useExtents} from '../hooks/useExtents';
 let container = null;
 let zoom = null;
 const trajRendered = {};
+let visible = {};
 let sBrush = null;
 
 function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStateClicked, setStateHovered, loadingCallback, style, setExtents }) {
@@ -113,11 +114,11 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
               });
         
         const chunkNodes = c.selectAll('circle')
-              .data(chunks)
+              .data(chunks, (d) => d.id)
               .enter()
               .append('circle')                
               .attr('r', (d) => {
-                  return d.size;
+                  return d.cSize;
               }).attr('fill', function(d) {
                   return trajectory.colors[trajectory.idToCluster[d.firstID]];
               }).on('mouseover', function(_, d) {                      
@@ -170,27 +171,28 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
 
         const linkGroup = container.append('g').attr('id', 'links');
         const importantGroup = container.append('g').attr('id', 'important');
-        const chunkGroup = container.append('g').attr('id', 'chunk');
-       
-        let chunkSizes = [];
-
-        // always global; option
-        for (const trajectory of Object.values(trajectories)) {                        
-            chunkSizes.push(...trajectory.simplifiedSequence.chunks.map((chunk) => {
-                chunk.size = (chunk.last - chunk.timestep);                
-                return chunk.size;
-            }));
-        }
-
+        const chunkGroup = container.append('g').attr('id', 'chunk');       
+             
         // https://bl.ocks.org/mbostock/1062288 - collapsible tree
         // https://coppelia.io/2014/07/an-a-to-z-of-extra-features-for-the-d3-force-layout/
         // http://bl.ocks.org/samuelleach/5497403
+        const globalChunkSizes = [];
+        for(const [name, trajectory] of Object.entries(trajectories)) {
+            const chunkData = trajectory.simplifiedSequence.chunks;
+            const chunkList = Array.from(chunkData.values()).filter((d) => d.parentID === undefined);
+            const chunkSizes = chunkList.map((d) => d.size);
+            globalChunkSizes.push(...chunkSizes);
+            visible[name] = {chunkList: chunkList, sequence: [], links: []};
+        }
+                
+        const globalTimeScale = d3.scaleLinear().range([10,125]).domain([0, Math.max(...globalChunkSizes)]);
         
-        const globalTimeScale = d3.scaleRadial().range([10,125]).domain([0, Math.max(...chunkSizes)]);
-        for (const trajectory of Object.values(trajectories)) {                        
-            for(const c of trajectory.simplifiedSequence.chunks) {
-                c.size = globalTimeScale(c.size);
+        for(const name of Object.keys(trajectories)) {
+            for(const c of Array.from(trajectories[name].simplifiedSequence.chunks.values())) {                
+                c.cSize = globalTimeScale(c.size);
+                trajectories[name].simplifiedSequence.chunks.set(c.id, c);
             }
+            console.log(trajectories[name].simplifiedSequence.chunks);
         }
         
         const seen = [];                       
@@ -202,14 +204,21 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
         let globalLinks = [];
         let trajCount = 0;
 
-        for (const [name, trajectory] of Object.entries(trajectories)) {                        
-            let chunks = JSON.parse(JSON.stringify(trajectory.simplifiedSequence.chunks));
-            let sSequence = JSON.parse(JSON.stringify(trajectory.simplifiedSequence.uniqueStates));
-            let links = JSON.parse(JSON.stringify(trajectory.simplifiedSequence.interleaved));                        
+        for (const [name, trajectory] of Object.entries(trajectories)) {                                              
+            const chunkData = trajectory.simplifiedSequence.chunks;
+            const chunks = visible[name].chunkList;
+            const links = visible[name].links;
+            const sSequence = visible[name].sequence;            
+            const sorted = [...sSequence, ...chunks].sort((a,b) => a.timestep - b.timestep);
+            
+            for(let i = 0; i < sorted.length - 1; i++) {
+                links.push({source: sorted[i].id, target: sorted[i+1].id, transitionProb: 1.0});//this.occurrenceMap.get(Math.abs(sorted[i].id)).get(Math.abs(sorted[j].id)) });
+            }
 
+            
             trajectory.name = name;
 
-            if(!seperateTrajectories) {
+            if(!seperateTrajectories) {                
                 for(let c of chunks) {
                     const chunk = c;
                     chunk.x_measure = trajCount;
@@ -236,19 +245,15 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                 sSequence.map((state) => {
                     sequenceMap.set(state.id, state);
                 });
-                
-                chunks.map((chunk) => {
-                    sequenceMap.set(chunk.id, chunk);
-                });
-                
+                               
                 for(const link of links) {
-                    const tc_idx = (link.target > 0) ? link.target : chunks[Math.abs(link.target)].firstID;
-                    const sc_idx = (link.source > 0) ? link.source : chunks[Math.abs(link.source)].firstID;
+                    const tc_idx = (link.target > 0) ? link.target : chunkData.get(link.target).firstID;
+                    const sc_idx = (link.source > 0) ? link.source : chunkData.get(link.source).firstID;
                     const targetCluster = trajectory.idToCluster[tc_idx];
                     const sourceCluster = trajectory.idToCluster[sc_idx];
 
-                    const targetNode = sequenceMap.get(link.target);
-                    const sourceNode = sequenceMap.get(link.source);
+                    const targetNode = chunkData.get(link.target);
+                    const sourceNode = chunkData.get(link.source);
                                         
                     targetNode.x_measure = targetCluster;
                     sourceNode.x_measure = sourceCluster;
@@ -256,7 +261,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                     sequenceMap.set(link.target, targetNode);
                     sequenceMap.set(link.source, sourceNode);
                 }
-                
+
                 simulationWorker.postMessage({
                     chunks: chunks,
                     sSequence: sSequence,
@@ -283,7 +288,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                     const g = importantGroup.append('g').attr('id', `g_${name}`);      
                     const c = chunkGroup.append('g').attr('id', `c_${name}`);                    
                     
-                    let { stateNodes, chunkNodes, linkNodes } = renderGraph(simulatedLinks, simulatedChunks, simulatedStates, l, g, c, name, trajectory);
+                    let { stateNodes, chunkNodes, linkNodes } = renderGraph(simulatedLinks, simulatedChunks, simulatedStates, l, g, c, name, trajectory, globalTimeScale);
 
                     stateNodes                    
                         .attr("cx", (d) => d.x)
@@ -294,8 +299,8 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                         .attr("cy", (d) => d.y);
                                          
                     linkNodes.attr("d", (d) => {                        
-                        const rt = (d.target.size) ? d.target.size : 5;
-                        const rs = (d.source.size) ? d.source.size : 5;
+                        const rt = (d.target.cSize) ? d.target.cSize : 5;
+                        const rs = (d.source.cSize) ? d.source.cSize : 5;
                         const dx = d.target.x - d.source.x;
                         const dy = d.target.y - d.source.y;                        
                         const dr = Math.sqrt(dx * dx + dy * dy);
@@ -343,7 +348,8 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                 y_count: y_count,
                 width: width,
                 height: height,
-                maxChunkSize: globalTimeScale(Math.max(...chunkSizes))
+
+                maxChunkSize: globalTimeScale(Math.max(...globalChunkSizes))
             });
 
             simulationWorker.onmessage = (event) => {
@@ -387,7 +393,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                         }
                     }
                                         
-                    let { stateNodes, chunkNodes, linkNodes } = renderGraph(links, chunks, renderNow, l, g, c, name, trajectory);
+                    let { stateNodes, chunkNodes, linkNodes } = renderGraph(links, chunks, renderNow, l, g, c, name, trajectory, globalTimeScale);
                     
                     stateNodes
                         .attr("cx", function(d) { return globalSequenceMap.get(d.id).x; })
@@ -426,11 +432,10 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
             }
         }
         // the trick to zooming like this is to move the container without moving the SVG's viewport
-        
         zoom = d3.zoom().on('zoom', function(e) {
             container.attr("transform", e.transform);  
         });
-
+        
         // set default view for SVG
         const bbox = container.node().getBBox();
         const vx = bbox.x;
@@ -439,7 +444,9 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
         const vh = bbox.height;
         const defaultView = `${vx} ${vy} ${vw} ${vh}`;        
 
-        svg.attr("viewBox", defaultView).attr("preserveAspectRatio", "none").call(zoom);
+
+        svg.attr("viewBox", defaultView).attr("preserveAspectRatio", "none")
+            .call(zoom);
 
         setInCommon(inCommon);
         loadingCallback();
