@@ -77,6 +77,7 @@ class Trajectory {
 
     splitChunks(chunk, split, sizeThreshold, parentID, chunks) {
         const splitChunks = [];
+        let curr_id = parentID;
         let chunkSize = parseInt((chunk.last - chunk.timestep) / split);
         for(let s = 0; s < split; s++) {
             const first = chunk.timestep + (s * chunkSize);
@@ -85,19 +86,20 @@ class Trajectory {
                 timestep: first,
                 last: last,
                 firstID: this.sequence[first],
-                id: chunks.size + 1,
+                id: --curr_id,
                 parentID: parentID,
                 size: chunkSize
             };
             chunks.set(child.id, child);
             if(parseInt(chunkSize/split) > sizeThreshold) {
-                const {children, childSize} = this.splitChunks(child, split, sizeThreshold, child.id, chunks);
+                const {children, childSize, newID} = this.splitChunks(child, split, sizeThreshold, child.id, chunks);
                 child.children = children;
                 child.childSize = childSize;
+                curr_id = newID;
             }
             splitChunks.push(child.id);
         }
-        return {'children': splitChunks, 'childSize': chunkSize};
+        return {'children': splitChunks, 'childSize': chunkSize, 'newID': curr_id};
     }
     
     simplifySet(chunkingThreshold) {     
@@ -121,27 +123,23 @@ class Trajectory {
             if (lastChunk.important === curr_important) {
                 lastChunk.last = timestep;
             } else {
-                if(lastChunk.timestep !== null) {                    
-                    //if(lastChunk.last - lastChunk.timestep > sizeThreshold) {
-                        curr_id = chunks.size;
-                        if(lastChunk.important) {                            
-                            const {children, childSize} = this.splitChunks(lastChunk, split, sizeThreshold, curr_id, chunks);
-                            lastChunk.children = children;
-                            lastChunk.childSize = childSize;
-                        }
-                        lastChunk.size = lastChunk.last - lastChunk.timestep;                        
-                        chunks.set(curr_id, lastChunk);
-                    /*} else {
-                        for(let i = lastChunk.timestep; i <= lastChunk.last; i++) {
-                            simplifiedSequence.push({timestep: i, id: this.sequence[i]});
-                        }
-                    }*/
+                if(lastChunk.timestep !== null) {
+                    const parentID = curr_id--;
+                    if(lastChunk.important) {                            
+                        const {children, childSize, newID} = this.splitChunks(lastChunk, split, sizeThreshold, parentID, chunks);
+                        lastChunk.children = children;
+                        lastChunk.childSize = childSize;
+                        curr_id = newID;
+                    }
+                    lastChunk.size = lastChunk.last - lastChunk.timestep;                        
+                    chunks.set(parentID, lastChunk);
                 } 
                 lastChunk = { timestep: timestep, last: timestep, firstID: id, id: curr_id, important: curr_important };
             }
         }
 
         if (lastChunk.timestep !== null) {
+            lastChunk.size = lastChunk.last - lastChunk.timestep;
             chunks.set(curr_id, lastChunk);
         }
 
