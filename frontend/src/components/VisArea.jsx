@@ -56,7 +56,8 @@ class VisArea extends React.Component {
             KSTestResults: {},
             analyses: {},
             similarities: {},
-            NEBPlots: []
+            NEBPlots: [],
+            visible: null
         };
     }
 
@@ -95,6 +96,11 @@ class VisArea extends React.Component {
         const extents_id = `ss_${count}`;
         
         this.setState({subSequences: {...this.state.subSequences, [extents_id]: modEx}});          
+    }
+
+    setVisible = (visible) => {
+        this.setState({visible: {...visible}});
+        // could set up visible here instead of doing it seperately for each vis...
     }
     
     toggleModal = (key) => {
@@ -435,6 +441,7 @@ class VisArea extends React.Component {
                                       setStateHovered={this.setStateHoveredProp}
                                       setStateClicked={this.setStateClickedProp}
                                       stateHovered={this.state.stateHovered}
+                                      setVisible={this.setVisible}
                                       setExtents={this.setExtentsProp}                              
                                   />
                               </AccordionDetails>
@@ -483,6 +490,7 @@ class VisArea extends React.Component {
                          setStateClicked={this.setStateClickedProp}
                          loadingCallback={this.chartFinishedLoading}
                          stateHovered={this.state.stateHovered}
+                         visibleProp={this.state.visible}
                          setExtents={this.setExtentsUniqueStatesProp}
                      />
                     }

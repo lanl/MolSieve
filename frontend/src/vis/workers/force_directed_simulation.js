@@ -7,7 +7,6 @@ self.onmessage = (event) => {
     const links = event.data.links; 
     const x_count = event.data.x_count;
     const width = event.data.width;
-
     const x_measureCount = event.data.x_measureCount;
 
     const traj_gap = width;

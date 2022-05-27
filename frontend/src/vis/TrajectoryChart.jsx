@@ -31,7 +31,7 @@ let zoom = null;
 
 let visible = {};
 
-function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallback,  setStateHovered, setStateClicked, stateHovered, setExtents}) {       
+function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallback,  setStateHovered, setStateClicked, stateHovered, setExtents, setVisible}) {       
     const {contextMenu, toggleMenu} = useContextMenu();
     const {width, height, divRef} = useResize();
     
@@ -222,8 +222,10 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                         })
                         .classed("breakdown", true)
                         .classed("importantChunk", true);                         
-                    nodes.exit().remove();                                       
-                    visible[trajectoryName].chunkList = newChunks;
+
+                        nodes.exit().remove();                                       
+                        visible[trajectoryName].chunkList = newChunks;
+
                     }
                 }
                                
@@ -276,12 +278,15 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                     newChunks = chunkList;
                     
                     newChunks.push(chunks.get(parent));                    
+                    const sequence = visible[trajectoryName].sequence;                    
+                    const data = individualNodes.data();
 
+                    visible[trajectoryName].sequence = sequence.filter((d) => !data.map((b) => b.id).includes(d.id));
+                    
                     individualNodes.remove();
                 }
                 
                 if(newChunks) {
-
                     const n = d3.select(`#c_${trajectoryName}`)
                           .selectAll('rect')
                           .data(newChunks, (d) => d.id);
@@ -301,7 +306,7 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                         .classed("importantChunk", true);
                     
                     n.exit().remove();                                        
-                    visible[trajectoryName].chunkList = newChunks;            
+                    visible[trajectoryName].chunkList = newChunks;
                 }
                 
                 // geometric zoom for the rest                
@@ -313,7 +318,8 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                     .attr("transform", "rotate(-15)");
             
                 importantGroup.selectAll('rect').attr('x', (d) => xz(d.timestep)).attr('width', (d) => xz(d.timestep + 1) - xz(d.timestep));          
-                chunkGroup.selectAll('rect').attr('x', (d) => xz(d.timestep)).attr('width', (d) => xz(d.last + 1) - xz(d.timestep));        
+                chunkGroup.selectAll('rect').attr('x', (d) => xz(d.timestep)).attr('width', (d) => xz(d.last + 1) - xz(d.timestep));
+                setVisible(visible);
             });
         
             svg.call(zoom);

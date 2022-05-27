@@ -88,7 +88,8 @@ class Trajectory {
                 firstID: this.sequence[first],
                 id: --curr_id,
                 parentID: parentID,
-                size: chunkSize
+                size: chunkSize,
+                important: true
             };
             chunks.set(child.id, child);
             if(parseInt(chunkSize/split) > sizeThreshold) {
@@ -179,7 +180,9 @@ class Trajectory {
             //idToTimestep: idToTimestep
         };
         this.chunkingThreshold = chunkingThreshold;
-    }    
+    }
+
+
     
     set_colors(colorArray) {
         let i = 0;        
