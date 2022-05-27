@@ -124,6 +124,8 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                 count++;
             }
 
+            let rescaledX = scaleX;
+            
             const xAxis = svg.append('g')
                   .attr("transform", `translate(0,0)`);            
             
@@ -227,6 +229,7 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                         visible[trajectoryName].chunkList = newChunks;
 
                     }
+                    rescaledX = xz;
                 }
                                
                 //zoom out behavior
@@ -320,6 +323,7 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                 importantGroup.selectAll('rect').attr('x', (d) => xz(d.timestep)).attr('width', (d) => xz(d.timestep + 1) - xz(d.timestep));          
                 chunkGroup.selectAll('rect').attr('x', (d) => xz(d.timestep)).attr('width', (d) => xz(d.last + 1) - xz(d.timestep));
                 setVisible(visible);
+
             });
         
             svg.call(zoom);
@@ -340,8 +344,8 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                     if (extent) {
                         const currName = Object.keys(trajectories)[Math.round(scaleY.invert(extent[0][1]))];
                         if (currName !== null && currName !== undefined) {
-                            const begin = Math.round(scaleX.invert(extent[0][0]));
-                            const end = Math.round(scaleX.invert(extent[1][0]));
+                            const begin = Math.round(rescaledX.invert(extent[0][0]));
+                            const end = Math.round(rescaledX.invert(extent[1][0]));
                             
                             if(begin !== undefined && end !== undefined) {                                
                                 const xtent = {
