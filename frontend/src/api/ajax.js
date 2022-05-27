@@ -6,7 +6,6 @@ import axios from 'axios';
  * its name and properties.
  * @param {string} run - Name of the run to retrieve the sequence for
  * @param {Array<string>} properties - Properties of the trajectory to retrieve
- * @param {Trajectory|undefined} trajectory - optional, if passed to the function will modify the trajectory object and return it
  */
 export function api_loadSequence(run, properties) {
     return new Promise((resolve, reject) => {
@@ -214,6 +213,18 @@ export function api_calculate_NEB(run, start, end, interpolate, maxSteps, fmax,s
             }).catch((e) => {                
                 reject(e);
             });
+    });
+}
+
+export function api_calculate_idToTimestep(run, trajectory) {
+    return new Promise(function(resolve, reject) {
+        axios.get("/api/idToTimestep", { params: { run: run}}).then((response) => {
+            const idToTimestep = new Map(response.data.map((state) => { return [state.id, state.timesteps]}));            
+            trajectory.idToTimestep = idToTimestep;
+            resolve(trajectory);
+        }).catch((e) => {
+            reject(e);
+        });
     });
 }
 

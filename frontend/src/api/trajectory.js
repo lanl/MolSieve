@@ -61,20 +61,6 @@ class Trajectory {
         }
     }
 
-    // biggest bottleneck atm
-    calculateIDToTimestepMap() {
-        /*console.log(this.sequence);
-        const seqLen = this.sequence.length;
-        for(let i = 0; i < seqLen; i++) {
-            if(this.idToTimestep.has(this.sequence[i])) {
-                const timestepList = this.idToTimestep.get(this.sequence[i]);
-                this.idToTimestep.set(this.sequence[i], [...timestepList, i]);
-            } else {
-                this.idToTimestep.set(this.sequence[i], [i]);
-            }
-        }*/
-    }
-
     splitChunks(chunk, split, sizeThreshold, parentID, chunks) {
         const splitChunks = [];
         let curr_id = parentID;

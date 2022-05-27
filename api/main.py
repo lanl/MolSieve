@@ -425,14 +425,37 @@ def get_metadata(run: str):
     _, j = getMetadata(run, getJson=True)
     return j
 
+@router.get("/idToTimestep")
+def idToTimestep(run: str):
+    driver = neo4j.GraphDatabase.driver(
+        "bolt://127.0.0.1:7687", auth=("neo4j", "secret"))
+
+    if config.IMPATIENT:
+        r = loadTestJson(run, "idToTimestep")
+        if r != None:
+            return r
+    
+    query = """MATCH (n:{run})-[r:{run}]->(:{run})
+               RETURN DISTINCT ID(n) as id, collect(r.timestep) as timesteps;""".format(run=run)
+
+    j = None
+    with driver.session() as session:
+        try:
+            result = session.run(query)
+            j = result.data()
+        except neo4j.exceptions.ServiceUnavailable as exception:
+            raise exception
+
+    saveTestJson(run, "idToTimestep", j)
+    return j
+
 
 # TODO: make pcca support multiple runs
 # move to celery worker
 @router.get("/pcca")
 async def pcca(run: str, clusters: int, optimal: int, m_min: int, m_max: int):
     driver = neo4j.GraphDatabase.driver(
-        "bolt://127.0.0.1:7687", auth=("neo4j", "secret")
-    )
+        "bolt://127.0.0.1:7687", auth=("neo4j", "secret"))
     if config.IMPATIENT:
         r = loadTestJson(run, "optimal_pcca")
         if r != None:
@@ -498,12 +521,12 @@ async def pcca(run: str, clusters: int, optimal: int, m_min: int, m_max: int):
 
     j.update({"sets": sets})
     j.update({"fuzzy_memberships": fuzzy_memberships})
-    # j.update({'occurrence_matrix': np.array(m.values).tolist()})
+    j.update({'occurrence_matrix': occurrenceMatrix})
     # j.update({'currentClustering': currentClustering});
     # TODO: add as metadata in vis
     # j.update({'dominant_eigenvalues': gpcca.dominant_eigenvalues.tolist()})
     # j.update({'minChi': gpcca.minChi(m_min, m_max)})
-    print(gpcca.n_m)
+    # print(gpcca.n_m)
     # print(j)
 
     saveTestJson(run, "optimal_pcca", j)

@@ -121,7 +121,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
 
     const { enqueueSnackbar, closeSnackbar } = useSnackbar();    
     
-    const renderGraph = (links, chunks, sSequence, l, g, c, name, trajectory, gts) => {
+    const renderGraph = (links, chunks, sSequence, l, g, c, name, trajectory, gts, idToTimestep) => {
 
         const colors = trajectory.colors;
 
@@ -137,7 +137,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                   setStateClicked(globalUniqueStates.get(d.id));                
               }).on('mouseover', function(_, d) {
                   onStateMouseOver(this, globalUniqueStates.get(d.id), trajectory, name);
-                  const timesteps = trajectory.simplifiedSequence.idToTimestep.get(d.id);
+                  const timesteps = idToTimestep.get(d.id);
                   if(timesteps.length === 1) {                        
                       setStateHovered({'caller': this, 'stateID': d.id, 'name': name, 'timestep': timesteps[0]});
                   } else {
@@ -156,9 +156,8 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
             .append('circle')                
             .attr('r', (d) => {
                 return gts(d.size);
-            }).attr('fill', function(d) {
-                return trajectory.colors[trajectory.idToCluster[d.firstID]];
-            }).on('mouseover', function(_, d) {                      
+            }).attr('fill', function(d) {return trajectory.colors[trajectory.idToCluster[d.firstID]]; })
+            .on('mouseover', function(_, d) {                      
                 onChunkMouseOver(this, d, name);                 
             }).classed("importantChunk", (d) => d.important).classed("unimportantChunk", (d) => !d.important).classed('node', true);
 
@@ -249,7 +248,6 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                 links.push({source: sorted[i].id, target: sorted[i+1].id, id: `${sorted[i].id}-${sorted[i+1].id}`, transitionProb: 1.0});//this.occurrenceMap.get(Math.abs(sorted[i].id)).get(Math.abs(sorted[j].id)) });
             }
 
-            
             trajectory.name = name;
 
             if(!seperateTrajectories) {                
@@ -559,9 +557,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
         if(visibleProp) {           
             for(const [name, visible] of Object.entries(visibleProp)) {                               
                 const sequence = visible.sequence;
-                const chunkList = visible.chunkList;
-
-                
+                const chunkList = visible.chunkList;                
                 const sim = sims[name];
                 const trajectory = trajectories[name];
                 const chunkData = trajectory.simplifiedSequence.chunks;
@@ -573,6 +569,19 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                     links.push({source: sorted[i].id, target: sorted[i+1].id, id: `${sorted[i].id}-${sorted[i+1].id}`, transitionProb: 1.0});//this.occurrenceMap.get(Math.abs(sorted[i].id)).get(Math.abs(sorted[j].id)) });
                 }
 
+                const idToTimestep = new Map();
+
+                const seqLen = sequence.length;
+                for(let i = 0; i < seqLen; i++) {
+                    const s = sequence[i];
+                    if(idToTimestep.has(s.id)) {
+                        const timestepList = idToTimestep.get(s.id);
+                        idToTimestep.set(s.id, [...timestepList, s.timestep]);
+                    } else {
+                        idToTimestep.set(s.id, [s.timestep]);
+                    }
+                }
+                       
                 const sequenceMap = new Map();
                 sequence.map((state) => {
                     sequenceMap.set(state.id, state);
@@ -596,11 +605,10 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                 const g = d3.select('#graph').select(`#g_${name}`);
                 const c = d3.select('#graph').select(`#c_${name}`);
                 
-                sim.stop();
                 sim.nodes(sorted);
                 sim.force('link').links(links);
 
-                renderGraph(links, chunkList, sequence, l, g, c, name, trajectory, globalTimeScale);
+                renderGraph(links, chunkList, sequence, l, g, c, name, trajectory, globalTimeScale, idToTimestep);
 
                 const ticked = () => {
                     g.selectAll('.node')
@@ -633,7 +641,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                     });
                 }
                 sim.on('tick', ticked);
-                sim.restart();
+                sim.restart().alpha(0.5);
             }                    
         }
     }, [visibleProp]);
