@@ -400,7 +400,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
 
                     c.selectAll('.node')
                         .attr("cx", function(d) { return globalChunkMap.get(d.id).x; })
-                        .attr("cy", function(d) { return globalChunkMap.get(d.id).x; });
+                        .attr("cy", function(d) { return globalChunkMap.get(d.id).y; });
 
                     l.selectAll('.link')
                         .attr("d", (d) => {                        
@@ -431,19 +431,22 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                 closeSnackbar('Global Trajectory');   
             }
         }
-        // the trick to zooming like this is to move the container without moving the SVG's viewport
-        zoom = d3.zoom().on('zoom', function(e) {
-            container.attr("transform", e.transform);  
-        });
         
         // set default view for SVG
+
         const bbox = container.node().getBBox();
         const vx = bbox.x;
         const vy = bbox.y;	
         const vw = bbox.width;
         const vh = bbox.height;
+
         const defaultView = `${vx} ${vy} ${vw} ${vh}`;        
 
+        // the trick to zooming like this is to move the container without moving the SVG's viewport
+        zoom = d3.zoom().on('zoom', function(e) {
+            container.attr("transform", e.transform);
+        });
+        
         globalTimeScale = gts;
 
         svg.attr("viewBox", defaultView).attr("preserveAspectRatio", "none")
@@ -555,7 +558,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
 
     useEffect(() => {
         if(visibleProp) {           
-            for(const [name, visible] of Object.entries(visibleProp)) {                               
+            for(const [name, visible] of Object.entries(visibleProp)) {
                 const sequence = visible.sequence;
                 const chunkList = visible.chunkList;                
                 const sim = sims[name];
@@ -607,7 +610,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                 
                 sim.nodes(sorted);
                 sim.force('link').links(links);
-
+                // manipulate data in such a way that nothing gets lost
                 renderGraph(links, chunkList, sequence, l, g, c, name, trajectory, globalTimeScale, idToTimestep);
 
                 const ticked = () => {
