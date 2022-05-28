@@ -173,7 +173,6 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                     const chunkList = visible[trajectoryName].chunkList;
                     const trajectory = trajectories[trajectoryName];
                     let newChunks = null;
-                    let nodeData = visible[trajectoryName].sequence;
                     const chunks = trajectory.simplifiedSequence.chunks;
                          
                     if((data.childSize) && (data.childSize > breakThreshold)) {
@@ -220,6 +219,8 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                             });
                         
                         newNodes.exit().remove();
+                        visible[trajectoryName].sequence = nodeData;
+                        graphVisible[trajectoryName].sequence = nodeData;
                     } else if(data.breakdown && data.size < consolidateThreshold) {
                             // zoom out - consolidate chunks into bigger chunk
                         newChunks = chunkList.filter((d) => d.id !== data.id);
@@ -233,15 +234,13 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                             seenParents.add(parentID);
                         }
                     } else {
-                        // otherwise, we just saw this chunk and added it to the graph view as is
                         newChunks = chunkList;
                         graphVisible[trajectoryName].chunkList.push(data);
-                        graphVisible[trajectoryName].sequence = nodeData;
                     }
                     renderChunks(newChunks, trajectory, trajectoryName, visible[trajectoryName].count, xz, scaleY);
                     visible[trajectoryName].chunkList = newChunks;
-                    visible[trajectoryName].sequence = nodeData;
-                }
+                } 
+
                                     
                 rescaledX = xz;
 
@@ -257,26 +256,17 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                 // group by parentID
 
                 const nodeDataByParentID = d3.group(onScreenNodeData, d => d.parentID);
-                console.log(hideIndividualThreshold);
-                    // zoom out - consolidate nodes into one big chunk
-                    // guaranteed to all belong to the same trajectory                    
-                if(1.5 < hideIndividualThreshold) {
-                    console.log('hiding - threshold reached');
-                    console.log(nodeDataByParentID);
 
-                    // start here - Object.entries not firing. will solve nodes not being deleted issue
+                if(1.5 < hideIndividualThreshold) {
                     for(const [parentID, dataArray] of nodeDataByParentID.entries()) {
-                        console.log(parentID);
-                        console.log(dataArray);
                         const data = dataArray[0];
                         const trajectoryName = data.trajectoryName;
                     
                         const trajectory = trajectories[trajectoryName];                    
-                        const chunkList = visible[trajectoryName].chunkList;
                         
                         const chunks = trajectory.simplifiedSequence.chunks;
                             
-                        chunkList.push(chunks.get(parentID));
+                        visible[trajectoryName].chunkList.push(chunks.get(parentID));
                         graphVisible[trajectoryName].chunkList.push(chunks.get(parentID));                        
                         
                         const sequence = visible[trajectoryName].sequence;                    
@@ -285,11 +275,14 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                         visible[trajectoryName].sequence = newSequence;                        
                         
                         graphVisible[trajectoryName].sequence = visible[trajectoryName].sequence;
+                        renderChunks(visible[trajectoryName].chunkList, trajectory, trajectoryName, visible[trajectoryName].count, xz, scaleY);
                         onScreenNodes.remove();
                     }                  
-                } /*else {
-
-                }*/
+                } else {
+                    for(const name of Object.keys(trajectories)) {
+                        graphVisible[name].sequence = visible[name].sequence;
+                    }                        
+                }
                
                 
                 // geometric zoom for the rest                

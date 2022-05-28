@@ -611,7 +611,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                 sim.nodes(sorted);
                 sim.force('link').links(links);
                 // manipulate data in such a way that nothing gets lost
-                renderGraph(links, chunkList, sequence, l, g, c, name, trajectory, globalTimeScale, idToTimestep);
+                renderGraph(links, chunkList, Array.from(sequenceMap.values()), l, g, c, name, trajectory, globalTimeScale, idToTimestep);
 
                 const ticked = () => {
                     g.selectAll('.node')
