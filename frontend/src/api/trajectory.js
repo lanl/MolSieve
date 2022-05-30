@@ -67,18 +67,18 @@ class Trajectory {
         let chunkSize = parseInt((chunk.last - chunk.timestep) / split);
         for(let s = 0; s < split; s++) {
             const first = chunk.timestep + (s * chunkSize);
-            const last = (s === split -1) ? chunk.last : chunk.timestep + ((s+1) * chunkSize) - 1;
+            const last = (s === split - 1) ? chunk.last : (first + chunkSize - 1);
             const child = {
                 timestep: first,
                 last: last,
                 firstID: this.sequence[first],
                 id: --curr_id,
                 parentID: parentID,
-                size: chunkSize,
+                size: last - first,
                 important: true
             };
             chunks.set(child.id, child);
-            if(parseInt(chunkSize/split) > sizeThreshold) {
+            if(child.size > sizeThreshold) {
                 const {children, childSize, newID} = this.splitChunks(child, split, sizeThreshold, child.id, chunks);
                 child.children = children;
                 child.childSize = childSize;
@@ -86,7 +86,7 @@ class Trajectory {
             }
             splitChunks.push(child.id);
         }
-        return {'children': splitChunks, 'childSize': chunkSize, 'newID': curr_id};
+        return {'children': splitChunks, 'childSize': chunkSize, 'newID': --curr_id};
     }
     
     simplifySet(chunkingThreshold) {     
@@ -130,40 +130,8 @@ class Trajectory {
             chunks.set(curr_id, lastChunk);
         }
 
-        /*
-        const topChunks = Array.from(chunks.values()).filter((d) => d.parentID === undefined);
-        const sorted = [...simplifiedSequence, ...topChunks].sort((a,b) => a.timestep - b.timestep);
-        const interleaved = [];
-
-        console.log(sorted);
-        
-        for(let i = 0; i < sorted.length - 1; i++) {
-            interleaved.push({source: sorted[i].id, target: sorted[i+1].id, transitionProb: 1.0});//this.occurrenceMap.get(Math.abs(sorted[i].id)).get(Math.abs(sorted[j].id)) });
-        }
-        
-        const sequence = simplifiedSequence.map((state) => {
-            return state.id;
-        });
-
-        const uniqueStates = [...new Set(sequence)].map((state) => {
-                return {'id': state};
-        });
-
-        const idToTimestep = new Map();
-        for(let i = 0; i < uniqueStates.length; i++) {
-            idToTimestep.set(uniqueStates[i].id, []);
-        }        
-        
-        for(let i = 0; i < simplifiedSequence; i++) {
-            const id = simplifiedSequence[i];
-            const timestepList = idToTimestep.get(id);
-            idToTimestep.set(id, [...timestepList, i]);                  
-        }*/
-
-        this.simplifiedSequence = { //sequence: simplifiedSequence, uniqueStates: uniqueStates,
-            chunks: chunks,
-            //interleaved: interleaved,
-            //idToTimestep: idToTimestep
+        this.simplifiedSequence = {
+            chunks: chunks
         };
         this.chunkingThreshold = chunkingThreshold;
     }
