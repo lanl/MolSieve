@@ -1,4 +1,4 @@
-import { React, memo } from "react";
+import { React, memo, useEffect } from "react";
 import Box from "@mui/material/Box";
 import * as d3 from "d3";
 import { useTrajectoryChartRender } from "../hooks/useTrajectoryChartRender";
@@ -13,7 +13,10 @@ const margin = {
     right: 25,
 };
 
-function SelectionVis({ trajectories, extents, loadingCallback, style, globalUniqueStates, titleProp }) {
+let scaleX = null;
+let scaleY = null;
+
+function SelectionVis({ trajectories, extents, loadingCallback, style, globalUniqueStates, titleProp, sequenceExtent }) {
     const {width, height, divRef} = useResize();
     
     const ref = useTrajectoryChartRender(
@@ -60,23 +63,26 @@ function SelectionVis({ trajectories, extents, loadingCallback, style, globalUni
                 (t) => t.sequence.length
             );
 
-            const scaleX = d3
+            scaleX = d3
                 .scaleLinear()
                 .range([margin.left, width - margin.right])
                 .domain([0, maxLength]);
 
-            const scaleY = d3
+            scaleY = d3
                 .scaleLinear()
                 .range([margin.top + 10, height - margin.bottom])
                 .domain([0, Object.keys(trajectories).length]);
 
             let count = 0;
 
+            //stores the rectangle that gets drawn when the view moves
+            svg.append('g').attr('id', 'extentGroup');
+
             for (const [name, extentArray] of groupedExtents.entries()) {
                 const { sequence } = trajectories[name];
 
                 const g = svg.append('g');
-                const ig = svg.append('g');
+                const ig = svg.append('g');                
 
                 extentArray.sort(function (a,b) {
                     return d3.ascending(a.begin, b.begin);
@@ -166,6 +172,21 @@ function SelectionVis({ trajectories, extents, loadingCallback, style, globalUni
         },
         [width, height, trajectories]
     );
+
+    useEffect(() => {
+        if(sequenceExtent && scaleX && scaleY) {
+            console.log(sequenceExtent);
+            const g = d3.select(ref.current).select('#extentGroup');
+            g.selectAll('rect').remove();
+            g.append('rect')
+                .attr('x', scaleX(sequenceExtent[0]))
+                .attr('y', 0)
+                .attr('width', scaleX(sequenceExtent[1]) - scaleX(sequenceExtent[0]))
+                .attr('height', height - margin.bottom)
+                .attr('fill', 'none')
+                .attr('stroke', 'gray');
+        }
+    }, [sequenceExtent]);
 
     return (
         <Box ref={divRef} sx={style.sx}>

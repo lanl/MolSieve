@@ -31,7 +31,7 @@ let zoom = null;
 
 let visible = {};
 
-function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallback,  setStateHovered, setStateClicked, stateHovered, setExtents, setVisible}) {       
+function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallback,  setStateHovered, setStateClicked, stateHovered, setExtents, setVisible, setSequenceExtent}) {       
     const {contextMenu, toggleMenu} = useContextMenu();
     const {width, height, divRef} = useResize();
     
@@ -240,10 +240,7 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                     renderChunks(newChunks, trajectory, trajectoryName, visible[trajectoryName].count, xz, scaleY);
                     visible[trajectoryName].chunkList = newChunks;
                 } 
-
                                     
-                rescaledX = xz;
-
                 const hideIndividualThreshold = parseInt((end - start)) * 0.01;                            
                 const onScreenNodes = importantGroup
                       .selectAll('rect');
@@ -283,8 +280,7 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                         graphVisible[name].sequence = visible[name].sequence;
                     }                        
                 }
-               
-                
+                               
                 // geometric zoom for the rest                
                 xAxis.call(d3.axisBottom(xz).tickValues(xz.ticks().filter(tick => Number.isInteger(tick)))
                            .tickFormat(d3.format('d')));
@@ -295,7 +291,8 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
             
                 importantGroup.selectAll('rect').attr('x', (d) => xz(d.timestep)).attr('width', (d) => xz(d.timestep + 1) - xz(d.timestep));          
                 chunkGroup.selectAll('rect').attr('x', (d) => xz(d.timestep)).attr('width', (d) => xz(d.last + 1) - xz(d.timestep));
-
+                rescaledX = xz;
+                setSequenceExtent([start,end]);
                 setVisible(graphVisible);
             });
         

@@ -57,7 +57,8 @@ class VisArea extends React.Component {
             analyses: {},
             similarities: {},
             NEBPlots: [],
-            visible: null
+            visible: null,
+            sequenceExtent: null
         };
     }
 
@@ -121,6 +122,11 @@ class VisArea extends React.Component {
         this.setState({stateHovered: stateInfo});            
     }
 
+    // sets the context box for the selection vis
+    setSequenceExtent = (extent) => {
+        this.setState({sequenceExtent: extent});
+    }
+
     componentDidMount() {
         document.addEventListener("keydown", this.changeTimestep);
     }
@@ -173,7 +179,6 @@ class VisArea extends React.Component {
         }
     }                      
 
-
     setStateClicked = (state) => {        
         this.setState({stateClicked: state}, () => {
             this.toggleModal(SINGLE_STATE_MODAL)});
@@ -210,6 +215,7 @@ class VisArea extends React.Component {
     setStateHoveredProp = this.setStateHovered.bind(this);
     setExtentsProp = this.setExtents.bind(this);
     setExtentsUniqueStatesProp = this.setExtentsUniqueStates.bind(this);
+    setSequenceExtentProp = this.setSequenceExtent.bind(this);
     
     render() {
         const runs = Object.keys(this.props.runs);
@@ -331,6 +337,7 @@ class VisArea extends React.Component {
                             }}
                             globalUniqueStates={this.props.globalUniqueStates}                            
                             trajectories={this.props.trajectories}
+                            sequenceExtent={this.state.sequenceExtent}
                             titleProp={id}
                             extents={ss} />
                         {extentVideos && (
@@ -442,7 +449,8 @@ class VisArea extends React.Component {
                                       setStateClicked={this.setStateClickedProp}
                                       stateHovered={this.state.stateHovered}
                                       setVisible={this.setVisible}
-                                      setExtents={this.setExtentsProp}                              
+                                      setExtents={this.setExtentsProp}
+                                      setSequenceExtent={this.setSequenceExtentProp}
                                   />
                               </AccordionDetails>
                           </Accordion>
