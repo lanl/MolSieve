@@ -12,7 +12,7 @@ import Trajectory from './api/trajectory';
 import FilterBuilder from './api/FilterBuilder';
 import VisArea from './components/VisArea';
 import MenuIcon from '@mui/icons-material/Menu';
-import { api_loadPCCA, api_loadSequence, api_load_metadata, api_load_property } from './api/ajax';
+import { api_loadPCCA, api_loadSequence, api_load_metadata, api_load_property, api_calculate_idToTimestep } from './api/ajax';
 import ControlDrawer from './components/ControlDrawer';
 import { withSnackbar } from 'notistack';
 
@@ -160,42 +160,36 @@ class App extends React.Component {
                 newTraj.uniqueStates = data.uniqueStates.map((state) => {
                     return state.id;
                 });
-
-                console.log(newTraj.uniqueStates);
                 
                 const newUniqueStates = this.calculateGlobalUniqueStates(data.uniqueStates, run);
 
                 this.load_PCCA(run, clusters, optimal, m_min, m_max, newTraj)
                     .then((newTraj) => {
                         this.load_metadata(run, newTraj).then((newTraj) => {
-                            console.log("setting clustering info");
-                            newTraj.set_cluster_info();
-                            // could be an option
-                            newTraj.chunkingThreshold = chunkingThreshold;
-                            newTraj.simplifySet(chunkingThreshold);
-                            console.log("simplifying set finished");
-                            newTraj.calculateIDToTimestepMap();
-                            console.log("id to timestep");
-                            const removed = newTraj.set_colors(this.state.colors);
-                            const newTrajectories = {
-                                ...this.state.trajectories,
-                            };
+                            api_calculate_idToTimestep(run, newTraj).then((newTraj) => {                                
+                                newTraj.set_cluster_info();
+                                // could be an option
+                                newTraj.chunkingThreshold = chunkingThreshold;
+                                newTraj.simplifySet(chunkingThreshold);
+                                const removed = newTraj.set_colors(this.state.colors);
+                                const newTrajectories = {
+                                    ...this.state.trajectories,
+                                };
 
-                            newTrajectories[run] = newTraj;
-                            const newColors = [...this.state.colors];
-                            newColors.splice(0, removed);
-                            
-                            const newRuns = this.initFilters(run, newTraj);
-                            
-                            this.setState({
-                                isLoading: false,
-                                runs: newRuns,
-                                trajectories: newTrajectories,
-                                colors: newColors,
-                                globalUniqueStates: newUniqueStates,
-                                properties: [...new Set([...this.state.properties, ...properties])]
+                                newTrajectories[run] = newTraj;
+                                const newColors = [...this.state.colors];
+                                newColors.splice(0, removed);
+                                
+                                const newRuns = this.initFilters(run, newTraj);
+                                this.setState({
+                                    isLoading: false,
+                                    runs: newRuns,
+                                    trajectories: newTrajectories,
+                                    colors: newColors,
+                                    globalUniqueStates: newUniqueStates,
+                                    properties: [...new Set([...this.state.properties, ...properties])]
+                                });
                             });
-
                         });
                     });
             })
@@ -306,7 +300,6 @@ class App extends React.Component {
     simplifySet = (run, threshold) => {
         const new_traj = this.state.trajectories[run];
         new_traj.simplifySet(threshold);
-
         this.setState({ trajectories: {...this.state.trajectories, [run]: new_traj }});
     };
 
