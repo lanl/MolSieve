@@ -143,8 +143,8 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                        .tickFormat(d3.format('d')));
 
             zoom = d3.zoom().scaleExtent([1,Infinity]).translateExtent([
-                [margin.left, margin.top],
-                [width - margin.right, height - margin.bottom]
+                [0, margin.top],
+                [width, height - margin.bottom]
             ]).on("zoom", (e) => {
                 const xz = e.transform.rescaleX(scaleX);
                 const start = xz.domain()[0];
@@ -190,7 +190,6 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                         const nodeData = visible[trajectoryName].sequence;
                         for(let i = data.timestep; i <= data.last; i++) {
                             nodeData.push({timestep: i, id: trajectory.sequence[i]});
-                            graphVisible[trajectoryName].sequence.push({timestep: i, id: trajectory.sequence[i]});
                         }
                         
                         const newNodes = d3.select(`#g_${trajectoryName}`)
