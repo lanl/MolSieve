@@ -140,15 +140,27 @@ export default function Scatterplot ({
                 first = 1;
                 last = 0;
                 }*/
+            let xScaleFunction = null;
+            if(xtent[1] - xtent[0] > 10000) {
+                xScaleFunction = d3.scaleLog;
+            } else {
+                xScaleFunction = d3.scaleLinear;
+            }
 
-            const scale_x = d3
-                .scaleLinear()
-                .range([margin.left, width - margin.right])
+            let yScaleFunction = null
+            if(ytent[1] - ytent[0] > 10000) {
+                yScaleFunction = d3.scaleLog;
+            } else {
+                yScaleFunction = d3.scaleLinear;
+            }
+
+            
+            const scale_x = xScaleFunction()
+                .range([margin.left + 5, width - margin.right])
                 .domain([xtent[0], xtent[1]]);
 
-            const scale_y = d3
-                .scaleLinear()
-                .range([height - margin.bottom, margin.top])
+            const scale_y = yScaleFunction()
+                .range([height - margin.bottom - 5, margin.top])
                 .domain([ytent[first], ytent[last]]);
 
             const g = svg.append("g")
@@ -235,6 +247,7 @@ export default function Scatterplot ({
             svg.append("g")
                 .attr("transform", `translate(0,${xAxisPos})`)
                 .call(d3.axisBottom().scale(scale_x));
+
             svg.append("g")
                 .attr("transform", `translate(${yAxisPos},0)`)
                 .call(d3.axisLeft().scale(scale_y));
