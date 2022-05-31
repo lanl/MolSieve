@@ -86,12 +86,12 @@ export function onStateMouseOver(node, d, trajectory, name) {
 
 export function onChunkMouseOver(node, d, name) {
     let content = "";
-    
+
     if(name !== undefined) {
         content += `<b>Run</b>: ${name}<br>`;
     }
 
-    content += `<br><b>Timesteps</b> ${d.timestep} - ${d.last}`
+    content += `<br><b>Timesteps</b>: ${d.timestep} - ${d.last}<br><b>Length</b>: ${d.last-d.timestep + 1}`
     
     tippy(node, {
         allowHTML: true,
@@ -156,8 +156,8 @@ export function intersection() {
  * @return {number} min value of property 
  */
 export function getMinProperty(property, sequence) {
-    var min = Number.MAX_VALUE;
-    for (var d of sequence) {
+    let min = Number.MAX_VALUE;
+    for (const d of sequence) {
         if (d[property] < min) {
             min = d[property];
         }
@@ -168,7 +168,6 @@ export function getMinProperty(property, sequence) {
 /** Quick utility function to check if an extent is a path or only a group of states. */
 export function isPath(extent) {
     if(extent.begin !== undefined && extent.end !== undefined) {
-
         return true;
     } 
     return false;
@@ -180,8 +179,8 @@ export function isPath(extent) {
  * @return {number} max value of property 
  */
 export function getMaxProperty(property, sequence) {
-    var max = Number.MIN_VALUE;
-    for (var d of sequence) {
+    let max = Number.MIN_VALUE;
+    for (const d of sequence) {
         if (d[property] > max) {
             max = d[property];
         }

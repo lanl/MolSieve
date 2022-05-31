@@ -603,7 +603,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                     const sourceNode = (link.source > 0) ? sequenceMap.get(link.source) : chunkData.get(link.source);
                     sourceNode.x_measure = sourceCluster;                    
                 }
-                               
+                
                 const l = d3.select('#graph').select(`#l_${name}`);
                 const g = d3.select('#graph').select(`#g_${name}`);
                 const c = d3.select('#graph').select(`#c_${name}`);
@@ -677,7 +677,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
     return (
         <>
             <Box ref={divRef} sx={style.sx} className={style.className}>                
-                <svg id="graph" onContextMenu={toggleMenu} className="vis" ref={ref} viewBox={[0,0,width,height]}/>
+                <svg className="vis" id="graph" onContextMenu={toggleMenu} ref={ref} viewBox={[0,0,width,height]}/>
             </Box>
                 <Menu
                     open={contextMenu !== null}

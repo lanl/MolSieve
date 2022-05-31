@@ -240,7 +240,6 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                     }
                     visible[trajectoryName].chunkList = newChunks;
                 }
-                console.log(added);
                                     
                 const hideIndividualThreshold = parseInt((end - start)) * 0.01;                            
                 const onScreenNodes = importantGroup
@@ -269,7 +268,7 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                         
                         const sequence = visible[trajectoryName].sequence;                    
                         
-                        const newSequence = sequence.filter((d) => !dataArray.map((d) => d.id).includes(d.id));
+                        const newSequence = sequence.filter((d) => !dataArray.map((b) => b.id).includes(d.id));
                         visible[trajectoryName].sequence = newSequence;                        
                         
                         graphVisible[trajectoryName].sequence = visible[trajectoryName].sequence;                
@@ -297,10 +296,8 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
 
                 importantGroup.selectAll('rect').attr('x', (d) => xz(d.timestep)).attr('width', (d) => xz(d.timestep + 1) - xz(d.timestep));          
                 chunkGroup.selectAll('rect').attr('x', (d) => xz(d.timestep)).attr('width', (d) => xz(d.last + 1) - xz(d.timestep));
-                rescaledX = xz;
-                
+                rescaledX = xz;                
                 setSequenceExtent([start,end]);
-                console.log(graphVisible);                
                 setVisible(graphVisible);
             });
         

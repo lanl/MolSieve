@@ -41,6 +41,7 @@ class Trajectory {
             }            
         }
         this.idToCluster = currentClusteringArray;
+        this.uniqueStates = uniqueStates;
     }
 
     /** Sets the metadata for the run in the this object

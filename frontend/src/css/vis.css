@@ -1,5 +1,6 @@
 .highlightedState {
     stroke: black;
+    cursor: pointer;
 }
 
 .highlightedStates {
@@ -35,7 +36,7 @@
 
 .importantChunk {
     stroke: black;
-    cursor: pointer;
+    
 }
 
 .unimportantChunk {

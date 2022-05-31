@@ -313,8 +313,8 @@ class App extends React.Component {
         const filters = run["filters"];
 
         // get us the ids of all the states in our simplified sequence
-        const stateIds = this.state.trajectories[state.run].simplifiedSequence.uniqueStates;
-        const sequence = stateIds.map((state) => this.state.globalUniqueStates.get(state.id));
+        const stateIds = this.state.trajectories[state.run].uniqueStates;
+        const sequence = stateIds.map((state) => this.state.globalUniqueStates.get(state));
 
         const fb = new FilterBuilder();
         const filter = fb.buildCustomFilter(state.filter_type, state.attribute, sequence);

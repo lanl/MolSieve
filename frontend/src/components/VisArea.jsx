@@ -5,7 +5,7 @@ import Button from '@mui/material/Button';
 import Divider from '@mui/material/Divider';
 import Typography from '@mui/material/Typography';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import AddCircleIcon from '@mui/icons-material/AddCircle';
+//import AddCircleIcon from '@mui/icons-material/AddCircle';
 import Accordion from '@mui/material/Accordion';
 import AccordionSummary from '@mui/material/AccordionSummary';
 import AccordionDetails from '@mui/material/AccordionDetails';
@@ -28,7 +28,7 @@ import SingleStateModal from "../modals/SingleStateModal";
 import LoadingModal from "../modals/LoadingModal";
 import MultiplePathSelectionModal from '../modals/MultiplePathSelectionModal';
 
-import ButtonWithOpenMenu from "../components/ButtonWithOpenMenu";
+//import ButtonWithOpenMenu from "../components/ButtonWithOpenMenu";
 import ScatterGrid from "./ScatterGrid";
 
 import '../css/App.css';
@@ -194,13 +194,13 @@ class VisArea extends React.Component {
 
     addSubsequenceScatterplot = (extent, id) => {
         const count = Object.keys(this.state.scatterplots).length;
-        const stateArray = [];
-        for (const xtent of extent) {                        
-            stateArray.push(...xtent.states);
+        const newPlots = {};
+        let xCount = 0;
+        for(const xtent of extent) {
+            const title = `${id}_${count}_${xCount}`;
+            newPlots[title] = {...xtent};
         }
-        const title = `${id}_${count}`;
-        
-        this.setState({scatterplots: {...this.state.scatterplots, [title]: {'states': stateArray}}});
+        this.setState({scatterplots: {...this.state.scatterplots, ...newPlots}});                        
     }
 
     deletePlot = (e) => {
@@ -250,15 +250,16 @@ class VisArea extends React.Component {
                         trajectoryName={sc_props.name}
                         id={sc}
                         setStateClicked={this.setStateClickedProp}
-                        setStateHovered={this.setStateHoveredProp}
                         runs={this.props.runs}
                         stateHovered={this.state.stateHovered}
                         properties={this.props.properties}
                         setExtents={this.setExtentsUniqueStatesProp}
                         title={sc}
-                        sequence={(sc_props.name !== undefined) ? this.props.trajectories[sc_props.name].simplifiedSequence.sequence : sc_props.states}
-                   />);            
+                        sequence={sc_props.states}
+                    />);
+            // setStateHovered={this.setStateHoveredProp}
         });
+
 
         // would make sense to put in a seperate component
         const subSequenceCharts = Object.keys(this.state.subSequences).map((id) => {
@@ -512,7 +513,7 @@ class VisArea extends React.Component {
                                   <Typography
                                       color="secondary"
                                       variant="h6">Scatterplot View</Typography>
-                                  <ButtonWithOpenMenu buttonText={<AddCircleIcon/>} func={this.addScatterplot} data={Object.keys(this.props.trajectories)}/>
+                                  
                               </Box>}
                           deletePlot={this.deletePlot}>
                           {scatterplots}
@@ -559,4 +560,5 @@ class VisArea extends React.Component {
     }
 }
 
+//<ButtonWithOpenMenu buttonText={<AddCircleIcon/>} func={this.addScatterplot} data={Object.keys(this.props.trajectories)}/>
 export default VisArea;

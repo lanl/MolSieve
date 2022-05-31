@@ -278,7 +278,7 @@ export default function Scatterplot ({
             if(loadingCallback !== undefined) {
                 loadingCallback();
             }
-        }, [width, height, xAttributeList, yAttributeList, sequence]);
+        }, [width, height, xAttributeList, yAttributeList, trajectories]);
 
     useEffect(() => {                
         if(stateHovered !== undefined && stateHovered !== null) {
@@ -295,14 +295,14 @@ export default function Scatterplot ({
         }
     }, [stateHovered]);
 
-     useEffect(() => {
-         if (ref !== undefined && ref.current !== undefined && trajectoryName !== undefined) {
-             apply_filters(trajectories, runs, globalUniqueStates, ref);
-         }
+    useEffect(() => {
+        if (ref !== undefined && ref.current !== undefined && trajectoryName !== undefined) {
+            apply_filters(trajectories, runs, globalUniqueStates, ref);
+        }
 
-         if(loadingCallback !== undefined) {                        
-             loadingCallback();
-         }
+        if(loadingCallback !== undefined) {                        
+            loadingCallback();
+        }
          
      }, [runs]);
 

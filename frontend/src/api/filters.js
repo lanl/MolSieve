@@ -79,8 +79,9 @@ export function filter_fuzzy_membership(trajectory, svg) {
     const current_clustering = trajectory.current_clustering;
     const current_membership_values = trajectory.fuzzy_memberships[current_clustering];
     const idToCluster = trajectory.idToCluster;
-    const uniqueStates = trajectory.simplifiedSequence.uniqueStates;
-    
+    const uniqueStates = trajectory.uniqueStates;
+
+    console.log(trajectory);
     //const className = this.className;
 
     // for each cluster that is in the current clustering,
@@ -93,7 +94,7 @@ export function filter_fuzzy_membership(trajectory, svg) {
 
     // go through sequence and find min / max membership percentage
     for (let j = 0; j < uniqueStates.length; j++) {        
-        const state = uniqueStates[j].id;
+        const state = uniqueStates[j];
         const cluster = idToCluster[state];
 
         // look at the state's determined clustering and compare it to the minimum percentage we've seen
@@ -149,20 +150,20 @@ export function filter_clustering_difference(trajectory, svg) {
     const clustering_assignments = {};
     let maxSize = -Number.MAX_SAFE_INTEGER;
 
-    // for some reason, an extra labels object is created at the end    
-    for (const d of trajectory.simplifiedSequence.uniqueStates) {
+    // for some reason, an extra labels object is created at the end
+    for (const d of trajectory.uniqueStates) {
         const labels = new Set();
         for (const clustering of Object.values(trajectory.clusterings)) {
             for (let i = 0; i < clustering.length; i++) {
-                if (clustering[i].includes(d.id)) {
+                if (clustering[i].includes(d)) {
                     labels.add(i);                    
                 }
             }
         }
         maxSize = (maxSize < labels.size) ? labels.size : maxSize;
-        clustering_assignments[d.id] = labels;
+        clustering_assignments[d] = labels;
     }    
-    
+
     svg.select(`#g_${trajectory.name}`)
         .selectAll("*")
         .attr("class", function (d) {
@@ -219,7 +220,7 @@ export function filter_chunks(trajectory, svg) {
  */
 // should only apply to sequence chart
 export function filter_transitions(trajectory, svg) {    
-    const sequence = trajectory.simplifiedSequence.sequence;    
+    const sequence = trajectory.sequence;    
     const clusters = trajectory.clusterings[trajectory.current_clustering];
     const idToCluster = trajectory.idToCluster;
 

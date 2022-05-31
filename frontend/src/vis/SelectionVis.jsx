@@ -174,8 +174,7 @@ function SelectionVis({ trajectories, extents, loadingCallback, style, globalUni
     );
 
     useEffect(() => {
-        if(sequenceExtent && scaleX && scaleY) {
-            console.log(sequenceExtent);
+        if(sequenceExtent && scaleX && scaleY) {            
             const g = d3.select(ref.current).select('#extentGroup');
             g.selectAll('rect').remove();
             g.append('rect')
@@ -193,7 +192,6 @@ function SelectionVis({ trajectories, extents, loadingCallback, style, globalUni
             {width && height && (
                 <svg
                     ref={ref}
-                    className="vis"
                     preserveAspectRatio="none"
                     viewBox={[0, 0, width, height]}
                 />
