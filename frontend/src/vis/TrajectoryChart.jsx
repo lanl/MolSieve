@@ -151,7 +151,7 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                 const end = xz.domain()[1];
                 const breakThreshold = parseInt((end - start) * 0.15);
                 const consolidateThreshold = parseInt((end-start) * 0.075);
-
+                
                 const graphVisible = {};
                 for(const name of Object.keys(trajectories)) {
                     graphVisible[name] = {chunkList: [], sequence: []};
@@ -174,7 +174,7 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                     const trajectory = trajectories[trajectoryName];
                     let newChunks = null;
                     const chunks = trajectory.simplifiedSequence.chunks;
-                         
+
                     if((data.childSize) && (data.childSize > breakThreshold)) {
                             // zoom in - break down chunk
                         newChunks = chunkList.filter((d) => d.id !== data.id);
@@ -184,12 +184,10 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                                 graphVisible[trajectoryName].chunkList.push(chunks.get(child));
                                 added.add(child);
                             }
-                        }
-                            
-                    } else if((!data.childSize) && data.size > breakThreshold * 5)  {
+                        }                            
+                    } else if(!data.childSize && data.size > breakThreshold * 1.5)  {
                         // zoom in - break down chunk into nodes
                         newChunks = chunkList.filter((d) => d.id !== data.id);
-                        
                         const nodeData = visible[trajectoryName].sequence;
                         for(let i = data.timestep; i <= data.last; i++) {
                             nodeData.push({timestep: i, id: trajectory.sequence[i]});
@@ -236,12 +234,12 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                         }
                     } else {                        
                         newChunks = chunkList;
-                        graphVisible[trajectoryName].chunkList.push(data);
+                        graphVisible[trajectoryName].chunkList.push(data);                        
                     }
                     visible[trajectoryName].chunkList = newChunks;
                 }
                                     
-                const hideIndividualThreshold = parseInt((end - start)) * 0.01;                            
+                /*const hideIndividualThreshold = parseInt((end - start)) * 0.01;                            
                 const onScreenNodes = importantGroup
                       .selectAll('rect');
      
@@ -255,7 +253,7 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                 const nodeDataByParentID = d3.group(onScreenNodeData, d => d.parentID);
 
                 if(1.5 < hideIndividualThreshold) {
-                    for(const [parentID, dataArray] of nodeDataByParentID.entries()) {
+                    /*for(const [parentID, dataArray] of nodeDataByParentID.entries()) {
                         const data = dataArray[0];
                         const trajectoryName = data.trajectoryName;
                     
@@ -273,12 +271,14 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                         
                         graphVisible[trajectoryName].sequence = visible[trajectoryName].sequence;                
                         onScreenNodes.remove();
-                    }                  
-                } else {
+                        }
+                    console.log(nodeDataByParentID);
+                    console.log('pull up');
+                } else {*/
                     for(const name of Object.keys(trajectories)) {
                         graphVisible[name].sequence = visible[name].sequence;
                     }                        
-                }
+//                }
                                
                 // geometric zoom for the rest                
                 xAxis.call(d3.axisBottom(xz).tickValues(xz.ticks().filter(tick => Number.isInteger(tick)))
@@ -296,8 +296,10 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
 
                 importantGroup.selectAll('rect').attr('x', (d) => xz(d.timestep)).attr('width', (d) => xz(d.timestep + 1) - xz(d.timestep));          
                 chunkGroup.selectAll('rect').attr('x', (d) => xz(d.timestep)).attr('width', (d) => xz(d.last + 1) - xz(d.timestep));
-                rescaledX = xz;                
+                rescaledX = xz;
                 setSequenceExtent([start,end]);
+                console.log(graphVisible);
+                console.log(visible);
                 setVisible(graphVisible);
             });
         
