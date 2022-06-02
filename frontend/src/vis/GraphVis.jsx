@@ -122,7 +122,6 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
     const { enqueueSnackbar, closeSnackbar } = useSnackbar();    
     
     const renderGraph = (links, chunks, sSequence, l, g, c, name, trajectory, gts, idToTimestep) => {
-
         const colors = trajectory.colors;
 
         const sequenceData = g.selectAll('circle')
@@ -567,10 +566,18 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                 const links = [];
 
                 const sorted = [...sequence, ...chunkList].sort((a,b) => a.timestep - b.timestep);
-                
+                console.log(sorted);
                 for(let i = 0; i < sorted.length - 1; i++) {
-                    links.push({source: sorted[i].id, target: sorted[i+1].id, id: `${sorted[i].id}-${sorted[i+1].id}`, transitionProb: 1.0});//this.occurrenceMap.get(Math.abs(sorted[i].id)).get(Math.abs(sorted[j].id)) });
+                    const tp = (sorted[i].id > 0 && sorted[i+1].id > 0) ? trajectory.occurrenceMap.get(sorted[i].id).get(sorted[i+1].id) : 1.0;
+                    links.push({
+                        source: sorted[i].id,
+                        target: sorted[i+1].id,
+                        id: `${sorted[i].id}-${sorted[i+1].id}`,
+                        transitionProb: tp
+                    });
                 }
+
+                console.log(links);
 
                 const idToTimestep = new Map();
 

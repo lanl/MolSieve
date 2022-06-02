@@ -31,7 +31,7 @@ class App extends React.Component {
             trajectories: {},
             runs: {},
             loadingMessage: 'Loading...',
-            colors: [...d3.schemeSet3, ...d3.schemeTableau10, ...d3.schemeAccent],
+            colors: [...d3.schemeTableau10, ...d3.schemeAccent],
             globalUniqueStates: new Map(),
             commonList: new Map(),
             properties: []

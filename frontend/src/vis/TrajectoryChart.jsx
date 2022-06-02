@@ -290,7 +290,8 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
 
                 for(const [name,trajectory] of Object.entries(trajectories)) {
                     graphVisible[name].chunkList = [...new Map(graphVisible[name].chunkList.map((item) => [item.id, item])).values()];
-                    graphVisible[name].sequence = [...new Map(graphVisible[name].sequence.map((item) => [item.id, item])).values()];
+                    // can't remove duplicates - that ruins the graph...
+                    //graphVisible[name].sequence = [...new Map(graphVisible[name].sequence.map((item) => [item.id, item])).values()];
                     renderChunks(visible[name].chunkList, trajectory, name, visible[name].count, xz, scaleY);
                 }
 
@@ -298,8 +299,6 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                 chunkGroup.selectAll('rect').attr('x', (d) => xz(d.timestep)).attr('width', (d) => xz(d.last + 1) - xz(d.timestep));
                 rescaledX = xz;
                 setSequenceExtent([start,end]);
-                console.log(graphVisible);
-                console.log(visible);
                 setVisible(graphVisible);
             });
         
