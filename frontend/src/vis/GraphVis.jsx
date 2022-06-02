@@ -568,6 +568,10 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                 const sorted = [...sequence, ...chunkList].sort((a,b) => a.timestep - b.timestep);
                 console.log(sorted);
                 for(let i = 0; i < sorted.length - 1; i++) {
+                    // when drawing and there's a large gap, skip the link (?)
+                    if(sorted[i].timestep + 1 !== sorted[i+1].timestep) {
+                        continue;
+                    }
                     const tp = (sorted[i].id > 0 && sorted[i+1].id > 0) ? trajectory.occurrenceMap.get(sorted[i].id).get(sorted[i+1].id) : 1.0;
                     links.push({
                         source: sorted[i].id,
@@ -597,7 +601,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                     sequenceMap.set(state.id, state);
                 });
 
-
+                console.log(sequence);
                 for(const link of links) {
                     const tc_idx = (link.target > 0) ? link.target : chunkData.get(link.target).firstID;
                     const sc_idx = (link.source > 0) ? link.source : chunkData.get(link.source).firstID;

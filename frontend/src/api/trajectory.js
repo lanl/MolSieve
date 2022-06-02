@@ -93,7 +93,7 @@ class Trajectory {
     simplifySet(chunkingThreshold) {     
         const chunks = new Map();
 //        const simplifiedSequence = [];
-        const sizeThreshold = 2500;
+        const sizeThreshold = 1000;
         const epsilon = 0.0001;
         const split = 4;
         let curr_id = 0;
