@@ -409,7 +409,7 @@ def get_run_list(truncateNEB: Optional[bool] = True):
             for r in result.values():
                 for record in r:
                     for label in record:
-                        if label != "NEB" and label != "State":
+                        if label != "NEB" and label != "State" and label not in runs:
                             runs.append(label)
                             trajectories.update({label: Trajectory()})
 

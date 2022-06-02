@@ -15,7 +15,7 @@ import MenuIcon from '@mui/icons-material/Menu';
 import { api_loadPCCA, api_loadSequence, api_load_metadata, api_load_property, api_calculate_idToTimestep } from './api/ajax';
 import ControlDrawer from './components/ControlDrawer';
 import { withSnackbar } from 'notistack';
-
+import * as d3 from 'd3';
 const RUN_MODAL = 'run_modal';
 
 class App extends React.Component {
@@ -31,7 +31,7 @@ class App extends React.Component {
             trajectories: {},
             runs: {},
             loadingMessage: 'Loading...',
-            colors: ['#4e79a7','#f28e2c','#e15759','#76b7b2','#59a14f','#edc949','#af7aa1','#ff9da7','#9c755f','#bab0ab'],
+            colors: [...d3.schemeSet3, ...d3.schemeTableau10, ...d3.schemeAccent],
             globalUniqueStates: new Map(),
             commonList: new Map(),
             properties: []
