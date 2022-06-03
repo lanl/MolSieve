@@ -235,7 +235,7 @@ class VisArea extends React.Component {
                         properties={['timestep','energies']}
                         xAttributeListProp={plot.drawSequence.map((s) => s.timestep)}
                         yAttributeList={plot.energies}
-                        path={true}
+                        path
                         enableMenu={false}
                     />
                 </Box>);                                                    

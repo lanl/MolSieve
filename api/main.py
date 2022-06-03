@@ -369,7 +369,16 @@ def get_property_list():
                 "MATCH (n:State) with n LIMIT 1000 UNWIND keys(n) as key RETURN DISTINCT key;"
             )
             j = [r[0] for r in result.values()]
+            # add metadata properties
 
+            result = session.run(
+                f"""MATCH (m:Metadata)
+                UNWIND keys(m) AS prop
+                WITH m, prop WHERE m[prop] = true
+                RETURN DISTINCT prop;""")
+            for r in result:
+                j.append(r[0])
+            
         except neo4j.exceptions.ServiceUnavailable as exception:
             raise exception
 

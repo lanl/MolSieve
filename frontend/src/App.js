@@ -383,7 +383,7 @@ class App extends React.Component {
                     trajectories={this.state.trajectories}
                     runs={this.state.runs}
                     updateRun={this.updateRun}
-                    recalculate_clustering={this.recalculate_clustering}
+                    recalculateClustering={this.recalculate_clustering}
                     simplifySet={this.simplifySet}
                     drawerOpen={this.state.drawerOpen}
                     toggleDrawer={this.toggleDrawer}
