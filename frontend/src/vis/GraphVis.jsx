@@ -8,6 +8,7 @@ import { apply_filters } from '../api/filters';
 import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
 import { useContextMenu } from '../hooks/useContextMenu';
 import { useResize } from '../hooks/useResize';
+import usePrevious from '../hooks/usePrevious';
 
 import { useSnackbar } from 'notistack';
 
@@ -35,6 +36,8 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
     const {contextMenu, toggleMenu} = useContextMenu();
     const {width, height, divRef} = useResize();
 
+    const previousVisible = usePrevious(visibleProp);
+    
     const {setInternalExtents, completeSelection} = useExtents(setExtents, () => {
         d3.select(ref.current).call(zoom);
     });
@@ -372,7 +375,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
 
                 const rendered = [];
                 
-                for(const [name, trajectory] of Object.entries(trajectories)) {
+                for(const [name, trajectory] of Object.entries(trajectories)) {                    
                     
                     const chunks = trajectory.simplifiedSequence.chunks;
                     const sSequence = trajectory.simplifiedSequence.uniqueStates;
@@ -557,21 +560,23 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
 
     useEffect(() => {
         if(visibleProp) {           
-            for(const [name, visible] of Object.entries(visibleProp)) {
+            for(const [name, visible] of Object.entries(visibleProp)) {                
                 const sequence = visible.sequence;
-                const chunkList = visible.chunkList;                
+                const chunkList = visible.chunkList;
+                if(previousVisible && previousVisible[name].sequence.length === sequence.length && previousVisible[name].chunkList.length === chunkList.length) {
+                    continue;
+                }
                 const sim = sims[name];
                 const trajectory = trajectories[name];
                 const chunkData = trajectory.simplifiedSequence.chunks;
                 const links = [];
-
                 const sorted = [...sequence, ...chunkList].sort((a,b) => a.timestep - b.timestep);
-                console.log(sorted);
+
                 for(let i = 0; i < sorted.length - 1; i++) {
                     // when drawing and there's a large gap, skip the link (?)
-                    if(sorted[i].timestep + 1 !== sorted[i+1].timestep) {
-                        continue;
-                    }
+                    /*if(sorted[i].timestep + 1 !== sorted[i+1].timestep) {
+                      continue;
+                      }*/
                     const tp = (sorted[i].id > 0 && sorted[i+1].id > 0) ? trajectory.occurrenceMap.get(sorted[i].id).get(sorted[i+1].id) : 1.0;
                     links.push({
                         source: sorted[i].id,
@@ -580,8 +585,6 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                         transitionProb: tp
                     });
                 }
-
-                console.log(links);
 
                 const idToTimestep = new Map();
 
@@ -601,8 +604,9 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                     sequenceMap.set(state.id, state);
                 });
 
-                console.log(sequence);
-                for(const link of links) {
+
+                for(let i = 0; i < links.length; i++) {
+                    const link = links[i];
                     const tc_idx = (link.target > 0) ? link.target : chunkData.get(link.target).firstID;
                     const sc_idx = (link.source > 0) ? link.source : chunkData.get(link.source).firstID;
                     const targetCluster = trajectory.idToCluster[tc_idx];
@@ -612,7 +616,10 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                     targetNode.x_measure = targetCluster;
                     
                     const sourceNode = (link.source > 0) ? sequenceMap.get(link.source) : chunkData.get(link.source);
-                    sourceNode.x_measure = sourceCluster;                    
+                    sourceNode.x_measure = sourceCluster;
+
+                    link.color = trajectory.colors[targetCluster];
+                    links[i] = link;
                 }
                 
                 const l = d3.select('#graph').select(`#l_${name}`);
@@ -637,21 +644,20 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                         .attr("d", (d) => {                        
                             const rt = (d.target.size) ? globalTimeScale(d.target.size) : 5;
                             const rs = (d.source.size) ? globalTimeScale(d.source.size) : 5;
-                        const dx = d.target.x - d.source.x;
-                        const dy = d.target.y - d.source.y;                        
-                        const dr = Math.sqrt(dx * dx + dy * dy);
+                            const dx = d.target.x - d.source.x;
+                            const dy = d.target.y - d.source.y;                        
+                            const dr = Math.sqrt(dx * dx + dy * dy);
 
-                        const g = Math.atan2(dy,dx);
+                            const g = Math.atan2(dy,dx);
 
-                        const sx = d.source.x + (Math.cos(g) * (rs));
-                        const sy = d.source.y + (Math.sin(g) * (rs));
-                        const tx = d.target.x - (Math.cos(g) * (rt + 5));
-                        const ty = d.target.y - (Math.sin(g) * (rt + 5));
+                            const sx = d.source.x + (Math.cos(g) * (rs));
+                            const sy = d.source.y + (Math.sin(g) * (rs));
+                            const tx = d.target.x - (Math.cos(g) * (rt + 5));
+                            const ty = d.target.y - (Math.sin(g) * (rt + 5));
 
-                        return `M${sx},${sy}A${dr},${dr} 0 0,1 ${tx},${ty}`;                      
-                    }).attr("stroke", function(d) {
-                        const idx = (d.target.id > 0) ? d.target.id : d.target.firstID;
-                        return trajectory.colors[trajectory.idToCluster[idx]];
+                            return `M${sx},${sy}A${dr},${dr} 0 0,1 ${tx},${ty}`;                      
+                        }).attr("stroke", function(d) {
+                            return d.color;
                     });
                 }
                 sim.on('tick', ticked);

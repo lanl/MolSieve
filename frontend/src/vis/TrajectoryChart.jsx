@@ -149,12 +149,9 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                 const xz = e.transform.rescaleX(scaleX);
                 const start = xz.domain()[0];
                 const end = xz.domain()[1];
-
-                // should be based on svg width
-                console.log(width);
                 
-                const breakThreshold = width * 0.15;
-                const consolidateThreshold = width * 0.025;
+                const breakThreshold = width * 0.25;
+                const consolidateThreshold = width * 0.01;
                                 
                 const graphVisible = {};
                 for(const name of Object.keys(trajectories)) {
@@ -249,20 +246,21 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                     visible[trajectoryName].chunkList = newChunks;
                 }
                                     
-                const hideIndividualThreshold = parseInt((end - start)) * 0.01;                            
+                //const hideIndividualThreshold = width * 0.00000005;
                 const onScreenNodes = importantGroup
                       .selectAll('rect');
      
                 const onScreenNodeData = onScreenNodes.nodes().map((node) => {
                     const data = d3.select(node).data()[0];
-                    return {...data, trajectoryName: node.parentNode.getAttribute('name'), parentID: parseInt(node.getAttribute("parentID"))};
+                    return {...data, width: node.getAttribute("width"), trajectoryName: node.parentNode.getAttribute('name'), parentID: parseInt(node.getAttribute("parentID"))};
                 });                
 
                 // group by parentID
 
                 const nodeDataByParentID = d3.group(onScreenNodeData, d => d.parentID);
-
-                if(1.5 < hideIndividualThreshold) {
+                
+                //zoom out at 75% zoom level
+                if(onScreenNodeData.length > 0 && (end - start) > (scaleX.domain()[1] - rescaledX.domain()[0]) * 0.5) {
                     for(const [parentID, dataArray] of nodeDataByParentID.entries()) {
                         const data = dataArray[0];
                         const trajectoryName = data.trajectoryName;
@@ -281,9 +279,7 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                         
                         graphVisible[trajectoryName].sequence = visible[trajectoryName].sequence;                
                         onScreenNodes.remove();
-                    }
-                    console.log(nodeDataByParentID);
-                    console.log('pull up');
+                    }                    
                 } else {
                     for(const name of Object.keys(trajectories)) {
                         graphVisible[name].sequence = visible[name].sequence;
