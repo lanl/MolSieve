@@ -320,7 +320,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                     });
                 }
                 sim.on('tick', ticked);
-                sim.restart();
+                sim.alpha(0.1).restart();
                 setSims({...sims, [name]: sim});
                 trajRendered[name] = true;                                                    
             }

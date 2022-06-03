@@ -38,7 +38,6 @@ def run_analysis_task(steps: List[AnalysisStep],
                       states: Optional[List[int]] = [],
                       displayResults: bool = True,
                       saveResults: bool = True):
-
     
     task_id = current_task.request.id    
 
@@ -76,7 +75,7 @@ def run_analysis_task(steps: List[AnalysisStep],
         if step.analysisType == 'ovito_modifier':
             new_attributes = calculator.apply_ovito_pipeline_modifier(
                 state_atom_dict, analysisType=step.value)
-            #TODO: Event that notifies pipeline has been applied
+            #TODO: Event that notifies pipeline has been applied            
             if saveResults:
                 q = None
                 with driver.session() as session:
@@ -87,7 +86,9 @@ def run_analysis_task(steps: List[AnalysisStep],
                                 data, 'State', 'number', 'node')
                         data.update({'number': state_number})
                         tx.run(q.text, data)
+                    # edit metadata node, set properties to true
                     tx.commit()
+                    
             if displayResults:
                 results.append(new_attributes)
         else:
