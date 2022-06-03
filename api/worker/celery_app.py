@@ -50,6 +50,7 @@ def run_analysis_task(steps: List[AnalysisStep],
         q = qb.generate_trajectory(run,
                                    "ASC", ('relation', 'timestep'),
                                    include_atoms=True)
+
         current_task.update_state(state='PROGRESS')
         send_update(task_id, {'type': TASK_PROGRESS, 'message': 'Finished processing nodes.', 'progress': '0.25'})
         
@@ -71,13 +72,17 @@ def run_analysis_task(steps: List[AnalysisStep],
         send_update(task_id, {'type': TASK_PROGRESS, 'message': 'Finished converting nodes.', 'progress': '0.5'})
 
     results = []
-    for step in steps:
+    for idx, step in enumerate(steps):
         if step.analysisType == 'ovito_modifier':
             new_attributes = calculator.apply_ovito_pipeline_modifier(
                 state_atom_dict, analysisType=step.value)
-            #TODO: Event that notifies pipeline has been applied            
+            #TODO: Event that notifies pipeline has been applied
+            current_task.update_state(state='PROGRESS')    
+            send_update(task_id, {'type': TASK_PROGRESS, 'message': f'Pipeline step {idx + 1} {step.value} applied', 'progress': '0.5'})
+            
             if saveResults:
                 q = None
+                uniqueAttributes = []
                 with driver.session() as session:
                     tx = session.begin_transaction()
                     for state_number, data in new_attributes.items():
@@ -85,8 +90,32 @@ def run_analysis_task(steps: List[AnalysisStep],
                             q = qb.generate_update_entity(
                                 data, 'State', 'number', 'node')
                         data.update({'number': state_number})
+                        for key in data.keys():
+                            if key not in uniqueAttributes:
+                                uniqueAttributes.append(key)
                         tx.run(q.text, data)
-                    # edit metadata node, set properties to true
+                    # get all the trajectories that each state belongs to
+                    state_number_list = ",".join([f'"{k}"' for k in new_attributes.keys()])
+                    q = """ MATCH (n:State) WHERE n.number IN [{state_number_list}]
+                    RETURN DISTINCT labels(n) AS labels;
+                    """.format(state_number_list=state_number_list)
+                    res = tx.run(q)
+                    runs = []
+                    for r in res:
+                        for label in r['labels']:
+                            if label != 'State' and label != 'NEB' and label not in runs:
+                                runs.append(label)
+
+                    # apply property to metadata list
+                    run_list = ",".join([f'"{k}"' for k in runs])
+                    q = f"MATCH (m:Metadata) WHERE m.run IN [{run_list}] SET "
+                    for idx, key in enumerate(uniqueAttributes):
+                        q += f"m.{key} = true"
+                        if idx != len(uniqueAttributes) - 1:
+                            q += ", "
+                        else:
+                            q += ";"
+                    tx.run(q)
                     tx.commit()
                     
             if displayResults:
