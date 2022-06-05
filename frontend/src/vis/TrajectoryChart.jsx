@@ -27,6 +27,7 @@ const margin = {
 
 let sBrush = null;
 let zoom = null;
+let individualSelectionMode = false;
 
 let visible = {};
 
@@ -39,6 +40,7 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
     const toggleStateHighlight = () => {
         setStateHighlight((prev) => !prev);
     };
+
 
     const selectionBrush = () => {
         if (sBrush != null) {                        
@@ -53,7 +55,17 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
 
     const isHovered = useHover(divRef);
     useKeyDown('Shift', selectionBrush, isHovered);
-    useKeyUp('Shift', completeSelection, isHovered);      
+    useKeyUp('Shift', completeSelection, isHovered);
+
+    const toggleIndividualSelectionMode = () => {
+        individualSelectionMode = !individualSelectionMode;
+    }
+    
+    useKeyDown('Control', toggleIndividualSelectionMode, isHovered);
+    useKeyUp('Control', function() {        
+        completeSelection();
+        toggleIndividualSelectionMode();
+    }, isHovered);
 
     const renderChunks = (data, trajectory, trajectoryName, count, x_scale, y_scale) => {
         const colors = trajectory.colors;
@@ -68,12 +80,13 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
             .attr('x', (d) => x_scale(d.timestep))
             .attr('y', () => y_scale(count))
             .attr('width', (d) => x_scale(d.last + 1) - x_scale(d.timestep))
-            .attr('height', (d) => { if(d.important) {
-                return 37.5;
-            } else {
-                return 25;
-            }}
-                 )
+            .attr('height', (d) => {
+                if(d.important) {
+                    return 37.5;
+                } else {
+                    return 25;
+                }
+            })
             .attr('fill', (d) => {
                 return colors[idToCluster[d.firstID]];
             })                    
@@ -219,8 +232,12 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                                 .attr('fill', (d) => {                        
                                     return trajectory.colors[trajectory.idToCluster[d.id]];
                                 })                    
-                                .on('click', function (_, d) {                        
-                                    setStateClicked(globalUniqueStates.get(d.id));                                      
+                                .on('click', function (_, d) {
+                                    if(individualSelectionMode) {
+                                        setInternalExtents((prev) => [...prev, {'name': trajectoryName, 'states': [{id: d.id}]}]);             
+                                    } else {
+                                        setStateClicked(globalUniqueStates.get(d.id));
+                                    }
                                 })
                                 .on('mouseover', function(_, d) {                                                
                                     onStateMouseOver(this, globalUniqueStates.get(d.id), trajectory, trajectoryName);                                                        
@@ -228,7 +245,7 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                                 })
                                 .on('mouseout', function() {                        
                                     setStateHovered(null);
-                                });
+                                }).classed("clickable", true);
 
                             newNodes.exit().remove();
                             visible[trajectoryName].sequence = nodeData;    
