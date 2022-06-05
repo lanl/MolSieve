@@ -156,7 +156,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                   } else {
                       setStateClicked(globalUniqueStates.get(d.id));
                   }
-              }).on('mouseover', function(_, d) {
+              }).on('mouseover', function(_, d) {                 
                   onStateMouseOver(this, globalUniqueStates.get(d.id), trajectory, name);
                   const timesteps = idToTimestep.get(d.id);
                   if(timesteps.length === 1) {                        
@@ -164,7 +164,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                   } else {
                       setStateHovered({'caller': this, 'stateID': d.id, 'name': name, 'timesteps': timesteps});
                   }                  
-              }).on('mouseout', function() {
+              }).on('mouseout', function() {                  
                   setStateHovered(null);
               })
             .classed('clickable', true)
@@ -188,7 +188,6 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                 d3.select(this).classed('importantChunkDashedStroke', true);                      
             })
             .classed("importantChunk", (d) => d.important)
-            .classed("importantChunkDashedStroke", (d) => d.important)
             .classed("unimportantChunk", (d) => !d.important)
             .classed('node', true);
 
@@ -199,7 +198,10 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
 
         linkData.enter().append("path")
             .classed('link', true)
-            .attr("fill", "none").classed("arrowed", showArrows);
+            .attr("fill", "none")
+            .classed("arrowed", showArrows)
+            .classed("dashedStroke", (d) => d.dashStroke)
+        ;
 
         linkData.exit().remove();
         
@@ -276,7 +278,14 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
             const sorted = [...sSequence, ...chunks].sort((a,b) => a.timestep - b.timestep);
             
             for(let i = 0; i < sorted.length - 1; i++) {
-                links.push({source: sorted[i].id, target: sorted[i+1].id, id: `${sorted[i].id}-${sorted[i+1].id}`, transitionProb: 1.0});//this.occurrenceMap.get(Math.abs(sorted[i].id)).get(Math.abs(sorted[j].id)) });
+                const tp = (sorted[i].id > 0 && sorted[i+1].id > 0) ? trajectory.occurrenceMap.get(sorted[i].id).get(sorted[i+1].id) : 1.0;
+                links.push({
+                    source: sorted[i].id,
+                    target: sorted[i+1].id,
+                    id: `${sorted[i].id}-${sorted[i+1].id}`,
+                    transitionProb: tp,
+                    dashStroke: (sorted[i].timestep + 1 !== sorted[i+1].timestep) ? true : false
+                });
             }
 
             trajectory.name = name;
@@ -602,16 +611,14 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                 const sorted = [...sequence, ...chunkList].sort((a,b) => a.timestep - b.timestep);
 
                 for(let i = 0; i < sorted.length - 1; i++) {
-                    // when drawing and there's a large gap, skip the link (?)
-                    /*if(sorted[i].timestep + 1 !== sorted[i+1].timestep) {
-                      continue;
-                      }*/
+                    // when drawing and there's a large gap, render dashed stroke
                     const tp = (sorted[i].id > 0 && sorted[i+1].id > 0) ? trajectory.occurrenceMap.get(sorted[i].id).get(sorted[i+1].id) : 1.0;
                     links.push({
                         source: sorted[i].id,
                         target: sorted[i+1].id,
                         id: `${sorted[i].id}-${sorted[i+1].id}`,
-                        transitionProb: tp
+                        transitionProb: tp,
+                        dashStroke: (sorted[i].timestep + 1 !== sorted[i+1].timestep) ? true : false
                     });
                 }
 

@@ -221,9 +221,7 @@ export default function Scatterplot ({
             
             if(setStateHovered) {                
                 points.on("mouseover", function (_, d) {                    
-                    onStateMouseOver(this, globalUniqueStates.get(d.id));
-                    console.log('moused');
-                    d3.select(this).classed("highlightedState", true);
+                    onStateMouseOver(this, globalUniqueStates.get(d.id));                                        
                     const state = globalUniqueStates.get(d.id);                                            
                     const traj = trajectories[state.seenIn[0]];      
                     const timesteps = traj.simplifiedSequence.idToTimestep.get(d.id);
@@ -234,15 +232,11 @@ export default function Scatterplot ({
                     }  
                 }).on('mouseout', function() {
                     setStateHovered(null);
-                    d3.select(this).classed("highlightedState", false);
                 });
             } else {
-                points.on("mouseover", function(_,d) {
-                    d3.select(this).classed("highlightedState", true);           
+                points.on("mouseover", function(_,d) {                   
                     onStateMouseOver(this, globalUniqueStates.get(d.id));
-                }).on('mouseout', function() {
-                    d3.select(this).classed("highlightedState", false);
-                });
+                });                
             }
                          
                                                                  

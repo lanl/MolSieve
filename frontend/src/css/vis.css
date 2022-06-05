@@ -6,6 +6,10 @@
     cursor: pointer;
 }
 
+.clickable:hover {
+    stroke: black;
+}
+
 .highlightedStates {
 }
 
@@ -39,15 +43,26 @@
 
 .importantChunk {
     stroke: black;
+    stroke-dasharray: 2;
+    stroke-dashoffset: 25%;
 }
 
-.importantChunkDashedStroke {
+.importantChunk:hover {
+    stroke-dasharray: none;
+    stroke-dashoffset: none;
+}
+
+.dashedStroke {
     stroke-dasharray: 2;
     stroke-dashoffset: 25%;
 }
 
 .unimportantChunk {
     opacity: 0.6;
+}
+
+.unimportantChunk:hover {
+    stroke: black;
 }
 
 .arrowed {    

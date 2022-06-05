@@ -93,14 +93,10 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
             .attr('fill', (d) => {
                 return colors[idToCluster[d.firstID]];
             })                    
-            .on('mouseover', function(_, d) {
-                d3.select(this).classed('importantChunkDashedStroke', false);
+            .on('mouseover', function(_, d) {                
                 onChunkMouseOver(this, d, trajectoryName);                            
-            }).on('mouseout', function() {
-                d3.select(this).classed('importantChunkDashedStroke', true);
             })
             .classed("importantChunk", (d) => d.important)
-            .classed("importantChunkDashedStroke", (d) => d.important)
             .classed("unimportantChunk", (d) => !d.important)
             .classed("breakdown", (d) => d.parentID);
         
@@ -247,12 +243,10 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                                     }
                                 })
                                 .on('mouseover', function(_, d) {
-                                    d3.select(this).classed('highlightedState', true);
                                     onStateMouseOver(this, globalUniqueStates.get(d.id), trajectory, trajectoryName);                                                        
                                     setStateHovered({'caller': this, 'stateID': d.id, 'name': trajectoryName, 'timestep': d.timestep});                            
                                 })
                                 .on('mouseout', function() {
-                                    d3.select(this).classed('highlightedState', false);
                                     setStateHovered(null);
                                 }).classed("clickable", true);
 
