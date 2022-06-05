@@ -334,7 +334,7 @@ class VisArea extends React.Component {
                         </Stack>
                         <SelectionVis
                             style={{
-                                sx:{minHeight: '50px'}
+                                sx:{minHeight: '50px', maxHeight: '50px'}
                             }}
                             globalUniqueStates={this.props.globalUniqueStates}                            
                             trajectories={this.props.trajectories}
@@ -464,9 +464,9 @@ class VisArea extends React.Component {
                                    variant="h6">Sub-sequence View</Typography></AccordionSummary>
                               <Divider/>
                               <AccordionDetails>
-                                  <Stack direction="column">
+                                  <Box sx={{maxHeight: '300px', overflow: 'auto'}}>
                                       {subSequenceCharts}
-                                  </Stack>
+                                  </Box>
                               </AccordionDetails>
                            </Accordion>}
                           {NEBPlots.length > 0 &&
@@ -477,10 +477,10 @@ class VisArea extends React.Component {
                                    color="secondary"
                                    variant="h6">NEB Plots</Typography></AccordionSummary>
                               <Divider/>
-                              <AccordionDetails sx={{overflow: 'scroll'}}>
-                                  <Stack direction="column">
+                              <AccordionDetails sx={{overflow: 'auto'}}>
+                                  <Box sx={{maxHeight: '300px', overflow: 'auto'}}>                                               
                                       {NEBPlots}
-                                  </Stack>
+                                  </Box>
                               </AccordionDetails>
                            </Accordion>}
                       </Box>)
