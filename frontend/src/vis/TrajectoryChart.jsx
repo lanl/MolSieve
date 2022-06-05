@@ -14,11 +14,10 @@ import {useExtents} from '../hooks/useExtents';
 import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
 import { useContextMenu } from '../hooks/useContextMenu';
 import { useResize } from '../hooks/useResize';
-
+import { useHover } from '../hooks/useHover';
 
 import '../css/vis.css';
 import { onStateMouseOver, onChunkMouseOver } from '../api/myutils';
-
 
 import {apply_filters} from '../api/filters';
 
@@ -52,8 +51,9 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
 
     const {setInternalExtents, completeSelection} = useExtents(setExtents);    
 
-    useKeyDown('Shift', selectionBrush);
-    useKeyUp('Shift', completeSelection);      
+    const isHovered = useHover(divRef);
+    useKeyDown('Shift', selectionBrush, isHovered);
+    useKeyUp('Shift', completeSelection, isHovered);      
 
     const renderChunks = (data, trajectory, trajectoryName, count, x_scale, y_scale) => {
         const colors = trajectory.colors;

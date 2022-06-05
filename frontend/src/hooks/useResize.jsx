@@ -23,6 +23,7 @@ export const useResize = () => {
 
     useEffect(() => {
         window.addEventListener('resize', resize);
+        return () => window.removeEventListener('resize', resize);
     }, []);
 
     return {width, height, divRef};

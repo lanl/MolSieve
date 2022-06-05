@@ -4,6 +4,7 @@ import * as d3 from "d3";
 import { useTrajectoryChartRender } from "../hooks/useTrajectoryChartRender";
 import { useContextMenu } from '../hooks/useContextMenu';
 import { useResize } from '../hooks/useResize';
+import { useHover } from '../hooks/useHover';
 
 import { onStateMouseOver } from "../api/myutils";
 import { apply_filters } from '../api/filters';
@@ -69,9 +70,11 @@ export default function Scatterplot ({
                 .call(sBrush);
         }
     }
+
+    const isHovered = useHover(divRef);
     
-    useKeyDown('f', selectionBrush);
-    useKeyUp('f', completeSelection);      
+    useKeyDown('Shift', selectionBrush, isHovered);
+    useKeyUp('Shift', completeSelection, isHovered);      
     
     const useAttributeList = (setAttributeList, attribute, attributeListProp) => {    
         useEffect(() => {

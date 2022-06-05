@@ -1,13 +1,17 @@
 import { useEffect } from "react";
 
-export default function (key, action, opts) {
+export default function (key, action, isHovered) {
     useEffect(() => {
         function onKeydown(e) {
             if (!e.repeat) {
-                if (e.key === key) action(opts);
+                if (e.key === key) action();
             }
         }
-        window.addEventListener('keydown', onKeydown);
+        if(isHovered) {
+            window.addEventListener('keydown', onKeydown);
+        } else {
+            window.removeEventListener('keydown', onKeydown);
+        }
         return () => window.removeEventListener('keydown', onKeydown);
-    }, []);
+    }, [isHovered]);
 }

@@ -5,10 +5,6 @@ import '../css/vis.css';
 import { onStateMouseOver, onChunkMouseOver } from '../api/myutils';
 import { apply_filters } from '../api/filters';
 
-import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
-import { useContextMenu } from '../hooks/useContextMenu';
-import { useResize } from '../hooks/useResize';
-import usePrevious from '../hooks/usePrevious';
 
 import { useSnackbar } from 'notistack';
 
@@ -23,6 +19,12 @@ import Box from '@mui/material/Box';
 import useKeyUp from '../hooks/useKeyUp';
 import useKeyDown from '../hooks/useKeyDown';
 import {useExtents} from '../hooks/useExtents';
+import { useHover } from '../hooks/useHover';
+import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
+import { useContextMenu } from '../hooks/useContextMenu';
+import { useResize } from '../hooks/useResize';
+import usePrevious from '../hooks/usePrevious';
+
 
 let container = null;
 let zoom = null;
@@ -54,9 +56,9 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                 .call(sBrush);
         }
     }
-    
-    useKeyDown('s', selectionBrush);
-    useKeyUp('s', completeSelection);      
+    const isHovered = useHover(divRef);
+    useKeyDown('Shift', selectionBrush, isHovered);
+    useKeyUp('Shift', completeSelection, isHovered);      
     
     const [seperateTrajectories, setSeperateTrajectories] = useState(true);
     const [inCommon, setInCommon] = useState([]);
@@ -158,10 +160,14 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
             .append('circle')                
             .attr('r', (d) => {
                 return gts(d.size);
-            }).attr('fill', function(d) {return trajectory.colors[trajectory.idToCluster[d.firstID]]; })
+            })
+            .attr('fill', function(d) { return trajectory.colors[trajectory.idToCluster[d.firstID]]; })
             .on('mouseover', function(_, d) {                      
                 onChunkMouseOver(this, d, name);                 
-            }).classed("importantChunk", (d) => d.important).classed("unimportantChunk", (d) => !d.important).classed('node', true);
+            })
+            .classed("importantChunk", (d) => d.important)
+            .classed("unimportantChunk", (d) => !d.important)
+            .classed('node', true);
 
         chunkData.exit().remove();
 
