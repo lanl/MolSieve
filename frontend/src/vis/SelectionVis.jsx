@@ -38,9 +38,10 @@ function SelectionVis({ trajectories, extents, loadingCallback, style, globalUni
                         statesSeen.add(e.id);
                     }                                             
                 } else {
-                    safeExtents = [...safeExtents, ex];
-                }
-                
+                    const newEx = Object.assign({}, ex);
+                    newEx.firstID = ex.states[0].id;
+                    safeExtents = [...safeExtents, newEx];
+                }                
             }            
             
             if(statesSeen.size > 0) {
@@ -98,11 +99,13 @@ function SelectionVis({ trajectories, extents, loadingCallback, style, globalUni
                     .attr("height", 30)
                     .attr("fill", "none")
                     .attr("stroke", function (d) {
-                        const state = globalUniqueStates.get(d.id);                    
+                        const id = (d.firstID) ? d.firstID : d.id;
                         const traj = trajectories[d.name];                                        
-                        return traj.colors[traj.idToCluster[state.id]];
+                        return traj.colors[traj.idToCluster[id]];
                     }).on('mouseover', function(_,d) {
-                        onStateMouseOver(this, globalUniqueStates.get(d.id), trajectories[d.name], d.name);
+                        if(!d.firstID) {
+                            onStateMouseOver(this, globalUniqueStates.get(d.id), trajectories[d.name], d.name);
+                        }
                     });
                 
                 for(const [idx, extent] of extentArray.entries()) {                    
@@ -187,7 +190,7 @@ function SelectionVis({ trajectories, extents, loadingCallback, style, globalUni
                 .attr('x', scaleX(sequenceExtent[0]))
                 .attr('y', 0)
                 .attr('width', scaleX(sequenceExtent[1]) - scaleX(sequenceExtent[0]))
-                .attr('height', height - margin.bottom)
+                .attr('height', height)
                 .attr('fill', 'none')
                 .attr('stroke', 'gray');
         }
