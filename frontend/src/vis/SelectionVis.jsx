@@ -3,6 +3,7 @@ import Box from "@mui/material/Box";
 import * as d3 from "d3";
 import { useTrajectoryChartRender } from "../hooks/useTrajectoryChartRender";
 import { useResize } from '../hooks/useResize';
+import { onStateMouseOver } from '../api/myutils';
 
 import "../css/vis.css";
 
@@ -49,11 +50,9 @@ function SelectionVis({ trajectories, extents, loadingCallback, style, globalUni
                         const traj = trajectories[seen];
                         const timesteps = traj.idToTimestep.get(id);
 
-                        // very slow! start here
-                        for(const t of timesteps) {
-                            const newEx = {'name': `${seen}`, 'begin': t, 'end': t};
-                            safeExtents = [...safeExtents, newEx];
-                        }
+                        // show first, and if it exists, last occurrence of timestep
+                        const newEx = {'name': `${seen}`, 'begin': timesteps[0], 'end': timesteps[timesteps.length - 1], 'id': id};
+                        safeExtents = [...safeExtents, newEx];                        
                     }
                 }
             }
@@ -70,11 +69,9 @@ function SelectionVis({ trajectories, extents, loadingCallback, style, globalUni
                 .domain([0, maxLength]);
 
             scaleY = d3
-                .scaleLinear()
+                .scaleOrdinal()
                 .range([margin.top + 10, height - margin.bottom])
-                .domain([0, Object.keys(trajectories).length]);
-
-            let count = 0;
+                .domain(Object.keys(trajectories));
 
             //stores the rectangle that gets drawn when the view moves
             svg.append('g').attr('id', 'extentGroup');
@@ -90,49 +87,55 @@ function SelectionVis({ trajectories, extents, loadingCallback, style, globalUni
                 });
 
                 const ignored = [];
-                
-                for(const [idx, extent] of extentArray.entries()) {
-                    const grouping = [];
-                    
-                    for(let i = extent.begin; i <= extent.end || i < 1000; i++) {
-                        grouping.push({
-                            'timestep': i,
-                            'id': sequence[i]
-                        });
-                    }                    
 
-                    g.selectAll("rect")
-                        .data(grouping)
-                        .enter()
-                        .append("rect")
-                        .attr("x", (d) => scaleX(d.timestep))
-                        .attr("y", () => scaleY(count))
-                        .attr("width", 1)
-                        .attr("height", 10)
-                        .attr("fill", function (d) {
-                            const state = globalUniqueStates.get(d.id);                    
-                            const traj = trajectories[state.seenIn[0]];                                        
-                            return traj.colors[traj.idToCluster[state.id]];
-                        });
-                    
+                g.selectAll("rect")
+                    .data(extentArray)
+                    .enter()
+                    .append("rect")
+                    .attr("x", (d) => scaleX(d.begin))
+                    .attr("y", (d) => scaleY(d.name) - 10)
+                    .attr("width", (d) => scaleX(d.end) - scaleX(d.begin))
+                    .attr("height", 30)
+                    .attr("fill", "none")
+                    .attr("stroke", function (d) {
+                        const state = globalUniqueStates.get(d.id);                    
+                        const traj = trajectories[d.name];                                        
+                        return traj.colors[traj.idToCluster[state.id]];
+                    }).on('mouseover', function(_,d) {
+                        onStateMouseOver(this, globalUniqueStates.get(d.id), trajectories[d.name], d.name);
+                    });
+                
+                for(const [idx, extent] of extentArray.entries()) {                    
                     let ignore = null;
-                                        
-                    // if the extents don't cover the first element
+
                     if(idx === 0) {
+                        // if the extents don't cover the first element                    
                         if(extent.begin !== 0) {
-                            ignore = {begin: 0, end: extent.begin - 1};
+                            ignore = {
+                                begin: 0,
+                                end: extent.begin - 1,
+                                name: extent.name
+                            };
                             ignored.push(ignore);
                         }
                     }
-
                     
                     if(idx !== extentArray.length - 1) {
-                        ignore = {begin: extent.end, end: extentArray[idx + 1].begin - 1};
+                        ignore = {
+                            begin: extent.end,
+                            end: extentArray[idx + 1].begin - 1,
+                            name: extent.name
+                        };                                             
                     } else {
                         if(extent.end !== sequence.length) {
-                            ignore = {begin: extent.end, end: sequence.length};                       
+                            ignore = {
+                                begin: extent.end,
+                                end: sequence.length,
+                                name: extent.name
+                            };                       
                         }
                     }
+                    
                     if(ignore) {
                         ignored.push(ignore);
                     }
@@ -144,7 +147,7 @@ function SelectionVis({ trajectories, extents, loadingCallback, style, globalUni
                     .enter()
                     .append("rect")
                     .attr("x", (d) => scaleX(d.begin))
-                    .attr("y", () => scaleY(count))
+                    .attr("y", (d) => scaleY(d.name))
                     .attr("width", (d) => scaleX(d.end) - scaleX(d.begin))
                     .attr("height", 10)
                     .attr("fill", "none")
@@ -167,7 +170,6 @@ function SelectionVis({ trajectories, extents, loadingCallback, style, globalUni
                     .attr('text-anchor', 'middle')
                     .style('font-size', '12px')
                     .text(title);
-                count++;
             }
 
             if (loadingCallback !== undefined) {
