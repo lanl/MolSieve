@@ -68,7 +68,12 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
             .attr('x', (d) => x_scale(d.timestep))
             .attr('y', () => y_scale(count))
             .attr('width', (d) => x_scale(d.last + 1) - x_scale(d.timestep))
-            .attr('height', 25)
+            .attr('height', (d) => { if(d.important) {
+                return 37.5;
+            } else {
+                return 25;
+            }}
+                 )
             .attr('fill', (d) => {
                 return colors[idToCluster[d.firstID]];
             })                    

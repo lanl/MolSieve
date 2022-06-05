@@ -49,6 +49,7 @@ function SelectionVis({ trajectories, extents, loadingCallback, style, globalUni
                         const traj = trajectories[seen];
                         const timesteps = traj.idToTimestep.get(id);
 
+                        // very slow! start here
                         for(const t of timesteps) {
                             const newEx = {'name': `${seen}`, 'begin': t, 'end': t};
                             safeExtents = [...safeExtents, newEx];
@@ -93,8 +94,11 @@ function SelectionVis({ trajectories, extents, loadingCallback, style, globalUni
                 for(const [idx, extent] of extentArray.entries()) {
                     const grouping = [];
                     
-                    for(let i = extent.begin; i <= extent.end; i++) {
-                        grouping.push({'timestep': i, 'id': sequence[i]});
+                    for(let i = extent.begin; i <= extent.end || i < 1000; i++) {
+                        grouping.push({
+                            'timestep': i,
+                            'id': sequence[i]
+                        });
                     }                    
 
                     g.selectAll("rect")
