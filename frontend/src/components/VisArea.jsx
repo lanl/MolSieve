@@ -66,14 +66,18 @@ class VisArea extends React.Component {
         this.setState({NEBPlots: [...this.state.NEBPlots, {'energies': energies, 'drawSequence': drawSequence}]});
     }
     
-    setExtents = (extent) => {        
+    setExtents = (extent) => {
         const modEx = [];
         for(const ex of extent) {
             const ids = this.props.trajectories[ex.name].sequence.slice(ex.begin, ex.end + 1);
-            const uniqueStates = [...new Set(ids)].map((state) => {
-                return {'id': state};
-            });
-            
+            let uniqueStates = null;
+            if(!ex.states) {
+                uniqueStates = [...new Set(ids)].map((state) => {
+                    return {'id': state};
+                });
+            } else {
+                uniqueStates = ex.states;
+            }
             const newEx = {...ex, states: uniqueStates};
             modEx.push(newEx);
         }

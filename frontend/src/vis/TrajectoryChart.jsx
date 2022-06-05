@@ -234,7 +234,7 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                                 })                    
                                 .on('click', function (_, d) {
                                     if(individualSelectionMode) {
-                                        setInternalExtents((prev) => [...prev, {'name': trajectoryName, 'states': [{id: d.id}]}]);             
+                                        setInternalExtents((prev) => [...prev, {'name': trajectoryName, 'states': [d]}]);             
                                     } else {
                                         setStateClicked(globalUniqueStates.get(d.id));
                                     }

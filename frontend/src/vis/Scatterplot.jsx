@@ -24,6 +24,7 @@ import {useExtents} from '../hooks/useExtents';
 
 const margin = { top: 20, bottom: 20, left: 40, right: 25 };
 let sBrush = null;
+let individualSelectionMode = false;
 
 export default function Scatterplot ({
     globalUniqueStates,
@@ -75,6 +76,17 @@ export default function Scatterplot ({
     
     useKeyDown('Shift', selectionBrush, isHovered);
     useKeyUp('Shift', completeSelection, isHovered);      
+
+    const toggleIndividualSelectionMode = () => {
+        individualSelectionMode = !individualSelectionMode;
+    }
+    
+    useKeyDown('Control', toggleIndividualSelectionMode, isHovered);
+    useKeyUp('Control', function() {        
+        completeSelection();
+        toggleIndividualSelectionMode();
+    }, isHovered);
+
     
     const useAttributeList = (setAttributeList, attribute, attributeListProp) => {    
         useEffect(() => {
@@ -194,12 +206,16 @@ export default function Scatterplot ({
                       } else {
                           return "inline";
                       }
-                  });
+                  }).classed("clickable", true);
                             
             
             if(setStateClicked) {
-                points.on("click", function(_,d) {                    
-                    setStateClicked(globalUniqueStates.get(d.id));    
+                points.on("click", function(_,d) {
+                    if(individualSelectionMode) {
+                        setInternalExtents((prev) => [...prev, {'name': trajectoryName, 'states': [d]}]);             
+                    } else {
+                        setStateClicked(globalUniqueStates.get(d.id));
+                    }
                 });
             }
             

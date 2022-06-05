@@ -3,6 +3,10 @@
     cursor: pointer;
 }
 
+.clickable {
+    cursor: pointer;
+}
+
 .highlightedStates {
 }
 
