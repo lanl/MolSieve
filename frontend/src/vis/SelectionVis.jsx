@@ -31,7 +31,7 @@ function SelectionVis({ trajectories, extents, loadingCallback, style, globalUni
             }
 
             let safeExtents = [];            
-            const statesSeen = new Set();
+            const statesSeen = new Set();            
             for(let ex of extents) {
                 if(!ex.begin && !ex.end) {
                     for(const e of ex.states) {
@@ -76,7 +76,6 @@ function SelectionVis({ trajectories, extents, loadingCallback, style, globalUni
 
             //stores the rectangle that gets drawn when the view moves
             svg.append('g').attr('id', 'extentGroup');
-
             for (const [name, extentArray] of groupedExtents.entries()) {
                 const { sequence } = trajectories[name];
 

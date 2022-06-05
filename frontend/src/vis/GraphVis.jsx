@@ -166,7 +166,9 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                   }                  
               }).on('mouseout', function() {
                   setStateHovered(null);
-              }).classed('node', true);
+              })
+            .classed('clickable', true)
+            .classed('node', true);
 
         sequenceData.exit().remove();
         
@@ -180,9 +182,13 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
             })
             .attr('fill', function(d) { return trajectory.colors[trajectory.idToCluster[d.firstID]]; })
             .on('mouseover', function(_, d) {                      
+                d3.select(this).classed('importantChunkDashedStroke', false);           
                 onChunkMouseOver(this, d, name);                 
+            }).on('mouseout', function() {
+                d3.select(this).classed('importantChunkDashedStroke', true);                      
             })
             .classed("importantChunk", (d) => d.important)
+            .classed("importantChunkDashedStroke", (d) => d.important)
             .classed("unimportantChunk", (d) => !d.important)
             .classed('node', true);
 

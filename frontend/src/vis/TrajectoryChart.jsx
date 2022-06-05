@@ -78,7 +78,10 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
             nodes.enter()
             .append('rect')
             .attr('x', (d) => x_scale(d.timestep))
-            .attr('y', () => y_scale(count))
+            .attr('y', (d) => {
+                const impOffset = (d.important) ? -5 : 0;
+                return y_scale(count) + impOffset;
+            })
             .attr('width', (d) => x_scale(d.last + 1) - x_scale(d.timestep))
             .attr('height', (d) => {
                 if(d.important) {
@@ -91,9 +94,13 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                 return colors[idToCluster[d.firstID]];
             })                    
             .on('mouseover', function(_, d) {
+                d3.select(this).classed('importantChunkDashedStroke', false);
                 onChunkMouseOver(this, d, trajectoryName);                            
+            }).on('mouseout', function() {
+                d3.select(this).classed('importantChunkDashedStroke', true);
             })
             .classed("importantChunk", (d) => d.important)
+            .classed("importantChunkDashedStroke", (d) => d.important)
             .classed("unimportantChunk", (d) => !d.important)
             .classed("breakdown", (d) => d.parentID);
         
@@ -239,11 +246,13 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                                         setStateClicked(globalUniqueStates.get(d.id));
                                     }
                                 })
-                                .on('mouseover', function(_, d) {                                                
+                                .on('mouseover', function(_, d) {
+                                    d3.select(this).classed('highlightedState', true);
                                     onStateMouseOver(this, globalUniqueStates.get(d.id), trajectory, trajectoryName);                                                        
                                     setStateHovered({'caller': this, 'stateID': d.id, 'name': trajectoryName, 'timestep': d.timestep});                            
                                 })
-                                .on('mouseout', function() {                        
+                                .on('mouseout', function() {
+                                    d3.select(this).classed('highlightedState', false);
                                     setStateHovered(null);
                                 }).classed("clickable", true);
 

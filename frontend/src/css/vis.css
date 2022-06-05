@@ -1,6 +1,5 @@
 .highlightedState {
     stroke: black;
-    cursor: pointer;
 }
 
 .clickable {
@@ -40,7 +39,11 @@
 
 .importantChunk {
     stroke: black;
-    
+}
+
+.importantChunkDashedStroke {
+    stroke-dasharray: 2;
+    stroke-dashoffset: 25%;
 }
 
 .unimportantChunk {
