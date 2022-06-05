@@ -33,6 +33,8 @@ let visible = {};
 let sBrush = null;
 let globalTimeScale = null;
 
+let individualSelectionMode = false;
+
 function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStateClicked, setStateHovered, loadingCallback, style, setExtents, visibleProp }) {
 
     const {contextMenu, toggleMenu} = useContextMenu();
@@ -59,6 +61,17 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
     const isHovered = useHover(divRef);
     useKeyDown('Shift', selectionBrush, isHovered);
     useKeyUp('Shift', completeSelection, isHovered);      
+
+    const toggleIndividualSelectionMode = () => {
+        individualSelectionMode = !individualSelectionMode;
+    }
+    
+    useKeyDown('Control', toggleIndividualSelectionMode, isHovered);
+    useKeyUp('Control', function() {        
+        completeSelection();
+        toggleIndividualSelectionMode();
+    }, isHovered);
+
     
     const [seperateTrajectories, setSeperateTrajectories] = useState(true);
     const [inCommon, setInCommon] = useState([]);
@@ -137,8 +150,12 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
               .attr('r', 5)
               .attr('id', d => `node_${d.id}`).attr('fill', function(d) {              
                   return colors[trajectory.idToCluster[d.id]];                  
-              }).on('click', function(_,d) {                     
-                  setStateClicked(globalUniqueStates.get(d.id));                
+              }).on('click', function(_,d) {
+                  if(individualSelectionMode) {
+                      setInternalExtents((prev) => [...prev, {'name': name, 'states': [d]}]);             
+                  } else {
+                      setStateClicked(globalUniqueStates.get(d.id));
+                  }
               }).on('mouseover', function(_, d) {
                   onStateMouseOver(this, globalUniqueStates.get(d.id), trajectory, name);
                   const timesteps = idToTimestep.get(d.id);
