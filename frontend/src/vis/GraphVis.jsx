@@ -588,7 +588,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
 
     useEffect(() => {
         if(visibleProp) {           
-            for(const [name, visible] of Object.entries(visibleProp)) {                
+            for(const [name, visible] of Object.entries(visibleProp)) {
                 const sequence = visible.sequence;
                 const chunkList = visible.chunkList;
                 if(previousVisible && previousVisible[name].sequence.length === sequence.length && previousVisible[name].chunkList.length === chunkList.length) {
@@ -601,13 +601,13 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                 const sorted = [...sequence, ...chunkList].sort((a,b) => a.timestep - b.timestep);
 
                 for(let i = 0; i < sorted.length - 1; i++) {
-                    // when drawing and there's a large gap, render dashed stroke
                     const tp = (sorted[i].id > 0 && sorted[i+1].id > 0) ? trajectory.occurrenceMap.get(sorted[i].id).get(sorted[i+1].id) : 1.0;
                     links.push({
                         source: sorted[i].id,
                         target: sorted[i+1].id,
                         id: `${sorted[i].id}-${sorted[i+1].id}`,
                         transitionProb: tp,
+                        // when drawing and there's a large gap, render dashed stroke
                         dashStroke: (sorted[i].timestep + 1 !== sorted[i+1].timestep) ? true : false
                     });
                 }
@@ -651,8 +651,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                 const l = d3.select('#graph').select(`#l_${name}`);
                 const g = d3.select('#graph').select(`#g_${name}`);
                 const c = d3.select('#graph').select(`#c_${name}`);
-                
-                sim.nodes(sorted);
+                sim.nodes([...Array.from(sequenceMap.values()), ...chunkList]);
                 sim.force('link').links(links);
                 // manipulate data in such a way that nothing gets lost
                 renderGraph(links, chunkList, Array.from(sequenceMap.values()), l, g, c, name, trajectory, globalTimeScale, idToTimestep);

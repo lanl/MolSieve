@@ -168,7 +168,6 @@ export default function Scatterplot ({
             } else {
                 yScaleFunction = d3.scaleLinear;
             }
-
             
             const scale_x = xScaleFunction()
                 .range([margin.left + 5, width - margin.right])
@@ -185,7 +184,7 @@ export default function Scatterplot ({
             }
             
             const points = g.selectAll("rect")
-                  .data(sequence)
+                  .data(sequence)                  
                   .enter()
                   .append("rect")
                   .attr("x", function (_, i) {
@@ -333,7 +332,7 @@ export default function Scatterplot ({
     }, [stateHovered]);
 
     useEffect(() => {
-        if (ref !== undefined && ref.current !== undefined && trajectoryName !== undefined) {
+        if (ref && ref.current && trajectoryName !== undefined) {
             apply_filters(trajectories, runs, globalUniqueStates, ref);
         }
 

@@ -107,7 +107,8 @@ class Trajectory {
             // if at least one fuzzy membership is above a threshold, add to lastChunk; i.e its not interesting
             if (Math.max(...this.fuzzy_memberships[this.current_clustering][id]) >= (chunkingThreshold + epsilon)) {
                 curr_important = false;
-            }            
+            }
+            
             if (lastChunk.important === curr_important) {
                 lastChunk.last = timestep;
             } else {
@@ -122,10 +123,10 @@ class Trajectory {
                     lastChunk.size = lastChunk.last - lastChunk.timestep;                        
                     chunks.set(parentID, lastChunk);
                 } 
-                lastChunk = { timestep: timestep, last: timestep, firstID: id, id: curr_id, important: curr_important };
+                lastChunk = { timestep: timestep, last: timestep, firstID: id, id: curr_id, important: curr_important, cluster: this.idToCluster[id] };
             }
         }
-
+        
         if (lastChunk.timestep !== null) {
             lastChunk.size = lastChunk.last - lastChunk.timestep;
             chunks.set(curr_id, lastChunk);
