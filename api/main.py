@@ -360,13 +360,12 @@ def get_property_list():
     driver = neo4j.GraphDatabase.driver(
         "bolt://127.0.0.1:7687", auth=("neo4j", "secret")
     )
-
-    # sample 1000 nodes from the database and return a list of properties
+    
     j = []
     with driver.session() as session:
         try:
             result = session.run(
-                "MATCH (n:State) with n LIMIT 1000 UNWIND keys(n) as key RETURN DISTINCT key;"
+                "MATCH (n:State) WITH n LIMIT 100 UNWIND keys(n) as key RETURN DISTINCT key;"
             )
             j = [r[0] for r in result.values()]
             # add metadata properties
@@ -377,7 +376,8 @@ def get_property_list():
                 WITH m, prop WHERE m[prop] = true
                 RETURN DISTINCT prop;""")
             for r in result:
-                j.append(r[0])
+                if r[0] not in j:
+                    j.append(r[0])
             
         except neo4j.exceptions.ServiceUnavailable as exception:
             raise exception
