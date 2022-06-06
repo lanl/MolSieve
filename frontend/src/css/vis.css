@@ -52,6 +52,11 @@
     stroke-dashoffset: none;
 }
 
+.importantChunk.highlightedState {
+    stroke-dasharray: none;
+    stroke-dashoffset: none;
+}
+
 .dashedStroke {
     stroke-dasharray: 2;
     stroke-dashoffset: 25%;

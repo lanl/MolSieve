@@ -28,7 +28,6 @@ import usePrevious from '../hooks/usePrevious';
 
 let container = null;
 let zoom = null;
-const trajRendered = {};
 let visible = {};
 let sBrush = null;
 let globalTimeScale = null;
@@ -146,9 +145,10 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
               .data(sSequence, (d) => d.id);
 
         sequenceData.enter()
-              .append('circle')        
-              .attr('r', 5)
-              .attr('id', d => `node_${d.id}`).attr('fill', function(d) {              
+            .append('circle')        
+            .attr('r', 5)
+            .attr('id', d => `node_${d.id}`)
+            .attr('fill', function(d) {              
                   return colors[trajectory.idToCluster[d.id]];                  
               }).on('click', function(_,d) {
                   if(individualSelectionMode) {
@@ -180,12 +180,15 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
             .attr('r', (d) => {
                 return gts(d.size);
             })
+            .attr('id', d => `node_${d.id}`)
             .attr('fill', function(d) { return trajectory.colors[trajectory.idToCluster[d.firstID]]; })
             .on('mouseover', function(_, d) {                      
-                d3.select(this).classed('importantChunkDashedStroke', false);           
+                d3.select(this).classed('importantChunkDashedStroke', false);
+                setStateHovered({'caller': this, 'stateID': d.id, 'name': name, 'timestep': d.timestep});
                 onChunkMouseOver(this, d, name);                 
             }).on('mouseout', function() {
-                d3.select(this).classed('importantChunkDashedStroke', true);                      
+                d3.select(this).classed('importantChunkDashedStroke', true);
+                setStateHovered(null);
             })
             .classed("importantChunk", (d) => d.important)
             .classed("unimportantChunk", (d) => !d.important)
@@ -359,8 +362,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                 }
                 sim.on('tick', ticked);
                 sim.alpha(0.1).restart();
-                setSims({...sims, [name]: sim});
-                trajRendered[name] = true;                                                    
+                setSims({...sims, [name]: sim});                
             }
                                 
             x_count++;
@@ -376,7 +378,6 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
             const simulationWorker = new Worker(new URL ('workers/force_directed_simulation.js', import.meta.url));
             const name = 'Global Trajectory';
             
-            trajRendered[name] = false;           
             enqueueSnackbar((<ProgressBox name={name} progressVal={progressVal}/>), {key: name, persist: true, preventDuplicate: true});
                 
             simulationWorker.postMessage({
@@ -464,10 +465,8 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                         setStateHovered({'caller': this, 'stateID': d.id});
                     });                    
 
-                    trajRendered[name] = true;                                   
                     closeSnackbar(name);       
                 }
-                trajRendered['Global Trajectory'] = true;                                   
                 closeSnackbar('Global Trajectory');   
             }
         }
@@ -539,54 +538,45 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
 
     useEffect(() => {
         if(stateHovered !== undefined && stateHovered !== null) {                        
-            const {caller, name, stateID} = stateHovered;
+            const { caller, name, stateID } = stateHovered;
+            d3.select(ref.current).selectAll('.neighborInvisible').classed("neighborInvisible", false);
 
-            if(trajRendered[name]) {
-                const prevSelect = d3.select(ref.current)
-                      .selectAll('.highlightedState');
+            const select = d3.select(ref.current).select(`#node_${stateID}`);
+            select.classed('highlightedState', true);
+            const node = select.node();
+            // figure out better way to not call this from the graph view
+            if(node && caller.nodeName !== "circle") {               
+                const bbox = node.getBBox();
+                const bx = bbox.x;
+                const by = bbox.y;
+                const bw = bbox.width;
+                const bh = bbox.height;
 
-                if(!prevSelect.empty()) {
-                    prevSelect.classed("highlightedState", false);                
-                }
-
-                const prevHidden = d3.select(ref.current).selectAll('.neighborInvisible');
-            
-                if(!prevHidden.empty()) {
-                    prevHidden.classed("neighborInvisible", false);
-                }
-            
-                const select = d3.select(ref.current).select(`#g_${name}`).select(`#node_${stateID}`);
-                select.classed("highlightedState", true);
-            
-                if(caller.nodeName !== "circle") {
-                    const node = select.node();
-                    const bbox = node.getBBox();
-                    const bx = bbox.x;
-                    const by = bbox.y;
-                    const bw = bbox.width;
-                    const bh = bbox.height;
-
-                    // get middle of object
-                    const midX = bx + bw / 2;
-                    const midY = by + bh / 2;
-
-                    //translate the middle of our view-port to that position    
-                    d3.select(ref.current).transition().duration(500).call(zoom.transform,
-                                                                       d3.zoomIdentity.translate(width / 2 - midX, height / 2 - midY));
-                }
-
-                if(!showNeighbors) {                
-                    const occurrenceMap = trajectories[name].occurrenceMap;
-
-                    d3.select(ref.current).select(`#g_${name}`).selectAll('circle').filter((d) => {
-                        return (!occurrenceMap.get(stateID).has(d.id)) && d.id != stateID;
-                    }).classed("neighborInvisible", true);
-
-                    d3.select(ref.current).select(`#l_${name}`).selectAll('path').filter((d) => {                
-                        return d.source.id != stateID && d.target.id != stateID;
-                    }).classed("neighborInvisible", true);
-                }
+                // get middle of object
+                const midX = bx + bw / 2;
+                const midY = by + bh / 2;
+                
+                // translate the middle of our view-port to that position    
+                d3.select(ref.current).transition().duration(500).call(
+                    zoom.transform,
+                    d3.zoomIdentity
+                        .translate(width / 2 - midX, height / 2 - midY)
+                );
             }
+
+            if(!showNeighbors) {                
+                const occurrenceMap = trajectories[name].occurrenceMap;
+
+                d3.select(ref.current).select(`#g_${name}`).selectAll('circle').filter((d) => {
+                    return (!occurrenceMap.get(stateID).has(d.id)) && d.id != stateID;
+                }).classed("neighborInvisible", true);
+
+                d3.select(ref.current).select(`#l_${name}`).selectAll('path').filter((d) => {                
+                    return d.source.id != stateID && d.target.id != stateID;
+                }).classed("neighborInvisible", true);
+            }
+        } else {
+            d3.select(ref.current).selectAll('.highlightedState').classed('highlightedState', false);                                   
         }
     }, [stateHovered, runs, showNeighbors]);
 

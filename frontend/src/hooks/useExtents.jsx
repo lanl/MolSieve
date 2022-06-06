@@ -9,8 +9,7 @@ export const useExtents = (setExtents, onComplete) => {
         if (!d3.selectAll('.brush').empty()) {
             d3.selectAll('.brush').remove();
         }
-        
-        if(pushExtent && iExtents.length > 0) {         
+        if(pushExtent && iExtents.length > 0) {
             setExtents([...iExtents]);
             setInternalExtents([]);
         }
