@@ -393,11 +393,12 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                     .selectAll('rect:not(.highlightedInvisible)')
                     .classed("highlightedStates", true);
             }
-            
-            if(stateHovered.timestep) {                
+
+            // needs to be !== null and undefined in case timestep === 0
+            if(stateHovered.timestep !== null && stateHovered.timestep !== undefined) {                
                 d3.select(ref.current)
                     .selectAll('rect:not(.invisible)')
-                    .filter((d) => d.timestep === stateHovered.timestep)
+                    .filter((d) => d.timestep === stateHovered.timestep)                
                     .classed("highlightedState", true);
             }
 

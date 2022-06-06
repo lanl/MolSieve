@@ -224,7 +224,7 @@ export default function Scatterplot ({
                     onStateMouseOver(this, globalUniqueStates.get(d.id));                                        
                     const state = globalUniqueStates.get(d.id);                                            
                     const traj = trajectories[state.seenIn[0]];      
-                    const timesteps = traj.simplifiedSequence.idToTimestep.get(d.id);
+                    const timesteps = traj.idToTimestep.get(d.id);
                     if(timesteps.length === 1) {
                         setStateHovered({'caller': this, 'stateID': d.id, 'name': trajectoryName, 'timestep': timesteps[0]});
                     } else {
@@ -313,13 +313,18 @@ export default function Scatterplot ({
         }, [width, height, xAttributeList, yAttributeList, trajectories]);
 
     useEffect(() => {                
-        if(stateHovered !== undefined && stateHovered !== null) {
+        if(stateHovered) {
             //.select(`#g_${trajectoryName}`)
-            d3.select(ref.current).selectAll('rect:not(.invisible)').filter(function(dp) {                                    
+            /*d3.select(ref.current).selectAll('rect:not(.invisible)').filter(function(dp) {                                    
                 return (dp.id !== stateHovered.stateID);
             }).classed("highlightedInvisible", true);
-                
-            d3.select(ref.current).selectAll('rect:not(.highlightedInvisible)').classed("highlightedStates", true);
+            
+            d3.select(ref.current).selectAll('rect:not(.highlightedInvisible)').classed("highlightedStates", true);*/
+
+            d3.select(ref.current)
+                .selectAll('rect')
+                .filter((d) => d.id === stateHovered.stateID)
+                .classed("highlightedState", true);
         } else {
             d3.select(ref.current).selectAll(".highlightedInvisible").classed("highlightedInvisible", false);
             d3.select(ref.current).selectAll('.highlightedStates').classed("highlightedStates", false);            

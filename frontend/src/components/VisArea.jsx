@@ -255,13 +255,14 @@ class VisArea extends React.Component {
                         id={sc}
                         setStateClicked={this.setStateClickedProp}
                         runs={this.props.runs}
+                        setStateHovered={this.setStateHoveredProp}
                         stateHovered={this.state.stateHovered}
                         properties={this.props.properties}
                         setExtents={this.setExtentsUniqueStatesProp}
                         title={sc}
                         sequence={sc_props.states}
                     />);
-            // setStateHovered={this.setStateHoveredProp}
+            // 
         });
 
 
