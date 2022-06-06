@@ -51,7 +51,9 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
         }
     }
 
-    const {setInternalExtents, completeSelection} = useExtents(setExtents);    
+    const {setInternalExtents, completeSelection} = useExtents(setExtents, () => {
+        d3.select(ref.current).call(zoom);
+    });    
 
     const isHovered = useHover(divRef);
     useKeyDown('Shift', selectionBrush, isHovered);
@@ -170,6 +172,7 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                 [0, margin.top],
                 [width, height - margin.bottom]
             ]).on("zoom", (e) => {
+
                 const xz = e.transform.rescaleX(scaleX);
                 const start = xz.domain()[0];
                 const end = xz.domain()[1];
@@ -349,6 +352,9 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
                     [margin.left, margin.top],
                     [width - margin.right, height - margin.bottom],
                 ])
+                .on('start', function() {
+                    d3.select(ref.current).on('.zoom', null);
+                })
                 .on('end', function(e) {
                     const extent = e.selection;                    
                     if (extent) {
