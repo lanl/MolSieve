@@ -94,7 +94,7 @@ class FilterBuilder {
             property: attribute,
         };
 
-        this.buildStateFilterLabel(SLIDER, attribute);
+        this.buildStateFilterLabel(SLIDER, attribute, "min");
     }
 
     buildMaxFilter(attribute, sequence) {
@@ -106,7 +106,7 @@ class FilterBuilder {
             property: attribute
         };
         
-        this.buildStateFilterLabel(SLIDER, attribute);
+        this.buildStateFilterLabel(SLIDER, attribute, "max");
     }
 
     buildRangeFilter(attribute, sequence) {
@@ -118,11 +118,11 @@ class FilterBuilder {
                   getMaxProperty(attribute, sequence)],
             property: attribute
         };
-        this.buildStateFilterLabel(RANGE_SLIDER, attribute);
+        this.buildStateFilterLabel(RANGE_SLIDER, attribute, "range");
     }
 
-    buildStateFilterLabel(type, attribute) {
-        this.filter.id = `${attribute}_${type}`;
+    buildStateFilterLabel(type, attribute, funcDescription) {
+        this.filter.id = `${attribute}_${type}_${funcDescription}`;
         this.filter.checkBoxLabel = `Filter ${attribute}`;
     }
 
