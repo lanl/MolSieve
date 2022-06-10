@@ -109,7 +109,7 @@ class Trajectory {
                 curr_important = false;
             }
             
-            if (lastChunk.important === curr_important) {
+            if (lastChunk.important === curr_important && lastChunk.cluster === this.idToCluster[id]) {
                 lastChunk.last = timestep;
             } else {
                 if(lastChunk.timestep !== null) {
