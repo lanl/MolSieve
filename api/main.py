@@ -535,6 +535,7 @@ async def pcca(run: str, clusters: int, optimal: int, m_min: int, m_max: int):
 
     j.update({"sets": sets})
     j.update({"fuzzy_memberships": fuzzy_memberships})
+    # BUG: occurrence_matrix transition probs stored as string - float object instead of int - float
     j.update({"occurrence_matrix": occurrenceMatrix})
     # j.update({'currentClustering': currentClustering});
     # TODO: add as metadata in vis

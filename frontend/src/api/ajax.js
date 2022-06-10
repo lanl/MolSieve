@@ -61,7 +61,10 @@ export function api_loadPCCA(run, clusters, optimal, m_min, m_max, trajectory) {
                         clustered_data.feasible_clusters;                    
 
                     for (const id of Object.keys(clustered_data.occurrence_matrix)) {
-                        const abTransitionProb = new Map(Object.entries(clustered_data.occurrence_matrix[parseInt(id)]));                        
+                        // need to cast keys to int, fix this in back-end
+                        const entries = Object.entries(clustered_data.occurrence_matrix[parseInt(id)]).map(([key, value]) => [parseInt(key), value]);
+
+                        const abTransitionProb = new Map(entries);                        
                         new_traj.occurrenceMap.set(parseInt(id), abTransitionProb);
                     }
                     

@@ -599,9 +599,10 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                 const chunkData = trajectory.simplifiedSequence.chunks;
                 const links = [];
                 const sorted = [...sequence, ...chunkList].sort((a,b) => a.timestep - b.timestep);
-
-                for(let i = 0; i < sorted.length - 1; i++) {
+                
+                for(let i = 0; i < sorted.length - 1; i++) {                    
                     const tp = (sorted[i].id > 0 && sorted[i+1].id > 0) ? trajectory.occurrenceMap.get(sorted[i].id).get(sorted[i+1].id) : 1.0;
+
                     links.push({
                         source: sorted[i].id,
                         target: sorted[i+1].id,
