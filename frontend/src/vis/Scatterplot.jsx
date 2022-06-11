@@ -270,9 +270,8 @@ export default function Scatterplot ({
                 .attr("transform", `translate(${yAxisPos},0)`)
                 .call(d3.axisLeft().scale(scale_y));
 
-            if (title === null || title === "") {
-                title = xAttribute + " vs " + yAttribute;
-            }
+            title += ` ${xAttribute} vs ${yAttribute}`;
+
             svg.append("text")
                 .attr("x", width / 2)
                 .attr("y", margin.top)
