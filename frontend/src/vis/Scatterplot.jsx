@@ -196,8 +196,14 @@ export default function Scatterplot ({
                   .attr("width", 5)
                   .attr("height", 5)
                   .attr("fill", function (d) {
-                      const state = globalUniqueStates.get(d.id);                    
-                      const traj = trajectories[state.seenIn[0]];                                        
+                      const state = globalUniqueStates.get(d.id);
+                      let traj = null;
+                      if(trajectoryName) {
+                          traj = trajectories[trajectoryName];
+                      } else {
+                          traj = trajectories[state.seenIn[0]];
+                      }
+                     
                       return traj.colors[traj.idToCluster[d.id]];
                   }).attr("display", function(_,i) {
                       if(xAttributeList[i] === undefined || yAttributeList[i] === undefined) {
@@ -262,14 +268,22 @@ export default function Scatterplot ({
             const yAxisPos = margin.left;
             const xAxisPos = height - margin.bottom;
 
-            svg.append("g")
+            const xAxis = svg.append("g")
                 .attr("transform", `translate(0,${xAxisPos})`)
-                .call(d3.axisBottom().scale(scale_x));
+                .call(d3.axisBottom().scale(scale_x).tickValues(scale_x.ticks().filter(tick => Number.isInteger(tick)))
+                       .tickFormat(d3.format('d')));
 
+            xAxis.selectAll("text")
+                .style("text-anchor", "center")
+                .attr("transform", "rotate(15)");
+            
             svg.append("g")
                 .attr("transform", `translate(${yAxisPos},0)`)
                 .call(d3.axisLeft().scale(scale_y));
-
+            
+            if(title === undefined || title === null) {
+                title = "";
+            }
             title += ` ${xAttribute} vs ${yAttribute}`;
 
             svg.append("text")

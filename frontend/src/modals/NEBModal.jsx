@@ -53,11 +53,12 @@ class NEBModal extends React.Component {
                 let gap = 1 / this.state.interpolate;
 
                 const path = this.props.trajectories[this.state.currentExtent.name].sequence.slice(start, end + 1);
-        
-                const pathVals = path.map((id) => {
-                    return this.props.globalUniqueStates.get(id);
-                });
-            
+                const pathVals = [];
+
+                for(const id of path) {
+                    pathVals.push(this.props.globalUniqueStates.get(id));
+                }
+                
                 for(let i = 0; i < pathVals.length - 1; i++) {
                     const state = {...pathVals[i]};
                     state.timestep = start + i;
@@ -77,7 +78,7 @@ class NEBModal extends React.Component {
                     }
                 })
                 this.props.enqueueSnackbar(`Task ${id} complete.`);
-                this.props.addNEBPlot(unpackedEnergies, drawSequence);                
+                this.props.addNEBPlot(unpackedEnergies, drawSequence, run);                
             });    
         }).catch((e) => {            
             alert(e);

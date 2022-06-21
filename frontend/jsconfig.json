@@ -1,3 +1,8 @@
 {
+    "plugins": [
+        {
+            "name": "typescript-eslint-language-service"
+        }
+    ],
     "exclude": ["node_modules", "build", ".log"]
 }

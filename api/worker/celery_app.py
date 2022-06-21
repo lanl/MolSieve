@@ -8,6 +8,7 @@ import neo4j
 from celery import Celery, current_task, Task
 from celery.utils.log import get_task_logger
 from neomd import querybuilder, converter, calculator
+from neomd.query import Query
 from scipy import stats
 import json
 import requests
@@ -200,22 +201,67 @@ def calculate_neb_on_path(run: str,
                                         auth=("neo4j", "secret"))
 
     qb = querybuilder.Neo4jQueryBuilder(
-        schema=[("State", run, "State",
-                 "ONE-TO-ONE"), ("Atom", "PART_OF", "State", "MANY-TO-ONE")])
-
-    q = qb.generate_get_path(start, end, run, 'timestep')
+        schema=[("Atom", "PART_OF", "State", "MANY-TO-ONE")])
 
     current_task.update_state(state='PROGRESS')    
     send_update(task_id, {'type': TASK_PROGRESS, 'message': 'Finished getting nodes.', 'progress': '0.1'})
 
     metadata = getMetadata(run)
     atomType = get_atom_type(metadata['parameters'])
+
+    # messy, ugly way of doing it, will fix later
+    driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687",
+                                        auth=("neo4j", "secret"))
+
+    print(metadata)
+    possibleSymmetries = {}
+    allStates = []
     
-    attr_atom_dict, relationList = converter.query_to_ASE(driver,
-                                                          qb,
-                                                          q,
-                                                          atomType,
-                                                          getRelationList=True)
+    with driver.session() as session:
+    # get the path first, just the ids 
+        q = f"""MATCH (n:{run})-[r:{run}]->(n2:{run}) 
+        WHERE r.timestep >= {start} AND r.timestep <= {end}
+        RETURN n.number AS first, r.timestep AS timestep, n2.number AS second, ID(n2) AS secondID"""
+        res = session.run(q)
+        for r in res:       
+            possibleSymmetries.update({r['timestep']: (r['first'], r['second'], r['secondID'])})
+        
+        q = f"""OPTIONAL MATCH (n:{run})-[r:canon_rep_{run}]->(n2:State)
+            WHERE r.timestep >= {start} AND r.timestep <= {end} AND ID(n) IN ["""
+        count = 0
+        for timestep, relation in possibleSymmetries.items():
+            q += str(relation[2]) 
+            possibleSymmetries[timestep] = (relation[0], relation[1])
+            if count != len(possibleSymmetries.items()) - 1:
+                q += ","
+            count += 1
+        q += "] RETURN DISTINCT r.timestep AS timestep, n.number AS sym_state ORDER BY r.timestep"
+        res = session.run(q)    
+        for r in res:
+            if r['timestep'] in possibleSymmetries:
+                curr_tuple = possibleSymmetries[r['timestep']] 
+                possibleSymmetries[r['timestep']] = (curr_tuple[0], r['sym_state'])
+
+        for timestep, relation in possibleSymmetries.items():
+            if relation[0] not in allStates:
+                allStates.append(relation[0])
+            if relation[1] not in allStates:
+                allStates.append(relation[1])
+    # now have a list of timesteps with relations having their correct neighbors for the NEB
+    full_atom_dict = {}
+    for stateID in allStates:
+        q = f"""MATCH (a:Atom)-[:PART_OF]->(n:State) WHERE n.number = "{stateID}" 
+        WITH n,a ORDER BY a.internal_id WITH collect(DISTINCT a) AS atoms, n
+        RETURN n, atoms
+        """  
+        attr_atom_dict = converter.query_to_ASE(driver,
+                                                qb,
+                                                Query(q, ["ASE"]),
+                                                atomType)
+        
+        for state, atoms in attr_atom_dict.items():
+            full_atom_dict.update({state: atoms})    
+    
     current_task.update_state(state='PROGRESS')    
     send_update(task_id, {'type': TASK_PROGRESS, 'message': 'Finished converting atoms.', 'progress': '0.2'})
 
@@ -223,63 +269,42 @@ def calculate_neb_on_path(run: str,
     if interpolate < 0:
         interpolate = 0
 
-    for idx, relation in enumerate(relationList):
-        if idx < len(relationList) - 1:
-            skip = False
+    idx = 0
+    for timestep, relation in possibleSymmetries.items():
+        energies = calculator.calculate_neb_for_pair(
+            full_atom_dict[relation[0]],
+            full_atom_dict[relation[1]], atomType,
+            metadata['cmds'], interpolate, maxSteps, fmax)
 
-            for prop in relation['properties']:
-                if prop[0] == 'symmetry':
-                    print(
-                        "Detected symmetry in transition between {start} and {end}, skipping..."
-                        .format(start=relation['start']['number'],
-                                end=relation['end']['number']))
-                    skip = True
+        if idx < len(possibleSymmetries) - 2:
+            energies.pop()
 
-            if skip:
-                energyVal = energyList[-1][-1] if len(energyList) > 0 else 0
-                energyList.append([energyVal for x in range(interpolate + 1)])
-                continue
-
-            energies = calculator.calculate_neb_for_pair(
-                attr_atom_dict[relation['start']['number']],
-                attr_atom_dict[relation['end']['number']], run, atomType,
-                metadata['cmds'], interpolate, maxSteps, fmax)
-
-            if idx < len(relationList) - 2:
-                energies.pop()
-
-            energyList.append(energies)
+        energyList.append(energies)
             
-            current_task.update_state(state='PROGRESS')    
-            send_update(task_id, {'type': TASK_PROGRESS, 'message': f'Image {idx + 1} of {len(relationList)} processed.', 'progress': f'{0.2 + ((idx+1/len(relationList)) - 0.2)}'})
+        current_task.update_state(state='PROGRESS')    
+        send_update(task_id, {'type': TASK_PROGRESS, 'message': f'Image {idx + 1} of {len(possibleSymmetries)} processed.',
+                              'progress': f'{0.2 + ((idx+1/len(possibleSymmetries)) - 0.2)}'})
             
         if saveResults:
-            # update by timestep
+                # update by timestep
             q = None
 
             with driver.session() as session:
                 tx = session.begin_transaction()
-                for idx, energies in enumerate(energyList):
-                    r = relationList[idx]
-                    timestep = ''
-                    for prop in r['properties']:
-                        if prop[0] == 'timestep':
-                            timestep = prop[1]
-
+                for idx, energies in enumerate(energyList):                                               
                     q = '''MATCH (a:State),
-                                 (b:State)
-                           WHERE a.number = '{state_n1}' AND b.number = '{state_n2}'
-                           MERGE (a)-[:{run}_NEB {{timestep: {timestep}, interpolate: {interpolate},
-                                              maxSteps: {maxSteps}, fmax: {fmax}, energies: '{energies}'}}]->(b);                    
-                        '''.format(state_n1=r['start']['number'],
-                                   state_n2=r['end']['number'],
-                                   run=run,
-                                   timestep=timestep,
-                                   interpolate=interpolate,
-                                   maxSteps=maxSteps,
-                                   fmax=fmax,
-                                   energies=json.dumps(energies))
-
+                    (b:State)
+                    WHERE a.number = '{state_n1}' AND b.number = '{state_n2}'
+                    MERGE (a)-[:{run}_NEB {{timestep: {timestep}, interpolate: {interpolate},
+                    maxSteps: {maxSteps}, fmax: {fmax}, energies: '{energies}'}}]->(b);                    
+                    '''.format(state_n1=relation[0],
+                               state_n2=relation[1],
+                               run=run,
+                               timestep=timestep,
+                               interpolate=interpolate,
+                               maxSteps=maxSteps,
+                               fmax=fmax,
+                               energies=json.dumps(energies))
                     tx.run(q)
                 tx.commit()
 

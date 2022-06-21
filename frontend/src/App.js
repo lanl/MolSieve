@@ -31,7 +31,7 @@ class App extends React.Component {
             trajectories: {},
             runs: {},
             loadingMessage: 'Loading...',
-            colors: [...d3.schemeTableau10, ...d3.schemeAccent],
+            colors: [...d3.schemeTableau10, ...d3.schemeAccent, ...d3.schemeSet3, ...d3.schemeTableau10],
             globalUniqueStates: new Map(),
             commonList: new Map(),
             properties: []
@@ -49,7 +49,7 @@ class App extends React.Component {
 
         this.setState({ ...this.state, currentModal: key });
     };
-
+    
     selectRun = (v) => {
         this.setState({
             run: v,

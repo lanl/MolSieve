@@ -62,8 +62,8 @@ class VisArea extends React.Component {
         };
     }
 
-    addNEBPlot = (energies, drawSequence) => {
-        this.setState({NEBPlots: [...this.state.NEBPlots, {'energies': energies, 'drawSequence': drawSequence}]});
+    addNEBPlot = (energies, drawSequence, trajectoryName) => {
+        this.setState({NEBPlots: [...this.state.NEBPlots, {'energies': energies, 'drawSequence': drawSequence, 'trajectoryName': trajectoryName}]});
     }
     
     setExtents = (extent) => {
