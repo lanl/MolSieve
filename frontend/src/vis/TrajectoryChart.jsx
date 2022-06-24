@@ -71,8 +71,11 @@ function TrajectoryChart({
     useKeyDown('Shift', selectionBrush, isHovered);
     useKeyUp('Shift', completeSelection, isHovered);
 
-    const toggleIndividualSelectionMode = () => {
+    const toggleIndividualSelectionMode = () => {        
         individualSelectionMode = !individualSelectionMode;
+        if(individualSelectionMode) {
+            d3.select(ref.current).selectAll('.currentSelection').classed('currentSelection', false);
+        }
     }
     
     useKeyDown('Control', toggleIndividualSelectionMode, isHovered);
@@ -255,6 +258,7 @@ function TrajectoryChart({
                                 })                    
                                 .on('click', function (_, d) {
                                     if(individualSelectionMode) {
+                                        d3.select(this).classed('currentSelection', true);
                                         setInternalExtents((prev) => [...prev, {'name': trajectoryName, 'states': [d]}]);             
                                     } else {
                                         setStateClicked(globalUniqueStates.get(d.id));
@@ -366,6 +370,22 @@ function TrajectoryChart({
                 ])
                 .on('start', function() {
                     d3.select(ref.current).on('.zoom', null);
+                })
+                .on('brush', function(e) {
+                    const extent = e.selection;
+                    if (extent) {
+                        const currName = Object.keys(trajectories)[Math.round(scaleY.invert(extent[0][1]))];
+                        if (currName !== null && currName !== undefined) {
+                            const begin = Math.round(rescaledX.invert(extent[0][0]));
+                            const end = Math.round(rescaledX.invert(extent[1][0]));
+
+                            d3.select(ref.current).selectAll('.currentSelection').classed('currentSelection', false);
+                            
+                            d3.select(ref.current).select('#sequence_important').selectAll('rect').filter((d) => {
+                                return d.timestep >= begin && d.timestep <= end;
+                            }).classed('currentSelection', true);
+                        }
+                    }
                 })
                 .on('end', function(e) {
                     const extent = e.selection;                    

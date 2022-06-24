@@ -18,7 +18,7 @@ export const useExtents = (setExtents, onComplete) => {
 
     const completeSelection = useCallback(() => {        
         setPushExtent(true);
-
+        
         if(onComplete !== undefined) {
             onComplete();
         }

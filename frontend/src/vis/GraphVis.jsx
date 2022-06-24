@@ -63,6 +63,9 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
 
     const toggleIndividualSelectionMode = () => {
         individualSelectionMode = !individualSelectionMode;
+        if(individualSelectionMode) {
+            d3.select(ref.current).selectAll('.currentSelection').classed('currentSelection', false);
+        }
     }
     
     useKeyDown('Control', toggleIndividualSelectionMode, isHovered);
@@ -152,6 +155,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                   return colors[trajectory.idToCluster[d.id]];                  
               }).on('click', function(_,d) {
                   if(individualSelectionMode) {
+                      d3.select(this).classed('currentSelection', true);
                       setInternalExtents((prev) => [...prev, {'name': name, 'states': [d]}]);             
                   } else {
                       setStateClicked(globalUniqueStates.get(d.id));
@@ -503,14 +507,14 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                 d3.select(ref.current).on('.zoom', null);
                 const zt = d3.zoomTransform(container.node());
                 const extent = e.selection;
-                d3.select(ref.current).select('#important').selectAll('.highlightedState').classed("highlightedState", false);  
+                d3.select(ref.current).select('#important').selectAll('.currentSelection').classed("currentSelection", false);  
                 d3.select(ref.current).select('#important').selectAll('circle').filter(function(d) {
                     const x = zt.k*d.x + zt.x;
                     const y = zt.k*d.y + zt.y;
                     
                     return (extent[0][0] <= x && x < extent[1][0] &&
                             extent[0][1] <= y && y < extent[1][1]);                    
-                }).classed("highlightedState", true); 
+                }).classed("currentSelection", true); 
             }).on('end', function(e) {                
                 const zt = d3.zoomTransform(container.node());
                 const extent = e.selection;                
@@ -521,7 +525,6 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                     return (extent[0][0] <= x && x < extent[1][0] &&
                             extent[0][1] <= y && y < extent[1][1]);                    
                 }).data();
-                d3.select(ref.current).select('#important').selectAll('.highlightedState').classed("highlightedState", false);
                 
                 if(nodes.length > 0) {
                     setInternalExtents((prev) => [...prev, {'states': nodes}]);

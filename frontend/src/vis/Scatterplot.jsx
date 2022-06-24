@@ -80,6 +80,9 @@ export default function Scatterplot ({
 
     const toggleIndividualSelectionMode = () => {
         individualSelectionMode = !individualSelectionMode;
+        if(individualSelectionMode) {
+            d3.select(ref.current).selectAll('.currentSelection').classed('currentSelection', false);
+        }        
     }
     
     useKeyDown('Control', toggleIndividualSelectionMode, isHovered);
@@ -218,6 +221,7 @@ export default function Scatterplot ({
             if(setStateClicked) {
                 points.on("click", function(_,d) {
                     if(individualSelectionMode) {
+                        d3.select(this).classed('currentSelection', true);
                         setInternalExtents((prev) => [...prev, {'name': trajectoryName, 'states': [d]}]);             
                     } else {
                         setStateClicked(globalUniqueStates.get(d.id));
@@ -299,14 +303,14 @@ export default function Scatterplot ({
                 .keyModifiers(false)
                 .on('start brush', function(e) {                    
                     const [[x0, y0], [x1, y1]] = e.selection;                     
-                    d3.select(ref.current).selectAll('.highlightedState').classed("highlightedState", false);  
+                    d3.select(ref.current).selectAll('.currentSelection').classed("currentSelection", false);  
                     d3.select(ref.current).selectAll('rect').filter(function(_,i) {
                         const x = scale_x(xAttributeList[i]);
                         const y = scale_y(yAttributeList[i]);
                         
                         return (x0 <= x && x < x1 &&
                                 y0 <= y && y < y1);          
-                    }).classed("highlightedState", true); 
+                    }).classed("currentSelection", true); 
                 }).on('end', function(e) {
                     const [[x0, y0], [x1, y1]] = e.selection;
                     const nodes = d3.select(ref.current).selectAll('rect').filter(function(_,i) {
@@ -316,7 +320,6 @@ export default function Scatterplot ({
                         return (x0 <= x && x < x1 &&
                                 y0 <= y && y < y1);                    
                     }).data();
-                    d3.select(ref.current).selectAll('.highlightedState').classed("highlightedState", false);
                     setInternalExtents((prev) => [...prev, {'states': nodes}]); 
                 });                             
             
