@@ -1,7 +1,5 @@
 import React from "react";
 import Box from "@mui/material/Box";
-import Stack from '@mui/material/Stack';
-import Button from '@mui/material/Button';
 import Divider from '@mui/material/Divider';
 import Typography from '@mui/material/Typography';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
@@ -9,30 +7,31 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import Accordion from '@mui/material/Accordion';
 import AccordionSummary from '@mui/material/AccordionSummary';
 import AccordionDetails from '@mui/material/AccordionDetails';
-import TableContainer from "@mui/material/TableContainer";
+/*import TableContainer from "@mui/material/TableContainer";
 import Table from "@mui/material/Table";
 import TableBody from "@mui/material/TableBody";
 import TableCell from "@mui/material/TableCell";
 import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
 
-import { DataGrid } from "@mui/x-data-grid";
+import { DataGrid } from "@mui/x-data-grid";*/
 
 import GraphVis from "../vis/GraphVis";
 import Scatterplot from "../vis/Scatterplot";
 import SelectionVis from '../vis/SelectionVis';
 import TrajectoryChart from "../vis/TrajectoryChart";
-import AjaxVideo from "../components/AjaxVideo";
+
 
 import SingleStateModal from "../modals/SingleStateModal";
 import LoadingModal from "../modals/LoadingModal";
 import MultiplePathSelectionModal from '../modals/MultiplePathSelectionModal';
 
+import SubSequenceView from "./SubSequenceView";
 //import ButtonWithOpenMenu from "../components/ButtonWithOpenMenu";
 import ScatterGrid from "./ScatterGrid";
 
 import '../css/App.css';
-import {isPath} from '../api/myutils';
+
 import NEBModal from "../modals/NEBModal";
 
 const SINGLE_STATE_MODAL = 'single_state';
@@ -86,7 +85,7 @@ class VisArea extends React.Component {
         const extents_id = `ss_${count}`;        
         this.setState({
             subSequences: {...this.state.subSequences, [extents_id] : modEx},
-            visibleExtent: modEx
+            visibleExtent: extents_id
         });
     }
 
@@ -106,8 +105,8 @@ class VisArea extends React.Component {
         
         this.setState({
             subSequences: {...this.state.subSequences, [extents_id]: modEx},
-            visibleExtent: modEx
-        });          
+            visibleExtent: extents_id
+        });
     }
 
     setVisible = (visible) => {
@@ -269,175 +268,34 @@ class VisArea extends React.Component {
                         setExtents={this.setExtentsUniqueStatesProp}
                         title={sc}
                         sequence={sc_props.states}
-                        visibleExtent={this.state.visibleExtent}
+                        visibleExtent={this.state.subSequences[this.state.visibleExtent]}
                     />);
             // 
         });
 
-
-        // would make sense to put in a seperate component
         const subSequenceCharts = Object.keys(this.state.subSequences).map((id) => {
             const ss = this.state.subSequences[id];
-            
-            const extentVideos = ss.map((extent, idx) => {
-                return (<Box key={idx} gridColumn="span 1"><AjaxVideo title={`extent ${idx+1}`} states={extent.states.map((state) => state.id)}/></Box>);
-            });
-
-            const KSTestResultsArray = this.state.KSTestResults[id];
-
-            const KSTestRender = (KSTestResultsArray !== undefined) ? KSTestResultsArray.map((results, idx) => {
-                return (<TableRow key={idx}>
-                            <TableCell>{results.rvs}</TableCell>
-                            <TableCell>{results.cdf}</TableCell>
-                            <TableCell>{results.ksProperty}</TableCell>
-                            <TableCell>{results.statistic}</TableCell>
-                            <TableCell>{results.pvalue}</TableCell>                                                      
-                        </TableRow>);
-            }) : null;
-
-            const Analyses = this.state.analyses[id];
-            
-            const dataGrids = (Analyses !== undefined) ? Object.keys(Analyses).map((count, idx) => {                                
-                const data = Analyses[count];
-                const grids = [];
-
-                for (const step of Object.keys(data)) {                    
-                    const stepData = data[step];
-
-                    let rows =  [];
-                    let columns = [];
-                    let rowCount = 0;
-
-                    for(const key of Object.keys(stepData[0])) {
-                        columns.push({'field': key, 'headerName': key, 'flex': 1});
-                    }
-            
-                    for(const state of stepData) {
-                        let row = Object.assign({}, state);                
-                        row['id'] = rowCount;
-                        rows.push(row);
-                        rowCount++;
-                    }
-                    
-                    if(step === 'info') {
-                        return null;
-                    }
-                    
-                    grids.push(<DataGrid key={`${idx}_${step}`} autoHeight rows={rows} columns={columns}/>);
-                }
-                
-                return grids;
-            }) : null;
-
-            const pathSimilarityResults = this.state.similarities[id];            
-            
-            const pathSimilarityRender = (pathSimilarityResults !== undefined) ? pathSimilarityResults.map((results, idx) => {
-                return (<TableRow key={idx}>
-                            <TableCell>{results.e1}</TableCell>
-                            <TableCell>{results.e2}</TableCell>                                                    
-                            <TableCell>{results.score}</TableCell>
-                        </TableRow>);
-                
-            }) : null;
-            
-            return (<Box key={id} onClick={() => {
-                             this.setState({visibleExtent: ss});
-                         }} className="lightBorder" sx={{minHeight: '50px'}}>
-                        <Stack direction="row" justifyContent="center">
-                            <Button color="secondary" onClick={() => {this.addSubsequenceScatterplot(ss, id)}}>Add scatterplot</Button>
-                            <Button color="secondary" onClick={() => {this.setState({selectedExtents: {'ss': ss, 'id': id}}, () => {this.toggleModal(MULTIPLE_PATH_SELECTION);})}}>Analysis</Button>
-                            {ss.some(isPath) && <Button color="secondary" onClick={() => {this.setState({selectedExtents: {'ss': ss, 'id': id}}, () => {this.toggleModal(NEB);})}}>NEB</Button>}
-                        </Stack>
+            return (<SubSequenceView
+                        key={id}
+                        id={id}
+                        openMPSModal={() => {this.setState({selectedExtents: {'ss': ss, 'id': id}}, () => {this.toggleModal(MULTIPLE_PATH_SELECTION);})} }
+                        openNEBModal={() => {this.setState({selectedExtents: {'ss': ss, 'id': id}}, () => {this.toggleModal(NEB);})}}
+                        addScatterplot={() => {this.addSubsequenceScatterplot(ss, id)}}
+                        setVisibleExtent={(id) => {
+                            this.setState({visibleExtent: id});
+                        }}
+                        visibleExtent={this.state.visibleExtent}
+                        subSequence={ss}>
                         <SelectionVis
                             style={{
-                                sx:{minHeight: '50px', maxHeight: '50px'}
+                                sx: {minHeight: '50px', maxHeight: '50px'}
                             }}
                             globalUniqueStates={this.props.globalUniqueStates}                            
                             trajectories={this.props.trajectories}
                             sequenceExtent={this.state.sequenceExtent}
                             titleProp={id}
-                            extents={ss} />
-                        {extentVideos && (
-                            <Box display="grid"
-                                sx={{
-                                    gridColumnGap: "10px",
-                                    gridTemplateColumns: "repeat(2, 1fr)"
-                                 }}>
-                                {extentVideos}
-                            </Box>
-                        )}
-                        {KSTestResultsArray && (
-                            <>
-                            <Divider/>
-                            <Accordion disableGutters={true}>                                
-                                <AccordionSummary
-                                    expandIcon={<ExpandMoreIcon />}
-                                >
-                                    K-S Test Results
-                                </AccordionSummary>
-                                <Divider/>
-                                <AccordionDetails>
-                                    <TableContainer>
-                                    <Table size="small">
-                                        <TableHead>
-                                            <TableCell>RVS</TableCell>
-                                            <TableCell>CDF</TableCell>
-                                            <TableCell>Property</TableCell>
-                                            <TableCell>Statistic</TableCell>
-                                            <TableCell>P-Value</TableCell>
-                                        </TableHead>
-                                        <TableBody>
-                                            {KSTestRender}
-                                        </TableBody>
-                                    </Table>
-                                    </TableContainer>
-                                </AccordionDetails>
-                            </Accordion>
-                            </>
-                        )}
-                        {dataGrids && (
-                            <>
-                                <Divider/>
-                                <Accordion disableGutters={true}>                                
-                                    <AccordionSummary
-                                        expandIcon={<ExpandMoreIcon />}
-                                    >
-                                    Analysis Results
-                                    </AccordionSummary>
-                                    <Divider/>
-                                    <AccordionDetails>
-                                            {dataGrids}
-                                    </AccordionDetails>
-                            </Accordion>
-                            </>                            
-                        )}
-                    {pathSimilarityRender &&
-                     <>
-                         <Divider/>
-                         <Accordion disableGutters={true}>                                
-                             <AccordionSummary
-                                 expandIcon={<ExpandMoreIcon />}
-                             >
-                                 Path Similarity Results
-                             </AccordionSummary>
-                             <Divider/>
-                             <AccordionDetails>
-                                 <TableContainer>
-                                     <Table size="small">
-                                         <TableHead>
-                                            <TableCell>Extent 1</TableCell>
-                                            <TableCell>Extent 2</TableCell>
-                                            <TableCell>Score</TableCell>
-                                        </TableHead>
-                                        <TableBody>
-                                            {pathSimilarityRender}
-                                        </TableBody>
-                                    </Table>
-                                    </TableContainer>
-                                </AccordionDetails>
-                            </Accordion>
-                     </>}
-                    </Box>);
+                            extents={ss} />                        
+                    </SubSequenceView>);
         });
 
         return (
@@ -468,7 +326,7 @@ class VisArea extends React.Component {
                                       setVisible={this.setVisible}
                                       setExtents={this.setExtentsProp}
                                       setSequenceExtent={this.setSequenceExtentProp}
-                                      visibleExtent={this.state.visibleExtent}
+                                      visibleExtent={this.state.subSequences[this.state.visibleExtent]}
                                   />
                               </AccordionDetails>
                           </Accordion>
@@ -518,7 +376,7 @@ class VisArea extends React.Component {
                          stateHovered={this.state.stateHovered}
                          visibleProp={this.state.visible}
                          setExtents={this.setExtentsUniqueStatesProp}
-                         visibleExtent={this.state.visibleExtent}
+                         visibleExtent={this.state.subSequences[this.state.visibleExtent]}
                      />
                     }
 
