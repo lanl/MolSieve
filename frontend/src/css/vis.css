@@ -2,6 +2,10 @@
     stroke: black;
 }
 
+.selectedExtent {
+    border: 1px solid orange;
+}
+
 .clickable {
     cursor: pointer;
 }
