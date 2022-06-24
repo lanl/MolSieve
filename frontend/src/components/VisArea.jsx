@@ -214,6 +214,7 @@ class VisArea extends React.Component {
         this.setState({scatterplots: {...this.state.scatterplots, ...newPlots}});                        
     }
 
+    // make this generalized
     deletePlot = (e) => {
         const plot = e.target.getAttribute("data-value");
         const newScatters = {...this.state.scatterplots};
@@ -339,7 +340,9 @@ class VisArea extends React.Component {
                 
             }) : null;
             
-            return (<Box key={id} className="lightBorder" sx={{minHeight: '50px'}}>
+            return (<Box key={id} onClick={() => {
+                             this.setState({visibleExtent: ss});
+                         }} className="lightBorder" sx={{minHeight: '50px'}}>
                         <Stack direction="row" justifyContent="center">
                             <Button color="secondary" onClick={() => {this.addSubsequenceScatterplot(ss, id)}}>Add scatterplot</Button>
                             <Button color="secondary" onClick={() => {this.setState({selectedExtents: {'ss': ss, 'id': id}}, () => {this.toggleModal(MULTIPLE_PATH_SELECTION);})}}>Analysis</Button>
