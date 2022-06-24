@@ -438,13 +438,23 @@ function TrajectoryChart({
         
         if(visibleExtent) {            
             for(const e of visibleExtent) {
+                let filterFunc = null; 
+
+                if(e.begin && e.end) {
+                    filterFunc = function(d) {
+                        return d.timestep >= e.begin && d.timestep <= e.end;
+                    };
+                } else {
+                    filterFunc = function(d) {
+                        const ids = e.states.map((s) => s.id);                    
+                        return ids.includes(d.id);
+                    };
+                }                
                 d3.select(ref.current).select('#sequence_important').selectAll('rect').filter((d) => {
-                    const ids = e.states.map((s) => s.id);                    
-                    return ids.includes(d.id);
+                    return filterFunc(d);
                 }).classed('currentSelection', true);
             }
         }
-
     }, [visibleExtent]);
     
     return (<>
