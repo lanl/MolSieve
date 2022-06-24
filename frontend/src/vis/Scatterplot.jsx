@@ -46,7 +46,8 @@ export default function Scatterplot ({
     xAttributeListProp = null,
     yAttributeListProp = null,
     enableMenu = true,
-    path = false
+    path = false,
+    visibleExtent
 }) {  
     const {contextMenu, toggleMenu} = useContextMenu();
     const {width, height, divRef} = useResize();
@@ -355,6 +356,18 @@ export default function Scatterplot ({
          
      }, [runs]);
 
+    useEffect(() => {
+        d3.select(ref.current).selectAll('.currentSelection').classed('currentSelection', false);
+        
+        if(visibleExtent) {            
+            for(const e of visibleExtent) {
+                d3.select(ref.current).selectAll('rect').filter((d) => {
+                    const ids = e.states.map((s) => s.id);                    
+                    return ids.includes(d.id);
+                }).classed('currentSelection', true);
+            }
+        }
+    }, [visibleExtent])
     
     return (
         <>

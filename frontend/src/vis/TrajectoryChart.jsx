@@ -31,7 +31,19 @@ let individualSelectionMode = false;
 
 let visible = {};
 
-function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallback,  setStateHovered, setStateClicked, stateHovered, setExtents, setVisible, setSequenceExtent}) {       
+function TrajectoryChart({
+    trajectories,
+    globalUniqueStates,
+    runs,
+    loadingCallback,
+    setStateHovered,
+    setStateClicked,
+    stateHovered,
+    setExtents,
+    setVisible,
+    setSequenceExtent,
+    visibleExtent
+}) {       
     const {contextMenu, toggleMenu} = useContextMenu();
     const {width, height, divRef} = useResize();
     
@@ -421,6 +433,19 @@ function TrajectoryChart({ trajectories, globalUniqueStates, runs, loadingCallba
         }
     }, [stateHovered, stateHighlight]);
 
+    useEffect(() => {
+        d3.select(ref.current).selectAll('.currentSelection').classed('currentSelection', false);
+        
+        if(visibleExtent) {            
+            for(const e of visibleExtent) {
+                d3.select(ref.current).select('#sequence_important').selectAll('rect').filter((d) => {
+                    const ids = e.states.map((s) => s.id);                    
+                    return ids.includes(d.id);
+                }).classed('currentSelection', true);
+            }
+        }
+
+    }, [visibleExtent]);
     
     return (<>
                 <Box ref={divRef}>

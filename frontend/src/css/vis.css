@@ -1,4 +1,4 @@
-.highlightedState {
+.currentSelection, .highlightedState {
     stroke: black;
 }
 

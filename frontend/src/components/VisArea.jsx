@@ -58,7 +58,8 @@ class VisArea extends React.Component {
             similarities: {},
             NEBPlots: [],
             visible: null,
-            sequenceExtent: null
+            sequenceExtent: null,
+            visibleExtent: null
         };
     }
 
@@ -83,7 +84,10 @@ class VisArea extends React.Component {
         }
         const count = Object.keys(this.state.subSequences).length;
         const extents_id = `ss_${count}`;        
-        this.setState({subSequences: {...this.state.subSequences, [extents_id] : modEx}});
+        this.setState({
+            subSequences: {...this.state.subSequences, [extents_id] : modEx},
+            visibleExtent: modEx
+        });
     }
 
     setExtentsUniqueStates = (extent) => {
@@ -100,7 +104,10 @@ class VisArea extends React.Component {
         const count = Object.keys(this.state.subSequences).length;
         const extents_id = `ss_${count}`;
         
-        this.setState({subSequences: {...this.state.subSequences, [extents_id]: modEx}});          
+        this.setState({
+            subSequences: {...this.state.subSequences, [extents_id]: modEx},
+            visibleExtent: modEx
+        });          
     }
 
     setVisible = (visible) => {
@@ -261,6 +268,7 @@ class VisArea extends React.Component {
                         setExtents={this.setExtentsUniqueStatesProp}
                         title={sc}
                         sequence={sc_props.states}
+                        visibleExtent={this.state.visibleExtent}
                     />);
             // 
         });
@@ -457,6 +465,7 @@ class VisArea extends React.Component {
                                       setVisible={this.setVisible}
                                       setExtents={this.setExtentsProp}
                                       setSequenceExtent={this.setSequenceExtentProp}
+                                      visibleExtent={this.state.visibleExtent}
                                   />
                               </AccordionDetails>
                           </Accordion>
@@ -494,7 +503,7 @@ class VisArea extends React.Component {
                     {safe &&                 
                      <GraphVis
                          style={{
-                             sx:{flexBasis: '50%'},
+                             sx:{ flexBasis: '50%' },
                              className:"lightBorder"
                          }}
                          trajectories={this.props.trajectories}
@@ -506,6 +515,7 @@ class VisArea extends React.Component {
                          stateHovered={this.state.stateHovered}
                          visibleProp={this.state.visible}
                          setExtents={this.setExtentsUniqueStatesProp}
+                         visibleExtent={this.state.visibleExtent}
                      />
                     }
 

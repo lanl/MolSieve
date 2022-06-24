@@ -34,7 +34,7 @@ let globalTimeScale = null;
 
 let individualSelectionMode = false;
 
-function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStateClicked, setStateHovered, loadingCallback, style, setExtents, visibleProp }) {
+function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStateClicked, setStateHovered, loadingCallback, style, setExtents, visibleProp, visibleExtent }) {
 
     const {contextMenu, toggleMenu} = useContextMenu();
     const {width, height, divRef} = useResize();
@@ -522,6 +522,7 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
                             extent[0][1] <= y && y < extent[1][1]);                    
                 }).data();
                 d3.select(ref.current).select('#important').selectAll('.highlightedState').classed("highlightedState", false);
+                
                 if(nodes.length > 0) {
                     setInternalExtents((prev) => [...prev, {'states': nodes}]);
                 }
@@ -716,6 +717,20 @@ function GraphVis({trajectories, runs, globalUniqueStates, stateHovered, setStat
         }
         }, [showInCommon, seperateTrajectories, globalUniqueStates]);
 
+
+    useEffect(() => {
+        // draws strokes over whatever is currently selected
+        d3.select(ref.current).selectAll('.currentSelection').classed('currentSelection', false);
+        
+        if(visibleExtent) {            
+            for(const e of visibleExtent) {
+                d3.select(ref.current).select('#important').selectAll('circle').filter((d) => {
+                    const ids = e.states.map((s) => s.id);                    
+                    return ids.includes(d.id);
+                }).classed('currentSelection', true);
+            }
+        }
+    }, [visibleExtent]);
     
     return (
         <>
