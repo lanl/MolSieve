@@ -31,6 +31,14 @@ let individualSelectionMode = false;
 
 let visible = {};
 
+function ensureMinWidth(d, x_scale) {
+    if(x_scale(d.last + 1) - x_scale(d.timestep) < 10) {
+        return x_scale(d.last + 1) - x_scale(d.timestep) + 10;
+    } else {
+        return x_scale(d.last + 1) - x_scale(d.timestep);
+    }
+}
+
 function TrajectoryChart({
     trajectories,
     globalUniqueStates,
@@ -99,7 +107,9 @@ function TrajectoryChart({
                 const impOffset = (d.important) ? -5 : 0;
                 return y_scale(count) + impOffset;
             })
-            .attr('width', (d) => x_scale(d.last + 1) - x_scale(d.timestep))
+            .attr('width', function(d) {
+                return ensureMinWidth(d, x_scale);
+            })            
             .attr('height', (d) => {
                 if(d.important) {
                     return 37.5;
@@ -348,8 +358,10 @@ function TrajectoryChart({
                     renderChunks(visible[name].chunkList, trajectory, name, visible[name].count, xz, scaleY);
                 }
 
-                importantGroup.selectAll('rect').attr('x', (d) => xz(d.timestep)).attr('width', (d) => xz(d.timestep + 1) - xz(d.timestep));          
-                chunkGroup.selectAll('rect').attr('x', (d) => xz(d.timestep)).attr('width', (d) => xz(d.last + 1) - xz(d.timestep));
+
+                chunkGroup.selectAll('rect').attr('x', (d) => xz(d.timestep)).attr('width', (d) => ensureMinWidth(d, xz));
+                importantGroup.selectAll('rect').attr('x', (d) => xz(d.timestep)).attr('width', (d) => xz(d.timestep + 1) - xz(d.timestep));
+
                 rescaledX = xz;
                 setSequenceExtent([start,end]);
                 setVisible(graphVisible);
