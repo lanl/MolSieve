@@ -221,6 +221,14 @@ class VisArea extends React.Component {
         this.setState({ scatterplots: newScatters});
     };
 
+    deleteChild = (e) => {
+        const key = e.target.getAttribute("data-value");
+        const childType = e.target.getAttribute("data-type");
+        const stateArray = {...this.state[childType]};
+        delete stateArray[key];
+        this.setState({ [childType]: stateArray });
+    }
+
     // essentially the same as useCallback
     setStateClickedProp = this.setStateClicked.bind(this);
     setStateHoveredProp = this.setStateHovered.bind(this);
@@ -260,8 +268,8 @@ class VisArea extends React.Component {
                         globalUniqueStates={this.props.globalUniqueStates}       
                         trajectoryName={sc_props.name}
                         id={sc}
-                        setStateClicked={this.setStateClickedProp}
                         runs={this.props.runs}
+                        setStateClicked={this.setStateClickedProp}
                         setStateHovered={this.setStateHoveredProp}
                         stateHovered={this.state.stateHovered}
                         properties={this.props.properties}
@@ -275,9 +283,14 @@ class VisArea extends React.Component {
 
         const subSequenceCharts = Object.keys(this.state.subSequences).map((id) => {
             const ss = this.state.subSequences[id];
+            let maxStates = Number.MIN_VALUE;
+            for(const e of ss) {
+                maxStates = (maxStates < e.states.length) ? e.states.length : maxStates;
+            }
             return (<SubSequenceView
                         key={id}
                         id={id}
+                        deleteChild={this.deleteChild}
                         openMPSModal={() => {this.setState({selectedExtents: {'ss': ss, 'id': id}}, () => {this.toggleModal(MULTIPLE_PATH_SELECTION);})} }
                         openNEBModal={() => {this.setState({selectedExtents: {'ss': ss, 'id': id}}, () => {this.toggleModal(NEB);})}}
                         addScatterplot={() => {this.addSubsequenceScatterplot(ss, id)}}
@@ -285,14 +298,19 @@ class VisArea extends React.Component {
                             this.setState({visibleExtent: id});
                         }}
                         visibleExtent={this.state.visibleExtent}
-                        subSequence={ss}>
+                        subSequence={ss}
+                    >
                         <SelectionVis
                             style={{
-                                sx: {minHeight: '50px', maxHeight: '50px'}
+                                sx: {minHeight: '50px'}
                             }}
+                            setStateClicked={this.setStateClickedProp}
+                            setStateHovered={this.setStateHoveredProp}
+
                             globalUniqueStates={this.props.globalUniqueStates}                            
                             trajectories={this.props.trajectories}
                             sequenceExtent={this.state.sequenceExtent}
+                            maxStates={maxStates}
                             titleProp={id}
                             extents={ss} />                        
                     </SubSequenceView>);
