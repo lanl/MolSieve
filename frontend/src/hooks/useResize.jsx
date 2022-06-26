@@ -1,6 +1,6 @@
 import {useRef, useState, useEffect} from 'react';
 
-export const useResize = () => {
+export const useResize = (modAmount,modifierCount) => {
     const divRef = useRef(null);
     const [width, setWidth] = useState();
     const [height, setHeight] = useState();
@@ -14,7 +14,12 @@ export const useResize = () => {
         setWidth(newWidth);
 
         const newHeight = divRef.current.offsetHeight;
-        setHeight(newHeight);
+        if(modAmount !== undefined && modifierCount !== undefined) {
+            setHeight(newHeight + (modAmount * modifierCount));
+        } else {
+            setHeight(newHeight);
+        }
+        
     };
 
     useEffect(() => {

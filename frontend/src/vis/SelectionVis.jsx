@@ -17,8 +17,8 @@ const margin = {
 let scaleX = null;
 let scaleY = null;
 
-function SelectionVis({ trajectories, extents, loadingCallback, style, globalUniqueStates, titleProp, sequenceExtent }) {
-    const {width, height, divRef} = useResize();
+function SelectionVis({ trajectories, extents, loadingCallback, style, globalUniqueStates, titleProp, sequenceExtent, maxStates, setStateClicked, setStateHovered }) {
+    const {width, height, divRef} = useResize(10, maxStates);
     
     const ref = useTrajectoryChartRender(
         (svg) => {
@@ -30,18 +30,13 @@ function SelectionVis({ trajectories, extents, loadingCallback, style, globalUni
                 svg.selectAll("*").remove();
             }
 
-            let safeExtents = [];            
+            let stateExtents = [];
+            const trajToDraw = new Set();
             const statesSeen = new Set();            
             for(let ex of extents) {
-                if(!ex.begin && !ex.end) {
-                    for(const e of ex.states) {
-                        statesSeen.add(e.id);
-                    }                                             
-                } else {
-                    const newEx = Object.assign({}, ex);
-                    newEx.firstID = ex.states[0].id;
-                    safeExtents = [...safeExtents, newEx];
-                }                
+                for(const e of ex.states) {
+                    statesSeen.add(e.id);
+                }
             }            
             
             if(statesSeen.size > 0) {
@@ -50,15 +45,19 @@ function SelectionVis({ trajectories, extents, loadingCallback, style, globalUni
                     for(const seen of state.seenIn) {
                         const traj = trajectories[seen];
                         const timesteps = traj.idToTimestep.get(id);
-
+                        trajToDraw.add(seen);
                         // show first, and if it exists, last occurrence of timestep
-                        const newEx = {'name': `${seen}`, 'begin': timesteps[0], 'end': timesteps[timesteps.length - 1], 'id': id};
-                        safeExtents = [...safeExtents, newEx];                        
+                        timesteps.sort(function(a,b){return a-b});
+                        
+                        const newEx = {'name': `${seen}`, 'begin': timesteps[0], 'end': timesteps.slice(-1), 'id': id};
+                        stateExtents = [...stateExtents, newEx];                        
                     }
                 }
             }
-
-            const groupedExtents = d3.group(safeExtents, (d) => d.name);
+            
+            const trajToDrawArr = Array.from(trajToDraw);
+            
+            const groupedExtents = d3.group(extents, (d) => d.name);
             const maxLength = d3.max(
                 Object.values(trajectories),
                 (t) => t.sequence.length
@@ -72,108 +71,105 @@ function SelectionVis({ trajectories, extents, loadingCallback, style, globalUni
             scaleY = d3
                 .scaleOrdinal()
                 .range([margin.top + 10, height - margin.bottom])
-                .domain(Object.keys(trajectories));
+                .domain(trajToDrawArr);
 
             //stores the rectangle that gets drawn when the view moves
             svg.append('g').attr('id', 'extentGroup');
-            for (const [name, extentArray] of groupedExtents.entries()) {
-                const { sequence } = trajectories[name];
 
-                const g = svg.append('g');
-                const ig = svg.append('g');                
+            const trajWidth = 10 * maxStates;
 
-                extentArray.sort(function (a,b) {
-                    return d3.ascending(a.begin, b.begin);
-                });
+            const extentScale = d3
+                  .scaleLinear()
+                  .range([2, trajWidth])
+                  .domain([0, stateExtents.length]);
+           
+            const g = svg.append('g');
+            const s = svg.append('g');
+            const ig = svg.append('g');                
 
-                const ignored = [];
+            ig.selectAll("rect")
+                .data(trajToDrawArr)
+                .enter()
+                .append("rect")
+                .attr("x", scaleX(0))
+                .attr("y", (d) => scaleY(d))
+                .attr("width", (d) => scaleX(trajectories[d].sequence.length) - scaleX(0))
+                .attr("height", trajWidth)
+                .attr("fill", "none")
+                .attr("stroke", "lightgray");
 
-                g.selectAll("rect")
+            const colors = d3.schemeDark2;
+
+            const ensureMinLength = function(d) {
+                if(scaleX(d.end) - scaleX(d.begin) < 10) {
+                    return scaleX(d.end) + 10;
+                } else {
+                    return scaleX(d.end);
+                }
+            };
+            
+            g.selectAll("line")
+                .data(stateExtents)
+                .enter()
+                .append("line")
+                .attr("x1", (d) => scaleX(d.begin))
+                .attr("x2", (d) => ensureMinLength(d))
+                .attr("y1", (d,i) => scaleY(d.name) + extentScale(i))
+                .attr("y2", function(d, i) {      
+                    return scaleY(d.name) + extentScale(i);
+                }) 
+                .attr("stroke-linecap", "round")
+                .attr("stroke-width", 3)
+                .attr("stroke", function (d) {
+                    return colors[d.id % colors.length];
+                }).on('mouseover', function(_, d) {
+                    const state = globalUniqueStates.get(d.id);                                            
+                    const traj = trajectories[state.seenIn[0]];      
+                    const timesteps = traj.idToTimestep.get(d.id);
+                    if(timesteps.length === 1) {
+                        setStateHovered({'caller': this, 'stateID': d.id, 'name': d.name, 'timestep': timesteps[0]});
+                    } else {
+                        setStateHovered({'caller': this, 'stateID': d.id, 'name': d.name, 'timesteps': timesteps});
+                    }
+
+                    onStateMouseOver(this, state, trajectories[d.name], d.name);
+                    
+                }).on('click', function(_,d) {
+                    setStateClicked(globalUniqueStates.get(d.id));
+                }).classed("clickable", true);
+                       
+            
+            for (const extentArray of groupedExtents.values()) {                
+
+                // only render sequence selections
+                s.selectAll("line")
                     .data(extentArray)
                     .enter()
-                    .append("rect")
-                    .attr("x", (d) => scaleX(d.begin))
-                    .attr("y", (d) => scaleY(d.name) - 10)
-                    .attr("width", (d) => scaleX(d.end) - scaleX(d.begin))
-                    .attr("height", 30)
-                    .attr("fill", "none")
-                    .attr("stroke", function (d) {
-                        const id = (d.firstID) ? d.firstID : d.id;
-                        const traj = trajectories[d.name];                                        
-                        return traj.colors[traj.idToCluster[id]];
-                    }).on('mouseover', function(_,d) {
-                        if(!d.firstID) {
-                            onStateMouseOver(this, globalUniqueStates.get(d.id), trajectories[d.name], d.name);
-                        }
-                    });
+                    .append("line")
+                    .attr("x1", (d) => scaleX(d.begin))
+                    .attr("x2", (d) => ensureMinLength(d))
+                    .attr("y1", (d) => scaleY(d.name) - 10)
+                    .attr("y2", (d) => scaleY(d.name) - 10)
+                    .attr("stroke", "black");                                    
+            }                
+            let title = null;
                 
-                for(const [idx, extent] of extentArray.entries()) {                    
-                    let ignore = null;
-
-                    if(idx === 0) {
-                        // if the extents don't cover the first element                    
-                        if(extent.begin !== 0) {
-                            ignore = {
-                                begin: 0,
-                                end: extent.begin - 1,
-                                name: extent.name
-                            };
-                            ignored.push(ignore);
-                        }
-                    }
-                    
-                    if(idx !== extentArray.length - 1) {
-                        ignore = {
-                            begin: extent.end,
-                            end: extentArray[idx + 1].begin - 1,
-                            name: extent.name
-                        };                                             
-                    } else {
-                        if(extent.end !== sequence.length) {
-                            ignore = {
-                                begin: extent.end,
-                                end: sequence.length,
-                                name: extent.name
-                            };                       
-                        }
-                    }
-                    
-                    if(ignore) {
-                        ignored.push(ignore);
-                    }
-                    
-                }                    
-            
-                ig.selectAll("rect")
-                    .data(ignored)
-                    .enter()
-                    .append("rect")
-                    .attr("x", (d) => scaleX(d.begin))
-                    .attr("y", (d) => scaleY(d.name))
-                    .attr("width", (d) => scaleX(d.end) - scaleX(d.begin))
-                    .attr("height", 10)
-                    .attr("fill", "none")
-                    .attr("stroke", "lightgray");
-                
-                let title = null;
-                
-                if (titleProp == null || titleProp == undefined) {
-                    title = `${name} `;
-                    for (const extent of extents) {
-                        title += `${extent.begin} - ${extent.end} `;
-                    }
-                } else {
-                    title = titleProp;
+            if (titleProp == null || titleProp == undefined) {
+                title = `${name} `;
+                for (const extent of extents) {
+                    title += `${extent.begin} - ${extent.end} `;
                 }
-                
-                svg.append('text')
-                    .attr('x', width / 2)
-                    .attr('y', margin.top)
-                    .attr('text-anchor', 'middle')
-                    .style('font-size', '12px')
-                    .text(title);
+            } else {
+                title = titleProp;
             }
-
+            
+            svg.append('text')
+                .attr('x', width / 2)
+                .attr('y', margin.top)
+                .attr('text-anchor', 'middle')
+                .style('font-size', '12px')
+                .text(title);            
+            
             if (loadingCallback !== undefined) {
                 loadingCallback();
             }
