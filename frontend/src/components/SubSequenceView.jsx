@@ -8,6 +8,7 @@ import AjaxVideo from "../components/AjaxVideo";
 import {isPath} from '../api/myutils';
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
+import RemovableBox from './RemovableBox';
 import '../css/vis.css';
 
 export default function SubSequenceView({
@@ -18,7 +19,8 @@ export default function SubSequenceView({
     addScatterplot,
     setVisibleExtent,
     visibleExtent,
-    id
+    id,
+    deleteChild
 }) {
     
     // sub-sequence can be made up of multiple extents
@@ -102,11 +104,14 @@ export default function SubSequenceView({
 
     
     // vis is set to the top to avoid re-rendering when sequenceExtent changes
-    return (<Box
+    return (<RemovableBox
                 ref={divRef}
+                childType="subSequences"
+                childID={id}
+                deleteChild={deleteChild}
                 onClick={() => {
                     setVisibleExtent(id);                    
-                }} className= "lightBorder subSequenceView selectedExtent" sx={{minHeight: '50px'}}>
+                }} className="lightBorder subSequenceView selectedExtent" sx={{minHeight: '50px'}}>
                 <Stack direction="row" justifyContent="center">
                     <Button color="secondary" onClick={() => addScatterplot() }>Add scatterplot</Button>
                     <Button color="secondary" onClick={() => openMPSModal() }>Analysis</Button>
@@ -122,7 +127,7 @@ export default function SubSequenceView({
                         {extentVideos}
                     </Box>
                 )}                
-            </Box>);
+            </RemovableBox>);
 }
 
 /*        {KSTestResultsArray && (
