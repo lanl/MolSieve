@@ -479,7 +479,7 @@ async def pcca(run: str, clusters: int, optimal: int, m_min: int, m_max: int):
         driver, run=run, discrete=True, getOccurrenceMatrix=True
     )
     print("finished loading transition matrix")
-    gpcca = gp.GPCCA(np.array(m.values), z="LM", method="brandts")
+    gpcca = gp.GPCCA(m.values, z="LM", method="brandts")
     print("finished calculating optimal pcca values")
     j = {}
     sets = {}

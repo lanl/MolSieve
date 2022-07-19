@@ -246,6 +246,8 @@ class VisArea extends React.Component {
                 <Box key={idx} className="lightBorder">
                     <Scatterplot
                         trajectories={this.props.trajectories}
+                        setStateClicked={this.setStateClickedProp}
+                        setStateHovered={this.setStateHoveredProp}
                         globalUniqueStates={this.props.globalUniqueStates}                                    
                         sequence={plot.drawSequence}
                         yAttributeListProp={plot.energies}
