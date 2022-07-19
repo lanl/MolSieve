@@ -213,41 +213,40 @@ def calculate_neb_on_path(run: str,
     driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687",
                                         auth=("neo4j", "secret"))
 
-    print(metadata)
-    possibleSymmetries = {}
+    path = {}
     allStates = []
-    
     with driver.session() as session:
-    # get the path first, just the ids 
+        # get the path first, just the ids 
         q = f"""MATCH (n:{run})-[r:{run}]->(n2:{run}) 
         WHERE r.timestep >= {start} AND r.timestep <= {end}
         RETURN n.number AS first, r.timestep AS timestep, n2.number AS second, ID(n2) AS secondID"""
         res = session.run(q)
         for r in res:       
-            possibleSymmetries.update({r['timestep']: (r['first'], r['second'], r['secondID'])})
-        
+            path.update({r['timestep']: (r['first'], r['second'], r['secondID'])})
+
+        # get their canonical representations - this is a seperate query
         q = f"""OPTIONAL MATCH (n:{run})-[r:canon_rep_{run}]->(n2:State)
             WHERE r.timestep >= {start} AND r.timestep <= {end} AND ID(n) IN ["""
         count = 0
-        for timestep, relation in possibleSymmetries.items():
+        for timestep, relation in path.items():
             q += str(relation[2]) 
-            possibleSymmetries[timestep] = (relation[0], relation[1])
-            if count != len(possibleSymmetries.items()) - 1:
+            path[timestep] = (relation[0], relation[1])
+            if count != len(path.items()) - 1:
                 q += ","
             count += 1
-        q += "] RETURN DISTINCT r.timestep AS timestep, n.number AS sym_state ORDER BY r.timestep"
+        q += "] RETURN DISTINCT r.timestep AS timestep, n2.number AS sym_state ORDER BY r.timestep"
         res = session.run(q)    
         for r in res:
-            if r['timestep'] in possibleSymmetries:
-                curr_tuple = possibleSymmetries[r['timestep']] 
-                possibleSymmetries[r['timestep']] = (curr_tuple[0], r['sym_state'])
 
-        for timestep, relation in possibleSymmetries.items():
+            if r['timestep'] in path:
+                curr_tuple = path[r['timestep']] 
+                path[r['timestep']] = (curr_tuple[0], r['sym_state'])
+            
+        for timestep, relation in path.items():
             if relation[0] not in allStates:
                 allStates.append(relation[0])
             if relation[1] not in allStates:
                 allStates.append(relation[1])
-    # now have a list of timesteps with relations having their correct neighbors for the NEB
     full_atom_dict = {}
     for stateID in allStates:
         q = f"""MATCH (a:Atom)-[:PART_OF]->(n:State) WHERE n.number = "{stateID}" 
@@ -261,29 +260,25 @@ def calculate_neb_on_path(run: str,
         
         for state, atoms in attr_atom_dict.items():
             full_atom_dict.update({state: atoms})    
-    
-    current_task.update_state(state='PROGRESS')    
-    send_update(task_id, {'type': TASK_PROGRESS, 'message': 'Finished converting atoms.', 'progress': '0.2'})
-
     energyList = []
     if interpolate < 0:
         interpolate = 0
 
     idx = 0
-    for timestep, relation in possibleSymmetries.items():
+    for timestep, relation in path.items():
         energies = calculator.calculate_neb_for_pair(
             full_atom_dict[relation[0]],
             full_atom_dict[relation[1]], atomType,
             metadata['cmds'], interpolate, maxSteps, fmax)
 
-        if idx < len(possibleSymmetries) - 2:
+        if idx < len(path) - 2:
             energies.pop()
 
         energyList.append(energies)
             
         current_task.update_state(state='PROGRESS')    
-        send_update(task_id, {'type': TASK_PROGRESS, 'message': f'Image {idx + 1} of {len(possibleSymmetries)} processed.',
-                              'progress': f'{0.2 + ((idx+1/len(possibleSymmetries)) - 0.2)}'})
+        send_update(task_id, {'type': TASK_PROGRESS, 'message': f'Image {idx + 1} of {len(path)} processed.',
+                              'progress': f'{0.2 + ((idx+1/len(path)) - 0.2)}'})
             
         if saveResults:
                 # update by timestep
