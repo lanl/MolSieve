@@ -5,6 +5,8 @@ import scipy.stats
 import inspect
 import neo4j
 
+from .config import Config
+
 def metadata_to_parameters(raw_metadata):
     """
     Converts metadata to parameters to use for LAMMPSRun parameters.
@@ -150,6 +152,8 @@ def loadTestJson(run, t):
 def isContinuousDistribution(c):
     return isinstance(c, scipy.stats._continuous_distns)
 
+def connect_to_db(c: Config):
+    return neo4j.GraphDatabase.driver(c.NEO4J_ADDRESS, auth=c.NEO4J_AUTH)
 
 def getScipyDistributions():
     modifiers = []
