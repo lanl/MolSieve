@@ -24,6 +24,7 @@ from .utils import (
     get_atom_type,
     saveTestJson,
     loadTestJson,
+    connect_to_db
 )
 from .connectionmanager import ConnectionManager
 
@@ -42,7 +43,6 @@ router = APIRouter(prefix="/api")
 cm = ConnectionManager()
 
 unprocessed = {}
-
 
 @router.get("/get_scipy_distributions")
 def get_scipy_distributions():
@@ -274,10 +274,31 @@ def load_property(prop: str):
 
     return j
 
+def get_potential(run: str) -> str:
+    """
+    Gets a potential file associated with the run, and writes it to the current working directory. 
+    Used in various LAMMPS calculations.
+    
+    :param run: the run to query for the potential file
 
-# move to celery worker
+    :return: the filename of the potential file
+    """
+    driver = connect_to_db(config)
+    q = f"MATCH (m:Metadata) WHERE m.run = '{run}' RETURN m.potentialFileName AS filename, m.potentialFileRaw AS data;"
+   
+    with driver.session() as session:
+        result = session.run(q)
+        r = result.single()
+        filename = r['filename']
+        with open(filename, 'w') as f: 
+           f.write(r['data'])
+        
+        return filename
+        
 @router.get("/load_sequence")
 def load_sequence(run: str, properties: str):
+
+    get_potential(run)
 
     if config.IMPATIENT:
         r = loadTestJson(run, "sequence")
@@ -404,24 +425,19 @@ def get_atom_properties():
 
 
 @router.get("/get_run_list")
-def get_run_list(truncateNEB: Optional[bool] = True):
+def get_run_list():
     driver = neo4j.GraphDatabase.driver(
         "bolt://127.0.0.1:7687", auth=("neo4j", "secret")
     )
     j = []
     with driver.session() as session:
         try:
-            result = session.run(
-                "MATCH (n:State) RETURN DISTINCT labels(n) LIMIT 1000;"
-            )
+            result = session.run("MATCH (m:Metadata) RETURN m.run;")
             runs = []
             for r in result.values():
                 for record in r:
-                    for label in record:
-                        if label != "NEB" and label != "State" and label not in runs:
-                            runs.append(label)
-                            trajectories.update({label: Trajectory()})
-
+                    runs.append(record)
+                    trajectories.update({record: Trajectory()})
             j = runs
         except neo4j.exceptions.ServiceUnavailable as exception:
             raise exception
