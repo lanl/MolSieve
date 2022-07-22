@@ -19,8 +19,7 @@ import { DataGrid } from "@mui/x-data-grid";*/
 import GraphVis from "../vis/GraphVis";
 import Scatterplot from "../vis/Scatterplot";
 import SelectionVis from '../vis/SelectionVis';
-import TrajectoryChart from "../vis/TrajectoryChart";
-
+//import TrajectoryChart from "../vis/TrajectoryChart";
 
 import SingleStateModal from "../modals/SingleStateModal";
 import LoadingModal from "../modals/LoadingModal";
@@ -34,6 +33,7 @@ import '../css/App.css';
 
 import NEBModal from "../modals/NEBModal";
 import RemovableBox from "./RemovableBox";
+import CircularSequence from "../vis/CircularSequence";
 
 const SINGLE_STATE_MODAL = 'single_state';
 const MULTIPLE_PATH_SELECTION = 'multiple_selection';
@@ -350,30 +350,27 @@ class VisArea extends React.Component {
             title="Rendering..." />}
 
           {safe &&
-            (<Box sx={{ position: 'absolute', zIndex: 1299, maxWidth: '25%' }}>
-              <Accordion defaultExpanded={true} disableGutters={true}>
-                <AccordionSummary
-                  expandIcon={<ExpandMoreIcon />}
-                ><Typography
+            (<Box sx={{ flexBasis: '25%' }}>
+              <Box>
+                <Typography
                   color="secondary"
-                  variant="h6">Sequence View</Typography></AccordionSummary>
-                <Divider />
-                <AccordionDetails>
-                  <TrajectoryChart
-                    trajectories={this.props.trajectories}
-                    globalUniqueStates={this.props.globalUniqueStates}
-                    runs={this.props.runs}
-                    loadingCallback={this.chartFinishedLoading}
-                    setStateHovered={this.setStateHoveredProp}
-                    setStateClicked={this.setStateClickedProp}
-                    stateHovered={this.state.stateHovered}
-                    setVisible={this.setVisible}
-                    setExtents={this.setExtentsProp}
-                    setSequenceExtent={this.setSequenceExtentProp}
-                    visibleExtent={this.state.subSequences[this.state.visibleExtent]}
-                  />
-                </AccordionDetails>
-              </Accordion>
+                  align="center"
+                  gutterBottom={true}
+                  variant="h6">Sequence View</Typography>
+                <CircularSequence
+                  trajectories={this.props.trajectories}
+                  globalUniqueStates={this.props.globalUniqueStates}
+                  runs={this.props.runs}
+                  loadingCallback={this.chartFinishedLoading}
+                  setStateHovered={this.setStateHoveredProp}
+                  setStateClicked={this.setStateClickedProp}
+                  stateHovered={this.state.stateHovered}
+                  setVisible={this.setVisible}
+                  setExtents={this.setExtentsProp}
+                  setSequenceExtent={this.setSequenceExtentProp}
+                  visibleExtent={this.state.subSequences[this.state.visibleExtent]}
+                />
+              </Box>
               {subSequenceCharts.length > 0 &&
                 <Accordion defaultExpanded={false} disableGutters={true}>
                   <AccordionSummary
@@ -429,12 +426,12 @@ class VisArea extends React.Component {
               className="lightBorder"
               sx={{ flexBasis: '50%', flexGrow: 0 }}
               control={
-                <Box display="flex" justifyContent="center" gap={1}>
-                  <Typography
-                    color="secondary"
-                    variant="h6">Scatterplot View</Typography>
-
-                </Box>}
+                <Typography
+                  color="secondary"
+                  align="center"
+                  gutterBottom={true}
+                  variant="h6">Scatterplot View</Typography>
+              }
               deletePlot={this.deletePlot}>
               {scatterplots}
             </ScatterGrid>)}
