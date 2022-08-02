@@ -138,8 +138,11 @@ class Trajectory {
         this.chunkingThreshold = chunkingThreshold;
     }
 
+    /* Returns the length of the trajectory. */
+    length() {
+      return this.sequence.length;
+    }
 
-    
     set_colors(colorArray) {
         let i = 0;        
         for (i; i < Math.max(...this.feasible_clusters); i++) {

@@ -211,3 +211,14 @@ export function TabPanel(props) {
   );
 }
 
+/* Returns a list of sorted trajectories, sorted by sequence length */
+export function getLengthList(trajectories) {
+  const lengthList = [];
+  let i = 0;
+  for(const [name, trajectory] of Object.entries(trajectories)) {
+     lengthList[i] = {'name': name, 'length': trajectory.length()};
+     i++;
+  }
+  return lengthList.sort((a,b) => (a.length > b.length) ? 1 : -1);
+}
+
