@@ -350,7 +350,7 @@ class VisArea extends React.Component {
             title="Rendering..." />}
 
           {safe &&
-            (<Box sx={{ flexBasis: '25%' }}>
+            (<Box sx={{ flexBasis: '35%' }}>
               <Box>
                 <Typography
                   color="secondary"

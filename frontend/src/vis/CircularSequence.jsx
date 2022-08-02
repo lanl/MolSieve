@@ -7,18 +7,19 @@ import '../css/vis.css';
 
 import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
 import { useResize } from '../hooks/useResize';
-import { onChunkMouseOver } from '../api/myutils';
+import { onChunkMouseOver, getLengthList } from '../api/myutils';
 
-const margin = {
+/*const margin = {
     top: 35, bottom: 20, left: 25, right: 25,
-};
-
+};*/
 
 export default function CircularSequence({ trajectories }) {
 
   const { width, height, divRef } = useResize();
+  console.log(divRef);
 
   const ref = useTrajectoryChartRender((svg) => {
+
     if (height === undefined || width === undefined) {
       return;
     }
@@ -27,14 +28,20 @@ export default function CircularSequence({ trajectories }) {
       svg.selectAll('*').remove();
     }
 
-    const chunkGroup = svg.append('g').attr('transform', `translate(${width / 2},${height / 2})`);
+    const chunkGroup = svg.append('g').attr('transform', `translate(${width / 2}, ${height / 2})`);
 
     const scaleR = d3.scaleRadial()
-      .range([height / 2, height - margin.bottom]) // from center of chart to top
+      .range([height / 3, height / 2]) // from center of chart to top
       .domain([0, Object.keys(trajectories).length]);
+    
     let count = 0; 
     
-    for (const [name, trajectory] of Object.entries(trajectories)) {
+    const sortedTraj = getLengthList(trajectories);
+      
+    for (const st of sortedTraj) {
+      const name = st.name;
+      const trajectory = trajectories[name];
+      
       const { simplifiedSequence, colors, idToCluster } = trajectory;
       let { chunks } = simplifiedSequence;
       const chunkList = Array.from(chunks.values()).filter((d) => d.parentID === undefined);
@@ -65,17 +72,16 @@ export default function CircularSequence({ trajectories }) {
         .attr('fill', (d) => { return colors[idToCluster[d.data.firstID]] });
       
       count++;
-    }
-  
+    } 
   });
 
   return (
     <Box ref={divRef}>
-      <svg className="vis"
+      <svg className="vis lightBorder"
         id="sequence"
         ref={ref}
-        preserveAspectRatio="none"
         viewBox={[0, 0, width, height]}
       />
     </Box>);
+        //preserveAspectRatio="none"
 }
