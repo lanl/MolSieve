@@ -1,4 +1,6 @@
-{"useTabs":false,
- "tabWidth": 4,
- "bracketSameLine": true
+{
+  "printWidth": 100,
+  "singleQuote": true,
+  "tabWidth": 4,
+  "trailingComma": "es5"
 }
