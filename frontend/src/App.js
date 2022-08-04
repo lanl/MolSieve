@@ -5,17 +5,25 @@ import AppBar from '@mui/material/AppBar';
 import Toolbar from '@mui/material/Toolbar';
 import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
+import MenuIcon from '@mui/icons-material/Menu';
+
+import * as d3 from 'd3';
+import { withSnackbar } from 'notistack';
 import AjaxMenu from './components/AjaxMenu';
 import LoadRunModal from './modals/LoadRunModal';
 import LoadingModal from './modals/LoadingModal';
 import Trajectory from './api/trajectory';
 import FilterBuilder from './api/FilterBuilder';
 import VisArea from './components/VisArea';
-import MenuIcon from '@mui/icons-material/Menu';
-import { api_loadPCCA, api_loadSequence, api_load_metadata, api_load_property, api_calculate_idToTimestep } from './api/ajax';
+import {
+    api_loadPCCA,
+    api_loadSequence,
+    api_load_metadata,
+    api_load_property,
+    api_calculate_idToTimestep,
+} from './api/ajax';
 import ControlDrawer from './components/ControlDrawer';
-import { withSnackbar } from 'notistack';
-import * as d3 from 'd3';
+
 const RUN_MODAL = 'run_modal';
 
 class App extends React.Component {
@@ -31,13 +39,18 @@ class App extends React.Component {
             trajectories: {},
             runs: {},
             loadingMessage: 'Loading...',
-            colors: [...d3.schemeTableau10, ...d3.schemeAccent, ...d3.schemeSet3, ...d3.schemeTableau10],
+            colors: [
+                ...d3.schemeTableau10,
+                ...d3.schemeAccent,
+                ...d3.schemeSet3,
+                ...d3.schemeTableau10,
+            ],
             globalUniqueStates: new Map(),
             commonList: new Map(),
-            properties: []
+            properties: [],
         };
     }
-    
+
     toggleModal = (key) => {
         if (this.state.currentModal) {
             this.setState({
@@ -49,7 +62,7 @@ class App extends React.Component {
 
         this.setState({ ...this.state, currentModal: key });
     };
-    
+
     selectRun = (v) => {
         this.setState({
             run: v,
@@ -58,10 +71,10 @@ class App extends React.Component {
     };
 
     removeRun = (v) => {
-        const trajectories = this.state.trajectories;
+        const { trajectories } = this.state;
         delete this.state.trajectories[v];
-        this.setState({ trajectories: trajectories });
-    }
+        this.setState({ trajectories });
+    };
 
     /** Wrapper for the backend call in api.js */
     load_PCCA = (run, clusters, optimal, m_min, m_max, trajectory) => {
@@ -93,7 +106,8 @@ class App extends React.Component {
         return api_load_metadata(run, new_traj);
     };
 
-    /** Function called by the PCCA slider allocated for each run. Reruns the PCCA for however many clusters the user specifies
+    /** Function called by the PCCA slider allocated for each run.
+     * Reruns the PCCA for however many clusters the user specifies
      *  @param {string} run - Run to recalculate the clustering for
      *  @param {number} clusters - Number of clusters to split the trajectory into.
      */
@@ -114,14 +128,7 @@ class App extends React.Component {
                 resolve(true);
             } else {
                 // if not, recalculate
-                this.load_PCCA(
-                    run,
-                    clusters,
-                    -1,
-                    0,
-                    0,
-                    this.state.trajectories[run],
-                )
+                this.load_PCCA(run, clusters, -1, 0, 0, this.state.trajectories[run])
                     .then((traj) => {
                         const new_trajectories = {
                             ...this.state.trajectories,
@@ -141,8 +148,7 @@ class App extends React.Component {
                         reject(false);
                     });
             }
-        })
-        ;
+        });
 
     /** Creates a new trajectory object and populates it with data from the database
      * @param {string} run - Which run this trajectory object will correspond to
@@ -157,41 +163,38 @@ class App extends React.Component {
             .then((data) => {
                 const newTraj = new Trajectory();
                 newTraj.sequence = Uint32Array.from(data.sequence);
-                newTraj.uniqueStates = data.uniqueStates.map((state) => {
-                    return state.id;
-                });
-                
+                newTraj.uniqueStates = data.uniqueStates.map((state) => state.id);
+
                 const newUniqueStates = this.calculateGlobalUniqueStates(data.uniqueStates, run);
 
-                this.load_PCCA(run, clusters, optimal, m_min, m_max, newTraj)
-                    .then((newTraj) => {
-                        this.load_metadata(run, newTraj).then((newTraj) => {
-                            api_calculate_idToTimestep(run, newTraj).then((newTraj) => {                                
-                                newTraj.set_cluster_info();
-                                // could be an option
-                                newTraj.chunkingThreshold = chunkingThreshold;
-                                newTraj.simplifySet(chunkingThreshold);
-                                const removed = newTraj.set_colors(this.state.colors);
-                                const newTrajectories = {
-                                    ...this.state.trajectories,
-                                };
+                this.load_PCCA(run, clusters, optimal, m_min, m_max, newTraj).then((newTraj) => {
+                    this.load_metadata(run, newTraj).then((newTraj) => {
+                        api_calculate_idToTimestep(run, newTraj).then((newTraj) => {
+                            newTraj.set_cluster_info();
+                            // could be an option
+                            newTraj.chunkingThreshold = chunkingThreshold;
+                            newTraj.simplifySet(chunkingThreshold);
+                            const removed = newTraj.set_colors(this.state.colors);
+                            const newTrajectories = {
+                                ...this.state.trajectories,
+                            };
 
-                                newTrajectories[run] = newTraj;
-                                const newColors = [...this.state.colors];
-                                newColors.splice(0, removed);
-                                
-                                const newRuns = this.initFilters(run, newTraj);
-                                this.setState({
-                                    isLoading: false,
-                                    runs: newRuns,
-                                    trajectories: newTrajectories,
-                                    colors: newColors,
-                                    globalUniqueStates: newUniqueStates,
-                                    properties: [...new Set([...this.state.properties, ...properties])]
-                                });
+                            newTrajectories[run] = newTraj;
+                            const newColors = [...this.state.colors];
+                            newColors.splice(0, removed);
+
+                            const newRuns = this.initFilters(run, newTraj);
+                            this.setState({
+                                isLoading: false,
+                                runs: newRuns,
+                                trajectories: newTrajectories,
+                                colors: newColors,
+                                globalUniqueStates: newUniqueStates,
+                                properties: [...new Set([...this.state.properties, ...properties])],
                             });
                         });
                     });
+                });
             })
             .catch((e) => {
                 alert(e);
@@ -199,7 +202,7 @@ class App extends React.Component {
     };
 
     initFilters = (run, newTraj) => {
-        let runs = { ...this.state.runs };
+        const runs = { ...this.state.runs };
 
         runs[run] = {
             current_clustering: newTraj.current_clustering,
@@ -210,89 +213,89 @@ class App extends React.Component {
 
         const fb = new FilterBuilder();
 
-        filters["clustering_difference"] = fb.buildClusteringDifference();
-        filters["chunks"] = fb.buildHideChunks();
-        filters["transitions"] = fb.buildTransitions();
-        filters["fuzzy_membership"] = fb.buildFuzzyMemberships();
+        filters.clustering_difference = fb.buildClusteringDifference();
+        filters.chunks = fb.buildHideChunks();
+        filters.transitions = fb.buildTransitions();
+        filters.fuzzy_membership = fb.buildFuzzyMemberships();
 
-
-        runs[run]["filters"] = filters;
+        runs[run].filters = filters;
 
         return runs;
-    }
+    };
 
     setProperties = (properties) => {
         // if old has something that new doesn't, there was a removal
-        const removed = this.state.properties.filter(x => !properties.includes(x));       
-        
+        const removed = this.state.properties.filter((x) => !properties.includes(x));
+
         // if new has something that old doesn't, there was an addition
-        const added = properties.filter(x => !this.state.properties.includes(x));
+        const added = properties.filter((x) => !this.state.properties.includes(x));
 
-        let globalUniqueStates = this.state.globalUniqueStates;
-        
-        if(added.length > 0) {
-            api_load_property(added[0])
-                .then((data) => {                    
-                    globalUniqueStates = this.addPropToStates(data, globalUniqueStates);
-                    this.setState({properties: [...this.state.properties, added[0]],
-                                   globalUniqueStates: globalUniqueStates});
-                    this.props.enqueueSnackbar(`Property ${added[0]} loaded.`);
+        let { globalUniqueStates } = this.state;
 
+        if (added.length > 0) {
+            api_load_property(added[0]).then((data) => {
+                globalUniqueStates = this.addPropToStates(data, globalUniqueStates);
+                this.setState({
+                    properties: [...this.state.properties, added[0]],
+                    globalUniqueStates,
                 });
+                this.props.enqueueSnackbar(`Property ${added[0]} loaded.`);
+            });
         } else {
-            let propertiesCopy = [...this.state.properties];
-            for(const r of removed) {
+            const propertiesCopy = [...this.state.properties];
+            for (const r of removed) {
                 globalUniqueStates = this.removePropFromStates(r, globalUniqueStates);
                 const idx = propertiesCopy.indexOf(r);
-                propertiesCopy.splice(idx,1);
+                propertiesCopy.splice(idx, 1);
             }
 
-            this.setState({properties: propertiesCopy,
-                           globalUniqueStates: globalUniqueStates});            
-        }        
-    }
+            this.setState({
+                properties: propertiesCopy,
+                globalUniqueStates,
+            });
+        }
+    };
 
     addPropToStates = (propertyList, globalUniqueStates) => {
         for (const prop of propertyList) {
             if (globalUniqueStates.has(prop.id)) {
                 const previous = globalUniqueStates.get(prop.id);
-                globalUniqueStates.set(prop.id, Object.assign(previous, prop));                
+                globalUniqueStates.set(prop.id, Object.assign(previous, prop));
             } else {
                 globalUniqueStates.set(prop.id, prop);
             }
         }
         return globalUniqueStates;
-    }
+    };
 
     removePropFromStates = (prop, globalUniqueStates) => {
-        for(let s of globalUniqueStates.values()) {
-            if(s[prop] !== undefined && s[prop] !== null) {
+        for (const s of globalUniqueStates.values()) {
+            if (s[prop] !== undefined && s[prop] !== null) {
                 delete s[prop];
                 globalUniqueStates.set(s.id, s);
             }
         }
 
         return globalUniqueStates;
-    }
-    
+    };
+
     calculateGlobalUniqueStates = (newUniqueStates, run) => {
-        const globalUniqueStates = this.state.globalUniqueStates;
+        const { globalUniqueStates } = this.state;
         for (const s of newUniqueStates) {
             if (globalUniqueStates.has(s.id)) {
                 const previous = globalUniqueStates.get(s.id);
                 previous.seenIn = [...previous.seenIn, run];
                 globalUniqueStates.set(s.id, Object.assign(previous, s));
-            }
-            else {
+            } else {
                 s.seenIn = [run];
                 globalUniqueStates.set(s.id, s);
             }
         }
         return globalUniqueStates;
-    }
+    };
 
     updateRun = (run, attribute, value) => {
-        let runs = { ...this.state.runs };
+        const runs = { ...this.state.runs };
         runs[run][attribute] = value;
         this.setState(runs);
     };
@@ -300,17 +303,19 @@ class App extends React.Component {
     simplifySet = (run, threshold) => {
         const new_traj = this.state.trajectories[run];
         new_traj.simplifySet(threshold);
-        this.setState({ trajectories: {...this.state.trajectories, [run]: new_traj }});
+        this.setState({
+            trajectories: { ...this.state.trajectories, [run]: new_traj },
+        });
     };
 
     toggleDrawer = () => {
         this.setState({ drawerOpen: !this.state.drawerOpen });
-    }
+    };
 
     addFilter = (state) => {
-        const runs = this.state.runs;
+        const { runs } = this.state;
         const run = runs[state.run];
-        const filters = run["filters"];
+        const { filters } = run;
 
         // get us the ids of all the states in our simplified sequence
         const stateIds = this.state.trajectories[state.run].uniqueStates;
@@ -323,12 +328,12 @@ class App extends React.Component {
 
         run.filters = filters;
         runs[state.run] = run;
-        this.setState({ runs: runs });
+        this.setState({ runs });
     };
 
     propagateChange = (filter) => {
-        let runs = { ...this.state.runs };
-        let this_filter = runs[filter.run]["filters"][filter.id];
+        const runs = { ...this.state.runs };
+        const this_filter = runs[filter.run].filters[filter.id];
 
         if (filter.options) {
             this_filter.options = filter.options;
@@ -338,95 +343,100 @@ class App extends React.Component {
 
         this_filter.enabled = filter.enabled;
 
-        runs[filter.run]["filters"][filter.id] = this_filter;
-        this.setState({ runs: runs });
+        runs[filter.run].filters[filter.id] = this_filter;
+        this.setState({ runs });
     };
-
 
     render() {
         return (
-            <Box sx={{display:'flex', flexDirection: 'column'}}>
+            <Box sx={{ display: 'flex', flexDirection: 'column' }}>
                 <AppBar position="static">
                     <Toolbar>
-                        <Typography
-                            sx={{ flexGrow: 1 }}
-                            variant="h6">Trajectory Visualization</Typography>
+                        <Typography sx={{ flexGrow: 1 }} variant="h6">
+                            Trajectory Visualization
+                        </Typography>
                         <Button
                             color="inherit"
                             ref={this.runListButton}
-                            onClick={
-                                () => {
-                                    this.setState({ showRunList: !this.state.showRunList });
-                                }
-                            }
-                        >Manage trajectories</Button>
-                        {Object.keys(this.state.trajectories).length > 0 &&
+                            onClick={() => {
+                                this.setState({
+                                    showRunList: !this.state.showRunList,
+                                });
+                            }}
+                        >
+                            Manage trajectories
+                        </Button>
+                        {Object.keys(this.state.trajectories).length > 0 && (
                             <Button
                                 color="inherit"
                                 onClick={() => {
                                     this.toggleDrawer();
-                                }}>
+                                }}
+                            >
                                 <MenuIcon />
-                            </Button>}
+                            </Button>
+                        )}
                     </Toolbar>
                 </AppBar>
 
                 <VisArea
-                    sx={{display:'flex', alignItems:'stretch', flex: 1}}
+                    sx={{ display: 'flex', alignItems: 'stretch', flex: 1 }}
                     trajectories={this.state.trajectories}
                     globalUniqueStates={this.state.globalUniqueStates}
                     runs={this.state.runs}
                     properties={this.state.properties}
                 />
 
-               {Object.keys(this.state.trajectories).length > 0 && <ControlDrawer
-                    trajectories={this.state.trajectories}
-                    runs={this.state.runs}
-                    updateRun={this.updateRun}
-                    recalculateClustering={this.recalculate_clustering}
-                    simplifySet={this.simplifySet}
-                    drawerOpen={this.state.drawerOpen}
-                    toggleDrawer={this.toggleDrawer}
-                    addFilter={this.addFilter}
-                    propagateChange={this.propagateChange}
-                    properties={this.state.properties}
-                    setProperties={this.setProperties}
-                                                                   />}
+                {Object.keys(this.state.trajectories).length > 0 && (
+                    <ControlDrawer
+                        trajectories={this.state.trajectories}
+                        runs={this.state.runs}
+                        updateRun={this.updateRun}
+                        recalculateClustering={this.recalculate_clustering}
+                        simplifySet={this.simplifySet}
+                        drawerOpen={this.state.drawerOpen}
+                        toggleDrawer={this.toggleDrawer}
+                        addFilter={this.addFilter}
+                        propagateChange={this.propagateChange}
+                        properties={this.state.properties}
+                        setProperties={this.setProperties}
+                    />
+                )}
 
-                 <AjaxMenu
+                <AjaxMenu
                     anchorEl={this.runListButton.current}
                     api_call="/api/get_run_list"
-                    open={this.state.showRunList}                    
+                    open={this.state.showRunList}
                     clicked={Object.keys(this.state.trajectories)}
-                    handleClose={() => { this.setState({ showRunList: !this.state.showRunList, anchorEl: null }) }}
-                    click={(e, v) => {
-                        this.setState({ showRunList: !this.state.showRunList },
-                            () => {
-                                if (e.target.checked) {
-                                    this.selectRun(v);
-                                } else {
-                                    this.removeRun(v);
-                                }
-                            });
+                    handleClose={() => {
+                        this.setState({
+                            showRunList: !this.state.showRunList,
+                            anchorEl: null,
+                        });
                     }}
-                 />
+                    click={(e, v) => {
+                        this.setState({ showRunList: !this.state.showRunList }, () => {
+                            if (e.target.checked) {
+                                this.selectRun(v);
+                            } else {
+                                this.removeRun(v);
+                            }
+                        });
+                    }}
+                />
 
-                {this.state.currentModal === RUN_MODAL
-                    && (
-                        <LoadRunModal
-                            run={this.state.run}
-                            runFunc={this.load_trajectory}
-                            isOpen={this.state.currentModal === RUN_MODAL}
-                            closeFunc={() => this.toggleModal(RUN_MODAL)}
-                            onRequestClose={() => this.toggleModal(RUN_MODAL)}
-                        />
-                    )}
+                {this.state.currentModal === RUN_MODAL && (
+                    <LoadRunModal
+                        run={this.state.run}
+                        runFunc={this.load_trajectory}
+                        isOpen={this.state.currentModal === RUN_MODAL}
+                        closeFunc={() => this.toggleModal(RUN_MODAL)}
+                        onRequestClose={() => this.toggleModal(RUN_MODAL)}
+                    />
+                )}
 
                 {this.state.isLoading && (
-                    <LoadingModal
-                        open={this.state.isLoading}
-                        title={this.state.loadingMessage}
-                    />
+                    <LoadingModal open={this.state.isLoading} title={this.state.loadingMessage} />
                 )}
             </Box>
         );
@@ -439,6 +449,6 @@ class App extends React.Component {
                     Press Z to toggle the zoom brush. Double click
                     to reset zoom. Press and hold SHIFT to select
                     multiple paths. Right click to open a context menu.
-                  </p>*/
+                  </p> */
 
 export default withSnackbar(App);

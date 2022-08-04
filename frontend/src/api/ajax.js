@@ -1,5 +1,5 @@
-import Trajectory from "./trajectory";
 import axios from 'axios';
+import Trajectory from './trajectory';
 
 /**
  * Ajax query to the backend to retrieve the sequence for a trajectory, given
@@ -10,13 +10,13 @@ import axios from 'axios';
 export function api_loadSequence(run, properties) {
     return new Promise((resolve, reject) => {
         axios
-            .get("/api/load_sequence", {
+            .get('/api/load_sequence', {
                 params: {
-                    run: run,
+                    run,
                     properties: properties.toString(),
                 },
             })
-            .then((response) => {                        
+            .then((response) => {
                 return resolve(response.data);
             })
             .catch((e) => {
@@ -37,41 +37,37 @@ export function api_loadSequence(run, properties) {
 export function api_loadPCCA(run, clusters, optimal, m_min, m_max, trajectory) {
     return new Promise((resolve, reject) => {
         axios
-            .get("/api/pcca", {
+            .get('/api/pcca', {
                 params: {
-                    run: run,
-                    clusters: clusters,
-                    optimal: optimal,
-                    m_min: m_min,
-                    m_max: m_max,
+                    run,
+                    clusters,
+                    optimal,
+                    m_min,
+                    m_max,
                 },
             })
-            .then((response) => {                
+            .then((response) => {
                 if (optimal === 1) {
-                    var new_traj =
-                        trajectory === undefined
-                            ? new Trajectory()
-                            : trajectory;
-                    var clustered_data = response.data;
+                    const new_traj = trajectory === undefined ? new Trajectory() : trajectory;
+                    const clustered_data = response.data;
 
-                    new_traj.optimal_cluster_value =
-                        clustered_data.optimal_value;
+                    new_traj.optimal_cluster_value = clustered_data.optimal_value;
                     new_traj.current_clustering = clustered_data.optimal_value;
-                    new_traj.feasible_clusters =
-                        clustered_data.feasible_clusters;                    
+                    new_traj.feasible_clusters = clustered_data.feasible_clusters;
 
                     for (const id of Object.keys(clustered_data.occurrence_matrix)) {
                         // need to cast keys to int, fix this in back-end
-                        const entries = Object.entries(clustered_data.occurrence_matrix[parseInt(id)]).map(([key, value]) => [parseInt(key), value]);
+                        const entries = Object.entries(
+                            clustered_data.occurrence_matrix[parseInt(id)]
+                        ).map(([key, value]) => [parseInt(key), value]);
 
-                        const abTransitionProb = new Map(entries);                        
+                        const abTransitionProb = new Map(entries);
                         new_traj.occurrenceMap.set(parseInt(id), abTransitionProb);
                     }
-                    
+
                     for (const idx of new_traj.feasible_clusters) {
                         new_traj.clusterings[idx] = clustered_data.sets[idx];
-                        new_traj.fuzzy_memberships[idx] =
-                            clustered_data.fuzzy_memberships[idx];
+                        new_traj.fuzzy_memberships[idx] = clustered_data.fuzzy_memberships[idx];
                     }
                     resolve(new_traj);
                 } else {
@@ -83,10 +79,7 @@ export function api_loadPCCA(run, clusters, optimal, m_min, m_max, trajectory) {
                         traj.fuzzy_memberships,
                         trajectory.fuzzy_memberships
                     );
-                    const clusterings = Object.assign(
-                        traj.sets,
-                        trajectory.clusterings
-                    );
+                    const clusterings = Object.assign(traj.sets, trajectory.clusterings);
                     trajectory.current_clustering = parseInt(clusters);
                     trajectory.fuzzy_memberships = fuzzy_memberships;
                     trajectory.clusterings = clusterings;
@@ -106,23 +99,18 @@ export function api_loadPCCA(run, clusters, optimal, m_min, m_max, trajectory) {
  * @param {array} state_attributes - Array of string with state attributes to be compared in similarity calculation
  * @return {number} similarity score
  */
-export function api_calculate_path_similarity(
-    e1,
-    e2,
-    state_attributes,
-    atom_attributes
-) {
+export function api_calculate_path_similarity(e1, e2, state_attributes, atom_attributes) {
     return new Promise(function (resolve, reject) {
         axios
             .post(
-                "/api/calculate_path_similarity",
+                '/api/calculate_path_similarity',
                 JSON.stringify({
                     p1: JSON.parse(e1),
                     p2: JSON.parse(e2),
-                    atom_attributes: atom_attributes,
-                    state_attributes: state_attributes,
+                    atom_attributes,
+                    state_attributes,
                 }),
-                { headers: { "Content-Type": "application/json" } }
+                { headers: { 'Content-Type': 'application/json' } }
             )
             .then((response) => {
                 resolve(response.data);
@@ -133,47 +121,46 @@ export function api_calculate_path_similarity(
     });
 }
 
-
-//TODO: add comment
+// TODO: add comment
 export function api_performKSTest(rvs, cdf, property) {
     return new Promise(function (resolve, reject) {
-
-        let processedCdf = null;        
+        let processedCdf = null;
         try {
-            processedCdf = JSON.parse(cdf);            
-        } catch(e) {
+            processedCdf = JSON.parse(cdf);
+        } catch (e) {
             processedCdf = cdf;
-        }        
-        
-        axios.post("/api/perform_KS_Test",
-                   JSON.stringify({
-                       rvs: JSON.parse(rvs),
-                       cdf: processedCdf,
-                       property: property                       
-                   }),
-                   {headers: { "Content-Type": "application/json"} }
-                  ).then((response) => {
-                      resolve(response.data);
-                  }).catch((e) => {
-                      reject(e);
-                  });
+        }
+
+        axios
+            .post(
+                '/api/perform_KS_Test',
+                JSON.stringify({
+                    rvs: JSON.parse(rvs),
+                    cdf: processedCdf,
+                    property,
+                }),
+                { headers: { 'Content-Type': 'application/json' } }
+            )
+            .then((response) => {
+                resolve(response.data);
+            })
+            .catch((e) => {
+                reject(e);
+            });
     });
 }
 
-
-
-//TODO: add comment
+// TODO: add comment
 export function api_load_metadata(run, trajectory) {
     return new Promise(function (resolve, reject) {
         axios
-            .get("/api/get_metadata", { params: { run: run } })
+            .get('/api/get_metadata', { params: { run } })
             .then((response) => {
                 if (trajectory === undefined) {
                     resolve(response.data);
                 }
                 trajectory.raw = response.data.raw;
-                trajectory.LAMMPSBootstrapScript =
-                    response.data.LAMMPSBootstrapScript;
+                trajectory.LAMMPSBootstrapScript = response.data.LAMMPSBootstrapScript;
                 return resolve(trajectory);
             })
             .catch((e) => {
@@ -185,59 +172,83 @@ export function api_load_metadata(run, trajectory) {
 export function onMessageHandler(onStart, onProgress, onComplete) {
     return (message) => {
         const data = JSON.parse(message.data);
-        if(data.type == 'TASK_COMPLETE') {
+        if (data.type == 'TASK_COMPLETE') {
             onComplete(data);
-        } else if(data.type == 'TASK_START') {
+        } else if (data.type == 'TASK_START') {
             onStart(data);
         } else {
             onProgress(data);
         }
-    }
+    };
 }
 
 export function api_load_property(property) {
-    return new Promise(function(resolve, reject) {
-        axios.get("/api/load_property", { params: {prop: property} })
+    return new Promise(function (resolve, reject) {
+        axios
+            .get('/api/load_property', { params: { prop: property } })
             .then((response) => {
                 return resolve(response.data.propertyList);
-            }).catch((e) => {
+            })
+            .catch((e) => {
                 reject(e);
             });
     });
 }
 
-//TODO: add comment
-export function api_calculate_NEB(run, start, end, interpolate, maxSteps, fmax,saveResults) {
+// TODO: add comment
+export function api_calculate_NEB(run, start, end, interpolate, maxSteps, fmax, saveResults) {
     return new Promise(function (resolve, reject) {
-        axios.get("/api/calculate_neb_on_path", { params: { run: run, start: start, end: end, interpolate: interpolate, maxSteps: maxSteps, fmax: fmax, saveResults:saveResults }})
+        axios
+            .get('/api/calculate_neb_on_path', {
+                params: {
+                    run,
+                    start,
+                    end,
+                    interpolate,
+                    maxSteps,
+                    fmax,
+                    saveResults,
+                },
+            })
             .then((response) => {
-                //TODO: can add saddlepoint and other calculations here
+                // TODO: can add saddlepoint and other calculations here
                 resolve(response.data);
-            }).catch((e) => {                
+            })
+            .catch((e) => {
                 reject(e);
             });
     });
 }
 
 export function api_calculate_idToTimestep(run, trajectory) {
-    return new Promise(function(resolve, reject) {
-        axios.get("/api/idToTimestep", { params: { run: run}}).then((response) => {
-            const idToTimestep = new Map(response.data.map((state) => { return [state.id, state.timesteps]}));            
-            trajectory.idToTimestep = idToTimestep;
-            resolve(trajectory);
-        }).catch((e) => {
-            reject(e);
-        });
+    return new Promise(function (resolve, reject) {
+        axios
+            .get('/api/idToTimestep', { params: { run } })
+            .then((response) => {
+                const idToTimestep = new Map(
+                    response.data.map((state) => {
+                        return [state.id, state.timesteps];
+                    })
+                );
+                trajectory.idToTimestep = idToTimestep;
+                resolve(trajectory);
+            })
+            .catch((e) => {
+                reject(e);
+            });
     });
 }
 
-//TODO: add comment
+// TODO: add comment
 export function api_generate_ovito_image(number) {
     return new Promise(function (resolve, reject) {
-        axios.get("/api/generate_ovito_image", {params: {'number': number}}).then((response) => {
-            resolve(response.data);
-        }).catch((e) => {
-            reject(e);
-        });
+        axios
+            .get('/api/generate_ovito_image', { params: { number } })
+            .then((response) => {
+                resolve(response.data);
+            })
+            .catch((e) => {
+                reject(e);
+            });
     });
 }

@@ -1,5 +1,5 @@
 import React from 'react';
-import { getMinProperty, getMaxProperty } from "./myutils";
+import { getMinProperty, getMaxProperty } from './myutils';
 
 import {
     filter_min_opacity,
@@ -10,16 +10,17 @@ import {
     filter_transitions,
     filter_relationship,
     filter_chunks,
-} from "./filters";
+} from './filters';
 
-
-const RANGE_SLIDER = "range";
-const SLIDER = "slider";
-const TOGGLE = "toggle";
+const RANGE_SLIDER = 'range';
+const SLIDER = 'slider';
+const TOGGLE = 'toggle';
 
 class Filter {
     enabled = false;
+
     func;
+
     enabledFor = ['sequence', 'graph'];
 }
 
@@ -28,33 +29,32 @@ class FilterBuilder {
 
     buildClusteringDifference() {
         this.filter.func = filter_clustering_difference;
-        this.filter.checkBoxLabel = "Show clustering difference";
-        this.filter.id = `clustering_difference`;
+        this.filter.checkBoxLabel = 'Show clustering difference';
+        this.filter.id = 'clustering_difference';
         this.filter.type = TOGGLE;
         this.filter.group = 'g';
-        this.filter.className = ["strongly_unstable", "moderately_unstable", "stable"];
+        this.filter.className = ['strongly_unstable', 'moderately_unstable', 'stable'];
 
         return this.getFilter();
     }
 
     buildHideChunks() {
         this.filter.func = filter_chunks;
-        this.filter.checkBoxLabel = "Hide chunks";
+        this.filter.checkBoxLabel = 'Hide chunks';
         this.filter.id = 'chunks';
         this.filter.type = TOGGLE;
         this.filter.group = 'c';
-        this.filter.className = ['chunks']
+        this.filter.className = ['chunks'];
 
         return this.getFilter();
     }
 
-    buildTransitions() {       
-
+    buildTransitions() {
         this.filter.func = filter_transitions;
-        this.filter.checkBoxLabel = "Filter transitions from dominant state";
+        this.filter.checkBoxLabel = 'Filter transitions from dominant state';
         this.filter.extents = [1, 100];
-        this.filter.options = { val: 10, selectVal: "per" };
-        this.filter.id = `transitions`;
+        this.filter.options = { val: 10, selectVal: 'per' };
+        this.filter.id = 'transitions';
         this.filter.children = (actions) => (
             <select
                 onChange={(e) => {
@@ -74,51 +74,50 @@ class FilterBuilder {
         return this.getFilter();
     }
 
-    buildFuzzyMemberships() {        
+    buildFuzzyMemberships() {
         this.filter.func = filter_fuzzy_membership;
-        this.filter.checkBoxLabel = "Filter fuzzy memberships";
-        this.filter.id = `fuzzy_membership`;
+        this.filter.checkBoxLabel = 'Filter fuzzy memberships';
+        this.filter.id = 'fuzzy_membership';
         this.filter.type = TOGGLE;
         this.filter.group = 'g';
-        this.filter.className = ['fuzzy_membership'];  
+        this.filter.className = ['fuzzy_membership'];
 
         return this.getFilter();
     }
 
     buildMinFilter(attribute, sequence) {
         this.filter.func = filter_min_opacity;
-        this.filter.sliderLabel = "At least";
+        this.filter.sliderLabel = 'At least';
         this.filter.type = SLIDER;
         this.filter.options = {
             val: getMinProperty(attribute, sequence),
             property: attribute,
         };
 
-        this.buildStateFilterLabel(SLIDER, attribute, "min");
+        this.buildStateFilterLabel(SLIDER, attribute, 'min');
     }
 
     buildMaxFilter(attribute, sequence) {
         this.filter.func = filter_max_opacity;
-        this.filter.sliderLabel = "At most";
+        this.filter.sliderLabel = 'At most';
         this.filter.type = SLIDER;
         this.filter.options = {
-            val: getMinProperty(attribute,sequence),
-            property: attribute
+            val: getMinProperty(attribute, sequence),
+            property: attribute,
         };
-        
-        this.buildStateFilterLabel(SLIDER, attribute, "max");
+
+        this.buildStateFilterLabel(SLIDER, attribute, 'max');
     }
 
     buildRangeFilter(attribute, sequence) {
         this.filter.func = filter_range_opacity;
-        this.filter.sliderLabel = "Between";
+        this.filter.sliderLabel = 'Between';
         this.filter.type = RANGE_SLIDER;
         this.filter.options = {
-            val: [getMinProperty(attribute, sequence),
-                  getMaxProperty(attribute, sequence)],
-            property: attribute
+            val: [getMinProperty(attribute, sequence), getMaxProperty(attribute, sequence)],
+            property: attribute,
         };
-        this.buildStateFilterLabel(RANGE_SLIDER, attribute, "range");
+        this.buildStateFilterLabel(RANGE_SLIDER, attribute, 'range');
     }
 
     buildStateFilterLabel(type, attribute, funcDescription) {
@@ -131,25 +130,24 @@ class FilterBuilder {
         this.filter.type = TOGGLE;
         this.filter.val = false;
 
-        this.filter.id = `${attribute}_${relation_attribute}`
-        this.filter.checkBoxLabel = `Find common ${relation_attribute} with ${attribute}`
-
+        this.filter.id = `${attribute}_${relation_attribute}`;
+        this.filter.checkBoxLabel = `Find common ${relation_attribute} with ${attribute}`;
     }
 
     buildCustomFilter(type, attribute, sequence) {
-        switch(type) {
-        case "MIN":
-            this.buildMinFilter(attribute, sequence);
-            break;
-        case "MAX":
-            this.buildMaxFilter(attribute, sequence);
-            break;
-        case "RANGE":
-            this.buildRangeFilter(attribute, sequence);
-            break;
-        case "RELATION":
-            this.buildRelationFilter();
-            break;
+        switch (type) {
+            case 'MIN':
+                this.buildMinFilter(attribute, sequence);
+                break;
+            case 'MAX':
+                this.buildMaxFilter(attribute, sequence);
+                break;
+            case 'RANGE':
+                this.buildRangeFilter(attribute, sequence);
+                break;
+            case 'RELATION':
+                this.buildRelationFilter();
+                break;
         }
 
         this.filter.extents = [
@@ -159,16 +157,16 @@ class FilterBuilder {
 
         this.filter.className = [type];
         this.filter.group = 'g';
-        
+
         return this.getFilter();
     }
-       
+
     reset() {
-        this.filter = new Filter();        
+        this.filter = new Filter();
     }
-       
+
     getFilter() {
-        const result = {...this.filter};
+        const result = { ...this.filter };
         this.reset();
         return result;
     }

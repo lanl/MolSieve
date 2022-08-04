@@ -2,6 +2,7 @@ import {React, forwardRef} from 'react';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Box';
 
+// onClick - fn that wants the array + id of the child to remove 
 const RemovableBox = forwardRef(function RemovableBox({children, childID, deleteChild, childType, onClick}, ref) {
     return (<Box
                 onClick={onClick}
