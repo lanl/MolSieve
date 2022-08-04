@@ -1,0 +1,65 @@
+const CHUNK = 0;
+export default class Chunk {
+    timestep;
+
+    last;
+
+    firstID; // id for first state in chunk
+
+    id; // id for chunk
+
+    important;
+
+    cluster;
+
+    childSize;
+
+    children;
+
+    dataType = CHUNK;
+
+    constructor(timestep, last, firstID, id, important, cluster) {
+        this.timestep = timestep;
+        this.last = last;
+        this.firstID = firstID;
+        this.id = id;
+        this.important = important;
+        this.cluster = cluster;
+    }
+
+    static withParent(timestep, last, firstID, id, important, parentID) {
+        const newChunk = new Chunk(timestep, last, firstID, id, important, undefined, parentID);
+        newChunk.parentID = parentID;
+        return newChunk;
+    }
+
+    static initEmpty() {
+        return new Chunk(null, null, null, null, null, null, null);
+    }
+
+    get clusterIdentifier() {
+        return this.firstID;
+    }
+
+    get size() {
+        return this.last - this.timestep;
+    }
+
+    // returns an array of the chunk's children
+    getChildren() {
+        if (this.childSize) {
+            return this.children;
+        }
+
+        return [this.timestep, this.last];
+    }
+
+    // returns an array of the underlying timestep ids within the chunk, ordered temporally
+    get timesteps() {
+        const timesteps = [];
+        for (let i = this.timestep; i <= this.last; i++) {
+            timesteps.push(i);
+        }
+        return timesteps;
+    }
+}
