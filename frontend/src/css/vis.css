@@ -74,6 +74,10 @@
     stroke: black;
 }
 
+.ribbon:hover {
+  stroke: black;
+}
+
 .arrowed {    
     marker-end: url(#arrow);
 }
