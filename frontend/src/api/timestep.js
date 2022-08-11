@@ -19,18 +19,21 @@ const scheme = [
 export default class Timestep {
     timestep;
 
-    id; // id used for rendering
+    id; // id that corresponds to a specific state object
 
-    stateID; // id that corresponds to a specific state object
-
-    size = 10;
+    size = 5;
 
     dataType = TIMESTEP;
 
-    constructor(timestep, id, stateID) {
+    constructor(timestep, id) {
         this.timestep = timestep;
         this.id = id;
-        this.stateID = stateID;
+    }
+
+    static withParent(timestep, id, parentID) {
+        const t = new Timestep(timestep, id);
+        t.parentID = parentID;
+        return t;
     }
 
     get individualColor() {
@@ -38,6 +41,6 @@ export default class Timestep {
     }
 
     get clusterIdentifier() {
-        return this.stateID;
+        return this.id;
     }
 }

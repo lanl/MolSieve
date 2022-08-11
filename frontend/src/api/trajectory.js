@@ -48,14 +48,18 @@ class Trajectory {
         const uniqueStates = [...new Set(this.sequence)];
 
         for (let i = 0; i < uniqueStates.length; i++) {
-            for (let j = 0; j < this.clusterings[this.current_clustering].length; j++) {
-                if (this.clusterings[this.current_clustering][j].includes(uniqueStates[i])) {
+            for (let j = 0; j < this.currentClusterArray.length; j++) {
+                if (this.currentClusterArray[j].includes(uniqueStates[i])) {
                     currentClusteringArray[uniqueStates[i]] = j;
                 }
             }
         }
         this.idToCluster = currentClusteringArray;
         this.uniqueStates = uniqueStates;
+    }
+
+    get currentClusterArray() {
+        return this.clusterings[this.current_clustering];
     }
 
     /** Sets the metadata for the run in the this object
@@ -79,7 +83,7 @@ class Trajectory {
     splitChunks(chunk, split, sizeThreshold, parentID, chunks) {
         const splitChunks = [];
         let currID = parentID;
-        const chunkSize = parseInt((chunk.last - chunk.timestep) / split);
+        const chunkSize = parseInt((chunk.last - chunk.timestep) / split, 10);
         for (let s = 0; s < split; s++) {
             const first = chunk.timestep + s * chunkSize;
             const last = s === split - 1 ? chunk.last : first + chunkSize - 1;
@@ -117,7 +121,7 @@ class Trajectory {
         const epsilon = 0.0001;
         const split = 4;
         let currID = 0;
-        let lastChunk = { timestep: null, last: null, id: null };
+        let lastChunk = Chunk.initEmpty(); // { timestep: null, last: null, id: null };
         for (let timestep = 0; timestep < this.sequence.length; timestep += 1) {
             const id = this.sequence[timestep];
             let isCurrImportant = true;
@@ -138,7 +142,7 @@ class Trajectory {
             ) {
                 lastChunk.last = timestep;
             } else {
-                if (lastChunk.timestep !== null && lastChunk.size > 50) {
+                if (lastChunk.timestep !== null) {
                     const parentID = currID--;
                     if (lastChunk.important) {
                         const { children, childSize, newID } = this.splitChunks(
@@ -170,7 +174,6 @@ class Trajectory {
             chunks.set(currID, lastChunk);
         }
 
-        console.log(chunks);
         this.simplifiedSequence = {
             chunks,
         };
@@ -195,8 +198,8 @@ class Trajectory {
 
         // check if the array contains indices for chunks or states
         if (childArray.every((v) => v > 0)) {
-            for (let i = childArray[0]; i <= childArray[1]; i++) {
-                newList.push(new Timestep(i, i, this.sequence[i]));
+            for (let i = childArray[0]; i <= childArray.at(-1); i++) {
+                newList.push(new Timestep(i, this.sequence[i]));
             }
         } else {
             for (const c of childArray) {
@@ -246,6 +249,9 @@ class Trajectory {
         const iChunk = this.simplifiedSequence.chunks.get(i);
         const jChunk = this.simplifiedSequence.chunks.get(j);
 
+        if (!iChunk.important || !jChunk.important) {
+            return 0;
+        }
         const iSet = this.getChunkStates(iChunk);
         const jSet = this.getChunkStates(jChunk);
 

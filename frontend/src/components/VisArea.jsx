@@ -19,7 +19,7 @@ import { DataGrid } from "@mui/x-data-grid"; */
 import GraphVis from '../vis/GraphVis';
 import Scatterplot from '../vis/Scatterplot';
 import SelectionVis from '../vis/SelectionVis';
-// import TrajectoryChart from "../vis/TrajectoryChart";
+import TrajectoryChart from '../vis/TrajectoryChart';
 
 import SingleStateModal from '../modals/SingleStateModal';
 import LoadingModal from '../modals/LoadingModal';
@@ -281,7 +281,6 @@ class VisArea extends React.Component {
         const runs = Object.keys(this.props.runs);
         const trajs = Object.keys(this.props.trajectories);
         const safe = !!(runs.length === trajs.length && runs.length > 0 && trajs.length > 0);
-        console.log(this.state.NEBPlots);
         const NEBPlots = this.state.NEBPlots.map((plot, idx) => {
             return (
                 <RemovableBox
@@ -385,14 +384,26 @@ class VisArea extends React.Component {
                 {this.state.isLoading && (
                     <LoadingModal open={this.state.isLoading} title="Rendering..." />
                 )}
-
                 {safe && (
                     <Box sx={{ flexBasis: '35%' }}>
                         <Typography color="secondary" align="center" gutterBottom variant="h6">
                             Sequence View
                         </Typography>
                         <CircularSequence
-                            sx={{ height: '100%' }}
+                            sx={{ minHeight: '45%' }}
+                            trajectories={this.props.trajectories}
+                            globalUniqueStates={this.props.globalUniqueStates}
+                            runs={this.props.runs}
+                            loadingCallback={this.chartFinishedLoading}
+                            setStateHovered={this.setStateHoveredProp}
+                            setStateClicked={this.setStateClickedProp}
+                            stateHovered={this.state.stateHovered}
+                            setVisible={this.setVisible}
+                            setExtents={this.setExtentsProp}
+                            setSequenceExtent={this.setSequenceExtentProp}
+                            visibleExtent={this.state.subSequences[this.state.visibleExtent]}
+                        />
+                        <TrajectoryChart
                             trajectories={this.props.trajectories}
                             globalUniqueStates={this.props.globalUniqueStates}
                             runs={this.props.runs}
@@ -471,7 +482,6 @@ class VisArea extends React.Component {
                         {scatterplots}
                     </ScatterGrid>
                 )}
-
                 {this.state.currentModal === SINGLE_STATE_MODAL && (
                     <SingleStateModal
                         open={this.state.currentModal === SINGLE_STATE_MODAL}

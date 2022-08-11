@@ -51,10 +51,10 @@ export default class Chunk {
             return this.children;
         }
 
-        return [this.timestep, this.last];
+        return this.timesteps;
     }
 
-    // returns an array of the underlying timestep ids within the chunk, ordered temporally
+    // returns an array of the underlying timesteps within the chunk, ordered temporally
     get timesteps() {
         const timesteps = [];
         for (let i = this.timestep; i <= this.last; i++) {

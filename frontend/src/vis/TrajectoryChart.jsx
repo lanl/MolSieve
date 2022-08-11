@@ -6,6 +6,7 @@ import ListItemText from '@mui/material/ListItemText';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import Checkbox from '@mui/material/Checkbox';
 import Box from '@mui/material/Box';
+import Timestep from '../api/timestep';
 
 import useKeyUp from '../hooks/useKeyUp';
 import useKeyDown from '../hooks/useKeyDown';
@@ -33,6 +34,8 @@ let zoom = null;
 let individualSelectionMode = false;
 
 const visible = {};
+const kList = new Map();
+const childToParent = new Map();
 
 function ensureMinWidth(d, x_scale) {
     if (x_scale(d.last + 1) - x_scale(d.timestep) < 10) {
@@ -96,9 +99,8 @@ function TrajectoryChart({
         isHovered
     );
 
-    const renderChunks = (data, trajectory, trajectoryName, count, x_scale, y_scale) => {
-        const { colors } = trajectory;
-        const { idToCluster } = trajectory;
+    const renderChunks = (data, trajectoryName, count, xScale, yScale) => {
+        const trajectory = trajectories[trajectoryName];
 
         const nodes = d3
             .select(`#c_${trajectoryName}`)
@@ -108,13 +110,13 @@ function TrajectoryChart({
         nodes
             .enter()
             .append('rect')
-            .attr('x', (d) => x_scale(d.timestep))
+            .attr('x', (d) => xScale(d.timestep))
             .attr('y', (d) => {
                 const impOffset = d.important ? -5 : 0;
-                return y_scale(count) + impOffset;
+                return yScale(count) + impOffset;
             })
             .attr('width', function (d) {
-                return ensureMinWidth(d, x_scale);
+                return ensureMinWidth(d, xScale);
             })
             .attr('height', (d) => {
                 if (d.important) {
@@ -123,7 +125,7 @@ function TrajectoryChart({
                 return 25;
             })
             .attr('fill', (d) => {
-                return colors[idToCluster[d.firstID]];
+                return trajectory.colorByCluster(d);
             })
             .on('mouseover', function (_, d) {
                 onChunkMouseOver(this, d, trajectoryName);
@@ -140,8 +142,50 @@ function TrajectoryChart({
             .classed('importantChunk', (d) => d.important)
             .classed('unimportantChunk', (d) => !d.important)
             .classed('breakdown', (d) => d.parentID);
-
         nodes.exit().remove();
+    };
+
+    const renderStates = (data, trajectoryName, count, scaleX, scaleY) => {
+        const trajectory = trajectories[trajectoryName];
+
+        const newNodes = d3
+            .select(`#g_${trajectoryName}`)
+            .selectAll('rect')
+            .data(data, (d) => d.timestep);
+
+        newNodes
+            .enter()
+            .append('rect')
+            .attr('x', (d) => scaleX(d.timestep))
+            .attr('y', () => scaleY(count))
+            .attr('width', (d) => scaleX(d.timestep + 1) - scaleX(d.timestep))
+            .attr('height', 25)
+            .attr('fill', (d) => {
+                return trajectory.colorByCluster(d);
+            })
+            .on('click', function (_, d) {
+                if (individualSelectionMode) {
+                    d3.select(this).classed('currentSelection', true);
+                    setInternalExtents((prev) => [...prev, { name: trajectoryName, states: [d] }]);
+                } else {
+                    setStateClicked(globalUniqueStates.get(d.id));
+                }
+            })
+            .on('mouseover', function (_, d) {
+                onStateMouseOver(this, globalUniqueStates.get(d.id), trajectory, trajectoryName);
+                setStateHovered({
+                    caller: this,
+                    stateID: d.id,
+                    name: trajectoryName,
+                    timestep: d.timestep,
+                });
+            })
+            .on('mouseout', function () {
+                setStateHovered(null);
+            })
+            .classed('clickable', true);
+
+        newNodes.exit().remove();
     };
 
     const ref = useTrajectoryChartRender(
@@ -155,7 +199,7 @@ function TrajectoryChart({
                 svg.selectAll('*').remove();
             }
 
-            let count = 0;
+            let y = 0;
             let maxLength = -Number.MAX_SAFE_INTEGER;
 
             for (const trajectory of Object.values(trajectories)) {
@@ -185,18 +229,24 @@ function TrajectoryChart({
                 visible[name] = {
                     chunkList: Array.from(chunks.values()).filter((d) => d.parentID === undefined),
                     sequence: [],
-                    count,
+                    toAdd: new Set(),
+                    toRemove: new Set(),
+                    count: y,
                 };
 
                 const { chunkList } = visible[name];
-
                 importantGroup.append('g').attr('id', `g_${name}`).attr('name', `${name}`);
                 chunkGroup.append('g').attr('id', `c_${name}`).attr('name', `${name}`);
 
                 tickNames.push(name);
 
-                renderChunks(chunkList, trajectory, name, count, scaleX, scaleY);
-                count++;
+                renderChunks(chunkList, name, y, scaleX, scaleY);
+
+                for (const c of chunkList) {
+                    kList.set(c.id, 1);
+                }
+
+                y++;
             }
 
             let rescaledX = scaleX;
@@ -222,14 +272,7 @@ function TrajectoryChart({
                     const start = xz.domain()[0];
                     const end = xz.domain()[1];
 
-                    const breakThreshold = width * 0.25;
-                    const consolidateThreshold = width * 0.01;
-
-                    const graphVisible = {};
-                    for (const name of Object.keys(trajectories)) {
-                        graphVisible[name] = { chunkList: [], sequence: [] };
-                    }
-
+                    // select all chunks within the viewport
                     const onScreenChunks = chunkGroup
                         .selectAll('.importantChunk')
                         .filter(function (d) {
@@ -243,163 +286,113 @@ function TrajectoryChart({
                     const onScreenChunkData = onScreenChunks.nodes().map((chunk) => {
                         const data = d3.select(chunk).data()[0];
                         return {
-                            ...data,
-                            trajectoryName: chunk.parentNode.getAttribute('name'),
-                            width: chunk.getAttribute('width'),
+                            k: kList.get(data.id),
                             breakdown: d3.select(chunk).classed('breakdown'),
+                            trajectoryName: chunk.parentNode.getAttribute('name'),
+                            data,
                         };
                     });
 
-                    const added = new Set();
-                    for (const data of onScreenChunkData) {
-                        const { trajectoryName } = data;
-                        const { chunkList } = visible[trajectoryName];
-                        const trajectory = trajectories[trajectoryName];
-                        let newChunks = null;
-                        const { chunks } = trajectory.simplifiedSequence;
+                    /* this loop goes through each chunk and checks if its needs to be
+                     * a. consolidated
+                     * b. broken down
+                     * c. left alone
+                     * it generates a list of chunks to add / remove, and processes this list later
+                     */
 
-                        if (data.width > breakThreshold) {
-                            if (data.childSize) {
-                                // zoom in - break down chunk
-                                newChunks = chunkList.filter((d) => d.id !== data.id);
-                                for (const child of data.children) {
-                                    if (!added.has(child)) {
-                                        newChunks.push(chunks.get(child));
-                                        graphVisible[trajectoryName].chunkList.push(
-                                            chunks.get(child)
-                                        );
-                                        added.add(child);
-                                    }
-                                }
-                            } else {
-                                newChunks = chunkList.filter((d) => d.id !== data.id);
-                                const nodeData = visible[trajectoryName].sequence;
-                                for (let i = data.timestep; i <= data.last; i++) {
-                                    nodeData.push({ timestep: i, id: trajectory.sequence[i] });
-                                    graphVisible[trajectoryName].sequence.push({
-                                        timestep: i,
-                                        id: trajectory.sequence[i],
-                                    });
-                                }
-
-                                const newNodes = d3
-                                    .select(`#g_${trajectoryName}`)
-                                    .selectAll('rect')
-                                    .data(nodeData, (d) => d.id);
-
-                                newNodes
-                                    .enter()
-                                    .append('rect')
-                                    .attr('parentID', data.id)
-                                    .attr('x', (d) => scaleX(d.timestep))
-                                    .attr('y', () => scaleY(visible[trajectoryName].count))
-                                    .attr(
-                                        'width',
-                                        (d) => scaleX(d.timestep + 1) - scaleX(d.timestep)
-                                    )
-                                    .attr('height', 25)
-                                    .attr('fill', (d) => {
-                                        return trajectory.colors[trajectory.idToCluster[d.id]];
-                                    })
-                                    .on('click', function (_, d) {
-                                        if (individualSelectionMode) {
-                                            d3.select(this).classed('currentSelection', true);
-                                            setInternalExtents((prev) => [
-                                                ...prev,
-                                                { name: trajectoryName, states: [d] },
-                                            ]);
-                                        } else {
-                                            setStateClicked(globalUniqueStates.get(d.id));
-                                        }
-                                    })
-                                    .on('mouseover', function (_, d) {
-                                        onStateMouseOver(
-                                            this,
-                                            globalUniqueStates.get(d.id),
-                                            trajectory,
-                                            trajectoryName
-                                        );
-                                        setStateHovered({
-                                            caller: this,
-                                            stateID: d.id,
-                                            name: trajectoryName,
-                                            timestep: d.timestep,
-                                        });
-                                    })
-                                    .on('mouseout', function () {
-                                        setStateHovered(null);
-                                    })
-                                    .classed('clickable', true);
-
-                                newNodes.exit().remove();
-                                visible[trajectoryName].sequence = nodeData;
+                    for (const d of onScreenChunkData) {
+                        const { data, trajectoryName, breakdown, k } = d;
+                        const { toAdd, toRemove } = visible[trajectoryName];
+                        if (e.transform.k > k * 1.5) {
+                            // zoom in - break down chunk
+                            toRemove.add(data.id);
+                            // NOTE: individual states in this view are identified by timestep
+                            // NOT true for graph view
+                            for (const child of data.getChildren()) {
+                                toAdd.add(child);
+                                childToParent.set(child, data.id);
                             }
-                        } else if (data.breakdown && data.width < consolidateThreshold) {
-                            // zoom out - consolidate chunks into bigger chunk
-                            newChunks = chunkList.filter((d) => d.id !== data.id);
-                            const { chunks } = trajectory.simplifiedSequence;
-                            const { parentID } = data;
-
-                            if (!added.has(parentID)) {
-                                newChunks.push(chunks.get(parentID));
-                                graphVisible[trajectoryName].chunkList.push(chunks.get(parentID));
-                                added.add(parentID);
-                            }
-                        } else {
-                            newChunks = chunkList;
-                            graphVisible[trajectoryName].chunkList.push(data);
                         }
-                        visible[trajectoryName].chunkList = newChunks;
+                        if (breakdown && e.transform.k < k * 0.75) {
+                            // zoom out - consolidate chunks into bigger chunk
+                            toRemove.add(data.id);
+                            toAdd.add(data.parentID);
+                        }
                     }
 
-                    // const hideIndividualThreshold = width * 0.00000005;
-                    const onScreenNodes = importantGroup.selectAll('rect');
+                    // individual nodes -> chunk
 
-                    const onScreenNodeData = onScreenNodes.nodes().map((node) => {
-                        const data = d3.select(node).data()[0];
-                        return {
-                            ...data,
-                            width: node.getAttribute('width'),
-                            trajectoryName: node.parentNode.getAttribute('name'),
-                            parentID: parseInt(node.getAttribute('parentID')),
-                        };
-                    });
+                    const onScreenNodes = importantGroup.selectAll('rect');
+                    const onScreenNodeData = onScreenNodes
+                        .nodes()
+                        .map((node) => {
+                            const data = d3.select(node).data()[0];
+                            return {
+                                data,
+                                trajectoryName: node.parentNode.getAttribute('name'),
+                                k: kList.get(data.timestep),
+                                parentID: childToParent.get(data.timestep),
+                            };
+                        })
+                        .filter((d) => e.transform.k < d.k * 0.75);
 
                     // group by parentID
-
                     const nodeDataByParentID = d3.group(onScreenNodeData, (d) => d.parentID);
 
-                    // zoom out at 75% zoom level
-                    if (
-                        onScreenNodeData.length > 0 &&
-                        end - start > (scaleX.domain()[1] - rescaledX.domain()[0]) * 0.5
-                    ) {
+                    if (onScreenNodeData.length > 0) {
                         for (const [parentID, dataArray] of nodeDataByParentID.entries()) {
-                            const data = dataArray[0];
-                            const { trajectoryName } = data;
+                            const { trajectoryName } = dataArray[0];
+                            const { toAdd, toRemove } = visible[trajectoryName];
+                            toAdd.add(parentID);
+                            for (const d of dataArray) {
+                                toRemove.add(d.data.timestep);
+                            }
+                        }
+                    }
 
-                            const trajectory = trajectories[trajectoryName];
+                    for (const [name, trajectory] of Object.entries(trajectories)) {
+                        const { toAdd, toRemove, chunkList, sequence, count } = visible[name];
 
-                            const { chunks } = trajectory.simplifiedSequence;
+                        const { chunks } = trajectory.simplifiedSequence;
 
-                            visible[trajectoryName].chunkList.push(chunks.get(parentID));
-                            graphVisible[trajectoryName].chunkList.push(chunks.get(parentID));
+                        // filter the two sets down
+                        const added = [...toAdd];
+                        const removed = [...toRemove];
 
-                            const { sequence } = visible[trajectoryName];
+                        const newChunks = added.filter((d) => d < 0);
+                        const removedChunks = removed.filter((d) => d < 0);
 
-                            const newSequence = sequence.filter(
-                                (d) => !dataArray.map((b) => b.id).includes(d.id)
+                        const newTimesteps = added.filter((d) => d > 0);
+                        const removedTimesteps = removed.filter((d) => d > 0);
+
+                        for (const c of newChunks) {
+                            chunkList.push(chunks.get(c));
+                        }
+
+                        for (const t of newTimesteps) {
+                            sequence.push(
+                                Timestep.withParent(t, trajectory.sequence[t], childToParent.get(t))
                             );
-                            visible[trajectoryName].sequence = newSequence;
+                        }
 
-                            graphVisible[trajectoryName].sequence =
-                                visible[trajectoryName].sequence;
-                            onScreenNodes.remove();
+                        const newChunkList = chunkList.filter((d) => !removedChunks.includes(d.id));
+                        const newSequence = sequence.filter(
+                            (d) => !removedTimesteps.includes(d.timestep)
+                        );
+
+                        renderChunks(newChunkList, name, count, xz, scaleY);
+                        renderStates(newSequence, name, count, xz, scaleY);
+
+                        for (const id of toAdd) {
+                            if (!kList.has(id)) {
+                                kList.set(id, e.transform.k);
+                            }
                         }
-                    } else {
-                        for (const name of Object.keys(trajectories)) {
-                            graphVisible[name].sequence = visible[name].sequence;
-                        }
+
+                        toAdd.clear();
+                        toRemove.clear();
+                        visible[name].chunkList = newChunkList;
+                        visible[name].sequence = newSequence;
                     }
 
                     // geometric zoom for the rest
@@ -415,32 +408,11 @@ function TrajectoryChart({
                         .style('text-anchor', 'center')
                         .attr('transform', 'rotate(-15)');
 
-                    for (const [name, trajectory] of Object.entries(trajectories)) {
-                        graphVisible[name].chunkList = [
-                            ...new Map(
-                                graphVisible[name].chunkList.map((item) => [item.id, item])
-                            ).values(),
-                        ];
-                        // can remove duplicates based on timestep
-                        graphVisible[name].sequence = [
-                            ...new Map(
-                                graphVisible[name].sequence.map((item) => [item.timestep, item])
-                            ).values(),
-                        ];
-                        renderChunks(
-                            visible[name].chunkList,
-                            trajectory,
-                            name,
-                            visible[name].count,
-                            xz,
-                            scaleY
-                        );
-                    }
-
                     chunkGroup
                         .selectAll('rect')
                         .attr('x', (d) => xz(d.timestep))
                         .attr('width', (d) => ensureMinWidth(d, xz));
+
                     importantGroup
                         .selectAll('rect')
                         .attr('x', (d) => xz(d.timestep))
@@ -448,7 +420,7 @@ function TrajectoryChart({
 
                     rescaledX = xz;
                     setSequenceExtent([start, end]);
-                    setVisible(graphVisible);
+                    setVisible(visible);
                 });
 
             svg.call(zoom);
@@ -528,7 +500,7 @@ function TrajectoryChart({
                 d3.select(ref.current)
                     .selectAll('rect:not(.invisible)')
                     .filter(function (dp) {
-                        return dp.id !== stateHovered.stateID;
+                        return dp.id !== stateHovered.id;
                     })
                     .classed('highlightedInvisible', true);
 
