@@ -1,4 +1,4 @@
-import React from 'react';
+import { React, useEffect } from 'react';
 import * as d3 from 'd3';
 
 import Box from '@mui/material/Box';
@@ -19,7 +19,13 @@ let zoom = null;
 const CHUNK = 0;
 const TIMESTEP = 1;
 
-export default function CircularSequence({ trajectories, sx, globalUniqueStates }) {
+export default function CircularSequence({
+    trajectories,
+    sx,
+    globalUniqueStates,
+    setStateHovered,
+    stateHovered,
+}) {
     const { width, height, divRef } = useResize();
 
     const renderDonut = (visible, scaleR, trajectory, name, count) => {
@@ -62,10 +68,15 @@ export default function CircularSequence({ trajectories, sx, globalUniqueStates 
             .attr('fill', (d) => trajectory.colorByCluster(d.data))
             .on('mouseover', function (_, d) {
                 onChunkMouseOver(this, d.data, name);
-                // setStateHovered({ 'caller': this, 'stateID': d.id, 'name': trajectoryName, 'timestep': d.timestep });
+                setStateHovered({
+                    caller: this,
+                    stateID: d.data.id,
+                    name,
+                    timestep: d.data.timestep,
+                });
             })
             .on('mouseout', () => {
-                // setStateHovered(null);
+                setStateHovered(null);
             })
             .on('click', (_, d) => {
                 const newList = visible.filter((b) => d.data.id !== b.id);
@@ -100,8 +111,13 @@ export default function CircularSequence({ trajectories, sx, globalUniqueStates 
             )
             .on('mouseover', function (_, d) {
                 onStateMouseOver(this, globalUniqueStates.get(d.data.id), trajectory, name);
+                setStateHovered({ caller: this, stateID: d.id, name, timestep: d.timestep });
+            })
+            .on('mouseout', function () {
+                setStateHovered(null);
             })
             .attr('fill', (d) => d.data.individualColor)
+            .classed('arcs', true)
             .classed('clickable', true)
             .classed('state', true);
 
@@ -109,25 +125,21 @@ export default function CircularSequence({ trajectories, sx, globalUniqueStates 
         for (let i = 0; i < chunkArcs.length; i++) {
             const d = chunkArcs[i];
             const row = simMatrix[i];
-            //            const sc = simMatrix[i].length;
             const v = Math.max(...row);
             const j = row.indexOf(v);
             const dj = chunkArcs[j];
 
-            //            const sourceArea = d.endAngle - d.startAngle;
-            //            const targetArea = dj.endAngle - dj.startAngle;
-
-            //            d.hits = d.hits !== undefined ? d.hits + 1 : 1;
-            //            dj.hits = d.hits !== undefined ? dj.hits + 1 : 1;
             if (v > 0) {
                 const chord = {
                     source: {
                         startAngle: d.startAngle,
                         endAngle: d.endAngle, // startAngle + (sourceArea / 4) * d.hits,
+                        id: d.data.id,
                     },
                     target: {
                         startAngle: dj.startAngle,
                         endAngle: dj.endAngle, // startAngle + (targetArea / 4) * d.hits,
+                        id: dj.data.id,
                     },
                     value: v,
                 };
@@ -194,13 +206,6 @@ export default function CircularSequence({ trajectories, sx, globalUniqueStates 
                 count++;
             }
 
-            /* const bbox = container.node().getBBox();
-           const vx = bbox.x;
-           const vy = bbox.y;
-           const vw = bbox.width;
-           const vh = bbox.height;
-
-           const defaultView = `${vx} ${vy} ${vw} ${vh}`; */
             zoom = d3.zoom().on('zoom', (e) => {
                 container.attr('transform', e.transform);
             });
@@ -209,6 +214,34 @@ export default function CircularSequence({ trajectories, sx, globalUniqueStates 
         },
         [width, height, trajectories]
     );
+
+    useEffect(() => {
+        if (stateHovered) {
+            d3.select(ref.current)
+                .selectAll('.arcs')
+                .filter((d) => d.data.id === stateHovered.stateID)
+                .classed('highlightedState', true);
+
+            d3.select(ref.current)
+                .selectAll('.ribbon')
+                .filter(
+                    (d) =>
+                        d.target.id === stateHovered.stateID || d.source.id === stateHovered.stateID
+                )
+                .classed('highlightedState', true)
+                .attr('opacity', 1);
+
+            d3.select(ref.current).selectAll('.ribbon:not(.highlightedState').attr('opacity', 0);
+        } else {
+            d3.select(ref.current)
+                .selectAll('.ribbon')
+                .attr('opacity', (d) => d.value);
+
+            d3.select(ref.current)
+                .selectAll('.highlightedState')
+                .classed('highlightedState', false);
+        }
+    }, [stateHovered]);
 
     return (
         <Box ref={divRef} sx={sx}>

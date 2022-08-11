@@ -20,6 +20,7 @@
     "rules": {
       "no-restricted-syntax": ["error", "ForInStatement", "LabeledStatement", "WithStatement"],
       "no-plusplus": 0,
+      "react/no-array-index-key" : 0,
       "react/prop-types": "off"
     }
 }
