@@ -184,7 +184,6 @@ function GraphVis({
         const g = d3.select('#graph').select(`#g_${name}`);
         const c = d3.select('#graph').select(`#c_${name}`);
 
-        console.log(links, chunks, sSequence);
         const sequenceData = g.selectAll('circle').data(sSequence, (d) => d.id);
 
         sequenceData
@@ -649,7 +648,6 @@ function GraphVis({
             d3.select(ref.current)
                 .selectAll('.neighborInvisible')
                 .classed('neighborInvisible', false);
-
             const select = d3.select(ref.current).select(`#node_${stateID}`);
             select.classed('highlightedState', true);
             const node = select.node();
@@ -681,13 +679,13 @@ function GraphVis({
                 d3.select(ref.current)
                     .select(`#g_${name}`)
                     .selectAll('circle')
-                    .filter((d) => !occurrenceMap.get(stateID).has(d.id) && d.id != stateID)
+                    .filter((d) => !occurrenceMap.get(stateID).has(d.id) && d.id !== stateID)
                     .classed('neighborInvisible', true);
 
                 d3.select(ref.current)
                     .select(`#l_${name}`)
                     .selectAll('path')
-                    .filter((d) => d.source.id != stateID && d.target.id != stateID)
+                    .filter((d) => d.source.id !== stateID && d.target.id !== stateID)
                     .classed('neighborInvisible', true);
             }
         } else {

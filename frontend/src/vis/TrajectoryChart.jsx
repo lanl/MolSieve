@@ -193,7 +193,6 @@ function TrajectoryChart({
             if (height === undefined || width === undefined) {
                 return;
             }
-
             // clear so we don't draw over-top and cause insane lag
             if (!svg.empty()) {
                 svg.selectAll('*').remove();

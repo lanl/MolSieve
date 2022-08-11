@@ -45,8 +45,6 @@ class VisArea extends React.Component {
 
         this.state = {
             currentModal: null,
-            currentRun: null,
-            drawerOpen: false,
             isLoading: false,
             stateHovered: null,
             stateClicked: null,
@@ -63,16 +61,17 @@ class VisArea extends React.Component {
         };
     }
 
-    addNEBPlot = (energies, drawSequence, trajectoryName) => {
-        this.setState({
-            NEBPlots: [...this.state.NEBPlots, { energies, drawSequence, trajectoryName }],
-        });
-    };
+    componentDidMount() {
+        document.addEventListener('keydown', this.changeTimestep);
+    }
 
     setExtents = (extent) => {
         const modEx = [];
+        const { trajectories } = this.props;
+        const { subSequences } = this.state;
+
         for (const ex of extent) {
-            const ids = this.props.trajectories[ex.name].sequence.slice(ex.begin, ex.end + 1);
+            const ids = trajectories[ex.name].sequence.slice(ex.begin, ex.end + 1);
             let uniqueStates = null;
             if (!ex.states) {
                 uniqueStates = [...new Set(ids)].map((state) => {
@@ -84,16 +83,18 @@ class VisArea extends React.Component {
             const newEx = { ...ex, states: uniqueStates };
             modEx.push(newEx);
         }
-        const count = Object.keys(this.state.subSequences).length;
-        const extents_id = `ss_${count}`;
+        const count = Object.keys(subSequences).length;
+        const extentsID = `ss_${count}`;
         this.setState({
-            subSequences: { ...this.state.subSequences, [extents_id]: modEx },
-            visibleExtent: extents_id,
+            subSequences: { ...subSequences, [extentsID]: modEx },
+            visibleExtent: extentsID,
         });
     };
 
     setExtentsUniqueStates = (extent) => {
         const modEx = [];
+        const { subSequences } = this.state;
+
         for (const ex of extent) {
             const ids = ex.states.map((state) => {
                 return { id: state.id };
@@ -103,32 +104,18 @@ class VisArea extends React.Component {
             modEx.push(newEx);
         }
 
-        const count = Object.keys(this.state.subSequences).length;
-        const extents_id = `ss_${count}`;
+        const count = Object.keys(subSequences).length;
+        const extentsID = `ss_${count}`;
 
         this.setState({
-            subSequences: { ...this.state.subSequences, [extents_id]: modEx },
-            visibleExtent: extents_id,
+            subSequences: { ...subSequences, [extentsID]: modEx },
+            visibleExtent: extentsID,
         });
     };
 
     setVisible = (visible) => {
         this.setState({ visible: { ...visible } });
         // could set up visible here instead of doing it seperately for each vis...
-    };
-
-    toggleModal = (key) => {
-        if (this.state.currentModal) {
-            this.setState({
-                currentModal: null,
-            });
-            return;
-        }
-        this.setState({ currentModal: key });
-    };
-
-    chartFinishedLoading = () => {
-        this.setState({ isLoading: false });
     };
 
     setStateHovered = (stateInfo) => {
@@ -140,130 +127,10 @@ class VisArea extends React.Component {
         this.setState({ sequenceExtent: extent });
     };
 
-    componentDidMount() {
-        document.addEventListener('keydown', this.changeTimestep);
-    }
-
-    addKSTestResult = (rvs, cdf, ksProperty, statistic, pvalue, extentsID) => {
-        const results = {
-            rvs,
-            cdf,
-            ksProperty,
-            statistic,
-            pvalue,
-        };
-
-        this.setState({
-            KSTestResults: {
-                ...this.state.KSTestResults,
-                [extentsID]:
-                    this.state.KSTestResults[extentsID] !== undefined
-                        ? [...this.state.KSTestResults[extentsID], results]
-                        : [results],
-            },
-        });
-    };
-
-    addAnalysisResult = (analysis, extentsID) => {
-        this.setState({
-            analyses: {
-                ...this.state.analyses,
-                [extentsID]:
-                    this.state.analyses[extentsID] !== undefined
-                        ? [...this.state.analyses[extentsID], analysis]
-                        : [analysis],
-            },
-        });
-    };
-
-    addPathSimilarityResult = (e1, e2, score, extentsID) => {
-        const scoreObj = { score, e1, e2 };
-        this.setState({
-            similarities: {
-                ...this.state.similarities,
-                [extentsID]:
-                    this.state.similarities[extentsID] !== undefined
-                        ? [...this.state.similarities[extentsID], scoreObj]
-                        : [scoreObj],
-            },
-        });
-    };
-
-    changeTimestep = (e) => {
-        if (this.state.stateHovered !== null) {
-            // timestep = index into simplifiedSequence array
-            let timestep = null;
-
-            if (this.state.stateHovered.timesteps) {
-                console.log(this.state.stateHovered.timesteps);
-            } else {
-                timestep = this.state.stateHovered.timestep;
-            }
-
-            if (timestep) {
-                if (e.key == 'ArrowLeft' || e.key == 'ArrowRight') {
-                    timestep = e.key == 'ArrowLeft' ? timestep - 1 : timestep + 1;
-                    const { name } = this.state.stateHovered;
-                    const stateID =
-                        this.props.trajectories[name].simplifiedSequence.sequence[timestep].id;
-                    this.setStateHovered({
-                        caller: e,
-                        stateID,
-                        name,
-                        timestep,
-                    });
-                }
-            }
-        }
-    };
-
     setStateClicked = (state) => {
         this.setState({ stateClicked: state }, () => {
             this.toggleModal(SINGLE_STATE_MODAL);
         });
-    };
-
-    addScatterplot = (name) => {
-        const count = Object.keys(this.state.scatterplots).length;
-        const id = `${name}_sc_${count}`;
-        const sc = { name };
-
-        this.setState({ scatterplots: { ...this.state.scatterplots, [id]: sc } });
-    };
-
-    addSubsequenceScatterplot = (extent, id) => {
-        const count = Object.keys(this.state.scatterplots).length;
-        const newPlots = {};
-        const xCount = 0;
-        for (const xtent of extent) {
-            const title = `${id}_${count}_${xCount}`;
-            newPlots[title] = { ...xtent };
-        }
-        this.setState({ scatterplots: { ...this.state.scatterplots, ...newPlots } });
-    };
-
-    // make this generalized
-    deletePlot = (e) => {
-        const plot = e.target.getAttribute('data-value');
-        const newScatters = { ...this.state.scatterplots };
-        delete newScatters[plot];
-        this.setState({ scatterplots: newScatters });
-    };
-
-    deleteChild = (e) => {
-        const key = e.target.getAttribute('data-value');
-        const childType = e.target.getAttribute('data-type');
-
-        let stateArray = null;
-
-        if (Array.isArray(this.state[childType])) {
-            stateArray = [...this.state[childType]];
-        } else {
-            stateArray = { ...this.state[childType] };
-        }
-
-        delete stateArray[key];
-        this.setState({ [childType]: stateArray });
     };
 
     // essentially the same as useCallback
@@ -277,11 +144,166 @@ class VisArea extends React.Component {
 
     setSequenceExtentProp = this.setSequenceExtent.bind(this);
 
+    addNEBPlot = (energies, drawSequence, trajectoryName) => {
+        this.setState((previous) => ({
+            NEBPlots: [...previous.NEBPlots, { energies, drawSequence, trajectoryName }],
+        }));
+    };
+
+    toggleModal = (key) => {
+        const { currentModal } = this.state;
+        if (currentModal) {
+            this.setState({
+                currentModal: null,
+            });
+            return;
+        }
+        this.setState({ currentModal: key });
+    };
+
+    chartFinishedLoading = () => {
+        this.setState({ isLoading: false });
+    };
+
+    addKSTestResult = (rvs, cdf, ksProperty, statistic, pvalue, extentsID) => {
+        const results = {
+            rvs,
+            cdf,
+            ksProperty,
+            statistic,
+            pvalue,
+        };
+
+        this.setState((previous) => ({
+            KSTestResults: {
+                ...previous.KSTestResults,
+                [extentsID]:
+                    previous.KSTestResults[extentsID] !== undefined
+                        ? [...previous.KSTestResults[extentsID], results]
+                        : [results],
+            },
+        }));
+    };
+
+    addAnalysisResult = (analysis, extentsID) => {
+        this.setState((previous) => ({
+            analyses: {
+                ...previous.analyses,
+                [extentsID]:
+                    previous.analyses[extentsID] !== undefined
+                        ? [...previous.analyses[extentsID], analysis]
+                        : [analysis],
+            },
+        }));
+    };
+
+    addPathSimilarityResult = (e1, e2, score, extentsID) => {
+        const scoreObj = { score, e1, e2 };
+        this.setState((previous) => ({
+            similarities: {
+                ...previous.similarities,
+                [extentsID]:
+                    previous.similarities[extentsID] !== undefined
+                        ? [...previous.similarities[extentsID], scoreObj]
+                        : [scoreObj],
+            },
+        }));
+    };
+
+    changeTimestep = (e) => {
+        const { stateHovered } = this.state;
+        const { trajectories } = this.props;
+
+        if (stateHovered !== null) {
+            // timestep = index into simplifiedSequence array
+            let timestep = null;
+
+            if (stateHovered.timesteps) {
+                console.log(stateHovered.timesteps);
+            } else {
+                timestep = stateHovered.timestep;
+            }
+
+            if (timestep) {
+                if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+                    timestep = e.key === 'ArrowLeft' ? timestep - 1 : timestep + 1;
+                    const { name } = stateHovered;
+                    const stateID = trajectories[name].simplifiedSequence.sequence[timestep].id;
+                    this.setStateHovered({
+                        caller: e,
+                        stateID,
+                        name,
+                        timestep,
+                    });
+                }
+            }
+        }
+    };
+
+    /* addScatterplot = (name) => {
+        const count = Object.keys(this.state.scatterplots).length;
+        const id = `${name}_sc_${count}`;
+        const sc = { name };
+
+        this.setState({ scatterplots: { ...this.state.scatterplots, [id]: sc } });
+    }; */
+
+    addSubsequenceScatterplot = (extent, id) => {
+        const { scatterplots } = this.state;
+        const count = Object.keys(scatterplots).length;
+        const newPlots = {};
+        const xCount = 0;
+        for (const xtent of extent) {
+            const title = `${id}_${count}_${xCount}`;
+            newPlots[title] = { ...xtent };
+        }
+        this.setState({ scatterplots: { ...scatterplots, ...newPlots } });
+    };
+
+    // make this generalized
+    deletePlot = (e) => {
+        const { scatterplots } = this.state;
+        const plot = e.target.getAttribute('data-value');
+        const newScatters = { ...scatterplots };
+        delete newScatters[plot];
+        this.setState({ scatterplots: newScatters });
+    };
+
+    deleteChild = (e) => {
+        const key = e.target.getAttribute('data-value');
+        const childType = e.target.getAttribute('data-type');
+
+        const { [childType]: childArray } = this.state;
+
+        let stateArray = null;
+
+        if (Array.isArray(childArray)) {
+            stateArray = [...childArray];
+        } else {
+            stateArray = { ...childArray };
+        }
+
+        delete stateArray[key];
+        this.setState({ [childType]: stateArray });
+    };
+
     render() {
-        const runs = Object.keys(this.props.runs);
-        const trajs = Object.keys(this.props.trajectories);
-        const safe = !!(runs.length === trajs.length && runs.length > 0 && trajs.length > 0);
-        const NEBPlots = this.state.NEBPlots.map((plot, idx) => {
+        const { trajectories, globalUniqueStates, runs, properties, sx } = this.props;
+        const {
+            NEBPlots,
+            scatterplots,
+            stateHovered,
+            subSequences,
+            visibleExtent,
+            sequenceExtent,
+            isLoading,
+            visible,
+            currentModal,
+            stateClicked,
+            selectedExtents,
+        } = this.state;
+
+        const nebPlots = NEBPlots.map((plot, idx) => {
             return (
                 <RemovableBox
                     deleteChild={this.deleteChild}
@@ -291,10 +313,10 @@ class VisArea extends React.Component {
                     className="lightBorder"
                 >
                     <Scatterplot
-                        trajectories={this.props.trajectories}
+                        trajectories={trajectories}
                         setStateClicked={this.setStateClickedProp}
                         setStateHovered={this.setStateHoveredProp}
-                        globalUniqueStates={this.props.globalUniqueStates}
+                        globalUniqueStates={globalUniqueStates}
                         sequence={plot.drawSequence}
                         yAttributeListProp={plot.energies}
                         xAttributeProp="timestep"
@@ -309,31 +331,31 @@ class VisArea extends React.Component {
             );
         });
 
-        const scatterplots = Object.keys(this.state.scatterplots).map((sc) => {
-            const sc_props = this.state.scatterplots[sc];
+        const scplots = Object.keys(scatterplots).map((sc) => {
+            const scProps = scatterplots[sc];
             return (
                 <Scatterplot
                     key={sc}
-                    trajectories={this.props.trajectories}
-                    globalUniqueStates={this.props.globalUniqueStates}
-                    trajectoryName={sc_props.name}
+                    trajectories={trajectories}
+                    globalUniqueStates={globalUniqueStates}
+                    trajectoryName={scProps.name}
                     id={sc}
-                    runs={this.props.runs}
+                    runs={runs}
                     setStateClicked={this.setStateClickedProp}
                     setStateHovered={this.setStateHoveredProp}
-                    stateHovered={this.state.stateHovered}
-                    properties={this.props.properties}
+                    stateHovered={stateHovered}
+                    properties={properties}
                     setExtents={this.setExtentsUniqueStatesProp}
                     title={sc}
-                    sequence={sc_props.states}
-                    visibleExtent={this.state.subSequences[this.state.visibleExtent]}
+                    sequence={scProps.states}
+                    visibleExtent={subSequences[visibleExtent]}
                 />
             );
             //
         });
 
-        const subSequenceCharts = Object.keys(this.state.subSequences).map((id) => {
-            const ss = this.state.subSequences[id];
+        const subSequenceCharts = Object.keys(subSequences).map((id) => {
+            const ss = subSequences[id];
             let maxStates = Number.MIN_VALUE;
             for (const e of ss) {
                 maxStates = maxStates < e.states.length ? e.states.length : maxStates;
@@ -356,10 +378,10 @@ class VisArea extends React.Component {
                     addScatterplot={() => {
                         this.addSubsequenceScatterplot(ss, id);
                     }}
-                    setVisibleExtent={(id) => {
-                        this.setState({ visibleExtent: id });
+                    setVisibleExtent={(d) => {
+                        this.setState({ visibleExtent: d });
                     }}
-                    visibleExtent={this.state.visibleExtent}
+                    visibleExtent={visibleExtent}
                     subSequence={ss}
                 >
                     <SelectionVis
@@ -368,9 +390,9 @@ class VisArea extends React.Component {
                         }}
                         setStateClicked={this.setStateClickedProp}
                         setStateHovered={this.setStateHoveredProp}
-                        globalUniqueStates={this.props.globalUniqueStates}
-                        trajectories={this.props.trajectories}
-                        sequenceExtent={this.state.sequenceExtent}
+                        globalUniqueStates={globalUniqueStates}
+                        trajectories={trajectories}
+                        sequenceExtent={sequenceExtent}
                         maxStates={maxStates}
                         titleProp={id}
                         extents={ss}
@@ -380,124 +402,114 @@ class VisArea extends React.Component {
         });
 
         return (
-            <Box sx={this.props.sx}>
-                {this.state.isLoading && (
-                    <LoadingModal open={this.state.isLoading} title="Rendering..." />
-                )}
-                {safe && (
-                    <Box sx={{ flexBasis: '35%' }}>
-                        <Typography color="secondary" align="center" gutterBottom variant="h6">
-                            Sequence View
-                        </Typography>
-                        <CircularSequence
-                            sx={{ minHeight: '45%' }}
-                            trajectories={this.props.trajectories}
-                            globalUniqueStates={this.props.globalUniqueStates}
-                            runs={this.props.runs}
-                            loadingCallback={this.chartFinishedLoading}
-                            setStateHovered={this.setStateHoveredProp}
-                            setStateClicked={this.setStateClickedProp}
-                            stateHovered={this.state.stateHovered}
-                            setVisible={this.setVisible}
-                            setExtents={this.setExtentsProp}
-                            setSequenceExtent={this.setSequenceExtentProp}
-                            visibleExtent={this.state.subSequences[this.state.visibleExtent]}
-                        />
-                        <TrajectoryChart
-                            trajectories={this.props.trajectories}
-                            globalUniqueStates={this.props.globalUniqueStates}
-                            runs={this.props.runs}
-                            loadingCallback={this.chartFinishedLoading}
-                            setStateHovered={this.setStateHoveredProp}
-                            setStateClicked={this.setStateClickedProp}
-                            stateHovered={this.state.stateHovered}
-                            setVisible={this.setVisible}
-                            setExtents={this.setExtentsProp}
-                            setSequenceExtent={this.setSequenceExtentProp}
-                            visibleExtent={this.state.subSequences[this.state.visibleExtent]}
-                        />
-                        {subSequenceCharts.length > 0 && (
-                            <Accordion defaultExpanded={false} disableGutters>
-                                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                                    <Typography color="secondary" variant="h6">
-                                        Sub-sequence View
-                                    </Typography>
-                                </AccordionSummary>
-                                <Divider />
-                                <AccordionDetails>
-                                    <Box sx={{ maxHeight: '300px', overflow: 'auto' }}>
-                                        {subSequenceCharts}
-                                    </Box>
-                                </AccordionDetails>
-                            </Accordion>
-                        )}
-                        {NEBPlots.length > 0 && (
-                            <Accordion defaultExpanded={false} disableGutters>
-                                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                                    <Typography color="secondary" variant="h6">
-                                        NEB Plots
-                                    </Typography>
-                                </AccordionSummary>
-                                <Divider />
-                                <AccordionDetails sx={{ overflow: 'auto' }}>
-                                    <Box sx={{ maxHeight: '300px', overflow: 'auto' }}>
-                                        {NEBPlots}
-                                    </Box>
-                                </AccordionDetails>
-                            </Accordion>
-                        )}
-                    </Box>
-                )}
-
-                {safe && (
-                    <GraphVis
-                        style={{
-                            sx: { flexBasis: '50%' },
-                            className: 'lightBorder',
-                        }}
-                        trajectories={this.props.trajectories}
-                        runs={this.props.runs}
-                        globalUniqueStates={this.props.globalUniqueStates}
+            <Box sx={sx}>
+                {isLoading && <LoadingModal open={isLoading} title="Rendering..." />}
+                <Box sx={{ flexBasis: '35%' }}>
+                    <Typography color="secondary" align="center" gutterBottom variant="h6">
+                        Sequence View
+                    </Typography>
+                    <CircularSequence
+                        sx={{ minHeight: '45%' }}
+                        trajectories={trajectories}
+                        globalUniqueStates={globalUniqueStates}
+                        runs={runs}
+                        loadingCallback={this.chartFinishedLoading}
                         setStateHovered={this.setStateHoveredProp}
                         setStateClicked={this.setStateClickedProp}
-                        loadingCallback={this.chartFinishedLoading}
-                        stateHovered={this.state.stateHovered}
-                        visibleProp={this.state.visible}
-                        setExtents={this.setExtentsUniqueStatesProp}
-                        visibleExtent={this.state.subSequences[this.state.visibleExtent]}
+                        stateHovered={stateHovered}
+                        setVisible={this.setVisible}
+                        setExtents={this.setExtentsProp}
+                        setSequenceExtent={this.setSequenceExtentProp}
+                        visibleExtent={subSequences[visibleExtent]}
                     />
-                )}
+                    <TrajectoryChart
+                        trajectories={trajectories}
+                        globalUniqueStates={globalUniqueStates}
+                        runs={runs}
+                        loadingCallback={this.chartFinishedLoading}
+                        setStateHovered={this.setStateHoveredProp}
+                        setStateClicked={this.setStateClickedProp}
+                        stateHovered={stateHovered}
+                        setVisible={this.setVisible}
+                        setExtents={this.setExtentsProp}
+                        setSequenceExtent={this.setSequenceExtentProp}
+                        visibleExtent={subSequences[visibleExtent]}
+                    />
+                    {subSequenceCharts.length > 0 && (
+                        <Accordion defaultExpanded={false} disableGutters>
+                            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                                <Typography color="secondary" variant="h6">
+                                    Sub-sequence View
+                                </Typography>
+                            </AccordionSummary>
+                            <Divider />
+                            <AccordionDetails>
+                                <Box sx={{ maxHeight: '300px', overflow: 'auto' }}>
+                                    {subSequenceCharts}
+                                </Box>
+                            </AccordionDetails>
+                        </Accordion>
+                    )}
+                    {NEBPlots.length > 0 && (
+                        <Accordion defaultExpanded={false} disableGutters>
+                            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                                <Typography color="secondary" variant="h6">
+                                    NEB Plots
+                                </Typography>
+                            </AccordionSummary>
+                            <Divider />
+                            <AccordionDetails sx={{ overflow: 'auto' }}>
+                                <Box sx={{ maxHeight: '300px', overflow: 'auto' }}>{nebPlots}</Box>
+                            </AccordionDetails>
+                        </Accordion>
+                    )}
+                </Box>
 
-                {safe && (
-                    <ScatterGrid
-                        className="lightBorder"
-                        sx={{ flexBasis: '50%', flexGrow: 0 }}
-                        control={
-                            <Typography color="secondary" align="center" gutterBottom variant="h6">
-                                Scatterplot View
-                            </Typography>
-                        }
-                        deletePlot={this.deletePlot}
-                    >
-                        {scatterplots}
-                    </ScatterGrid>
-                )}
-                {this.state.currentModal === SINGLE_STATE_MODAL && (
+                <GraphVis
+                    style={{
+                        sx: { flexBasis: '50%' },
+                        className: 'lightBorder',
+                    }}
+                    trajectories={trajectories}
+                    runs={runs}
+                    globalUniqueStates={globalUniqueStates}
+                    setStateHovered={this.setStateHoveredProp}
+                    setStateClicked={this.setStateClickedProp}
+                    loadingCallback={this.chartFinishedLoading}
+                    stateHovered={stateHovered}
+                    visibleProp={visible}
+                    setExtents={this.setExtentsUniqueStatesProp}
+                    visibleExtent={subSequences[visibleExtent]}
+                />
+
+                <ScatterGrid
+                    className="lightBorder"
+                    sx={{ flexBasis: '50%', flexGrow: 0 }}
+                    control={
+                        <Typography color="secondary" align="center" gutterBottom variant="h6">
+                            Scatterplot View
+                        </Typography>
+                    }
+                    deletePlot={this.deletePlot}
+                >
+                    {scplots}
+                </ScatterGrid>
+                {currentModal === SINGLE_STATE_MODAL && (
                     <SingleStateModal
-                        open={this.state.currentModal === SINGLE_STATE_MODAL}
-                        state={this.props.globalUniqueStates.get(this.state.stateClicked.id)}
+                        open={currentModal === SINGLE_STATE_MODAL}
+                        state={globalUniqueStates.get(stateClicked.id)}
                         closeFunc={() => {
                             this.toggleModal(SINGLE_STATE_MODAL);
                         }}
                     />
                 )}
-                {this.state.currentModal === MULTIPLE_PATH_SELECTION && (
+                {currentModal === MULTIPLE_PATH_SELECTION && (
                     <MultiplePathSelectionModal
-                        open={this.state.currentModal === MULTIPLE_PATH_SELECTION}
-                        trajectories={this.props.trajectories}
-                        extents={this.state.selectedExtents.ss}
-                        extentsID={this.state.selectedExtents.id}
-                        properties={this.props.properties}
+                        open={currentModal === MULTIPLE_PATH_SELECTION}
+                        trajectories={trajectories}
+                        extents={selectedExtents.ss}
+                        extentsID={selectedExtents.id}
+                        properties={properties}
                         addKSTestResult={this.addKSTestResult}
                         addAnalysisResult={this.addAnalysisResult}
                         addPathSimilarityResult={this.addPathSimilarityResult}
@@ -506,14 +518,14 @@ class VisArea extends React.Component {
                         }}
                     />
                 )}
-                {this.state.currentModal === NEB && (
+                {currentModal === NEB && (
                     <NEBModal
-                        open={this.state.currentModal === NEB}
-                        trajectories={this.props.trajectories}
-                        extents={this.state.selectedExtents.ss}
-                        extentsID={this.state.selectedExtents.id}
+                        open={currentModal === NEB}
+                        trajectories={trajectories}
+                        extents={selectedExtents.ss}
+                        extentsID={selectedExtents.id}
                         addNEBPlot={this.addNEBPlot}
-                        globalUniqueStates={this.props.globalUniqueStates}
+                        globalUniqueStates={globalUniqueStates}
                         closeFunc={() => {
                             this.toggleModal(NEB);
                         }}
