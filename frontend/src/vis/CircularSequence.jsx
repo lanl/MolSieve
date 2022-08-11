@@ -7,13 +7,20 @@ import '../css/vis.css';
 
 import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
 import { useResize } from '../hooks/useResize';
-import { onChunkMouseOver, getLengthList, onStateMouseOver, tooltip } from '../api/myutils';
+import {
+    onChunkMouseOver,
+    getLengthList,
+    onStateMouseOver,
+    tooltip,
+    withinExtent,
+} from '../api/myutils';
 // import Timestep from '../api/timestep';
 
 /* const margin = {
     top: 35, bottom: 20, left: 25, right: 25,
 }; */
 let zoom = null;
+let scaleR = null;
 
 // TODO think of better way to do this later
 const CHUNK = 0;
@@ -22,13 +29,16 @@ const TIMESTEP = 1;
 export default function CircularSequence({
     trajectories,
     sx,
-    globalUniqueStates,
     setStateHovered,
     stateHovered,
+    visibleProp,
 }) {
     const { width, height, divRef } = useResize();
 
-    const renderDonut = (visible, scaleR, trajectory, name, count) => {
+    const renderDonut = (visible, name, count) => {
+        const trajectory = trajectories[name];
+        const { chunks } = trajectory.simplifiedSequence;
+
         // get list of currently visible chunk IDs
         const visibleIDs = visible
             .filter((d) => d.dataType === CHUNK)
@@ -41,7 +51,7 @@ export default function CircularSequence({
             .pie()
             .value((d) => d.size)
             .sort((a, b) => a.timestep - b.timestep)
-            .padAngle(0.005)(visible);
+            .padAngle(0.001)(visible);
 
         const chunkArcs = arcs.filter((d) => d.data.dataType === CHUNK);
         const timestepArcs = arcs.filter((d) => d.data.dataType === TIMESTEP);
@@ -78,7 +88,7 @@ export default function CircularSequence({
             .on('mouseout', () => {
                 setStateHovered(null);
             })
-            .on('click', (_, d) => {
+            /* .on('click', (_, d) => {
                 const newList = visible.filter((b) => d.data.id !== b.id);
                 const childArray = d.data.getChildren();
 
@@ -86,19 +96,19 @@ export default function CircularSequence({
                 for (const i of newItems) {
                     newList.push(i);
                 }
-                renderDonut(newList, scaleR, trajectory, name, count);
-            })
+                renderDonut(newList, name, count);
+            }) */
             .classed('arcs', true)
             .classed('chunk', true)
             .classed('importantChunk', (d) => d.data.important)
-            .classed('clickable', (d) => d.data.important)
             .classed('unimportantChunk', (d) => !d.data.important);
 
         const timestepNodes = d3
             .select(`#${name}`)
             .selectAll('.arcs')
-            .data(timestepArcs, (d) => d.id);
+            .data(timestepArcs, (d) => d.data.id);
 
+        console.log(timestepArcs);
         timestepNodes
             .enter()
             .append('path')
@@ -110,8 +120,13 @@ export default function CircularSequence({
                     .outerRadius(scaleR(count) - 10)
             )
             .on('mouseover', function (_, d) {
-                onStateMouseOver(this, globalUniqueStates.get(d.data.id), trajectory, name);
-                setStateHovered({ caller: this, stateID: d.id, name, timestep: d.timestep });
+                onStateMouseOver(this, d.data.id, trajectory, name);
+                setStateHovered({
+                    caller: this,
+                    stateID: d.data.id,
+                    name,
+                    timestep: d.data.timestep,
+                });
             })
             .on('mouseout', function () {
                 setStateHovered(null);
@@ -153,12 +168,24 @@ export default function CircularSequence({
             .attr('d', d3.ribbon().radius(scaleR(count) - 5))
             .attr('opacity', (d) => d.value)
             .on('mouseover', function (_, d) {
-                tooltip(this, `${d.value}`);
+                const c = chunks.get(d.source.id);
+                setStateHovered({
+                    caller: this,
+                    stateid: d.source.id,
+                    name,
+                    timestep: c.timestep,
+                });
+
+                d3.selectAll('.arcs')
+                    .filter((ad) => d.source.id === ad.data.id || d.target.id === ad.data.id)
+                    .classed('highlightedState', true);
+            })
+            .on('mouseout', function () {
+                d3.selectAll('.ribbon,.highlightedState').classed('highlightedState', false);
+                setStateHovered(null);
             })
             .classed('ribbon', true)
             .attr('fill', 'red');
-
-        // .attr('stroke', 'black');
     };
 
     const ref = useTrajectoryChartRender(
@@ -180,7 +207,7 @@ export default function CircularSequence({
                 .append('g')
                 .attr('transform', `translate(${width / 2}, ${height / 2})`);
 
-            const scaleR = d3
+            scaleR = d3
                 .scaleRadial()
                 .range([height / 3, height / 2]) // from center of chart to top
                 .domain([0, Object.keys(trajectories).length]);
@@ -201,7 +228,7 @@ export default function CircularSequence({
                 );
 
                 // render the top level donut initially
-                renderDonut(chunkList, scaleR, trajectory, name, count, svg);
+                renderDonut(chunkList, name, count);
 
                 count++;
             }
@@ -222,7 +249,8 @@ export default function CircularSequence({
                 .filter((d) => d.data.id === stateHovered.stateID)
                 .classed('highlightedState', true);
 
-            d3.select(ref.current)
+            const ribbons = d3
+                .select(ref.current)
                 .selectAll('.ribbon')
                 .filter(
                     (d) =>
@@ -231,7 +259,15 @@ export default function CircularSequence({
                 .classed('highlightedState', true)
                 .attr('opacity', 1);
 
-            d3.select(ref.current).selectAll('.ribbon:not(.highlightedState').attr('opacity', 0);
+            /* tooltip(
+                    this,
+                    `${chunks.get(d.source.id).toString()} 
+                     <br>
+                     ${chunks.get(d.target.id).toString()} 
+                     <br> <b>Similarity score:</b> ${d.value}`
+                ); */
+
+            d3.select(ref.current).selectAll('.ribbon:not(.highlightedState').attr('opacity', 0.1);
         } else {
             d3.select(ref.current)
                 .selectAll('.ribbon')
@@ -243,14 +279,23 @@ export default function CircularSequence({
         }
     }, [stateHovered]);
 
+    useEffect(() => {
+        if (visibleProp) {
+            let count = 0;
+            for (const [name, vis] of Object.entries(visibleProp)) {
+                let { sequence, chunkList, extent } = vis;
+                chunkList = chunkList.filter((d) => withinExtent(d, extent));
+                sequence = sequence.filter((d) => withinExtent(d, extent));
+
+                renderDonut([...sequence, ...chunkList], name, count);
+                count++;
+            }
+        }
+    }, [visibleProp]);
+
     return (
         <Box ref={divRef} sx={sx}>
-            <svg
-                className="vis lightBorder"
-                id="sequence"
-                ref={ref}
-                viewBox={[0, 0, width, height]}
-            />
+            <svg className="vis" id="circularSequence" ref={ref} viewBox={[0, 0, width, height]} />
         </Box>
     );
     // preserveAspectRatio="none"
