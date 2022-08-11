@@ -292,6 +292,16 @@ export function setIntersection(setA, setB) {
     return inter;
 }
 
+export function withinExtent(d, extent) {
+    const start = extent[0];
+    const end = extent[1];
+    return (
+        (d.timestep >= start && d.last <= end) ||
+        (d.last >= start && d.last <= end) ||
+        (d.timestep >= start && d.timestep <= end)
+    );
+}
+
 export function setUnion(setA, setB) {
     const union = new Set(setA);
     for (const elem of setB) {

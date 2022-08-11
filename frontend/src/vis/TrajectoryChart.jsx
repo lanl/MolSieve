@@ -18,7 +18,7 @@ import { useResize } from '../hooks/useResize';
 import { useHover } from '../hooks/useHover';
 
 import '../css/vis.css';
-import { onStateMouseOver, onChunkMouseOver } from '../api/myutils';
+import { onStateMouseOver, onChunkMouseOver, withinExtent } from '../api/myutils';
 
 import { apply_filters } from '../api/filters';
 
@@ -232,6 +232,7 @@ function TrajectoryChart({
                     toAdd: new Set(),
                     toRemove: new Set(),
                     count: y,
+                    extent: scaleX.domain(),
                 };
 
                 const { chunkList } = visible[name];
@@ -275,13 +276,7 @@ function TrajectoryChart({
                     // select all chunks within the viewport
                     const onScreenChunks = chunkGroup
                         .selectAll('.importantChunk')
-                        .filter(function (d) {
-                            return (
-                                (d.timestep >= start && d.last <= end) ||
-                                (d.last >= start && d.last <= end) ||
-                                (d.timestep >= start && d.timestep <= end)
-                            );
-                        });
+                        .filter((d) => withinExtent(d, xz.domain()));
 
                     const onScreenChunkData = onScreenChunks.nodes().map((chunk) => {
                         const data = d3.select(chunk).data()[0];
@@ -393,6 +388,7 @@ function TrajectoryChart({
                         toRemove.clear();
                         visible[name].chunkList = newChunkList;
                         visible[name].sequence = newSequence;
+                        visible[name].extent = xz.domain();
                     }
 
                     // geometric zoom for the rest

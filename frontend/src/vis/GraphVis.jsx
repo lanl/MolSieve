@@ -13,7 +13,7 @@ import Box from '@mui/material/Box';
 import ProgressBox from '../components/ProgressBox';
 
 import { apply_filters } from '../api/filters';
-import { onStateMouseOver, onChunkMouseOver } from '../api/myutils';
+import { onStateMouseOver, onChunkMouseOver, withinExtent } from '../api/myutils';
 
 import useKeyUp from '../hooks/useKeyUp';
 import useKeyDown from '../hooks/useKeyDown';
@@ -706,7 +706,9 @@ function GraphVis({
     useEffect(() => {
         if (visibleProp) {
             for (const [name, vis] of Object.entries(visibleProp)) {
-                const { sequence, chunkList } = vis;
+                let { sequence, chunkList, extent } = vis;
+                chunkList = chunkList.filter((d) => withinExtent(d, extent));
+                sequence = sequence.filter((d) => withinExtent(d, extent));
                 const sim = sims[name];
                 const trajectory = trajectories[name];
                 const chunkData = trajectory.simplifiedSequence.chunks;
