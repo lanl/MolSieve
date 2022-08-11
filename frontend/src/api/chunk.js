@@ -42,7 +42,7 @@ export default class Chunk {
     }
 
     get size() {
-        return this.last - this.timestep;
+        return this.last - this.timestep + 1;
     }
 
     // returns an array of the chunk's children
@@ -61,5 +61,9 @@ export default class Chunk {
             timesteps.push(i);
         }
         return timesteps;
+    }
+
+    toString() {
+        return `<b>Timesteps</b>: ${this.timestep} - ${this.last}<br><b>Length</b>: ${this.size}`;
     }
 }

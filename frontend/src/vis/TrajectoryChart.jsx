@@ -37,16 +37,15 @@ const visible = {};
 const kList = new Map();
 const childToParent = new Map();
 
-function ensureMinWidth(d, x_scale) {
-    if (x_scale(d.last + 1) - x_scale(d.timestep) < 10) {
-        return x_scale(d.last + 1) - x_scale(d.timestep) + 10;
+function ensureMinWidth(d, xScale) {
+    if (xScale(d.last + 1) - xScale(d.timestep) < 10) {
+        return xScale(d.last + 1) - xScale(d.timestep) + 10;
     }
-    return x_scale(d.last + 1) - x_scale(d.timestep);
+    return xScale(d.last + 1) - xScale(d.timestep);
 }
 
 function TrajectoryChart({
     trajectories,
-    globalUniqueStates,
     runs,
     loadingCallback,
     setStateHovered,
@@ -161,18 +160,18 @@ function TrajectoryChart({
             .attr('width', (d) => scaleX(d.timestep + 1) - scaleX(d.timestep))
             .attr('height', 25)
             .attr('fill', (d) => {
-                return trajectory.colorByCluster(d);
+                return d.individualColor;
             })
             .on('click', function (_, d) {
                 if (individualSelectionMode) {
                     d3.select(this).classed('currentSelection', true);
                     setInternalExtents((prev) => [...prev, { name: trajectoryName, states: [d] }]);
                 } else {
-                    setStateClicked(globalUniqueStates.get(d.id));
+                    setStateClicked(d.id);
                 }
             })
             .on('mouseover', function (_, d) {
-                onStateMouseOver(this, globalUniqueStates.get(d.id), trajectory, trajectoryName);
+                onStateMouseOver(this, d.id, trajectory, trajectoryName);
                 setStateHovered({
                     caller: this,
                     stateID: d.id,
@@ -297,7 +296,7 @@ function TrajectoryChart({
                     for (const d of onScreenChunkData) {
                         const { data, trajectoryName, breakdown, k } = d;
                         const { toAdd, toRemove } = visible[trajectoryName];
-                        if (e.transform.k > k * 1.5) {
+                        if (e.transform.k > k * 2) {
                             // zoom in - break down chunk
                             toRemove.add(data.id);
                             // NOTE: individual states in this view are identified by timestep
@@ -484,7 +483,7 @@ function TrajectoryChart({
 
     useEffect(() => {
         if (ref !== undefined && ref.current !== undefined) {
-            apply_filters(trajectories, runs, globalUniqueStates, ref);
+            apply_filters(trajectories, runs, ref);
         }
         loadingCallback();
     }, [runs]);

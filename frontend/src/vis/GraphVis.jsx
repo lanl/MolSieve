@@ -24,6 +24,8 @@ import { useContextMenu } from '../hooks/useContextMenu';
 import { useResize } from '../hooks/useResize';
 import usePrevious from '../hooks/usePrevious';
 
+import GlobalStates from '../api/globalStates';
+
 let container = null;
 let zoom = null;
 const visible = {};
@@ -35,7 +37,6 @@ let individualSelectionMode = false;
 function GraphVis({
     trajectories,
     runs,
-    globalUniqueStates,
     stateHovered,
     setStateClicked,
     setStateHovered,
@@ -191,17 +192,17 @@ function GraphVis({
             .append('circle')
             .attr('r', (d) => d.size)
             .attr('id', (d) => `node_${d.id}`)
-            .attr('fill', (d) => trajectory.colorByCluster(d))
+            .attr('fill', (d) => d.individualColor)
             .on('click', function (_, d) {
                 if (individualSelectionMode) {
                     d3.select(this).classed('currentSelection', true);
                     setInternalExtents((prev) => [...prev, { name, states: [d] }]);
                 } else {
-                    setStateClicked(globalUniqueStates.get(d.id));
+                    setStateClicked(d.id);
                 }
             })
             .on('mouseover', function (_, d) {
-                onStateMouseOver(this, globalUniqueStates.get(d.id), trajectory, name);
+                onStateMouseOver(this, d.id, trajectory, name);
                 const timesteps = idToTimestep.get(d.id);
                 if (timesteps.length === 1) {
                     setStateHovered({
@@ -540,10 +541,10 @@ function GraphVis({
 
                         // set nodes with multiple trajectories to black
                         g.selectAll('.node')
-                            .filter((d) => globalUniqueStates.get(d.id).seenIn.length > 1)
+                            .filter((d) => GlobalStates.get(d.id).seenIn.length > 1)
                             .attr('fill', 'black')
                             .on('mouseover', function (_, d) {
-                                onStateMouseOver(this, globalUniqueStates.get(d.id));
+                                onStateMouseOver(this, d.id);
                                 setStateHovered({
                                     caller: this,
                                     stateID: d.id,
@@ -637,7 +638,7 @@ function GraphVis({
 
     useEffect(() => {
         if (ref !== undefined && ref.current !== undefined) {
-            apply_filters(trajectories, runs, globalUniqueStates, ref);
+            apply_filters(trajectories, runs, ref);
         }
         loadingCallback();
     }, [runs]);
@@ -821,7 +822,7 @@ function GraphVis({
                 d3.select(ref.current)
                     .select('#important')
                     .selectAll('circle')
-                    .filter((d) => globalUniqueStates.get(d.id).seenIn.length == 1)
+                    .filter((d) => GlobalStates.get(d.id).seenIn.length === 1)
                     .classed('inCommonInvisible', true);
             } else {
                 d3.select(ref.current)
@@ -829,7 +830,7 @@ function GraphVis({
                     .classed('inCommonInvisible', false);
             }
         }
-    }, [showInCommon, seperateTrajectories, globalUniqueStates]);
+    }, [showInCommon, seperateTrajectories, trajectories]);
 
     useEffect(() => {
         // draws strokes over whatever is currently selected

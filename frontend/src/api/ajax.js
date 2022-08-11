@@ -30,11 +30,11 @@ export function api_loadSequence(run, properties) {
  * @param {string} run - Name of the run to run PCCA on
  * @param {number} clusters - Number of clusters to cluster the trajectory into. Ignored if optimal = 1
  * @param {number} optimal - Whether or not PCCA should try and find the optimal clustering between m_min and m_max
- * @param {number} m_min - When running optimal clustering, minimal cluster size to try; ignored if optimal = -1
- * @param {number} m_max - When running optimal clustering, maximum cluster size to try; ignored if optimal = -1
+ * @param {number} mMin - When running optimal clustering, minimal cluster size to try; ignored if optimal = -1
+ * @param {number} mMax - When running optimal clustering, maximum cluster size to try; ignored if optimal = -1
  * @param {Trajectory|undefined} trajectory - optional, if passed to the function will modify the trajectory object and return it
  */
-export function api_loadPCCA(run, clusters, optimal, m_min, m_max, trajectory) {
+export function api_loadPCCA(run, clusters, optimal, mMin, mMax, trajectory) {
     return new Promise((resolve, reject) => {
         axios
             .get('/api/pcca', {
@@ -42,46 +42,46 @@ export function api_loadPCCA(run, clusters, optimal, m_min, m_max, trajectory) {
                     run,
                     clusters,
                     optimal,
-                    m_min,
-                    m_max,
+                    m_min: mMin,
+                    m_max: mMax,
                 },
             })
             .then((response) => {
                 if (optimal === 1) {
-                    const new_traj = trajectory === undefined ? new Trajectory() : trajectory;
-                    const clustered_data = response.data;
+                    const newTraj = trajectory === undefined ? new Trajectory() : trajectory;
+                    const clusteredData = response.data;
 
-                    new_traj.optimal_cluster_value = clustered_data.optimal_value;
-                    new_traj.current_clustering = clustered_data.optimal_value;
-                    new_traj.feasible_clusters = clustered_data.feasible_clusters;
+                    newTraj.optimal_cluster_value = clusteredData.optimal_value;
+                    newTraj.current_clustering = clusteredData.optimal_value;
+                    newTraj.feasible_clusters = clusteredData.feasible_clusters;
 
-                    for (const id of Object.keys(clustered_data.occurrence_matrix)) {
+                    for (const id of Object.keys(clusteredData.occurrence_matrix)) {
                         // need to cast keys to int, fix this in back-end
                         const entries = Object.entries(
-                            clustered_data.occurrence_matrix[parseInt(id)]
-                        ).map(([key, value]) => [parseInt(key), value]);
+                            clusteredData.occurrence_matrix[parseInt(id, 10)]
+                        ).map(([key, value]) => [parseInt(key, 10), value]);
 
                         const abTransitionProb = new Map(entries);
-                        new_traj.occurrenceMap.set(parseInt(id), abTransitionProb);
+                        newTraj.occurrenceMap.set(parseInt(id, 10), abTransitionProb);
                     }
 
-                    for (const idx of new_traj.feasible_clusters) {
-                        new_traj.clusterings[idx] = clustered_data.sets[idx];
-                        new_traj.fuzzy_memberships[idx] = clustered_data.fuzzy_memberships[idx];
+                    for (const idx of newTraj.feasible_clusters) {
+                        newTraj.clusterings[idx] = clusteredData.sets[idx];
+                        newTraj.fuzzy_memberships[idx] = clusteredData.fuzzy_memberships[idx];
                     }
-                    resolve(new_traj);
+                    resolve(newTraj);
                 } else {
                     if (trajectory === undefined) {
                         resolve(response.data);
                     }
                     const traj = response.data;
-                    const fuzzy_memberships = Object.assign(
+                    const fuzzyMemberships = Object.assign(
                         traj.fuzzy_memberships,
                         trajectory.fuzzy_memberships
                     );
                     const clusterings = Object.assign(traj.sets, trajectory.clusterings);
-                    trajectory.current_clustering = parseInt(clusters);
-                    trajectory.fuzzy_memberships = fuzzy_memberships;
+                    trajectory.current_clustering = parseInt(clusters, 10);
+                    trajectory.fuzzy_memberships = fuzzyMemberships;
                     trajectory.clusterings = clusterings;
                     trajectory.set_cluster_info();
                     resolve(trajectory);

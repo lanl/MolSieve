@@ -23,6 +23,7 @@ import {
     api_calculate_idToTimestep,
 } from './api/ajax';
 import ControlDrawer from './components/ControlDrawer';
+import GlobalStates from './api/globalStates';
 
 const RUN_MODAL = 'run_modal';
 
@@ -45,7 +46,6 @@ class App extends React.Component {
                 ...d3.schemeSet3,
                 ...d3.schemeTableau10,
             ],
-            globalUniqueStates: new Map(),
             commonList: new Map(),
             properties: [],
         };
@@ -114,38 +114,38 @@ class App extends React.Component {
     recalculate_clustering = (run, clusters) =>
         // first check if the state has that clustering already calculated
         new Promise((resolve, reject) => {
-            const current_traj = this.state.trajectories[run];
+            const { trajectories, colors } = this.state;
 
-            if (current_traj.feasible_clusters.includes(clusters)) {
-                const new_trajectories = {
-                    ...this.state.trajectories,
-                };
-                new_trajectories[run].current_clustering = clusters;
-                new_trajectories[run].set_cluster_info();
+            const currentTraj = trajectories[run];
 
-                new_trajectories[run].simplifySet(new_trajectories[run].chunkingThreshold);
-                this.setState({ trajectories: new_trajectories });
+            if (currentTraj.feasible_clusters.includes(clusters)) {
+                const newTrajectories = { ...trajectories };
+                newTrajectories[run].current_clustering = clusters;
+                newTrajectories[run].set_cluster_info();
+
+                newTrajectories[run].simplifySet(newTrajectories[run].chunkingThreshold);
+                this.setState({ trajectories: newTrajectories });
                 resolve(true);
             } else {
                 // if not, recalculate
-                this.load_PCCA(run, clusters, -1, 0, 0, this.state.trajectories[run])
+                this.load_PCCA(run, clusters, -1, 0, 0, trajectories[run])
                     .then((traj) => {
-                        const new_trajectories = {
-                            ...this.state.trajectories,
+                        const newTrajectories = {
+                            ...trajectories,
                         };
-                        traj.add_colors(this.state.colors, clusters);
-                        traj.simplifySet(new_trajectories[run].chunkingThreshold);
-                        new_trajectories[run] = traj;
+                        traj.add_colors(colors, clusters);
+                        traj.simplifySet(newTrajectories[run].chunkingThreshold);
+                        newTrajectories[run] = traj;
                         this.setState({
                             isLoading: false,
-                            trajectories: new_trajectories,
+                            trajectories: newTrajectories,
                         });
                         resolve(true);
                     })
                     .catch((e) => {
                         this.setState({ isLoading: false });
                         alert(e);
-                        reject(false);
+                        reject(e);
                     });
             }
         });
@@ -165,36 +165,44 @@ class App extends React.Component {
                 newTraj.sequence = Uint32Array.from(data.sequence);
                 newTraj.uniqueStates = data.uniqueStates.map((state) => state.id);
 
-                const newUniqueStates = this.calculateGlobalUniqueStates(data.uniqueStates, run);
+                const newUniqueStates = GlobalStates.calculateGlobalUniqueStates(
+                    data.uniqueStates,
+                    run
+                );
 
-                this.load_PCCA(run, clusters, optimal, m_min, m_max, newTraj).then((newTraj) => {
-                    this.load_metadata(run, newTraj).then((newTraj) => {
-                        api_calculate_idToTimestep(run, newTraj).then((newTraj) => {
-                            newTraj.set_cluster_info();
-                            // could be an option
-                            newTraj.chunkingThreshold = chunkingThreshold;
-                            newTraj.simplifySet(chunkingThreshold);
-                            const removed = newTraj.set_colors(this.state.colors);
-                            const newTrajectories = {
-                                ...this.state.trajectories,
-                            };
+                this.load_PCCA(run, clusters, optimal, m_min, m_max, newTraj).then(
+                    (newTrajPCCA) => {
+                        this.load_metadata(run, newTrajPCCA).then((newTrajMetadata) => {
+                            api_calculate_idToTimestep(run, newTrajMetadata).then(
+                                (newTrajComplete) => {
+                                    newTrajComplete.set_cluster_info();
+                                    // could be an option
+                                    newTrajComplete.chunkingThreshold = chunkingThreshold;
+                                    newTrajComplete.simplifySet(chunkingThreshold);
+                                    const removed = newTrajComplete.set_colors(this.state.colors);
+                                    const newTrajectories = {
+                                        ...this.state.trajectories,
+                                    };
 
-                            newTrajectories[run] = newTraj;
-                            const newColors = [...this.state.colors];
-                            newColors.splice(0, removed);
+                                    newTrajectories[run] = newTrajComplete;
+                                    const newColors = [...this.state.colors];
+                                    newColors.splice(0, removed);
 
-                            const newRuns = this.initFilters(run, newTraj);
-                            this.setState({
-                                isLoading: false,
-                                runs: newRuns,
-                                trajectories: newTrajectories,
-                                colors: newColors,
-                                globalUniqueStates: newUniqueStates,
-                                properties: [...new Set([...this.state.properties, ...properties])],
-                            });
+                                    const newRuns = this.initFilters(run, newTrajComplete);
+                                    this.setState({
+                                        isLoading: false,
+                                        runs: newRuns,
+                                        trajectories: newTrajectories,
+                                        colors: newColors,
+                                        properties: [
+                                            ...new Set([...this.state.properties, ...properties]),
+                                        ],
+                                    });
+                                }
+                            );
                         });
-                    });
-                });
+                    }
+                );
             })
             .catch((e) => {
                 alert(e);
@@ -202,7 +210,7 @@ class App extends React.Component {
     };
 
     initFilters = (run, newTraj) => {
-        const runs = { ...this.state.runs };
+        const { runs } = this.state;
 
         runs[run] = {
             current_clustering: newTraj.current_clustering,
@@ -230,72 +238,30 @@ class App extends React.Component {
         // if new has something that old doesn't, there was an addition
         const added = properties.filter((x) => !this.state.properties.includes(x));
 
-        let { globalUniqueStates } = this.state;
-
         if (added.length > 0) {
             api_load_property(added[0]).then((data) => {
-                globalUniqueStates = this.addPropToStates(data, globalUniqueStates);
+                GlobalStates.addPropToStates(data);
                 this.setState({
                     properties: [...this.state.properties, added[0]],
-                    globalUniqueStates,
                 });
                 this.props.enqueueSnackbar(`Property ${added[0]} loaded.`);
             });
         } else {
             const propertiesCopy = [...this.state.properties];
             for (const r of removed) {
-                globalUniqueStates = this.removePropFromStates(r, globalUniqueStates);
+                GlobalStates.removePropFromStates(r);
                 const idx = propertiesCopy.indexOf(r);
                 propertiesCopy.splice(idx, 1);
             }
 
             this.setState({
                 properties: propertiesCopy,
-                globalUniqueStates,
             });
         }
     };
 
-    addPropToStates = (propertyList, globalUniqueStates) => {
-        for (const prop of propertyList) {
-            if (globalUniqueStates.has(prop.id)) {
-                const previous = globalUniqueStates.get(prop.id);
-                globalUniqueStates.set(prop.id, Object.assign(previous, prop));
-            } else {
-                globalUniqueStates.set(prop.id, prop);
-            }
-        }
-        return globalUniqueStates;
-    };
-
-    removePropFromStates = (prop, globalUniqueStates) => {
-        for (const s of globalUniqueStates.values()) {
-            if (s[prop] !== undefined && s[prop] !== null) {
-                delete s[prop];
-                globalUniqueStates.set(s.id, s);
-            }
-        }
-
-        return globalUniqueStates;
-    };
-
-    calculateGlobalUniqueStates = (newUniqueStates, run) => {
-        const { globalUniqueStates } = this.state;
-        for (const s of newUniqueStates) {
-            if (globalUniqueStates.has(s.id)) {
-                const previous = globalUniqueStates.get(s.id);
-                previous.seenIn = [...previous.seenIn, run];
-                globalUniqueStates.set(s.id, Object.assign(previous, s));
-            } else {
-                s.seenIn = [run];
-                globalUniqueStates.set(s.id, s);
-            }
-        }
-        return globalUniqueStates;
-    };
-
     updateRun = (run, attribute, value) => {
-        const runs = { ...this.state.runs };
+        const { runs } = this.state;
         runs[run][attribute] = value;
         this.setState(runs);
     };
@@ -319,7 +285,7 @@ class App extends React.Component {
 
         // get us the ids of all the states in our simplified sequence
         const stateIds = this.state.trajectories[state.run].uniqueStates;
-        const sequence = stateIds.map((state) => this.state.globalUniqueStates.get(state));
+        const sequence = stateIds.map((s) => GlobalStates.get(s));
 
         const fb = new FilterBuilder();
         const filter = fb.buildCustomFilter(state.filter_type, state.attribute, sequence);
@@ -382,7 +348,6 @@ class App extends React.Component {
                 <VisArea
                     sx={{ display: 'flex', alignItems: 'stretch', flex: 1 }}
                     trajectories={this.state.trajectories}
-                    globalUniqueStates={this.state.globalUniqueStates}
                     runs={this.state.runs}
                     properties={this.state.properties}
                 />

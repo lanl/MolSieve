@@ -35,6 +35,8 @@ import NEBModal from '../modals/NEBModal';
 import RemovableBox from './RemovableBox';
 import CircularSequence from '../vis/CircularSequence';
 
+import GlobalStates from '../api/globalStates';
+
 const SINGLE_STATE_MODAL = 'single_state';
 const MULTIPLE_PATH_SELECTION = 'multiple_selection';
 const NEB = 'neb';
@@ -127,8 +129,9 @@ class VisArea extends React.Component {
         this.setState({ sequenceExtent: extent });
     };
 
-    setStateClicked = (state) => {
-        this.setState({ stateClicked: state }, () => {
+    /* Sets the currently clicked state to the supplied ID */
+    setStateClicked = (id) => {
+        this.setState({ stateClicked: GlobalStates.get(id) }, () => {
             this.toggleModal(SINGLE_STATE_MODAL);
         });
     };
@@ -288,7 +291,7 @@ class VisArea extends React.Component {
     };
 
     render() {
-        const { trajectories, globalUniqueStates, runs, properties, sx } = this.props;
+        const { trajectories, runs, properties, sx } = this.props;
         const {
             NEBPlots,
             scatterplots,
@@ -316,7 +319,6 @@ class VisArea extends React.Component {
                         trajectories={trajectories}
                         setStateClicked={this.setStateClickedProp}
                         setStateHovered={this.setStateHoveredProp}
-                        globalUniqueStates={globalUniqueStates}
                         sequence={plot.drawSequence}
                         yAttributeListProp={plot.energies}
                         xAttributeProp="timestep"
@@ -337,7 +339,6 @@ class VisArea extends React.Component {
                 <Scatterplot
                     key={sc}
                     trajectories={trajectories}
-                    globalUniqueStates={globalUniqueStates}
                     trajectoryName={scProps.name}
                     id={sc}
                     runs={runs}
@@ -390,7 +391,6 @@ class VisArea extends React.Component {
                         }}
                         setStateClicked={this.setStateClickedProp}
                         setStateHovered={this.setStateHoveredProp}
-                        globalUniqueStates={globalUniqueStates}
                         trajectories={trajectories}
                         sequenceExtent={sequenceExtent}
                         maxStates={maxStates}
@@ -411,12 +411,12 @@ class VisArea extends React.Component {
                     <CircularSequence
                         sx={{ minHeight: '45%' }}
                         trajectories={trajectories}
-                        globalUniqueStates={globalUniqueStates}
                         runs={runs}
                         loadingCallback={this.chartFinishedLoading}
                         setStateHovered={this.setStateHoveredProp}
                         setStateClicked={this.setStateClickedProp}
                         stateHovered={stateHovered}
+                        visibleProp={visible}
                         setVisible={this.setVisible}
                         setExtents={this.setExtentsProp}
                         setSequenceExtent={this.setSequenceExtentProp}
@@ -424,7 +424,6 @@ class VisArea extends React.Component {
                     />
                     <TrajectoryChart
                         trajectories={trajectories}
-                        globalUniqueStates={globalUniqueStates}
                         runs={runs}
                         loadingCallback={this.chartFinishedLoading}
                         setStateHovered={this.setStateHoveredProp}
@@ -472,7 +471,6 @@ class VisArea extends React.Component {
                     }}
                     trajectories={trajectories}
                     runs={runs}
-                    globalUniqueStates={globalUniqueStates}
                     setStateHovered={this.setStateHoveredProp}
                     setStateClicked={this.setStateClickedProp}
                     loadingCallback={this.chartFinishedLoading}
@@ -497,7 +495,7 @@ class VisArea extends React.Component {
                 {currentModal === SINGLE_STATE_MODAL && (
                     <SingleStateModal
                         open={currentModal === SINGLE_STATE_MODAL}
-                        state={globalUniqueStates.get(stateClicked.id)}
+                        state={GlobalStates.get(stateClicked.id)}
                         closeFunc={() => {
                             this.toggleModal(SINGLE_STATE_MODAL);
                         }}
@@ -525,7 +523,6 @@ class VisArea extends React.Component {
                         extents={selectedExtents.ss}
                         extentsID={selectedExtents.id}
                         addNEBPlot={this.addNEBPlot}
-                        globalUniqueStates={globalUniqueStates}
                         closeFunc={() => {
                             this.toggleModal(NEB);
                         }}

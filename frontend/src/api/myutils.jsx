@@ -4,6 +4,7 @@ import 'tippy.js/dist/tippy.css';
 
 import React from 'react';
 import Box from '@mui/material/Box';
+import GlobalStates from './globalStates';
 
 export function djb2(str) {
     let hash = 5381;
@@ -65,10 +66,12 @@ export function tooltip(node, content) {
     });
 }
 
-export function onStateMouseOver(node, d, trajectory, name) {
+export function onStateMouseOver(node, id, trajectory, name) {
     // https://atomiks.github.io/tippyjs/v6/addons/#singleton
     // can improve performance further
     let content = '';
+
+    const d = GlobalStates.get(id);
 
     if (name !== undefined) {
         content += `<b>Run</b>: ${name} `;
@@ -91,9 +94,7 @@ export function onChunkMouseOver(node, d, name) {
         content += `<b>Run</b>: ${name}<br>`;
     }
 
-    content += `<br><b>Timesteps</b>: ${d.timestep} - ${d.last}<br><b>Length</b>: ${
-        d.last - d.timestep + 1
-    }`;
+    content += d.toString();
 
     tooltip(node, content);
 }

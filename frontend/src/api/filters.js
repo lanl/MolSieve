@@ -1,6 +1,7 @@
 import * as d3 from 'd3';
 import axios from 'axios';
 import { mostOccurringElement } from './myutils';
+import GlobalStates from './globalStates';
 
 function apply_classes(selection, classes) {
     if (typeof classes === 'string') {
@@ -299,7 +300,7 @@ function undoFilter(trajectory, svg, filter) {
     }
 }
 
-export function apply_filters(trajectories, runs, globalUniqueStates, ref) {
+export function apply_filters(trajectories, runs, ref) {
     for (const [name, trajectory] of Object.entries(trajectories)) {
         if (Object.keys(runs[name].filters).length > 0) {
             for (const k of Object.keys(runs[name].filters)) {
@@ -317,7 +318,7 @@ export function apply_filters(trajectories, runs, globalUniqueStates, ref) {
                 if (filter.enabled) {
                     if (filter.enabledFor.includes(ref.current.getAttribute('id'))) {
                         trajectory.name = name;
-                        filter.func(trajectory, d3.select(ref.current), globalUniqueStates);
+                        filter.func(trajectory, d3.select(ref.current), GlobalStates);
                     }
                 }
             }

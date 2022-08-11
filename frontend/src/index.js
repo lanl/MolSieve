@@ -9,7 +9,6 @@ import '@fontsource/roboto/700.css';
 import { SnackbarProvider } from 'notistack';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 
-
 const theme = createTheme({
     palette: {
         type: 'light',
@@ -19,23 +18,23 @@ const theme = createTheme({
         secondary: {
             main: '#484848',
         },
-  },
+    },
 });
 
 ReactDOM.render(
-  <React.StrictMode>
-      <ThemeProvider theme={theme}>
-          <SnackbarProvider
-              anchorOrigin={{
-                  vertical: 'bottom',
-                  horizontal: 'left',
-              }}
-          >
-              <App />
-          </SnackbarProvider>
-      </ThemeProvider>
-  </React.StrictMode>,
-  document.getElementById('root'),
+    <React.StrictMode>
+        <ThemeProvider theme={theme}>
+            <SnackbarProvider
+                anchorOrigin={{
+                    vertical: 'bottom',
+                    horizontal: 'left',
+                }}
+            >
+                <App />
+            </SnackbarProvider>
+        </ThemeProvider>
+    </React.StrictMode>,
+    document.getElementById('root')
 );
 
 // If you want to start measuring performance in your app, pass a function
