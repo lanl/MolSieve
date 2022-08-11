@@ -99,7 +99,7 @@ export default function CircularSequence({ trajectories, sx, globalUniqueStates 
                     .outerRadius(scaleR(count) - 10)
             )
             .on('mouseover', function (_, d) {
-                onStateMouseOver(this, globalUniqueStates.get(d.data.stateID), trajectory, name);
+                onStateMouseOver(this, globalUniqueStates.get(d.data.id), trajectory, name);
             })
             .attr('fill', (d) => d.data.individualColor)
             .classed('clickable', true)
@@ -149,61 +149,66 @@ export default function CircularSequence({ trajectories, sx, globalUniqueStates 
         // .attr('stroke', 'black');
     };
 
-    const ref = useTrajectoryChartRender((svg) => {
-        if (height === undefined || width === undefined) {
-            return;
-        }
+    const ref = useTrajectoryChartRender(
+        (svg) => {
+            if (height === undefined || width === undefined) {
+                return;
+            }
 
-        if (!svg.empty()) {
-            svg.selectAll('*').remove();
-        }
+            if (!svg.empty()) {
+                svg.selectAll('*').remove();
+            }
 
-        const container = svg
-            .append('g')
-            .attr('id', 'container')
-            .attr('transform', 'translate(0,0)');
+            const container = svg
+                .append('g')
+                .attr('id', 'container')
+                .attr('transform', 'translate(0,0)');
 
-        const trajectoriesGroup = container
-            .append('g')
-            .attr('transform', `translate(${width / 2}, ${height / 2})`);
+            const trajectoriesGroup = container
+                .append('g')
+                .attr('transform', `translate(${width / 2}, ${height / 2})`);
 
-        const scaleR = d3
-            .scaleRadial()
-            .range([height / 3, height / 2]) // from center of chart to top
-            .domain([0, Object.keys(trajectories).length]);
+            const scaleR = d3
+                .scaleRadial()
+                .range([height / 3, height / 2]) // from center of chart to top
+                .domain([0, Object.keys(trajectories).length]);
 
-        let count = 0;
-        const sortedTraj = getLengthList(trajectories);
+            let count = 0;
+            const sortedTraj = getLengthList(trajectories);
 
-        for (const st of sortedTraj) {
-            const { name } = st;
-            const trajectory = trajectories[name];
-            trajectoriesGroup.append('g').attr('id', `${name}`); // group for this trajectory
+            for (const st of sortedTraj) {
+                const { name } = st;
+                const trajectory = trajectories[name];
+                trajectoriesGroup.append('g').attr('id', `${name}`); // group for this trajectory
 
-            const { simplifiedSequence } = trajectory;
-            const { chunks } = simplifiedSequence;
-            // select all top level chunks from the chunk map
-            const chunkList = Array.from(chunks.values()).filter((d) => d.parentID === undefined);
+                const { simplifiedSequence } = trajectory;
+                const { chunks } = simplifiedSequence;
+                // select all top level chunks from the chunk map
+                const chunkList = Array.from(chunks.values()).filter(
+                    (d) => d.parentID === undefined
+                );
 
-            // render the top level donut initially
-            renderDonut(chunkList, scaleR, trajectory, name, count, svg);
+                // render the top level donut initially
+                renderDonut(chunkList, scaleR, trajectory, name, count, svg);
 
-            count++;
-        }
+                count++;
+            }
 
-        /* const bbox = container.node().getBBox();
+            /* const bbox = container.node().getBBox();
            const vx = bbox.x;
            const vy = bbox.y;
            const vw = bbox.width;
            const vh = bbox.height;
 
            const defaultView = `${vx} ${vy} ${vw} ${vh}`; */
-        zoom = d3.zoom().on('zoom', (e) => {
-            container.attr('transform', e.transform);
-        });
+            zoom = d3.zoom().on('zoom', (e) => {
+                container.attr('transform', e.transform);
+            });
 
-        svg.call(zoom);
-    });
+            svg.call(zoom);
+        },
+        [width, height, trajectories]
+    );
 
     return (
         <Box ref={divRef} sx={sx}>
