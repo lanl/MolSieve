@@ -4,7 +4,7 @@ import * as d3 from 'd3';
 import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
 import { useResize } from '../hooks/useResize';
 import { onStateMouseOver } from '../api/myutils';
-
+import GlobalStates from '../api/globalStates';
 import '../css/vis.css';
 
 const margin = {
@@ -22,7 +22,6 @@ function SelectionVis({
     extents,
     loadingCallback,
     style,
-    globalUniqueStates,
     titleProp,
     sequenceExtent,
     maxStates,
@@ -52,7 +51,7 @@ function SelectionVis({
 
             if (statesSeen.size > 0) {
                 for (const id of statesSeen) {
-                    const state = globalUniqueStates.get(id);
+                    const state = GlobalStates.get(id);
                     for (const seen of state.seenIn) {
                         const traj = trajectories[seen];
                         const timesteps = traj.idToTimestep.get(id);
@@ -138,7 +137,7 @@ function SelectionVis({
                     return colors[d.id % colors.length];
                 })
                 .on('mouseover', function (_, d) {
-                    const state = globalUniqueStates.get(d.id);
+                    const state = GlobalStates.get(d.id);
                     const traj = trajectories[state.seenIn[0]];
                     const timesteps = traj.idToTimestep.get(d.id);
                     if (timesteps.length === 1) {
@@ -160,7 +159,7 @@ function SelectionVis({
                     onStateMouseOver(this, state, trajectories[d.name], d.name);
                 })
                 .on('click', function (_, d) {
-                    setStateClicked(globalUniqueStates.get(d.id));
+                    setStateClicked(GlobalStates.get(d.id));
                 })
                 .classed('clickable', true);
 

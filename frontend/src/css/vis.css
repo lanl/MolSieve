@@ -76,6 +76,7 @@
 
 .ribbon:hover {
   stroke: black;
+  opacity: 1;
 }
 
 .arrowed {    

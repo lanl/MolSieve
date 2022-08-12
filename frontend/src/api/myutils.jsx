@@ -5,6 +5,7 @@ import 'tippy.js/dist/tippy.css';
 import React from 'react';
 import Box from '@mui/material/Box';
 import GlobalStates from './globalStates';
+import 'tippy.js/themes/translucent.css';
 
 export function djb2(str) {
     let hash = 5381;
@@ -57,13 +58,19 @@ export function extractPropertyString(props, d) {
 }
 
 export function tooltip(node, content) {
-    tippy(node, {
+    const settings = {
         allowHTML: true,
-        content,
         arrow: true,
-        maxWidth: 'none',
-        ignoreAttributes: true,
-    });
+        theme: 'translucent',
+        placement: 'auto',
+    };
+
+    if (content) {
+        settings.content = content;
+        //settings.ignoreAttributes = true;
+        return tippy(node, settings);
+    }
+    return tippy(node, settings);
 }
 
 export function onStateMouseOver(node, id, trajectory, name) {
@@ -84,7 +91,8 @@ export function onStateMouseOver(node, id, trajectory, name) {
 
     const propertyString = extractPropertyString(Object.keys(d), d);
     content += `${propertyString}`;
-    tooltip(node, content);
+    const i = tooltip(node, content);
+    i.show();
 }
 
 export function onChunkMouseOver(node, d, name) {

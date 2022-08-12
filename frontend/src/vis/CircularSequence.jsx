@@ -1,4 +1,4 @@
-import { React, useEffect } from 'react';
+import { React, useEffect, useState } from 'react';
 import * as d3 from 'd3';
 
 import Box from '@mui/material/Box';
@@ -7,15 +7,8 @@ import '../css/vis.css';
 
 import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
 import { useResize } from '../hooks/useResize';
-import {
-    onChunkMouseOver,
-    getLengthList,
-    onStateMouseOver,
-    tooltip,
-    withinExtent,
-} from '../api/myutils';
-// import Timestep from '../api/timestep';
-
+import usePrevious from '../hooks/usePrevious';
+import { getLengthList, onStateMouseOver, tooltip, withinExtent } from '../api/myutils';
 /* const margin = {
     top: 35, bottom: 20, left: 25, right: 25,
 }; */
@@ -34,10 +27,11 @@ export default function CircularSequence({
     visibleProp,
 }) {
     const { width, height, divRef } = useResize();
-
+    const [ribbonsHovered, setRibbonsHovered] = useState([]);
+    const [instance, setInstance] = useState([]);
+    const prevInstance = usePrevious(instance);
     const renderDonut = (visible, name, count) => {
         const trajectory = trajectories[name];
-        const { chunks } = trajectory.simplifiedSequence;
 
         // get list of currently visible chunk IDs
         const visibleIDs = visible
@@ -77,7 +71,7 @@ export default function CircularSequence({
             )
             .attr('fill', (d) => trajectory.colorByCluster(d.data))
             .on('mouseover', function (_, d) {
-                onChunkMouseOver(this, d.data, name);
+                // onChunkMouseOver(this, d.data, name);
                 setStateHovered({
                     caller: this,
                     stateID: d.data.id,
@@ -88,16 +82,7 @@ export default function CircularSequence({
             .on('mouseout', () => {
                 setStateHovered(null);
             })
-            /* .on('click', (_, d) => {
-                const newList = visible.filter((b) => d.data.id !== b.id);
-                const childArray = d.data.getChildren();
-
-                const newItems = trajectory.getItems(childArray);
-                for (const i of newItems) {
-                    newList.push(i);
-                }
-                renderDonut(newList, name, count);
-            }) */
+            .attr('data-tippy-content', (d) => d.data.toString())
             .classed('arcs', true)
             .classed('chunk', true)
             .classed('importantChunk', (d) => d.data.important)
@@ -108,7 +93,6 @@ export default function CircularSequence({
             .selectAll('.arcs')
             .data(timestepArcs, (d) => d.data.id);
 
-        console.log(timestepArcs);
         timestepNodes
             .enter()
             .append('path')
@@ -137,6 +121,7 @@ export default function CircularSequence({
             .classed('state', true);
 
         const chords = [];
+        let arcIndex = 0;
         for (let i = 0; i < chunkArcs.length; i++) {
             const d = chunkArcs[i];
             const row = simMatrix[i];
@@ -157,33 +142,30 @@ export default function CircularSequence({
                         id: dj.data.id,
                     },
                     value: v,
+                    id: arcIndex++,
                 };
                 chords.push(chord);
             }
         }
-        const ribbons = d3.select(`#${name}`).append('g').selectAll('.ribbon').data(chords);
+        const ribbons = d3.select(`#${name}`).selectAll('.ribbon').data(chords);
         ribbons
             .enter()
             .append('path')
             .attr('d', d3.ribbon().radius(scaleR(count) - 5))
             .attr('opacity', (d) => d.value)
             .on('mouseover', function (_, d) {
-                const c = chunks.get(d.source.id);
-                setStateHovered({
-                    caller: this,
-                    stateid: d.source.id,
-                    name,
-                    timestep: c.timestep,
-                });
-
-                d3.selectAll('.arcs')
-                    .filter((ad) => d.source.id === ad.data.id || d.target.id === ad.data.id)
-                    .classed('highlightedState', true);
+                setRibbonsHovered([d]);
             })
             .on('mouseout', function () {
-                d3.selectAll('.ribbon,.highlightedState').classed('highlightedState', false);
-                setStateHovered(null);
+                setRibbonsHovered([]);
             })
+            .attr(
+                'data-tippy-content',
+                (d) =>
+                    // `${chunks.get(d.source.id).toString()}
+                    // ${chunks.get(d.target.id).toString()}
+                    `<b>Similarity score:</b> ${d.value.toFixed(2)}`
+            )
             .classed('ribbon', true)
             .attr('fill', 'red');
     };
@@ -256,23 +238,12 @@ export default function CircularSequence({
                     (d) =>
                         d.target.id === stateHovered.stateID || d.source.id === stateHovered.stateID
                 )
-                .classed('highlightedState', true)
-                .attr('opacity', 1);
-
-            /* tooltip(
-                    this,
-                    `${chunks.get(d.source.id).toString()} 
-                     <br>
-                     ${chunks.get(d.target.id).toString()} 
-                     <br> <b>Similarity score:</b> ${d.value}`
-                ); */
-
-            d3.select(ref.current).selectAll('.ribbon:not(.highlightedState').attr('opacity', 0.1);
+                .data();
+            if (ribbons.length > 0) {
+                setRibbonsHovered(ribbons);
+            }
         } else {
-            d3.select(ref.current)
-                .selectAll('.ribbon')
-                .attr('opacity', (d) => d.value);
-
+            setRibbonsHovered([]);
             d3.select(ref.current)
                 .selectAll('.highlightedState')
                 .classed('highlightedState', false);
@@ -280,10 +251,47 @@ export default function CircularSequence({
     }, [stateHovered]);
 
     useEffect(() => {
+        if (ribbonsHovered.length > 0) {
+            const sourceList = ribbonsHovered.map((d) => d.source.id);
+            const targetList = ribbonsHovered.map((d) => d.target.id);
+            const ribbonIDs = ribbonsHovered.map((d) => d.id);
+            const arcs = d3
+                .selectAll('.arcs')
+                .filter((ad) => sourceList.includes(ad.data.id) || targetList.includes(ad.data.id))
+                .classed('highlightedState', true);
+
+            const nodes = d3
+                .selectAll('.ribbon')
+                .filter((d) => ribbonIDs.includes(d.id))
+                .classed('highlightedState', true)
+                .attr('opacity', 1)
+                .nodes();
+
+            setInstance(tooltip([...arcs, ...nodes]));
+            d3.select(ref.current).selectAll('.ribbon:not(.highlightedState').attr('opacity', 0.1);
+        } else {
+            if (prevInstance) prevInstance.forEach((i) => i.hide());
+            d3.select(ref.current)
+                .selectAll('.ribbon')
+                .attr('opacity', (d) => d.value);
+
+            d3.select(ref.current)
+                .selectAll('.arc,.highlightedState')
+                .classed('highlightedState', false);
+        }
+    }, [ribbonsHovered]);
+
+    useEffect(() => {
+        if (prevInstance) prevInstance.forEach((i) => i.hide());
+        instance.forEach((i) => i.show());
+    }, [instance]);
+
+    useEffect(() => {
         if (visibleProp) {
             let count = 0;
             for (const [name, vis] of Object.entries(visibleProp)) {
-                let { sequence, chunkList, extent } = vis;
+                let { sequence, chunkList } = vis;
+                const { extent } = vis;
                 chunkList = chunkList.filter((d) => withinExtent(d, extent));
                 sequence = sequence.filter((d) => withinExtent(d, extent));
 

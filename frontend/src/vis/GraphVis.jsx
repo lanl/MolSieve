@@ -731,7 +731,7 @@ function GraphVis({
 
                 const sSequence = Array.from(sequenceMap.values());
 
-                const links = calculateLinkSet(sSequence, chunkList, trajectory);
+                const links = calculateLinkSet(sequence, chunkList, trajectory);
 
                 for (let i = 0; i < links.length; i++) {
                     const link = links[i];
