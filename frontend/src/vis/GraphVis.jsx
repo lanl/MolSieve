@@ -81,20 +81,12 @@ function GraphVis({
         isHovered
     );
 
-    const [seperateTrajectories, setSeperateTrajectories] = useState(true);
     const [inCommon, setInCommon] = useState([]);
     const [showInCommon, setShowInCommon] = useState(false);
     const [sims, setSims] = useState({});
 
     const toggleShowInCommon = () => {
         setShowInCommon((prev) => !prev);
-    };
-
-    const toggleSeperateTrajectories = () => {
-        setSeperateTrajectories((prev) => !prev);
-        if (seperateTrajectories) {
-            setShowInCommon(false);
-        }
     };
 
     const [showArrows, setArrows] = useState(true);
@@ -231,7 +223,7 @@ function GraphVis({
             .attr('id', (d) => `node_${d.id}`)
             .attr('fill', (d) => trajectory.colorByCluster(d))
             .on('mouseover', function (_, d) {
-                d3.select(this).classed('importantChunkDashedStroke', false);
+                d3.select(this).classed('important', false);
                 setStateHovered({
                     caller: this,
                     stateID: d.id,
@@ -241,15 +233,13 @@ function GraphVis({
                 onChunkMouseOver(this, d, name);
             })
             .on('mouseout', function () {
-                d3.select(this).classed('importantChunkDashedStroke', true);
+                d3.select(this).classed('important', true);
                 setStateHovered(null);
             })
             .classed('chunk', true)
             .classed(name, true)
-            .classed('importantChunk', (d) => d.important)
-            .classed('unimportantChunk', (d) => !d.important)
-            .classed('node', true);
-
+            .classed('important', (d) => d.important)
+            .classed('unimportant', (d) => !d.important);
         chunkData.exit().remove();
 
         const linkData = l.selectAll('path').data(links, (d) => d.id);
@@ -333,10 +323,8 @@ function GraphVis({
                 const chunkData = trajectory.chunks;
                 const { chunkList, sequence } = visible[name];
                 const links = calculateLinkSet(sequence, chunkList, trajectory);
-                console.log('rendering');
 
                 trajectory.name = name;
-                console.log(links);
                 for (const link of links) {
                     const tcIdx =
                         link.target > 0 ? link.target : chunkData.get(link.target).firstID;
@@ -367,13 +355,8 @@ function GraphVis({
                 );
 
                 renderGraph(links, chunkList, sequence, name, trajectory, gts);
-                console.log(chunkList);
                 const ticked = () => {
-                    g.selectAll('.node')
-                        .attr('cx', (d) => d.x)
-                        .attr('cy', (d) => d.y);
-
-                    c.selectAll('.node')
+                    svg.selectAll('circle')
                         .attr('cx', (d) => d.x)
                         .attr('cy', (d) => d.y);
 
@@ -613,12 +596,7 @@ function GraphVis({
 
                 const ticked = () => {
                     d3.select(ref.current)
-                        .selectAll('.state')
-                        .attr('cx', (d) => d.x)
-                        .attr('cy', (d) => d.y);
-
-                    d3.select(ref.current)
-                        .selectAll('.chunk')
+                        .selectAll('circle')
                         .attr('cx', (d) => d.x)
                         .attr('cy', (d) => d.y);
 

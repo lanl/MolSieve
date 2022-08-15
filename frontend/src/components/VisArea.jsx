@@ -119,6 +119,7 @@ class VisArea extends React.Component {
     setVisible = (visible) => {
         this.setState({ visible: { ...visible } });
         // could set up visible here instead of doing it seperately for each vis...
+        // each vis should just return toAdd, toRemove and have this do the math
     };
 
     setStateHovered = (stateInfo) => {

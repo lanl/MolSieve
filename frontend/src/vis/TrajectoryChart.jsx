@@ -22,6 +22,8 @@ import { onStateMouseOver, onChunkMouseOver, withinExtent } from '../api/myutils
 
 import { apply_filters } from '../api/filters';
 
+import GlobalChunks from '../api/globalChunks';
+
 const margin = {
     top: 35,
     bottom: 20,
@@ -140,8 +142,8 @@ function TrajectoryChart({
             })
             .classed('chunk', true)
             .classed(trajectoryName, true)
-            .classed('importantChunk', (d) => d.important)
-            .classed('unimportantChunk', (d) => !d.important)
+            .classed('important', (d) => d.important)
+            .classed('unimportant', (d) => !d.important)
             .classed('breakdown', (d) => d.parentID);
 
         nodes.exit().remove();
@@ -277,7 +279,7 @@ function TrajectoryChart({
 
                     // select all chunks within the viewport
                     const onScreenChunks = chunkGroup
-                        .selectAll('.importantChunk')
+                        .selectAll('.important')
                         .filter((d) => withinExtent(d, xz.domain()));
 
                     const onScreenChunkData = onScreenChunks.nodes().map((chunk) => {

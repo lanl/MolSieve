@@ -67,7 +67,6 @@ export function tooltip(node, content) {
 
     if (content) {
         settings.content = content;
-        //settings.ignoreAttributes = true;
         return tippy(node, settings);
     }
     return tippy(node, settings);

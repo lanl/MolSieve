@@ -1,4 +1,7 @@
+import GlobalChunks from './globalChunks';
+
 const CHUNK = 0;
+
 export default class Chunk {
     timestep;
 
@@ -24,6 +27,7 @@ export default class Chunk {
         this.firstID = firstID;
         this.important = important;
         this.cluster = cluster;
+        this.id = GlobalChunks.generateID();
     }
 
     static withParent(timestep, last, firstID, important, parentID) {

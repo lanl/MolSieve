@@ -45,18 +45,18 @@
     opacity: 0.3;
 }
 
-.importantChunk {
+.important {
     stroke: black;
     stroke-dasharray: 2;
     stroke-dashoffset: 25%;
 }
 
-.importantChunk:hover {
+.important:hover {
     stroke-dasharray: none;
     stroke-dashoffset: none;
 }
 
-.importantChunk.highlightedState {
+.important.highlightedState {
     stroke-dasharray: none;
     stroke-dashoffset: none;
 }
@@ -66,11 +66,11 @@
     stroke-dashoffset: 25%;
 }
 
-.unimportantChunk {
+.unimportant {
     opacity: 0.6;
 }
 
-.unimportantChunk:hover {
+.unimportant:hover {
     stroke: black;
 }
 
