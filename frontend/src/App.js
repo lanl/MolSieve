@@ -40,27 +40,22 @@ class App extends React.Component {
             trajectories: {},
             runs: {},
             loadingMessage: 'Loading...',
-            colors: [
-                ...d3.schemeTableau10,
-                ...d3.schemeAccent,
-                ...d3.schemeSet3,
-                ...d3.schemeTableau10,
-            ],
+            colors: [...d3.schemeTableau10, ...d3.schemeAccent],
             commonList: new Map(),
             properties: [],
         };
     }
 
     toggleModal = (key) => {
-        if (this.state.currentModal) {
+        const { currentModal } = this.state;
+        if (currentModal) {
             this.setState({
-                ...this.state,
                 currentModal: null,
             });
             return;
         }
 
-        this.setState({ ...this.state, currentModal: key });
+        this.setState({ currentModal: key });
     };
 
     selectRun = (v) => {
@@ -189,6 +184,7 @@ class App extends React.Component {
                                     newColors.splice(0, removed);
 
                                     const newRuns = this.initFilters(run, newTrajComplete);
+                                    console.log(newTrajectories);
                                     this.setState({
                                         isLoading: false,
                                         runs: newRuns,
@@ -275,16 +271,16 @@ class App extends React.Component {
     };
 
     toggleDrawer = () => {
-        this.setState({ drawerOpen: !this.state.drawerOpen });
+        this.setState((prevState) => ({ drawerOpen: !prevState.drawerOpen }));
     };
 
     addFilter = (state) => {
-        const { runs } = this.state;
+        const { runs, trajectories } = this.state;
         const run = runs[state.run];
         const { filters } = run;
 
         // get us the ids of all the states in our simplified sequence
-        const stateIds = this.state.trajectories[state.run].uniqueStates;
+        const stateIds = trajectories[state.run].uniqueStates;
         const sequence = stateIds.map((s) => GlobalStates.get(s));
 
         const fb = new FilterBuilder();
@@ -299,17 +295,17 @@ class App extends React.Component {
 
     propagateChange = (filter) => {
         const runs = { ...this.state.runs };
-        const this_filter = runs[filter.run].filters[filter.id];
+        const thisFilter = runs[filter.run].filters[filter.id];
 
         if (filter.options) {
-            this_filter.options = filter.options;
+            thisFilter.options = filter.options;
         }
 
-        this_filter.enabledFor = filter.enabledFor;
+        thisFilter.enabledFor = filter.enabledFor;
 
-        this_filter.enabled = filter.enabled;
+        thisFilter.enabled = filter.enabled;
 
-        runs[filter.run].filters[filter.id] = this_filter;
+        runs[filter.run].filters[filter.id] = thisFilter;
         this.setState({ runs });
     };
 
@@ -319,7 +315,7 @@ class App extends React.Component {
                 <AppBar position="static">
                     <Toolbar>
                         <Typography sx={{ flexGrow: 1 }} variant="h6">
-                            Trajectory Visualization
+                            NeoMDWeb
                         </Typography>
                         <Button
                             color="inherit"

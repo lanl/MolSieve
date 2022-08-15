@@ -20,6 +20,7 @@ import GraphVis from '../vis/GraphVis';
 import Scatterplot from '../vis/Scatterplot';
 import SelectionVis from '../vis/SelectionVis';
 import TrajectoryChart from '../vis/TrajectoryChart';
+import Legend from '../vis/Legend';
 
 import SingleStateModal from '../modals/SingleStateModal';
 import LoadingModal from '../modals/LoadingModal';
@@ -405,6 +406,7 @@ class VisArea extends React.Component {
             <Box sx={sx}>
                 {isLoading && <LoadingModal open={isLoading} title="Rendering..." />}
                 <Box sx={{ flexBasis: '35%' }}>
+                    <Legend trajectories={trajectories} />
                     <Typography color="secondary" align="center" gutterBottom variant="h6">
                         Sequence View
                     </Typography>

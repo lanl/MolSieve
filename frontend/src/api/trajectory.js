@@ -2,6 +2,8 @@ import Chunk from './chunk';
 import Timestep from './timestep';
 import { setIntersection, setUnion } from './myutils';
 
+import GlobalChunks from './globalChunks';
+
 class Trajectory {
     // sequence is an array of ids that indexes into the globalUniqueState array
     sequence;
@@ -21,7 +23,7 @@ class Trajectory {
 
     current_clustering;
 
-    colors = [];
+    reservedColors = [];
 
     raw;
 
@@ -75,14 +77,14 @@ class Trajectory {
 
         if (newClustering > 0) {
             for (let i = 0; i < howMany; i++) {
-                this.colors.push(colorArray[i]);
+                this.reservedColors.push(colorArray[i]);
             }
         }
     }
 
     splitChunks(chunk, split, sizeThreshold, parentID, chunks) {
         const splitChunks = [];
-        let currID = parentID;
+        const currID = parentID;
         const chunkSize = parseInt((chunk.last - chunk.timestep) / split, 10);
         for (let s = 0; s < split; s++) {
             const first = chunk.timestep + s * chunkSize;
@@ -92,13 +94,13 @@ class Trajectory {
                 first,
                 last,
                 this.sequence[first],
-                --currID,
+                GlobalChunks.generateID(),
                 true,
                 parentID
             );
             chunks.set(child.id, child);
             if (child.size > sizeThreshold) {
-                const { children, childSize, newID } = this.splitChunks(
+                const { children, childSize } = this.splitChunks(
                     child,
                     split,
                     sizeThreshold,
@@ -107,11 +109,10 @@ class Trajectory {
                 );
                 child.children = children;
                 child.childSize = childSize;
-                currID = newID;
             }
             splitChunks.push(child.id);
         }
-        return { children: splitChunks, childSize: chunkSize, newID: --currID };
+        return { children: splitChunks, childSize: chunkSize };
     }
 
     simplifySet(chunkingThreshold) {
@@ -120,7 +121,7 @@ class Trajectory {
         const sizeThreshold = 250;
         const epsilon = 0.0001;
         const split = 4;
-        let currID = 0;
+        const currID = GlobalChunks.generateID();
         let lastChunk = Chunk.initEmpty(); // { timestep: null, last: null, id: null };
         for (let timestep = 0; timestep < this.sequence.length; timestep += 1) {
             const id = this.sequence[timestep];
@@ -143,9 +144,9 @@ class Trajectory {
                 lastChunk.last = timestep;
             } else {
                 if (lastChunk.timestep !== null) {
-                    const parentID = currID--;
+                    const parentID = GlobalChunks.generateID();
                     if (lastChunk.important) {
-                        const { children, childSize, newID } = this.splitChunks(
+                        const { children, childSize } = this.splitChunks(
                             lastChunk,
                             split,
                             sizeThreshold,
@@ -154,7 +155,6 @@ class Trajectory {
                         );
                         lastChunk.children = children;
                         lastChunk.childSize = childSize;
-                        currID = newID;
                     }
                     chunks.set(parentID, lastChunk);
                 }
@@ -177,6 +177,7 @@ class Trajectory {
         this.simplifiedSequence = {
             chunks,
         };
+        console.log(chunks);
         this.chunkingThreshold = chunkingThreshold;
     }
 
@@ -188,9 +189,13 @@ class Trajectory {
     set_colors(colorArray) {
         let i = 0;
         for (i; i < Math.max(...this.feasible_clusters); i += 1) {
-            this.colors.push(colorArray[i]);
+            this.reservedColors.push(colorArray[i]);
         }
         return i;
+    }
+
+    get colors() {
+        return this.reservedColors.slice(0, this.current_clustering);
     }
 
     getItems(childArray) {
