@@ -18,17 +18,16 @@ export default class Chunk {
 
     dataType = CHUNK;
 
-    constructor(timestep, last, firstID, id, important, cluster) {
+    constructor(timestep, last, firstID, important, cluster) {
         this.timestep = timestep;
         this.last = last;
         this.firstID = firstID;
-        this.id = id;
         this.important = important;
         this.cluster = cluster;
     }
 
-    static withParent(timestep, last, firstID, id, important, parentID) {
-        const newChunk = new Chunk(timestep, last, firstID, id, important, undefined, parentID);
+    static withParent(timestep, last, firstID, important, parentID) {
+        const newChunk = new Chunk(timestep, last, firstID, important, undefined, parentID);
         newChunk.parentID = parentID;
         return newChunk;
     }

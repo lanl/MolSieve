@@ -41,7 +41,6 @@ class App extends React.Component {
             runs: {},
             loadingMessage: 'Loading...',
             colors: [...d3.schemeTableau10, ...d3.schemeAccent],
-            commonList: new Map(),
             properties: [],
         };
     }
@@ -67,38 +66,38 @@ class App extends React.Component {
 
     removeRun = (v) => {
         const { trajectories } = this.state;
-        delete this.state.trajectories[v];
+        delete trajectories[v];
         this.setState({ trajectories });
     };
 
     /** Wrapper for the backend call in api.js */
-    load_PCCA = (run, clusters, optimal, m_min, m_max, trajectory) => {
+    load_PCCA = (run, clusters, optimal, mMin, mMax, trajectory) => {
         this.setState({
             isLoading: true,
             loadingMessage: `Calculating PCCA for ${run}...`,
         });
 
-        if (m_min === undefined) m_min = 0;
-        if (m_max === undefined) m_max = 0;
+        if (mMin === undefined) mMin = 0;
+        if (mMax === undefined) mMax = 0;
 
-        return api_loadPCCA(run, clusters, optimal, m_min, m_max, trajectory);
+        return api_loadPCCA(run, clusters, optimal, mMin, mMax, trajectory);
     };
 
     /** Wrapper for the backend call in api.js */
-    load_sequence = (run, properties, new_traj) => {
+    load_sequence = (run, properties, newTraj) => {
         this.setState({
             isLoading: true,
             loadingMessage: `Loading sequence for ${run}...`,
         });
-        return api_loadSequence(run, properties, new_traj);
+        return api_loadSequence(run, properties, newTraj);
     };
 
-    load_metadata = (run, new_traj) => {
+    load_metadata = (run, newTraj) => {
         this.setState({
             isLoading: true,
             loadingMessage: `Loading metadata for ${run}...`,
         });
-        return api_load_metadata(run, new_traj);
+        return api_load_metadata(run, newTraj);
     };
 
     /** Function called by the PCCA slider allocated for each run.
@@ -149,56 +148,47 @@ class App extends React.Component {
      * @param {string} run - Which run this trajectory object will correspond to
      * @param {number} clusters - Number of clusters to cluster the trajectory into. Ignored if optimal = 1
      * @param {number} optimal - Whether or not PCCA should try and find the optimal clustering between m_min and m_max
-     * @param {number} m_min - When running optimal clustering, minimal cluster size to try; ignored if optimal = -1
-     * @param {number} m_max - When running optimal clustering, maximum cluster size to try; ignored if optimal = -1
+     * @param {number} mMin - When running optimal clustering, minimal cluster size to try; ignored if optimal = -1
+     * @param {number} mMax - When running optimal clustering, maximum cluster size to try; ignored if optimal = -1
      * @param {Array<String>} properties - Properties of the trajectory to retrieve
      */
-    load_trajectory = (run, clusters, optimal, m_min, m_max, properties, chunkingThreshold) => {
+    load_trajectory = (run, clusters, optimal, mMin, mMax, properties, chunkingThreshold) => {
         this.load_sequence(run, properties)
             .then((data) => {
                 const newTraj = new Trajectory();
                 newTraj.sequence = Uint32Array.from(data.sequence);
                 newTraj.uniqueStates = data.uniqueStates.map((state) => state.id);
 
-                const newUniqueStates = GlobalStates.calculateGlobalUniqueStates(
-                    data.uniqueStates,
-                    run
-                );
+                GlobalStates.calculateGlobalUniqueStates(data.uniqueStates, run);
 
-                this.load_PCCA(run, clusters, optimal, m_min, m_max, newTraj).then(
-                    (newTrajPCCA) => {
-                        this.load_metadata(run, newTrajPCCA).then((newTrajMetadata) => {
-                            api_calculate_idToTimestep(run, newTrajMetadata).then(
-                                (newTrajComplete) => {
-                                    newTrajComplete.set_cluster_info();
-                                    // could be an option
-                                    newTrajComplete.chunkingThreshold = chunkingThreshold;
-                                    newTrajComplete.simplifySet(chunkingThreshold);
-                                    const removed = newTrajComplete.set_colors(this.state.colors);
-                                    const newTrajectories = {
-                                        ...this.state.trajectories,
-                                    };
+                this.load_PCCA(run, clusters, optimal, mMin, mMax, newTraj).then((newTrajPCCA) => {
+                    this.load_metadata(run, newTrajPCCA).then((newTrajMetadata) => {
+                        api_calculate_idToTimestep(run, newTrajMetadata).then((newTrajComplete) => {
+                            newTrajComplete.set_cluster_info();
+                            // could be an option
+                            newTrajComplete.chunkingThreshold = chunkingThreshold;
+                            newTrajComplete.simplifySet(chunkingThreshold);
+                            const removed = newTrajComplete.set_colors(this.state.colors);
+                            const newTrajectories = {
+                                ...this.state.trajectories,
+                            };
 
-                                    newTrajectories[run] = newTrajComplete;
-                                    const newColors = [...this.state.colors];
-                                    newColors.splice(0, removed);
+                            newTrajectories[run] = newTrajComplete;
+                            const newColors = [...this.state.colors];
+                            newColors.splice(0, removed);
 
-                                    const newRuns = this.initFilters(run, newTrajComplete);
-                                    console.log(newTrajectories);
-                                    this.setState({
-                                        isLoading: false,
-                                        runs: newRuns,
-                                        trajectories: newTrajectories,
-                                        colors: newColors,
-                                        properties: [
-                                            ...new Set([...this.state.properties, ...properties]),
-                                        ],
-                                    });
-                                }
-                            );
+                            const newRuns = this.initFilters(run, newTrajComplete);
+                            console.log(newTrajectories);
+                            this.setState({
+                                isLoading: false,
+                                runs: newRuns,
+                                trajectories: newTrajectories,
+                                colors: newColors,
+                                properties: [...new Set([...this.state.properties, ...properties])],
+                            });
                         });
-                    }
-                );
+                    });
+                });
             })
             .catch((e) => {
                 alert(e);

@@ -138,9 +138,12 @@ function TrajectoryChart({
             .on('mouseout', function () {
                 setStateHovered(null);
             })
+            .classed('chunk', true)
+            .classed(trajectoryName, true)
             .classed('importantChunk', (d) => d.important)
             .classed('unimportantChunk', (d) => !d.important)
             .classed('breakdown', (d) => d.parentID);
+
         nodes.exit().remove();
     };
 
@@ -182,6 +185,8 @@ function TrajectoryChart({
             .on('mouseout', function () {
                 setStateHovered(null);
             })
+            .classed(trajectoryName, true)
+            .classed('timestep', true)
             .classed('clickable', true);
 
         newNodes.exit().remove();
@@ -221,8 +226,7 @@ function TrajectoryChart({
             const importantGroup = svg.append('g').attr('id', 'sequence_important');
 
             for (const [name, trajectory] of Object.entries(trajectories)) {
-                const { simplifiedSequence } = trajectory;
-                const { chunks } = simplifiedSequence;
+                const { chunks } = trajectory;
                 trajectory.name = name;
                 visible[name] = {
                     chunkList: Array.from(chunks.values()).filter((d) => d.parentID === undefined),
@@ -346,7 +350,7 @@ function TrajectoryChart({
                     for (const [name, trajectory] of Object.entries(trajectories)) {
                         const { toAdd, toRemove, chunkList, sequence, count } = visible[name];
 
-                        const { chunks } = trajectory.simplifiedSequence;
+                        const { chunks } = trajectory;
 
                         // filter the two sets down
                         const added = [...toAdd];

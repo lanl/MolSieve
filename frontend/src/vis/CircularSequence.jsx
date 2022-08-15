@@ -85,6 +85,7 @@ export default function CircularSequence({
             .attr('data-tippy-content', (d) => d.data.toString())
             .classed('arcs', true)
             .classed('chunk', true)
+            .classed(name, true)
             .classed('importantChunk', (d) => d.data.important)
             .classed('unimportantChunk', (d) => !d.data.important);
 
@@ -117,8 +118,9 @@ export default function CircularSequence({
             })
             .attr('fill', (d) => d.data.individualColor)
             .classed('arcs', true)
+            .classed(name, true)
             .classed('clickable', true)
-            .classed('state', true);
+            .classed('timestep', true);
 
         const chords = [];
         let arcIndex = 0;
@@ -202,8 +204,7 @@ export default function CircularSequence({
                 const trajectory = trajectories[name];
                 trajectoriesGroup.append('g').attr('id', `${name}`); // group for this trajectory
 
-                const { simplifiedSequence } = trajectory;
-                const { chunks } = simplifiedSequence;
+                const { chunks } = trajectory;
                 // select all top level chunks from the chunk map
                 const chunkList = Array.from(chunks.values()).filter(
                     (d) => d.parentID === undefined
@@ -227,7 +228,7 @@ export default function CircularSequence({
     useEffect(() => {
         if (stateHovered) {
             d3.select(ref.current)
-                .selectAll('.arcs')
+                .selectAll(`.arcs,.${stateHovered.name}`)
                 .filter((d) => d.data.id === stateHovered.stateID)
                 .classed('highlightedState', true);
 

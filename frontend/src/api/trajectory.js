@@ -31,8 +31,7 @@ class Trajectory {
 
     LAMMPSBootstrapScript;
 
-    // contains sequence, unique states, chunks, and the links between each object -> should be a seperate object
-    simplifiedSequence;
+    chunks = new Map();
 
     chunkingThreshold;
 
@@ -84,20 +83,13 @@ class Trajectory {
 
     splitChunks(chunk, split, sizeThreshold, parentID, chunks) {
         const splitChunks = [];
-        const currID = parentID;
         const chunkSize = parseInt((chunk.last - chunk.timestep) / split, 10);
         for (let s = 0; s < split; s++) {
             const first = chunk.timestep + s * chunkSize;
             const last = s === split - 1 ? chunk.last : first + chunkSize - 1;
             // new Chunk with parent, no children guaranteed
-            const child = Chunk.withParent(
-                first,
-                last,
-                this.sequence[first],
-                GlobalChunks.generateID(),
-                true,
-                parentID
-            );
+            const child = Chunk.withParent(first, last, this.sequence[first], true, parentID);
+            child.id = GlobalChunks.generateID();
             chunks.set(child.id, child);
             if (child.size > sizeThreshold) {
                 const { children, childSize } = this.splitChunks(
@@ -116,20 +108,21 @@ class Trajectory {
     }
 
     simplifySet(chunkingThreshold) {
+        // reset, we're dealing with a new set of chunks
         const chunks = new Map();
-        //        const simplifiedSequence = [];
         const sizeThreshold = 250;
         const epsilon = 0.0001;
         const split = 4;
-        const currID = GlobalChunks.generateID();
         let lastChunk = Chunk.initEmpty(); // { timestep: null, last: null, id: null };
-        for (let timestep = 0; timestep < this.sequence.length; timestep += 1) {
+        for (let timestep = 0; timestep < this.sequence.length - 1; timestep++) {
             const id = this.sequence[timestep];
+
             let isCurrImportant = true;
             // go through sequence
             // if its above threshold and we've been adding to a chunk, add more, otherwise start a new unimportant chunk
             // below threshold and we've been adding, add more, otherwise start a new important chunk
             // if at least one fuzzy membership is above a threshold, add to lastChunk; i.e its not interesting
+
             if (
                 Math.max(...this.fuzzy_memberships[this.current_clustering][id]) >=
                 chunkingThreshold + epsilon
@@ -156,6 +149,7 @@ class Trajectory {
                         lastChunk.children = children;
                         lastChunk.childSize = childSize;
                     }
+                    lastChunk.id = parentID;
                     chunks.set(parentID, lastChunk);
                 }
                 // new Chunk that will change over time, children not guaranteed
@@ -163,21 +157,17 @@ class Trajectory {
                     timestep,
                     timestep,
                     id,
-                    currID,
                     isCurrImportant,
                     this.idToCluster[id]
                 );
             }
         }
 
-        if (lastChunk.timestep !== null) {
-            chunks.set(currID, lastChunk);
+        if (!chunks.has(lastChunk.id)) {
+            chunks.set(lastChunk.id, lastChunk);
         }
-
-        this.simplifiedSequence = {
-            chunks,
-        };
-        console.log(chunks);
+        console.log(GlobalChunks);
+        this.chunks = chunks;
         this.chunkingThreshold = chunkingThreshold;
     }
 
@@ -208,7 +198,7 @@ class Trajectory {
             }
         } else {
             for (const c of childArray) {
-                newList.push(this.simplifiedSequence.chunks.get(c));
+                newList.push(this.chunks.get(c));
             }
         }
         return newList;
@@ -251,8 +241,9 @@ class Trajectory {
 
     /* Chunk similarity is currently calculated as the size of the intersection of the states between chunks and the size of their union */
     calculateChunkSimilarity(i, j) {
-        const iChunk = this.simplifiedSequence.chunks.get(i);
-        const jChunk = this.simplifiedSequence.chunks.get(j);
+        console.log(i);
+        const iChunk = this.chunks.get(i);
+        const jChunk = this.chunks.get(j);
 
         if (!iChunk.important || !jChunk.important) {
             return 0;
