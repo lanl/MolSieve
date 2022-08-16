@@ -72,16 +72,12 @@ export function tooltip(node, content) {
     return tippy(node, settings);
 }
 
-export function onStateMouseOver(node, id, trajectory, name) {
+export function onStateMouseOver(node, id, trajectory) {
     // https://atomiks.github.io/tippyjs/v6/addons/#singleton
     // can improve performance further
     let content = '';
 
     const d = GlobalStates.get(id);
-
-    if (name !== undefined) {
-        content += `<b>Run</b>: ${name} `;
-    }
 
     if (trajectory !== undefined) {
         const fuzzyMemberships = trajectory.fuzzy_memberships[trajectory.current_clustering][d.id];
@@ -94,12 +90,8 @@ export function onStateMouseOver(node, id, trajectory, name) {
     i.show();
 }
 
-export function onChunkMouseOver(node, d, name) {
+export function onChunkMouseOver(node, d) {
     let content = '';
-
-    if (name !== undefined) {
-        content += `<b>Run</b>: ${name}<br>`;
-    }
 
     content += d.toString();
 

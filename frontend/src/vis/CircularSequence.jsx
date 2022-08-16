@@ -9,7 +9,7 @@ import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
 import { useResize } from '../hooks/useResize';
 import usePrevious from '../hooks/usePrevious';
 import { getLengthList, onStateMouseOver, tooltip, withinExtent } from '../api/myutils';
-import GlobalChunks from '../api/globalChunks';
+// import GlobalChunks from '../api/globalChunks';
 
 let zoom = null;
 let scaleR = null;
@@ -29,7 +29,9 @@ export default function CircularSequence({
     const [instance, setInstance] = useState([]);
     const prevInstance = usePrevious(instance);
 
-    const renderSimilarities = (globalChunks, trajs) => {
+    // globalChunks is an object that contains a list of currently rendered chunks along with their trajectory name
+
+    /*    const renderSimilarities = (globalChunks, trajs) => {
         // get chunk from corresponding trajectory?
         const names = Object.keys(trajs);
         const visibleIDs = globalChunks.map((d) => d.id);
@@ -42,7 +44,7 @@ export default function CircularSequence({
             }
         }
         console.log(globalChunks);
-    };
+    }; */
 
     const renderDonut = (visible, name, count) => {
         const trajectory = trajectories[name];
@@ -220,11 +222,12 @@ export default function CircularSequence({
                 );
 
                 renderDonut(chunkList, name, count);
-
+                globalChunks = [{ name, data: chunkList }, ...globalChunks];
                 count++;
             }
 
-            //renderSimilarities(globalChunks, trajectories);
+            // start here
+            // renderSimilarities(globalChunks, trajectories);
 
             zoom = d3.zoom().on('zoom', (e) => {
                 container.attr('transform', e.transform);

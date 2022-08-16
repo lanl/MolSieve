@@ -1,13 +1,14 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import './css/index.css';
-import App from './App';
 import '@fontsource/roboto/300.css';
 import '@fontsource/roboto/400.css';
 import '@fontsource/roboto/500.css';
 import '@fontsource/roboto/700.css';
 import { SnackbarProvider } from 'notistack';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
+
+import App from './App';
 
 const theme = createTheme({
     palette: {

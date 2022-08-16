@@ -217,19 +217,20 @@ class App extends React.Component {
         return runs;
     };
 
-    setProperties = (properties) => {
+    setProperties = (newProperties) => {
+        const { properties } = this.state;
         // if old has something that new doesn't, there was a removal
-        const removed = this.state.properties.filter((x) => !properties.includes(x));
+        const removed = properties.filter((x) => !newProperties.includes(x));
 
         // if new has something that old doesn't, there was an addition
-        const added = properties.filter((x) => !this.state.properties.includes(x));
+        const added = newProperties.filter((x) => !properties.includes(x));
 
         if (added.length > 0) {
             api_load_property(added[0]).then((data) => {
                 GlobalStates.addPropToStates(data);
-                this.setState({
-                    properties: [...this.state.properties, added[0]],
-                });
+                this.setState((prevState) => ({
+                    properties: [...prevState.properties, added[0]],
+                }));
                 this.props.enqueueSnackbar(`Property ${added[0]} loaded.`);
             });
         } else {
@@ -393,13 +394,4 @@ class App extends React.Component {
         );
     }
 }
-/*                  <h1>Trajectory Visualization</h1>
-                  <h2>powered by React.js</h2>
-                  <p>
-                    Press CTRL to toggle the path selection brush.
-                    Press Z to toggle the zoom brush. Double click
-                    to reset zoom. Press and hold SHIFT to select
-                    multiple paths. Right click to open a context menu.
-                  </p> */
-
 export default withSnackbar(App);

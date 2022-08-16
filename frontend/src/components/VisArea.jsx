@@ -3,20 +3,10 @@ import Box from '@mui/material/Box';
 import Divider from '@mui/material/Divider';
 import Typography from '@mui/material/Typography';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-// import AddCircleIcon from '@mui/icons-material/AddCircle';
 import Accordion from '@mui/material/Accordion';
 import AccordionSummary from '@mui/material/AccordionSummary';
 import AccordionDetails from '@mui/material/AccordionDetails';
-/* import TableContainer from "@mui/material/TableContainer";
-import Table from "@mui/material/Table";
-import TableBody from "@mui/material/TableBody";
-import TableCell from "@mui/material/TableCell";
-import TableHead from "@mui/material/TableHead";
-import TableRow from "@mui/material/TableRow";
 
-import { DataGrid } from "@mui/x-data-grid"; */
-
-import GraphVis from '../vis/GraphVis';
 import Scatterplot from '../vis/Scatterplot';
 import SelectionVis from '../vis/SelectionVis';
 import TrajectoryChart from '../vis/TrajectoryChart';
@@ -27,14 +17,11 @@ import LoadingModal from '../modals/LoadingModal';
 import MultiplePathSelectionModal from '../modals/MultiplePathSelectionModal';
 
 import SubSequenceView from './SubSequenceView';
-// import ButtonWithOpenMenu from "../components/ButtonWithOpenMenu";
-import ScatterGrid from './ScatterGrid';
 
 import '../css/App.css';
 
 import NEBModal from '../modals/NEBModal';
 import RemovableBox from './RemovableBox';
-import CircularSequence from '../vis/CircularSequence';
 
 import GlobalStates from '../api/globalStates';
 
@@ -266,13 +253,13 @@ class VisArea extends React.Component {
     };
 
     // make this generalized
-    deletePlot = (e) => {
+    /* deletePlot = (e) => {
         const { scatterplots } = this.state;
         const plot = e.target.getAttribute('data-value');
         const newScatters = { ...scatterplots };
         delete newScatters[plot];
         this.setState({ scatterplots: newScatters });
-    };
+    }; */
 
     deleteChild = (e) => {
         const key = e.target.getAttribute('data-value');
@@ -302,7 +289,6 @@ class VisArea extends React.Component {
             visibleExtent,
             sequenceExtent,
             isLoading,
-            visible,
             currentModal,
             stateClicked,
             selectedExtents,
@@ -406,25 +392,11 @@ class VisArea extends React.Component {
         return (
             <Box sx={sx}>
                 {isLoading && <LoadingModal open={isLoading} title="Rendering..." />}
-                <Box sx={{ flexBasis: '35%' }}>
+                <Box>
                     <Legend trajectories={trajectories} />
                     <Typography color="secondary" align="center" gutterBottom variant="h6">
                         Sequence View
                     </Typography>
-                    <CircularSequence
-                        sx={{ minHeight: '45%' }}
-                        trajectories={trajectories}
-                        runs={runs}
-                        loadingCallback={this.chartFinishedLoading}
-                        setStateHovered={this.setStateHoveredProp}
-                        setStateClicked={this.setStateClickedProp}
-                        stateHovered={stateHovered}
-                        visibleProp={visible}
-                        setVisible={this.setVisible}
-                        setExtents={this.setExtentsProp}
-                        setSequenceExtent={this.setSequenceExtentProp}
-                        visibleExtent={subSequences[visibleExtent]}
-                    />
                     <TrajectoryChart
                         trajectories={trajectories}
                         runs={runs}
@@ -467,34 +439,6 @@ class VisArea extends React.Component {
                     )}
                 </Box>
 
-                <GraphVis
-                    style={{
-                        sx: { flexBasis: '50%' },
-                        className: 'lightBorder',
-                    }}
-                    trajectories={trajectories}
-                    runs={runs}
-                    setStateHovered={this.setStateHoveredProp}
-                    setStateClicked={this.setStateClickedProp}
-                    loadingCallback={this.chartFinishedLoading}
-                    stateHovered={stateHovered}
-                    visibleProp={visible}
-                    setExtents={this.setExtentsUniqueStatesProp}
-                    visibleExtent={subSequences[visibleExtent]}
-                />
-
-                <ScatterGrid
-                    className="lightBorder"
-                    sx={{ flexBasis: '50%', flexGrow: 0 }}
-                    control={
-                        <Typography color="secondary" align="center" gutterBottom variant="h6">
-                            Scatterplot View
-                        </Typography>
-                    }
-                    deletePlot={this.deletePlot}
-                >
-                    {scplots}
-                </ScatterGrid>
                 {currentModal === SINGLE_STATE_MODAL && (
                     <SingleStateModal
                         open={currentModal === SINGLE_STATE_MODAL}
