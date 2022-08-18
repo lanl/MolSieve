@@ -6,7 +6,7 @@ import '@fontsource/roboto/400.css';
 import '@fontsource/roboto/500.css';
 import '@fontsource/roboto/700.css';
 import { SnackbarProvider } from 'notistack';
-import { ThemeProvider, createTheme } from '@mui/material/styles';
+import { ThemeProvider, createTheme, experimental_sx as sx } from '@mui/material/styles';
 
 import App from './App';
 
@@ -14,10 +14,21 @@ const theme = createTheme({
     palette: {
         type: 'light',
         primary: {
-            main: '#000000',
+            main: '#394043',
         },
         secondary: {
-            main: '#484848',
+            main: '#8C8C8C',
+        },
+    },
+    components: {
+        MuiToolbar: {
+            styleOverrides: {
+                root: sx({
+                    background: '#f8f9f9',
+                    fontColor: '#394043',
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.4)',
+                }),
+            },
         },
     },
 });

@@ -1,7 +1,6 @@
 import React from 'react';
 import './css/App.css';
 import Box from '@mui/material/Box';
-import AppBar from '@mui/material/AppBar';
 import Toolbar from '@mui/material/Toolbar';
 import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
@@ -301,56 +300,65 @@ class App extends React.Component {
     };
 
     render() {
+        const {
+            trajectories,
+            runs,
+            properties,
+            drawerOpen,
+            showRunList,
+            currentModal,
+            run,
+            isLoading,
+            loadingMessage,
+        } = this.state;
         return (
             <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-                <AppBar position="static">
-                    <Toolbar>
-                        <Typography sx={{ flexGrow: 1 }} variant="h6">
-                            NeoMDWeb
-                        </Typography>
+                <Toolbar variant="dense">
+                    <Typography sx={{ flexGrow: 1 }} color="primary" variant="h6">
+                        NeoMDWeb
+                    </Typography>
+                    <Button
+                        color="primary"
+                        ref={this.runListButton}
+                        onClick={() => {
+                            this.setState((prevState) => ({
+                                showRunList: !prevState.showRunList,
+                            }));
+                        }}
+                    >
+                        Manage trajectories
+                    </Button>
+                    {Object.keys(trajectories).length > 0 && (
                         <Button
-                            color="inherit"
-                            ref={this.runListButton}
+                            color="primary"
                             onClick={() => {
-                                this.setState({
-                                    showRunList: !this.state.showRunList,
-                                });
+                                this.toggleDrawer();
                             }}
                         >
-                            Manage trajectories
+                            <MenuIcon />
                         </Button>
-                        {Object.keys(this.state.trajectories).length > 0 && (
-                            <Button
-                                color="inherit"
-                                onClick={() => {
-                                    this.toggleDrawer();
-                                }}
-                            >
-                                <MenuIcon />
-                            </Button>
-                        )}
-                    </Toolbar>
-                </AppBar>
+                    )}
+                </Toolbar>
 
                 <VisArea
                     sx={{ display: 'flex', alignItems: 'stretch', flex: 1 }}
-                    trajectories={this.state.trajectories}
-                    runs={this.state.runs}
-                    properties={this.state.properties}
+                    trajectories={trajectories}
+                    runs={runs}
+                    properties={properties}
                 />
 
-                {Object.keys(this.state.trajectories).length > 0 && (
+                {Object.keys(trajectories).length > 0 && (
                     <ControlDrawer
-                        trajectories={this.state.trajectories}
-                        runs={this.state.runs}
+                        trajectories={trajectories}
+                        runs={runs}
                         updateRun={this.updateRun}
                         recalculateClustering={this.recalculate_clustering}
                         simplifySet={this.simplifySet}
-                        drawerOpen={this.state.drawerOpen}
+                        drawerOpen={drawerOpen}
                         toggleDrawer={this.toggleDrawer}
                         addFilter={this.addFilter}
                         propagateChange={this.propagateChange}
-                        properties={this.state.properties}
+                        properties={properties}
                         setProperties={this.setProperties}
                     />
                 )}
@@ -358,16 +366,15 @@ class App extends React.Component {
                 <AjaxMenu
                     anchorEl={this.runListButton.current}
                     api_call="/api/get_run_list"
-                    open={this.state.showRunList}
-                    clicked={Object.keys(this.state.trajectories)}
+                    open={showRunList}
+                    clicked={Object.keys(trajectories)}
                     handleClose={() => {
                         this.setState({
-                            showRunList: !this.state.showRunList,
-                            anchorEl: null,
+                            showRunList: !showRunList,
                         });
                     }}
                     click={(e, v) => {
-                        this.setState({ showRunList: !this.state.showRunList }, () => {
+                        this.setState({ showRunList: !showRunList }, () => {
                             if (e.target.checked) {
                                 this.selectRun(v);
                             } else {
@@ -377,19 +384,17 @@ class App extends React.Component {
                     }}
                 />
 
-                {this.state.currentModal === RUN_MODAL && (
+                {currentModal === RUN_MODAL && (
                     <LoadRunModal
-                        run={this.state.run}
+                        run={run}
                         runFunc={this.load_trajectory}
-                        isOpen={this.state.currentModal === RUN_MODAL}
+                        isOpen={currentModal === RUN_MODAL}
                         closeFunc={() => this.toggleModal(RUN_MODAL)}
                         onRequestClose={() => this.toggleModal(RUN_MODAL)}
                     />
                 )}
 
-                {this.state.isLoading && (
-                    <LoadingModal open={this.state.isLoading} title={this.state.loadingMessage} />
-                )}
+                {isLoading && <LoadingModal open={isLoading} title={loadingMessage} />}
             </Box>
         );
     }

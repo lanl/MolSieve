@@ -6,6 +6,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import Accordion from '@mui/material/Accordion';
 import AccordionSummary from '@mui/material/AccordionSummary';
 import AccordionDetails from '@mui/material/AccordionDetails';
+import Paper from '@mui/material/Paper';
 
 import Scatterplot from '../vis/Scatterplot';
 import SelectionVis from '../vis/SelectionVis';
@@ -392,23 +393,30 @@ class VisArea extends React.Component {
         return (
             <Box sx={sx}>
                 {isLoading && <LoadingModal open={isLoading} title="Rendering..." />}
-                <Box>
-                    <Legend trajectories={trajectories} />
-                    <Typography color="secondary" align="center" gutterBottom variant="h6">
-                        Sequence View
-                    </Typography>
-                    <TrajectoryChart
-                        trajectories={trajectories}
-                        runs={runs}
-                        loadingCallback={this.chartFinishedLoading}
-                        setStateHovered={this.setStateHoveredProp}
-                        setStateClicked={this.setStateClickedProp}
-                        stateHovered={stateHovered}
-                        setVisible={this.setVisible}
-                        setExtents={this.setExtentsProp}
-                        setSequenceExtent={this.setSequenceExtentProp}
-                        visibleExtent={subSequences[visibleExtent]}
-                    />
+                <Box sx={{ display: 'flex', flexDirection: 'row' }}>
+                    <Box sx={{ display: 'flex', flexBasis: '10%', flexDirection: 'column' }}>
+                        <Typography align="center" gutterBottom color="secondary" variant="h6">
+                            Legend
+                        </Typography>
+                        <Legend trajectories={trajectories} />
+                    </Box>
+                    <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                        <Typography align="center" gutterBottom color="secondary" variant="h6">
+                            Sequence View
+                        </Typography>
+                        <TrajectoryChart
+                            trajectories={trajectories}
+                            runs={runs}
+                            loadingCallback={this.chartFinishedLoading}
+                            setStateHovered={this.setStateHoveredProp}
+                            setStateClicked={this.setStateClickedProp}
+                            stateHovered={stateHovered}
+                            setVisible={this.setVisible}
+                            setExtents={this.setExtentsProp}
+                            setSequenceExtent={this.setSequenceExtentProp}
+                            visibleExtent={subSequences[visibleExtent]}
+                        />
+                    </Box>
                     {subSequenceCharts.length > 0 && (
                         <Accordion defaultExpanded={false} disableGutters>
                             <AccordionSummary expandIcon={<ExpandMoreIcon />}>

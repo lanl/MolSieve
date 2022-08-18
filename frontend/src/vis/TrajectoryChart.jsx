@@ -425,7 +425,7 @@ function TrajectoryChart({
 
             svg.call(zoom);
 
-            xAxis.selectAll('text').style('text-anchor', 'center').attr('transform', 'rotate(-15)');
+            xAxis.selectAll('text').style('text-anchor', 'center').attr('transform', 'rotate(10)');
 
             sBrush = d3
                 .brush()
