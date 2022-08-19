@@ -23,6 +23,7 @@ import { onStateMouseOver, onChunkMouseOver, withinExtent } from '../api/myutils
 import { apply_filters } from '../api/filters';
 
 import GlobalChunks from '../api/globalChunks';
+import EmbeddedChart from './EmbeddedChart';
 
 const margin = {
     top: 35,
@@ -103,6 +104,8 @@ function TrajectoryChart({
     const renderChunks = (data, trajectoryName, count, xScale, yScale) => {
         const trajectory = trajectories[trajectoryName];
 
+        const importantChunks = data.filter((d) => d.important);
+        const unimportantChunks = data.filter((d) => !d.important);
         const nodes = d3
             .select(`#c_${trajectoryName}`)
             .selectAll('rect')
@@ -112,23 +115,13 @@ function TrajectoryChart({
             .enter()
             .append('rect')
             .attr('x', (d) => xScale(d.timestep))
-            .attr('y', (d) => {
-                const impOffset = d.important ? -5 : 0;
-                return yScale(count) + impOffset;
-            })
-            .attr('width', function (d) {
-                return ensureMinWidth(d, xScale);
-            })
-            .attr('height', (d) => {
-                if (d.important) {
-                    return 37.5;
-                }
-                return 25;
-            })
+            .attr('y', yScale(count))
+            .attr('width', (d) => ensureMinWidth(d, xScale))
+            .attr('height', 25)
             .attr('fill', (d) => {
                 return trajectory.colorByCluster(d);
             })
-            .on('mouseover', function (_, d) {
+            /*           .on('mouseover', function (_, d) {
                 onChunkMouseOver(this, d, trajectoryName);
                 setStateHovered({
                     caller: this,
@@ -139,12 +132,32 @@ function TrajectoryChart({
             })
             .on('mouseout', function () {
                 setStateHovered(null);
-            })
+            }) */
             .classed('chunk', true)
             .classed(trajectoryName, true)
-            .classed('important', (d) => d.important)
             .classed('unimportant', (d) => !d.important)
+            .classed('important', (d) => d.important)
             .classed('breakdown', (d) => d.parentID);
+
+        const charts = d3
+            .select(ref.current)
+            .selectAll('.embeddedChart')
+            .data(importantChunks, (d) => d.id)
+            .enter()
+            .append('svg')
+            .attr('chunk', (d) => d.id)
+            .attr('viewBox', (d) => `${[0, 0, ensureMinWidth(d, xScale), 400]}`)
+            .attr('width', (d) => ensureMinWidth(d, xScale))
+            .attr('height', 400)
+            .attr('style', 'border:1px solid black')
+            .attr('x', (d) => xScale(d.timestep))
+            .attr('y', yScale(count))
+            .classed('embeddedChart', true);
+
+        charts.nodes().map((svg) => {
+            const node = d3.select(svg);
+            EmbeddedChart(node, parseInt(node.attr('chunk'), 10), trajectory);
+        });
 
         nodes.exit().remove();
     };
@@ -213,6 +226,9 @@ function TrajectoryChart({
                 }
             }
 
+            // scale such that unimportant chunks get minimal space & important chunks get maximum space
+            // important chunks take up 90% of the space and split it amongst themselves
+            // unimportant chunks split the remaining 10%
             const scaleX = d3
                 .scaleLinear()
                 .range([margin.left, width - margin.right])
@@ -267,7 +283,7 @@ function TrajectoryChart({
 
             zoom = d3
                 .zoom()
-                .scaleExtent([1, Infinity])
+                .scaleExtent([1, 1])
                 .translateExtent([
                     [0, margin.top],
                     [width, height - margin.bottom],
@@ -406,7 +422,7 @@ function TrajectoryChart({
                     xAxis
                         .selectAll('text')
                         .style('text-anchor', 'center')
-                        .attr('transform', 'rotate(-15)');
+                        .attr('transform', 'rotate(10)');
 
                     chunkGroup
                         .selectAll('rect')
@@ -509,7 +525,6 @@ function TrajectoryChart({
                     .classed('highlightedStates', true);
             }
 
-            // needs to be !== null and undefined in case timestep === 0
             if (stateHovered.timestep !== null && stateHovered.timestep !== undefined) {
                 d3.select(ref.current)
                     .selectAll('rect:not(.invisible)')
@@ -564,9 +579,10 @@ function TrajectoryChart({
         }
     }, [visibleExtent]);
 
+    // can't be hardcoded style ie flexGrow, need to set this outside
     return (
         <>
-            <Box ref={divRef}>
+            <Box sx={{ flexGrow: 1 }} ref={divRef}>
                 <svg
                     className="vis"
                     onContextMenu={toggleMenu}

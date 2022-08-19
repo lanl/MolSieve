@@ -49,6 +49,7 @@
     stroke: black;
     stroke-dasharray: 2;
     stroke-dashoffset: 25%;
+    color: white;
 }
 
 .important:hover {
@@ -85,4 +86,11 @@
 
 .vis {
     display:'inline-block';
+}
+
+.embeddedChart {
+    border: 1px;
+    position: absolute;
+    z-index:9999;
+    background-color: red;
 }

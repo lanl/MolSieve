@@ -235,6 +235,15 @@ class Trajectory {
         return ids;
     }
 
+    getChunkStatesNotUnique(chunk) {
+        const { timesteps } = chunk;
+        const ids = [];
+        for (let i = 0; i < timesteps.length; i++) {
+            ids.push(this.sequence[timesteps[i]]);
+        }
+        return ids;
+    }
+
     /* Colors an entity based on its cluster identifier (for chunks, its id; for timesteps, its stateID)
      * Will probably change to id once the mess with chunks / states is sorted
      */
