@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect } from 'react';
 
 export default function (key, action, isHovered) {
     useEffect(() => {
@@ -7,7 +7,7 @@ export default function (key, action, isHovered) {
                 if (e.key === key) action();
             }
         }
-        if(isHovered) {
+        if (isHovered) {
             window.addEventListener('keydown', onKeydown);
         } else {
             window.removeEventListener('keydown', onKeydown);

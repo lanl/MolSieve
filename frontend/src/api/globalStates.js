@@ -1,3 +1,5 @@
+import State from './state';
+
 class GlobalStates {
     map = new Map();
 
@@ -28,8 +30,9 @@ class GlobalStates {
                 previous.seenIn = [...previous.seenIn, run];
                 this.map.set(s.id, Object.assign(previous, s));
             } else {
-                s.seenIn = [run];
-                this.map.set(s.id, s);
+                const state = new State(s.id);
+                state.seenIn = [run];
+                this.map.set(state.id, Object.assign(state, s));
             }
         }
     };

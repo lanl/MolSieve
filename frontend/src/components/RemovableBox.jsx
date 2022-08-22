@@ -1,26 +1,28 @@
-import {React, forwardRef} from 'react';
+import { React, forwardRef } from 'react';
 import Box from '@mui/material/Box';
-import Button from '@mui/material/Box';
+import Button from '@mui/material/Button';
 
-// onClick - fn that wants the array + id of the child to remove 
-const RemovableBox = forwardRef(function RemovableBox({children, childID, deleteChild, childType, onClick}, ref) {
-    return (<Box
-                onClick={onClick}
-                ref={ref}
+// onClick - fn that wants the array + id of the child to remove
+const RemovableBox = forwardRef(function RemovableBox(
+    { children, childID, deleteChild, childType, onClick },
+    ref
+) {
+    return (
+        <Box onClick={onClick} ref={ref}>
+            <Button
+                sx={{ float: 'left' }}
+                data-value={`${childID}`}
+                data-type={`${childType}`}
+                color="secondary"
+                onClick={(e) => {
+                    deleteChild(e);
+                }}
             >
-                <Button
-
-                    sx={{ float: "left" }}
-                    data-value={`${childID}`}
-                    data-type={`${childType}`}
-                    color="secondary"
-                    onClick={(e) => {
-                        deleteChild(e);
-                    }}>
-                    X
-                </Button>
-                {children}
-            </Box>);
+                X
+            </Button>
+            {children}
+        </Box>
+    );
 });
 
 export default RemovableBox;

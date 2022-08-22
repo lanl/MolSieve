@@ -6,11 +6,11 @@ import MenuItem from '@mui/material/MenuItem';
 import FormControl from '@mui/material/FormControl';
 import Select from '@mui/material/Select';
 import FormHelperText from '@mui/material/FormHelperText';
-import Box from '@mui/material/Box';
+
+import GlobalStates from '../api/globalStates';
+
 import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
 import { useContextMenu } from '../hooks/useContextMenu';
-import { useResize } from '../hooks/useResize';
-import { useHover } from '../hooks/useHover';
 
 import { onStateMouseOver } from '../api/myutils';
 import { apply_filters } from '../api/filters';
@@ -26,7 +26,6 @@ let sBrush = null;
 let individualSelectionMode = false;
 
 export default function Scatterplot({
-    globalUniqueStates,
     sequence,
     trajectories,
     loadingCallback,
@@ -38,7 +37,6 @@ export default function Scatterplot({
     setStateClicked,
     setStateHovered,
     setExtents,
-    sx,
     properties,
     xAttributeProp = properties[0],
     yAttributeProp = properties[1],
@@ -47,10 +45,11 @@ export default function Scatterplot({
     enableMenu = true,
     path = false,
     visibleExtent,
+    width,
+    height,
+    isHovered,
 }) {
     const { contextMenu, toggleMenu } = useContextMenu();
-    const { width, height, divRef } = useResize();
-
     const [xAttribute, setXAttribute] = useState(xAttributeProp);
     const [yAttribute, setYAttribute] = useState(yAttributeProp);
 
@@ -68,8 +67,6 @@ export default function Scatterplot({
             d3.select(ref.current).append('g').attr('class', 'brush').call(sBrush);
         }
     };
-
-    const isHovered = useHover(divRef);
 
     useKeyDown('Shift', selectionBrush, isHovered);
     useKeyUp('Shift', completeSelection, isHovered);
@@ -95,24 +92,27 @@ export default function Scatterplot({
 
     const useAttributeList = (setAttributeList, attribute, attributeListProp) => {
         useEffect(() => {
-            const ids = sequence.map((s) => {
-                return s.id;
-            });
-
-            const uniqueStates = ids.map((id) => {
-                return globalUniqueStates.get(id);
+            const uniqueStates = sequence.map((i) => {
+                return GlobalStates.get(i);
             });
 
             if (attributeListProp === null || attributeListProp === undefined) {
-                setAttributeList(
-                    uniqueStates.map((s) => {
-                        return s[attribute];
-                    })
-                );
+                if (attribute === 'timestep') {
+                    const timesteps = sequence.map((_, i) => {
+                        return i;
+                    });
+                    setAttributeList(timesteps);
+                } else {
+                    setAttributeList(
+                        uniqueStates.map((s) => {
+                            return s[attribute];
+                        })
+                    );
+                }
             } else {
                 setAttributeList(attributeListProp);
             }
-        }, [globalUniqueStates, attribute, sequence]);
+        }, [GlobalStates, attribute, sequence]);
     };
 
     useAttributeList(setXAttributeList, xAttribute, xAttributeListProp);
@@ -138,14 +138,13 @@ export default function Scatterplot({
 
     const ref = useTrajectoryChartRender(
         (svg) => {
-            if (height === undefined || width === undefined) {
-                return;
-            }
-
             if (!svg.empty()) {
                 svg.selectAll('*').remove();
             }
 
+            if (xAttributeList === null || yAttributeList === null) {
+                return;
+            }
             // let reverse = data.reverse;
             // let title = data.title;
             // const colors = trajectory.colors;
@@ -177,15 +176,15 @@ export default function Scatterplot({
                 yScaleFunction = d3.scaleLinear;
             }
 
-            const scale_x = xScaleFunction()
+            const scaleX = xScaleFunction()
                 .range([margin.left + 5, width - margin.right])
-                .domain([xtent[0], xtent[1]]);
+                .domain(xtent);
 
-            const scale_y = yScaleFunction()
+            const scaleY = yScaleFunction()
                 .range([height - margin.bottom - 5, margin.top])
-                .domain([ytent[first], ytent[last]]);
+                .domain(ytent);
 
-            const g = svg.append('g');
+            const g = svg.append('g').attr('transform', 'translate(0,0)');
 
             if (trajectoryName !== undefined) {
                 g.attr('id', `g_${trajectoryName}`);
@@ -197,23 +196,16 @@ export default function Scatterplot({
                 .enter()
                 .append('rect')
                 .attr('x', function (_, i) {
-                    return scale_x(xAttributeList[i]);
+                    return scaleX(xAttributeList[i]);
                 })
                 .attr('y', function (_, i) {
-                    return scale_y(yAttributeList[i]);
+                    return scaleY(yAttributeList[i]);
                 })
                 .attr('width', 5)
                 .attr('height', 5)
                 .attr('fill', function (d) {
-                    const state = globalUniqueStates.get(d.id);
-                    let traj = null;
-                    if (trajectoryName) {
-                        traj = trajectories[trajectoryName];
-                    } else {
-                        traj = trajectories[state.seenIn[0]];
-                    }
-
-                    return traj.colors[traj.idToCluster[d.id]];
+                    const state = GlobalStates.get(d);
+                    return state.individualColor;
                 })
                 .attr('display', function (_, i) {
                     if (xAttributeList[i] === undefined || yAttributeList[i] === undefined) {
@@ -232,7 +224,7 @@ export default function Scatterplot({
                             { name: trajectoryName, states: [d] },
                         ]);
                     } else {
-                        setStateClicked(globalUniqueStates.get(d.id));
+                        setStateClicked(d);
                     }
                 });
             }
@@ -240,10 +232,10 @@ export default function Scatterplot({
             if (setStateHovered) {
                 points
                     .on('mouseover', function (_, d) {
-                        onStateMouseOver(this, globalUniqueStates.get(d.id));
-                        const state = globalUniqueStates.get(d.id);
+                        onStateMouseOver(this, d);
+                        const state = GlobalStates.get(d);
                         const traj = trajectories[state.seenIn[0]];
-                        const timesteps = traj.idToTimestep.get(d.id);
+                        const timesteps = traj.idToTimestep.get(d);
                         if (timesteps.length === 1) {
                             setStateHovered({
                                 caller: this,
@@ -265,7 +257,7 @@ export default function Scatterplot({
                     });
             } else {
                 points.on('mouseover', function (_, d) {
-                    onStateMouseOver(this, globalUniqueStates.get(d.id));
+                    onStateMouseOver(this, d.id);
                 });
             }
 
@@ -278,8 +270,8 @@ export default function Scatterplot({
 
                 const line = d3
                     .line()
-                    .x((d) => scale_x(d.x))
-                    .y((d) => scale_y(d.y))
+                    .x((d) => scaleX(d.x))
+                    .y((d) => scaleY(d.y))
                     .curve(d3.curveCatmullRom.alpha(0.5));
 
                 svg.append('path')
@@ -298,8 +290,8 @@ export default function Scatterplot({
                 .call(
                     d3
                         .axisBottom()
-                        .scale(scale_x)
-                        .tickValues(scale_x.ticks().filter((tick) => Number.isInteger(tick)))
+                        .scale(scaleX)
+                        .tickValues(scaleX.ticks().filter((tick) => Number.isInteger(tick)))
                         .tickFormat(d3.format('d'))
                 );
 
@@ -307,7 +299,7 @@ export default function Scatterplot({
 
             svg.append('g')
                 .attr('transform', `translate(${yAxisPos},0)`)
-                .call(d3.axisLeft().scale(scale_y));
+                .call(d3.axisLeft().scale(scaleY));
 
             if (title === undefined || title === null) {
                 title = '';
@@ -332,8 +324,8 @@ export default function Scatterplot({
                     d3.select(ref.current)
                         .selectAll('rect')
                         .filter(function (_, i) {
-                            const x = scale_x(xAttributeList[i]);
-                            const y = scale_y(yAttributeList[i]);
+                            const x = scaleX(xAttributeList[i]);
+                            const y = scaleY(yAttributeList[i]);
 
                             return x0 <= x && x < x1 && y0 <= y && y < y1;
                         })
@@ -345,8 +337,8 @@ export default function Scatterplot({
                         .select(ref.current)
                         .selectAll('rect')
                         .filter(function (_, i) {
-                            const x = scale_x(xAttributeList[i]);
-                            const y = scale_y(yAttributeList[i]);
+                            const x = scaleX(xAttributeList[i]);
+                            const y = scaleY(yAttributeList[i]);
 
                             return x0 <= x && x < x1 && y0 <= y && y < y1;
                         })
@@ -389,7 +381,7 @@ export default function Scatterplot({
 
     useEffect(() => {
         if (ref && ref.current && trajectoryName !== undefined) {
-            apply_filters(trajectories, runs, globalUniqueStates, ref);
+            apply_filters(trajectories, runs, ref);
         }
 
         if (loadingCallback !== undefined) {
@@ -412,17 +404,17 @@ export default function Scatterplot({
             }
         }
     }, [visibleExtent]);
-
     return (
         <>
-            <Box ref={divRef} sx={sx}>
-                <svg
-                    ref={ref}
-                    onContextMenu={toggleMenu}
-                    className="vis"
-                    viewBox={[0, 0, width, height]}
-                />
-            </Box>
+            <svg
+                ref={ref}
+                id={id}
+                className="vis"
+                onContextMenu={toggleMenu}
+                viewBox={[0, 0, width, height]}
+                width={width}
+                height={height}
+            />
             {enableMenu && (
                 <Menu
                     open={contextMenu !== null}

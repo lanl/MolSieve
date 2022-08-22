@@ -12,6 +12,7 @@ import Scatterplot from '../vis/Scatterplot';
 import SelectionVis from '../vis/SelectionVis';
 import TrajectoryChart from '../vis/TrajectoryChart';
 import Legend from '../vis/Legend';
+import ChartBox from './ChartBox';
 
 import SingleStateModal from '../modals/SingleStateModal';
 import LoadingModal from '../modals/LoadingModal';
@@ -404,18 +405,25 @@ class VisArea extends React.Component {
                         <Typography align="center" gutterBottom color="secondary" variant="h6">
                             Sequence View
                         </Typography>
-                        <TrajectoryChart
-                            trajectories={trajectories}
-                            runs={runs}
-                            loadingCallback={this.chartFinishedLoading}
-                            setStateHovered={this.setStateHoveredProp}
-                            setStateClicked={this.setStateClickedProp}
-                            stateHovered={stateHovered}
-                            setVisible={this.setVisible}
-                            setExtents={this.setExtentsProp}
-                            setSequenceExtent={this.setSequenceExtentProp}
-                            visibleExtent={subSequences[visibleExtent]}
-                        />
+                        <ChartBox sx={{ flexGrow: 1 }}>
+                            {(width, height, isHovered) => (
+                                <TrajectoryChart
+                                    width={width}
+                                    height={height}
+                                    isHovered={isHovered}
+                                    trajectories={trajectories}
+                                    runs={runs}
+                                    loadingCallback={this.chartFinishedLoading}
+                                    setStateHovered={this.setStateHoveredProp}
+                                    setStateClicked={this.setStateClickedProp}
+                                    stateHovered={stateHovered}
+                                    setVisible={this.setVisible}
+                                    setExtents={this.setExtentsProp}
+                                    setSequenceExtent={this.setSequenceExtentProp}
+                                    visibleExtent={subSequences[visibleExtent]}
+                                />
+                            )}
+                        </ChartBox>
                     </Box>
                     {subSequenceCharts.length > 0 && (
                         <Accordion defaultExpanded={false} disableGutters>

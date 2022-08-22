@@ -6,6 +6,7 @@ import ListItemText from '@mui/material/ListItemText';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import Checkbox from '@mui/material/Checkbox';
 import Box from '@mui/material/Box';
+import Paper from '@mui/material/Paper';
 import Timestep from '../api/timestep';
 
 import useKeyUp from '../hooks/useKeyUp';
@@ -14,16 +15,13 @@ import { useExtents } from '../hooks/useExtents';
 
 import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
 import { useContextMenu } from '../hooks/useContextMenu';
-import { useResize } from '../hooks/useResize';
-import { useHover } from '../hooks/useHover';
 
 import '../css/vis.css';
 import { onStateMouseOver, onChunkMouseOver, withinExtent } from '../api/myutils';
 
 import { apply_filters } from '../api/filters';
 
-import GlobalChunks from '../api/globalChunks';
-import EmbeddedChart from './EmbeddedChart';
+import Scatterplot from './Scatterplot';
 
 const margin = {
     top: 35,
@@ -58,54 +56,23 @@ function TrajectoryChart({
     setVisible,
     setSequenceExtent,
     visibleExtent,
+    width,
+    height,
+    isHovered,
 }) {
     const { contextMenu, toggleMenu } = useContextMenu();
-    const { width, height, divRef } = useResize();
 
     const [stateHighlight, setStateHighlight] = useState(false);
+
+    const [charts, setCharts] = useState([]);
 
     const toggleStateHighlight = () => {
         setStateHighlight((prev) => !prev);
     };
 
-    const selectionBrush = () => {
-        if (sBrush != null) {
-            d3.select(ref.current).append('g').attr('class', 'brush').call(sBrush);
-        }
-    };
-
-    const { setInternalExtents, completeSelection } = useExtents(setExtents, () => {
-        d3.select(ref.current).call(zoom);
-    });
-
-    const isHovered = useHover(divRef);
-    useKeyDown('Shift', selectionBrush, isHovered);
-    useKeyUp('Shift', completeSelection, isHovered);
-
-    const toggleIndividualSelectionMode = () => {
-        individualSelectionMode = !individualSelectionMode;
-        if (individualSelectionMode) {
-            d3.select(ref.current)
-                .selectAll('.currentSelection')
-                .classed('currentSelection', false);
-        }
-    };
-
-    useKeyDown('Control', toggleIndividualSelectionMode, isHovered);
-    useKeyUp(
-        'Control',
-        function () {
-            completeSelection();
-            toggleIndividualSelectionMode();
-        },
-        isHovered
-    );
-
     const renderChunks = (data, trajectoryName, count, xScale, yScale) => {
         const trajectory = trajectories[trajectoryName];
 
-        const importantChunks = data.filter((d) => d.important);
-        const unimportantChunks = data.filter((d) => !d.important);
         const nodes = d3
             .select(`#c_${trajectoryName}`)
             .selectAll('rect')
@@ -121,7 +88,7 @@ function TrajectoryChart({
             .attr('fill', (d) => {
                 return trajectory.colorByCluster(d);
             })
-            /*           .on('mouseover', function (_, d) {
+            .on('mouseover', function (_, d) {
                 onChunkMouseOver(this, d, trajectoryName);
                 setStateHovered({
                     caller: this,
@@ -132,34 +99,50 @@ function TrajectoryChart({
             })
             .on('mouseout', function () {
                 setStateHovered(null);
-            }) */
+            })
             .classed('chunk', true)
             .classed(trajectoryName, true)
             .classed('unimportant', (d) => !d.important)
             .classed('important', (d) => d.important)
             .classed('breakdown', (d) => d.parentID);
+        nodes.exit().remove();
+    };
 
-        const charts = d3
-            .select(ref.current)
-            .selectAll('.embeddedChart')
-            .data(importantChunks, (d) => d.id)
-            .enter()
-            .append('svg')
-            .attr('chunk', (d) => d.id)
-            .attr('viewBox', (d) => `${[0, 0, ensureMinWidth(d, xScale), 400]}`)
-            .attr('width', (d) => ensureMinWidth(d, xScale))
-            .attr('height', 400)
-            .attr('style', 'border:1px solid black')
-            .attr('x', (d) => xScale(d.timestep))
-            .attr('y', yScale(count))
-            .classed('embeddedChart', true);
-
-        charts.nodes().map((svg) => {
-            const node = d3.select(svg);
-            EmbeddedChart(node, parseInt(node.attr('chunk'), 10), trajectory);
+    const renderCharts = (data, trajectoryName, count, scaleX, scaleY) => {
+        const newCharts = data.map((chunk) => {
+            const w = ensureMinWidth(chunk, scaleX);
+            const trajectory = trajectories[trajectoryName];
+            const h = 400;
+            return (
+                <foreignObject
+                    key={`chart_${chunk.id}`}
+                    x={scaleX(chunk.timestep)}
+                    y={scaleY(count)}
+                    width={w}
+                    height={h}
+                >
+                    <Box component={Paper} border={1} height={h - 5} width={w - 5}>
+                        <Scatterplot
+                            sequence={trajectory.getChunkStatesNotUnique(chunk)}
+                            properties={['timestep', 'id']}
+                            width={w - 5}
+                            height={h - 5}
+                            position={{ x: scaleX(chunk.timestep), y: scaleY(count) }}
+                            trajectories={trajectories}
+                            trajectoryName={trajectoryName}
+                            setStateHovered={setStateHovered}
+                            setStateClicked={setStateClicked}
+                            stateHovered={stateHovered}
+                            runs={runs}
+                            id={chunk.id}
+                            isHovered={false}
+                        />
+                    </Box>
+                </foreignObject>
+            );
         });
 
-        nodes.exit().remove();
+        setCharts([...charts, newCharts]);
     };
 
     const renderStates = (data, trajectoryName, count, scaleX, scaleY) => {
@@ -215,6 +198,7 @@ function TrajectoryChart({
             // clear so we don't draw over-top and cause insane lag
             if (!svg.empty()) {
                 svg.selectAll('*').remove();
+                setCharts([]);
             }
 
             let y = 0;
@@ -262,6 +246,9 @@ function TrajectoryChart({
                 tickNames.push(name);
 
                 renderChunks(chunkList, name, y, scaleX, scaleY);
+
+                const importantChunks = chunkList.filter((d) => d.important);
+                renderCharts(importantChunks, name, y, scaleX, scaleY);
 
                 for (const c of chunkList) {
                     kList.set(c.id, 1);
@@ -503,6 +490,38 @@ function TrajectoryChart({
         [width, height, trajectories]
     );
 
+    const selectionBrush = () => {
+        if (sBrush != null) {
+            d3.select(ref.current).append('g').attr('class', 'brush').call(sBrush);
+        }
+    };
+
+    const { setInternalExtents, completeSelection } = useExtents(setExtents, () => {
+        d3.select(ref.current).call(zoom);
+    });
+
+    useKeyDown('Shift', selectionBrush, isHovered);
+    useKeyUp('Shift', completeSelection, isHovered);
+
+    const toggleIndividualSelectionMode = () => {
+        individualSelectionMode = !individualSelectionMode;
+        if (individualSelectionMode) {
+            d3.select(ref.current)
+                .selectAll('.currentSelection')
+                .classed('currentSelection', false);
+        }
+    };
+
+    useKeyDown('Control', toggleIndividualSelectionMode, isHovered);
+    useKeyUp(
+        'Control',
+        function () {
+            completeSelection();
+            toggleIndividualSelectionMode();
+        },
+        isHovered
+    );
+
     useEffect(() => {
         if (ref !== undefined && ref.current !== undefined) {
             apply_filters(trajectories, runs, ref);
@@ -582,16 +601,16 @@ function TrajectoryChart({
     // can't be hardcoded style ie flexGrow, need to set this outside
     return (
         <>
-            <Box sx={{ flexGrow: 1 }} ref={divRef}>
-                <svg
-                    className="vis"
-                    onContextMenu={toggleMenu}
-                    id="sequence"
-                    ref={ref}
-                    preserveAspectRatio="none"
-                    viewBox={[0, 0, width, height]}
-                />
-            </Box>
+            <svg
+                className="vis"
+                onContextMenu={toggleMenu}
+                id="sequence"
+                ref={ref}
+                preserveAspectRatio="none"
+                viewBox={[0, 0, width, height]}
+            >
+                {charts}
+            </svg>
             <Menu
                 open={contextMenu !== null}
                 onClose={toggleMenu}

@@ -1,5 +1,4 @@
-import * as d3 from 'd3';
-import GlobalStates from '../api/globalStates';
+import React from 'react';
 
 const margin = {
     top: 10,
@@ -15,21 +14,14 @@ const border = {
     right: 10,
 };
 
-const scheme = [
-    '#1b9e77',
-    '#d95f02',
-    '#7570b3',
-    '#e7298a',
-    '#66a61e',
-    '#e6ab02',
-    '#a6761d',
-    '#666666',
-];
+/* This component is intended to allow embedding svgs within svgs as React components */
 
-export default function EmbeddedChart(svg, chunkID, trajectory) {
-    const width = parseFloat(svg.attr('width'));
+export default function EmbeddedChart({ data, dimensions, position, renderFunction }) {
+    /* const width = parseFloat(svg.attr('width'));
     const height = parseFloat(svg.attr('height'));
 
+
+    
     const { chunks } = trajectory;
 
     const chunk = chunks.get(chunkID);
@@ -67,5 +59,11 @@ export default function EmbeddedChart(svg, chunkID, trajectory) {
         .attr('y', (d) => scaleY(d.id))
         .attr('fill', (d) => scheme[d.id % scheme.length])
         .attr('width', 5)
-        .attr('height', 5);
+        .attr('height', 5); */
+
+    return (
+        <svg width={dimensions.width} height={dimensions.height} x={position.x} y={position.y}>
+            <rect fill="red" x={0} y={0} width={dimensions.width} height={dimensions.height} />
+        </svg>
+    );
 }
