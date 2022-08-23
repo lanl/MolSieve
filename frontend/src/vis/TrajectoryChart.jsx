@@ -77,7 +77,7 @@ function TrajectoryChart({
         function getX(i, w) {
             if (i > 0) {
                 const d = data[i - 1];
-                const wl = xScale(getWidthScale(d)(d.size));
+                const wl = xScale(getWidthScale(d));
                 return getX(i - 1, w + wl);
             }
             return w;
@@ -86,9 +86,10 @@ function TrajectoryChart({
         nodes
             .enter()
             .append('rect')
+            .attr('id', (d) => `c_${d.id}`)
             .attr('x', (_, i) => getX(i, 0))
             .attr('y', yScale(count))
-            .attr('width', (d) => xScale(getWidthScale(d)(d.size)))
+            .attr('width', (d) => xScale(getWidthScale(d)))
             .attr('height', 25)
             .attr('fill', (d) => {
                 return trajectory.colorByCluster(d);
@@ -114,16 +115,33 @@ function TrajectoryChart({
         nodes.exit().remove();
     };
 
-    const renderCharts = (data, trajectoryName, count, scaleX, scaleY) => {
+    const renderCharts = (
+        data,
+        trajectoryName,
+        count,
+        scaleX,
+        scaleY,
+        getWidthScale,
+        visibleChunks
+    ) => {
+        function getX(i, w) {
+            if (i > 0) {
+                const d = visibleChunks[i - 1];
+                const wl = scaleX(getWidthScale(d));
+                return getX(i - 1, w + wl);
+            }
+            return w;
+        }
+
         const newCharts = data.map((chunk) => {
-            const w = ensureMinWidth(chunk, scaleX);
+            const w = scaleX(getWidthScale(chunk));
             const trajectory = trajectories[trajectoryName];
             const h = 400;
 
             return (
                 <foreignObject
                     key={`chart_${chunk.id}`}
-                    x={scaleX(chunk.timestep)}
+                    x={getX(visibleChunks.indexOf(chunk), 0)}
                     y={scaleY(count)}
                     width={w}
                     height={h}
@@ -135,7 +153,6 @@ function TrajectoryChart({
                                 properties={['timestep', 'id']}
                                 width={ww}
                                 height={hh}
-                                position={{ x: scaleX(chunk.timestep), y: scaleY(count) }}
                                 trajectories={trajectories}
                                 trajectoryName={trajectoryName}
                                 setStateHovered={setStateHovered}
@@ -210,50 +227,6 @@ function TrajectoryChart({
             }
 
             let y = 0;
-            let maxLength = -Number.MAX_SAFE_INTEGER;
-            let maxUChunkSize = -Number.MAX_SAFE_INTEGER;
-            let maxIChunkSize = -Number.MAX_SAFE_INTEGER;
-
-            for (const trajectory of Object.values(trajectories)) {
-                if (trajectory.sequence.length > maxLength) {
-                    maxLength = trajectory.sequence.length;
-                }
-                const { chunkList } = trajectory;
-
-                const maxUChunk = d3.max(
-                    chunkList.filter((d) => !d.important),
-                    (d) => d.size
-                );
-                if (maxUChunk > maxUChunkSize) {
-                    maxUChunkSize = maxUChunk;
-                }
-
-                const maxIChunk = d3.max(
-                    chunkList.filter((d) => d.important),
-                    (d) => d.size
-                );
-                if (maxIChunk > maxIChunkSize) {
-                    maxIChunkSize = maxIChunk;
-                }
-            }
-
-            // the total of all the widths cannot exceed the screen size
-            const unimportantWidthScale = d3
-                .scaleLinear()
-                .range([margin.left, (width - margin.right) * 0.1])
-                .domain([0, maxUChunkSize]);
-
-            const importantWidthScale = d3
-                .scaleLinear()
-                .range([margin.left, width - margin.right])
-                .domain([0, maxIChunkSize]);
-
-            const getWidthScale = (data) => {
-                if (data.important) {
-                    return importantWidthScale;
-                }
-                return unimportantWidthScale;
-            };
 
             const scaleY = d3
                 .scaleLinear()
@@ -265,42 +238,44 @@ function TrajectoryChart({
             const importantGroup = svg.append('g').attr('id', 'sequence_important');
 
             for (const [name, trajectory] of Object.entries(trajectories)) {
-                trajectory.name = name;
+                // trajectory.name = name;
 
-                // make everything fit within the screen
+                const { chunkList } = trajectory;
+                const topChunkList = chunkList.filter((d) => !d.hasParent);
+                const uChunks = topChunkList.filter((d) => !d.important);
+                const iChunks = topChunkList.filter((d) => d.important);
+
+                const unimportantWidthScale = d3
+                    .scaleLinear()
+                    .range([margin.left, (width - margin.right) * 0.1])
+                    .domain([0, d3.max(uChunks, (d) => d.size)]);
+
+                const importantWidthScale = d3
+                    .scaleLinear()
+                    .range([margin.left, width - margin.right])
+                    .domain([0, d3.max(iChunks, (d) => d.size)]);
+
+                const getWidthScale = (data) => {
+                    if (data.important) {
+                        return importantWidthScale(data.size);
+                    }
+                    return unimportantWidthScale(data.size);
+                };
+
                 const scaleX = (w) => {
                     // given a width, scale it down so that it will fit within 1 screen
-                    const totalSum = d3.sum(
-                        trajectory.chunkList.filter((d) => d.parentID === undefined),
-                        (d) => getWidthScale(d)(d.size)
-                    );
+                    const totalSum = d3.sum(topChunkList, (d) => getWidthScale(d));
                     const per = w / totalSum;
                     return per * width;
                 };
 
-                visible[name] = {
-                    chunkList: trajectory.chunkList.filter((d) => d.parentID === undefined),
-                    sequence: [],
-                    toAdd: new Set(),
-                    toRemove: new Set(),
-                    count: y,
-                    extent: [0, trajectory.sequence.length],
-                };
-
-                const { chunkList } = visible[name];
                 importantGroup.append('g').attr('id', `g_${name}`).attr('name', `${name}`);
                 chunkGroup.append('g').attr('id', `c_${name}`).attr('name', `${name}`);
 
                 tickNames.push(name);
 
-                renderChunks(chunkList, name, y, scaleX, scaleY, getWidthScale);
-
-                // const importantChunks = chunkList.filter((d) => d.important);
-                // renderCharts(importantChunks, name, y, scaleX, scaleY);
-
-                for (const c of chunkList) {
-                    kList.set(c.id, 1);
-                }
+                renderChunks(topChunkList, name, y, scaleX, scaleY, getWidthScale);
+                renderCharts(iChunks, name, y, scaleX, scaleY, getWidthScale, topChunkList);
 
                 y++;
             }

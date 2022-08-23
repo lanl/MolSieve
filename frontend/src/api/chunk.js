@@ -48,6 +48,10 @@ export default class Chunk {
         return this.last - this.timestep + 1;
     }
 
+    get hasParent() {
+        return this.parentID !== undefined;
+    }
+
     // returns an array of the chunk's children
     getChildren() {
         if (this.childSize) {
