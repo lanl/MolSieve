@@ -23,7 +23,7 @@ import { useExtents } from '../hooks/useExtents';
 
 const margin = { top: 20, bottom: 20, left: 40, right: 25 };
 let sBrush = null;
-let individualSelectionMode = false;
+const individualSelectionMode = false;
 
 export default function Scatterplot({
     sequence,
@@ -47,7 +47,6 @@ export default function Scatterplot({
     visibleExtent,
     width,
     height,
-    isHovered,
 }) {
     const { contextMenu, toggleMenu } = useContextMenu();
     const [xAttribute, setXAttribute] = useState(xAttributeProp);
@@ -68,7 +67,7 @@ export default function Scatterplot({
         }
     };
 
-    useKeyDown('Shift', selectionBrush, isHovered);
+    /* useKeyDown('Shift', selectionBrush, isHovered);
     useKeyUp('Shift', completeSelection, isHovered);
 
     const toggleIndividualSelectionMode = () => {
@@ -88,7 +87,7 @@ export default function Scatterplot({
             toggleIndividualSelectionMode();
         },
         isHovered
-    );
+    ); */
 
     const useAttributeList = (setAttributeList, attribute, attributeListProp) => {
         useEffect(() => {
@@ -155,13 +154,6 @@ export default function Scatterplot({
             const xtent = d3.extent(xAttributeList);
             const ytent = d3.extent(yAttributeList);
 
-            const first = 0;
-            const last = 1;
-
-            /* if (reverse) {
-                first = 1;
-                last = 0;
-                } */
             let xScaleFunction = null;
             if (xtent[1] - xtent[0] > 10000) {
                 xScaleFunction = d3.scaleLog;

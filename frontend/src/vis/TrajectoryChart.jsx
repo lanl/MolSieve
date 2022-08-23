@@ -5,12 +5,8 @@ import MenuItem from '@mui/material/MenuItem';
 import ListItemText from '@mui/material/ListItemText';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import Checkbox from '@mui/material/Checkbox';
-import Box from '@mui/material/Box';
-import Paper from '@mui/material/Paper';
 import Timestep from '../api/timestep';
 
-import useKeyUp from '../hooks/useKeyUp';
-import useKeyDown from '../hooks/useKeyDown';
 import { useExtents } from '../hooks/useExtents';
 
 import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
@@ -22,17 +18,18 @@ import { onStateMouseOver, onChunkMouseOver, withinExtent } from '../api/myutils
 import { apply_filters } from '../api/filters';
 
 import Scatterplot from './Scatterplot';
+import EmbeddedChart from './EmbeddedChart';
 
 const margin = {
-    top: 35,
+    top: 20,
     bottom: 20,
     left: 25,
     right: 25,
 };
 
-let sBrush = null;
-let zoom = null;
-let individualSelectionMode = false;
+const sBrush = null;
+const zoom = null;
+const individualSelectionMode = false;
 
 const visible = {};
 const kList = new Map();
@@ -58,7 +55,6 @@ function TrajectoryChart({
     visibleExtent,
     width,
     height,
-    isHovered,
 }) {
     const { contextMenu, toggleMenu } = useContextMenu();
 
@@ -70,7 +66,7 @@ function TrajectoryChart({
         setStateHighlight((prev) => !prev);
     };
 
-    const renderChunks = (data, trajectoryName, count, xScale, yScale) => {
+    const renderChunks = (data, trajectoryName, count, xScale, yScale, getWidthScale) => {
         const trajectory = trajectories[trajectoryName];
 
         const nodes = d3
@@ -78,12 +74,21 @@ function TrajectoryChart({
             .selectAll('rect')
             .data(data, (d) => d.id);
 
+        function getX(i, w) {
+            if (i > 0) {
+                const d = data[i - 1];
+                const wl = xScale(getWidthScale(d)(d.size));
+                return getX(i - 1, w + wl);
+            }
+            return w;
+        }
+
         nodes
             .enter()
             .append('rect')
-            .attr('x', (d) => xScale(d.timestep))
+            .attr('x', (_, i) => getX(i, 0))
             .attr('y', yScale(count))
-            .attr('width', (d) => ensureMinWidth(d, xScale))
+            .attr('width', (d) => xScale(getWidthScale(d)(d.size)))
             .attr('height', 25)
             .attr('fill', (d) => {
                 return trajectory.colorByCluster(d);
@@ -105,6 +110,7 @@ function TrajectoryChart({
             .classed('unimportant', (d) => !d.important)
             .classed('important', (d) => d.important)
             .classed('breakdown', (d) => d.parentID);
+
         nodes.exit().remove();
     };
 
@@ -113,6 +119,7 @@ function TrajectoryChart({
             const w = ensureMinWidth(chunk, scaleX);
             const trajectory = trajectories[trajectoryName];
             const h = 400;
+
             return (
                 <foreignObject
                     key={`chart_${chunk.id}`}
@@ -121,23 +128,24 @@ function TrajectoryChart({
                     width={w}
                     height={h}
                 >
-                    <Box component={Paper} border={1} height={h - 5} width={w - 5}>
-                        <Scatterplot
-                            sequence={trajectory.getChunkStatesNotUnique(chunk)}
-                            properties={['timestep', 'id']}
-                            width={w - 5}
-                            height={h - 5}
-                            position={{ x: scaleX(chunk.timestep), y: scaleY(count) }}
-                            trajectories={trajectories}
-                            trajectoryName={trajectoryName}
-                            setStateHovered={setStateHovered}
-                            setStateClicked={setStateClicked}
-                            stateHovered={stateHovered}
-                            runs={runs}
-                            id={chunk.id}
-                            isHovered={false}
-                        />
-                    </Box>
+                    <EmbeddedChart height={h} width={w}>
+                        {(ww, hh) => (
+                            <Scatterplot
+                                sequence={trajectory.getChunkStatesNotUnique(chunk)}
+                                properties={['timestep', 'id']}
+                                width={ww}
+                                height={hh}
+                                position={{ x: scaleX(chunk.timestep), y: scaleY(count) }}
+                                trajectories={trajectories}
+                                trajectoryName={trajectoryName}
+                                setStateHovered={setStateHovered}
+                                setStateClicked={setStateClicked}
+                                stateHovered={stateHovered}
+                                runs={runs}
+                                id={chunk.id}
+                            />
+                        )}
+                    </EmbeddedChart>
                 </foreignObject>
             );
         });
@@ -203,20 +211,49 @@ function TrajectoryChart({
 
             let y = 0;
             let maxLength = -Number.MAX_SAFE_INTEGER;
+            let maxUChunkSize = -Number.MAX_SAFE_INTEGER;
+            let maxIChunkSize = -Number.MAX_SAFE_INTEGER;
 
             for (const trajectory of Object.values(trajectories)) {
                 if (trajectory.sequence.length > maxLength) {
                     maxLength = trajectory.sequence.length;
                 }
+                const { chunkList } = trajectory;
+
+                const maxUChunk = d3.max(
+                    chunkList.filter((d) => !d.important),
+                    (d) => d.size
+                );
+                if (maxUChunk > maxUChunkSize) {
+                    maxUChunkSize = maxUChunk;
+                }
+
+                const maxIChunk = d3.max(
+                    chunkList.filter((d) => d.important),
+                    (d) => d.size
+                );
+                if (maxIChunk > maxIChunkSize) {
+                    maxIChunkSize = maxIChunk;
+                }
             }
 
-            // scale such that unimportant chunks get minimal space & important chunks get maximum space
-            // important chunks take up 90% of the space and split it amongst themselves
-            // unimportant chunks split the remaining 10%
-            const scaleX = d3
+            // the total of all the widths cannot exceed the screen size
+            const unimportantWidthScale = d3
+                .scaleLinear()
+                .range([margin.left, (width - margin.right) * 0.1])
+                .domain([0, maxUChunkSize]);
+
+            const importantWidthScale = d3
                 .scaleLinear()
                 .range([margin.left, width - margin.right])
-                .domain([0, maxLength]);
+                .domain([0, maxIChunkSize]);
+
+            const getWidthScale = (data) => {
+                if (data.important) {
+                    return importantWidthScale;
+                }
+                return unimportantWidthScale;
+            };
 
             const scaleY = d3
                 .scaleLinear()
@@ -228,15 +265,26 @@ function TrajectoryChart({
             const importantGroup = svg.append('g').attr('id', 'sequence_important');
 
             for (const [name, trajectory] of Object.entries(trajectories)) {
-                const { chunks } = trajectory;
                 trajectory.name = name;
+
+                // make everything fit within the screen
+                const scaleX = (w) => {
+                    // given a width, scale it down so that it will fit within 1 screen
+                    const totalSum = d3.sum(
+                        trajectory.chunkList.filter((d) => d.parentID === undefined),
+                        (d) => getWidthScale(d)(d.size)
+                    );
+                    const per = w / totalSum;
+                    return per * width;
+                };
+
                 visible[name] = {
-                    chunkList: Array.from(chunks.values()).filter((d) => d.parentID === undefined),
+                    chunkList: trajectory.chunkList.filter((d) => d.parentID === undefined),
                     sequence: [],
                     toAdd: new Set(),
                     toRemove: new Set(),
                     count: y,
-                    extent: scaleX.domain(),
+                    extent: [0, trajectory.sequence.length],
                 };
 
                 const { chunkList } = visible[name];
@@ -245,10 +293,10 @@ function TrajectoryChart({
 
                 tickNames.push(name);
 
-                renderChunks(chunkList, name, y, scaleX, scaleY);
+                renderChunks(chunkList, name, y, scaleX, scaleY, getWidthScale);
 
-                const importantChunks = chunkList.filter((d) => d.important);
-                renderCharts(importantChunks, name, y, scaleX, scaleY);
+                // const importantChunks = chunkList.filter((d) => d.important);
+                // renderCharts(importantChunks, name, y, scaleX, scaleY);
 
                 for (const c of chunkList) {
                     kList.set(c.id, 1);
@@ -257,7 +305,7 @@ function TrajectoryChart({
                 y++;
             }
 
-            let rescaledX = scaleX;
+            /* let rescaledX = scaleX;
 
             const xAxis = svg.append('g').attr('transform', `translate(0,0)`);
 
@@ -300,7 +348,7 @@ function TrajectoryChart({
                      * b. broken down
                      * c. left alone
                      * it generates a list of chunks to add / remove, and processes this list later
-                     */
+                     
 
                     for (const d of onScreenChunkData) {
                         const { data, trajectoryName, breakdown, k } = d;
@@ -484,7 +532,7 @@ function TrajectoryChart({
                             }
                         }
                     }
-                });
+                }); */
             loadingCallback();
         },
         [width, height, trajectories]
@@ -500,19 +548,19 @@ function TrajectoryChart({
         d3.select(ref.current).call(zoom);
     });
 
-    useKeyDown('Shift', selectionBrush, isHovered);
-    useKeyUp('Shift', completeSelection, isHovered);
+    // useKeyDown('Shift', selectionBrush);
+    // useKeyUp('Shift', completeSelection);
 
-    const toggleIndividualSelectionMode = () => {
+    /* const toggleIndividualSelectionMode = () => {
         individualSelectionMode = !individualSelectionMode;
         if (individualSelectionMode) {
             d3.select(ref.current)
                 .selectAll('.currentSelection')
                 .classed('currentSelection', false);
         }
-    };
+    }; */
 
-    useKeyDown('Control', toggleIndividualSelectionMode, isHovered);
+    /* useKeyDown('Control', toggleIndividualSelectionMode);
     useKeyUp(
         'Control',
         function () {
@@ -520,7 +568,7 @@ function TrajectoryChart({
             toggleIndividualSelectionMode();
         },
         isHovered
-    );
+    ); */
 
     useEffect(() => {
         if (ref !== undefined && ref.current !== undefined) {
@@ -598,7 +646,6 @@ function TrajectoryChart({
         }
     }, [visibleExtent]);
 
-    // can't be hardcoded style ie flexGrow, need to set this outside
     return (
         <>
             <svg
@@ -637,4 +684,10 @@ function TrajectoryChart({
     );
 }
 
+/*            <Toolbar variant="dense">
+                <button type="submit">Test</button>
+            </Toolbar>
+  
+ *
+ */
 export default TrajectoryChart;

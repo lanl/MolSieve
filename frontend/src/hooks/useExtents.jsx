@@ -1,28 +1,28 @@
 import * as d3 from 'd3';
-import {useState, useEffect, useCallback} from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 export const useExtents = (setExtents, onComplete) => {
     const [iExtents, setInternalExtents] = useState([]);
     const [pushExtent, setPushExtent] = useState(false);
-    
+
     useEffect(() => {
         if (!d3.selectAll('.brush').empty()) {
             d3.selectAll('.brush').remove();
         }
-        if(pushExtent && iExtents.length > 0) {
+        if (pushExtent && iExtents.length > 0) {
             setExtents([...iExtents]);
             setInternalExtents([]);
         }
         setPushExtent(false);
     }, [pushExtent]);
 
-    const completeSelection = useCallback(() => {        
+    const completeSelection = useCallback(() => {
         setPushExtent(true);
-        
-        if(onComplete !== undefined) {
+
+        if (onComplete !== undefined) {
             onComplete();
         }
     }, []);
 
-    return {setInternalExtents, completeSelection};
-}
+    return { setInternalExtents, completeSelection };
+};

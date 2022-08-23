@@ -20,17 +20,6 @@ const theme = createTheme({
             main: '#8C8C8C',
         },
     },
-    components: {
-        MuiToolbar: {
-            styleOverrides: {
-                root: sx({
-                    background: '#f8f9f9',
-                    fontColor: '#394043',
-                    boxShadow: '0 1px 2px rgba(0,0,0,0.4)',
-                }),
-            },
-        },
-    },
 });
 
 ReactDOM.render(

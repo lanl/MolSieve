@@ -6,7 +6,6 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import Accordion from '@mui/material/Accordion';
 import AccordionSummary from '@mui/material/AccordionSummary';
 import AccordionDetails from '@mui/material/AccordionDetails';
-import Paper from '@mui/material/Paper';
 
 import Scatterplot from '../vis/Scatterplot';
 import SelectionVis from '../vis/SelectionVis';
@@ -47,7 +46,6 @@ class VisArea extends React.Component {
             analyses: {},
             similarities: {},
             NEBPlots: [],
-            visible: null,
             sequenceExtent: null,
             visibleExtent: null,
         };
@@ -103,12 +101,6 @@ class VisArea extends React.Component {
             subSequences: { ...subSequences, [extentsID]: modEx },
             visibleExtent: extentsID,
         });
-    };
-
-    setVisible = (visible) => {
-        this.setState({ visible: { ...visible } });
-        // could set up visible here instead of doing it seperately for each vis...
-        // each vis should just return toAdd, toRemove and have this do the math
     };
 
     setStateHovered = (stateInfo) => {
@@ -323,7 +315,7 @@ class VisArea extends React.Component {
             );
         });
 
-        const scplots = Object.keys(scatterplots).map((sc) => {
+        /* const scplots = Object.keys(scatterplots).map((sc) => {
             const scProps = scatterplots[sc];
             return (
                 <Scatterplot
@@ -343,7 +335,7 @@ class VisArea extends React.Component {
                 />
             );
             //
-        });
+        }); */
 
         const subSequenceCharts = Object.keys(subSequences).map((id) => {
             const ss = subSequences[id];
@@ -406,11 +398,10 @@ class VisArea extends React.Component {
                             Sequence View
                         </Typography>
                         <ChartBox sx={{ flexGrow: 1 }}>
-                            {(width, height, isHovered) => (
+                            {(width, height) => (
                                 <TrajectoryChart
                                     width={width}
                                     height={height}
-                                    isHovered={isHovered}
                                     trajectories={trajectories}
                                     runs={runs}
                                     loadingCallback={this.chartFinishedLoading}

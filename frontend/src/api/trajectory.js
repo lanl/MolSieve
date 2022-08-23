@@ -180,14 +180,6 @@ class Trajectory {
             }
         }
 
-        console.log(
-            Array.from(chunks.values())
-                .filter((d) => d.parentID === undefined)
-                .sort((a, b) => a.timestep - b.timestep)
-                .map((d) => {
-                    return { size: d.size, cluster: d.cluster, important: d.important };
-                })
-        );
         this.chunks = chunks;
         this.chunkingThreshold = chunkingThreshold;
     }
@@ -271,7 +263,6 @@ class Trajectory {
 
     /* Chunk similarity is currently calculated as the size of the intersection of the states between chunks and the size of their union */
     calculateChunkSimilarity(i, j) {
-        console.log(i);
         const iChunk = this.chunks.get(i);
         const jChunk = this.chunks.get(j);
 
@@ -285,6 +276,10 @@ class Trajectory {
         const union = setUnion(iSet, jSet);
 
         return inter.size / union.size;
+    }
+
+    get chunkList() {
+        return Array.from(this.chunks.values()).map((c) => c);
     }
 }
 

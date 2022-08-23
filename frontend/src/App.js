@@ -177,7 +177,6 @@ class App extends React.Component {
                             newColors.splice(0, removed);
 
                             const newRuns = this.initFilters(run, newTrajComplete);
-                            console.log(newTrajectories);
                             this.setState({
                                 isLoading: false,
                                 runs: newRuns,
@@ -253,11 +252,13 @@ class App extends React.Component {
     };
 
     simplifySet = (run, threshold) => {
-        const new_traj = this.state.trajectories[run];
-        new_traj.simplifySet(threshold);
-        this.setState({
-            trajectories: { ...this.state.trajectories, [run]: new_traj },
-        });
+        const { trajectories } = this.state;
+        const { [run]: newTraj } = trajectories;
+
+        newTraj.simplifySet(threshold);
+        this.setState((prevState) => ({
+            trajectories: { ...prevState.trajectories, [run]: newTraj },
+        }));
     };
 
     toggleDrawer = () => {
@@ -284,7 +285,7 @@ class App extends React.Component {
     };
 
     propagateChange = (filter) => {
-        const runs = { ...this.state.runs };
+        const { runs } = this.state;
         const thisFilter = runs[filter.run].filters[filter.id];
 
         if (filter.options) {
@@ -313,7 +314,14 @@ class App extends React.Component {
         } = this.state;
         return (
             <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-                <Toolbar variant="dense">
+                <Toolbar
+                    variant="dense"
+                    sx={{
+                        background: '#f8f9f9',
+                        fontColor: '#394043',
+                        boxShadow: '0 1px 2px rgba(0,0,0,0.4)',
+                    }}
+                >
                     <Typography sx={{ flexGrow: 1 }} color="primary" variant="h6">
                         NeoMDWeb
                     </Typography>
