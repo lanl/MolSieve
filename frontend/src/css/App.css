@@ -9,3 +9,8 @@ img {
     border: 1px solid lightgray;
 }
 
+.floatingToolBar {
+  display: flex;
+  position: absolute;
+  right: 0;
+}

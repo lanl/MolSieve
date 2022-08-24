@@ -85,7 +85,7 @@
 }
 
 .vis {
-    display:'inline-block';
+    display:absolute;
 }
 
 .embeddedChart {

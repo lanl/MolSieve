@@ -1,6 +1,7 @@
 // stolen from https://stackoverflow.com/questions/11120840/hash-string-into-rgb-color
 import tippy from 'tippy.js';
 import 'tippy.js/dist/tippy.css';
+import * as d3 from 'd3';
 
 import React from 'react';
 import Box from '@mui/material/Box';
@@ -308,4 +309,25 @@ export function setUnion(setA, setB) {
         union.add(elem);
     }
     return union;
+}
+
+/* Determines what kind of scale to use for the given array */
+export function getScale(data) {
+    // if array is a range i.e only has two values
+    if (data.length === 2) {
+        return d3.scaleSequential().domain(data);
+    }
+
+    // if array is all discrete numbers
+    if (data.every((d) => Number.isInteger(d))) {
+        return d3.scalePoint().domain(data);
+    }
+
+    // if array is continuous
+    const extent = d3.extent(data);
+    if (extent[1] - extent[0] > 10000) {
+        return d3.scaleLog().domain(extent);
+    }
+
+    return d3.scaleLinear.domain(extent);
 }

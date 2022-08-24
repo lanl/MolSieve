@@ -6,24 +6,26 @@ import MenuItem from '@mui/material/MenuItem';
 import FormControl from '@mui/material/FormControl';
 import Select from '@mui/material/Select';
 import FormHelperText from '@mui/material/FormHelperText';
+import Button from '@mui/material/Button';
+import Box from '@mui/material/Box';
 
 import GlobalStates from '../api/globalStates';
 
 import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
 import { useContextMenu } from '../hooks/useContextMenu';
 
-import { onStateMouseOver } from '../api/myutils';
+import { onStateMouseOver, getScale } from '../api/myutils';
 import { apply_filters } from '../api/filters';
 
 import '../css/vis.css';
+import '../css/App.css';
 
-import useKeyUp from '../hooks/useKeyUp';
-import useKeyDown from '../hooks/useKeyDown';
 import { useExtents } from '../hooks/useExtents';
 
-const margin = { top: 20, bottom: 20, left: 40, right: 25 };
+const margin = { top: 25, bottom: 20, left: 25, right: 25 };
 let sBrush = null;
-const individualSelectionMode = false;
+let individualSelectionMode = false;
+let selectionBrushMode = false;
 
 export default function Scatterplot({
     sequence,
@@ -47,6 +49,7 @@ export default function Scatterplot({
     visibleExtent,
     width,
     height,
+    isParentHovered,
 }) {
     const { contextMenu, toggleMenu } = useContextMenu();
     const [xAttribute, setXAttribute] = useState(xAttributeProp);
@@ -54,6 +57,12 @@ export default function Scatterplot({
 
     const [xAttributeList, setXAttributeList] = useState(xAttributeListProp);
     const [yAttributeList, setYAttributeList] = useState(yAttributeListProp);
+
+    const [isHovered, setIsHovered] = useState(false);
+
+    useEffect(() => {
+        setIsHovered(isParentHovered);
+    }, [isParentHovered]);
 
     const { setInternalExtents, completeSelection } = useExtents(setExtents);
 
@@ -67,27 +76,25 @@ export default function Scatterplot({
         }
     };
 
-    /* useKeyDown('Shift', selectionBrush, isHovered);
-    useKeyUp('Shift', completeSelection, isHovered);
+    const toggleSelectionBrush = () => {
+        if (!selectionBrushMode) {
+            selectionBrushMode = !selectionBrushMode;
+            selectionBrush();
+        } else {
+            selectionBrushMode = !selectionBrushMode;
+            completeSelection();
+        }
+    };
 
     const toggleIndividualSelectionMode = () => {
         individualSelectionMode = !individualSelectionMode;
         if (individualSelectionMode) {
+            completeSelection();
             d3.select(ref.current)
                 .selectAll('.currentSelection')
                 .classed('currentSelection', false);
         }
     };
-
-    useKeyDown('Control', toggleIndividualSelectionMode, isHovered);
-    useKeyUp(
-        'Control',
-        function () {
-            completeSelection();
-            toggleIndividualSelectionMode();
-        },
-        isHovered
-    ); */
 
     const useAttributeList = (setAttributeList, attribute, attributeListProp) => {
         useEffect(() => {
@@ -100,6 +107,7 @@ export default function Scatterplot({
                     const timesteps = sequence.map((_, i) => {
                         return i;
                     });
+
                     setAttributeList(timesteps);
                 } else {
                     setAttributeList(
@@ -144,37 +152,9 @@ export default function Scatterplot({
             if (xAttributeList === null || yAttributeList === null) {
                 return;
             }
-            // let reverse = data.reverse;
-            // let title = data.title;
-            // const colors = trajectory.colors;
-            // const idToCluster = trajectory.idToCluster;
 
-            // if (reverse == null) reverse = false;
-
-            const xtent = d3.extent(xAttributeList);
-            const ytent = d3.extent(yAttributeList);
-
-            let xScaleFunction = null;
-            if (xtent[1] - xtent[0] > 10000) {
-                xScaleFunction = d3.scaleLog;
-            } else {
-                xScaleFunction = d3.scaleLinear;
-            }
-
-            let yScaleFunction = null;
-            if (ytent[1] - ytent[0] > 10000) {
-                yScaleFunction = d3.scaleLog;
-            } else {
-                yScaleFunction = d3.scaleLinear;
-            }
-
-            const scaleX = xScaleFunction()
-                .range([margin.left + 5, width - margin.right])
-                .domain(xtent);
-
-            const scaleY = yScaleFunction()
-                .range([height - margin.bottom - 5, margin.top])
-                .domain(ytent);
+            const scaleX = getScale(xAttributeList).range([margin.left + 5, width - margin.right]);
+            const scaleY = getScale(yAttributeList).range([height - margin.bottom - 5, margin.top]);
 
             const g = svg.append('g').attr('transform', 'translate(0,0)');
 
@@ -276,22 +256,26 @@ export default function Scatterplot({
             const yAxisPos = margin.left;
             const xAxisPos = height - margin.bottom;
 
-            const xAxis = svg
-                .append('g')
-                .attr('transform', `translate(0,${xAxisPos})`)
-                .call(
-                    d3
-                        .axisBottom()
-                        .scale(scaleX)
-                        .tickValues(scaleX.ticks().filter((tick) => Number.isInteger(tick)))
-                        .tickFormat(d3.format('d'))
-                );
+            const xUnique = new Set(xAttributeList);
+            const yUnique = new Set(yAttributeList);
 
-            xAxis.selectAll('text').style('text-anchor', 'center').attr('transform', 'rotate(15)');
+            if (xUnique.size < 20) {
+                const xAxis = svg
+                    .append('g')
+                    .attr('transform', `translate(0,${xAxisPos})`)
+                    .call(d3.axisBottom().scale(scaleX).ticks(5));
 
-            svg.append('g')
-                .attr('transform', `translate(${yAxisPos},0)`)
-                .call(d3.axisLeft().scale(scaleY));
+                xAxis
+                    .selectAll('text')
+                    .style('text-anchor', 'center')
+                    .attr('transform', 'rotate(15)');
+            }
+
+            if (yUnique.size < 20) {
+                svg.append('g')
+                    .attr('transform', `translate(${yAxisPos},0)`)
+                    .call(d3.axisLeft().scale(scaleY).ticks(5));
+            }
 
             if (title === undefined || title === null) {
                 title = '';
@@ -398,11 +382,28 @@ export default function Scatterplot({
     }, [visibleExtent]);
     return (
         <>
+            {isHovered && (
+                <Box className="floatingToolBar">
+                    <Button color="secondary" size="small" onClick={() => toggleSelectionBrush()}>
+                        SelectionBrush
+                    </Button>
+                    <Button
+                        color="secondary"
+                        size="small"
+                        onClick={() => toggleIndividualSelectionMode()}
+                    >
+                        iSelectionBrush
+                    </Button>
+                    <Button color="secondary" size="small" onClick={(e) => toggleMenu(e)}>
+                        Attributes
+                    </Button>
+                </Box>
+            )}
+
             <svg
                 ref={ref}
                 id={id}
                 className="vis"
-                onContextMenu={toggleMenu}
                 viewBox={[0, 0, width, height]}
                 width={width}
                 height={height}
@@ -412,7 +413,6 @@ export default function Scatterplot({
                     open={contextMenu !== null}
                     onClose={toggleMenu}
                     anchorReference="anchorPosition"
-                    preserveAspectRatio="none"
                     anchorPosition={
                         contextMenu !== null
                             ? { top: contextMenu.mouseY, left: contextMenu.mouseX }
@@ -420,7 +420,7 @@ export default function Scatterplot({
                     }
                 >
                     <MenuItem>
-                        <FormControl>
+                        <FormControl size="small">
                             <Select
                                 value={xAttribute}
                                 onChange={(e) => {
@@ -432,9 +432,8 @@ export default function Scatterplot({
                             <FormHelperText>X attribute</FormHelperText>
                         </FormControl>
                     </MenuItem>
-
                     <MenuItem>
-                        <FormControl>
+                        <FormControl size="small">
                             <Select
                                 value={yAttribute}
                                 onChange={(e) => {
