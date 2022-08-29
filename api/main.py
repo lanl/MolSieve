@@ -2,6 +2,7 @@ from fastapi import FastAPI, Body, APIRouter, WebSocket, WebSocketDisconnect
 from typing import Optional, List
 
 import neo4j
+
 from neomd import querybuilder, converter, calculator, visualizations, utils
 import os
 import pygpcca as gp
@@ -16,15 +17,16 @@ from PIL import Image
 import io
 import base64
 
+from .graphdriver import GraphDriver
 from .config import config
 from .trajectory import Trajectory
 from .utils import (
     getMetadata,
     getScipyDistributions,
+    checkRequiredProperties,
     get_atom_type,
     saveTestJson,
     loadTestJson,
-    connect_to_db
 )
 from .connectionmanager import ConnectionManager
 
@@ -44,6 +46,7 @@ cm = ConnectionManager()
 
 unprocessed = {}
 
+
 @router.get("/get_scipy_distributions")
 def get_scipy_distributions():
     return getScipyDistributions()
@@ -57,9 +60,7 @@ def get_ovito_modifiers():
 # move to celery worker
 @router.get("/run_cypher_query")
 def run_cypher_query(query: str):
-    driver = neo4j.GraphDatabase.driver(
-        "bolt://127.0.0.1:7687", auth=("neo4j", "secret")
-    )
+    driver = GraphDriver()
     j = []
     with driver.session() as session:
         results = session.run(query)
@@ -100,10 +101,7 @@ async def ws(task_id: str, websocket: WebSocket):
 # move to celery worker
 @router.get("/generate_ovito_image")
 async def generate_ovito_image(number: str):
-    driver = neo4j.GraphDatabase.driver(
-        "bolt://127.0.0.1:7687", auth=("neo4j", "secret")
-    )
-
+    driver = GraphDriver()
     # relation agnostic
     qb = querybuilder.Neo4jQueryBuilder(
         schema=[
@@ -135,9 +133,7 @@ async def generate_ovito_image(number: str):
 
 @router.post("/generate_ovito_animation")
 async def generate_ovito_animation(title: str, states: List[int] = Body(...)):
-    driver = neo4j.GraphDatabase.driver(
-        "bolt://127.0.0.1:7687", auth=("neo4j", "secret")
-    )
+    driver = GraphDriver()
 
     qb = querybuilder.Neo4jQueryBuilder([("Atom", "PART_OF", "State", "MANY-TO-ONE")])
 
@@ -247,8 +243,31 @@ def calculate_path_similarity(
     return task_id
 
 
+@router.post("/load_property_for_subset", status_code=200)
+def load_property_for_subset(prop: str, stateIds: List[int]):
+    return load_properties_for_subset([prop], stateIds)
+
+
+@router.post("/load_properties_for_subset", status_code=200)
+def load_properties_for_subset(props: List[str] = Body([]), stateIds: List[int] = Body([])):
+    qb = querybuilder.Neo4jQueryBuilder()
+    driver = GraphDriver()
+
+    q = qb.generate_get_node_list(
+        "State", idAttributeList=stateIds, attributeList=props
+    )
+
+    j = {}
+    with driver.session() as session:
+        result = session.run(q.text)
+        j = result.data()
+
+    # throw exception if property does not exist in subset?
+    return j
+
+
 # move to celery worker
-@router.get("/load_property", status_code=201)
+@router.get("/load_property", status_code=200)
 def load_property(prop: str):
     """
     Loads the given property for all applicable nodes
@@ -257,9 +276,7 @@ def load_property(prop: str):
     :returns: a dict of {id: property}
     """
     uniqueStateAttributes = ["id", prop]
-    driver = neo4j.GraphDatabase.driver(
-        "bolt://127.0.0.1:7687", auth=("neo4j", "secret")
-    )
+    driver = GraphDriver()
 
     qb = querybuilder.Neo4jQueryBuilder()
 
@@ -274,35 +291,38 @@ def load_property(prop: str):
 
     return j
 
+
 def get_potential(run: str) -> str:
     """
-    Gets a potential file associated with the run, and writes it to the current working directory. 
+    Gets a potential file associated with the run, and writes it to the current working directory.
     Used in various LAMMPS calculations.
-    
+
     :param run: the run to query for the potential file
 
     :return: the filename of the potential file
     """
-    driver = connect_to_db(config)
+    driver = GraphDriver()
     q = f"MATCH (m:Metadata) WHERE m.run = '{run}' RETURN m.potentialFileName AS filename, m.potentialFileRaw AS data;"
-   
+
     with driver.session() as session:
         result = session.run(q)
         r = result.single()
-        filename = r['filename']
-        with open(filename, 'w') as f: 
-           f.write(r['data'])
-        
+        filename = r["filename"]
+        with open(filename, "w") as f:
+            f.write(r["data"])
+
         return filename
-        
+
+
 @router.get("/load_sequence")
 def load_sequence(run: str, properties: str):
 
     get_potential(run)
+    run_md = get_metadata(run)
 
     if config.IMPATIENT:
         r = loadTestJson(run, "sequence")
-        if r != None:
+        if r is not None:
             return r
 
     # id is technically not a property, so we have to include it here
@@ -315,9 +335,7 @@ def load_sequence(run: str, properties: str):
             node_attributes.append((prop, "first"))
             uniqueStateAttributes.append(str(prop))
 
-    driver = neo4j.GraphDatabase.driver(
-        "bolt://127.0.0.1:7687", auth=("neo4j", "secret")
-    )
+    driver = GraphDriver()
     qb = querybuilder.Neo4jQueryBuilder(
         [
             ("State", run, "State", "ONE-TO-ONE"),
@@ -338,17 +356,14 @@ def load_sequence(run: str, properties: str):
     # for now though, it would mostly just waste more memory than its worth - length is not meaningful
     # the only thing that could be worth skipping is whether or not states are symmetrical
 
-    run_md = get_metadata(run)
-
     j = {}
 
     occurrenceString = "{run}_occurrences".format(run=run)
 
     with driver.session() as session:
-
-        #        if occurrenceString not in run_md.keys():
-        oq = qb.generate_get_occurrences(run, occurrenceString)
-        session.run(oq.text)
+        if occurrenceString not in run_md.keys():
+            oq = qb.generate_get_occurrences(run, occurrenceString)
+            session.run(oq.text)
 
         """
         shave off time by calculating this in the database
@@ -378,10 +393,8 @@ def load_sequence(run: str, properties: str):
 
 @router.get("/get_property_list")
 def get_property_list():
-    driver = neo4j.GraphDatabase.driver(
-        "bolt://127.0.0.1:7687", auth=("neo4j", "secret")
-    )
-    
+    driver = GraphDriver()
+
     j = []
     with driver.session() as session:
         try:
@@ -395,11 +408,12 @@ def get_property_list():
                 f"""MATCH (m:Metadata)
                 UNWIND keys(m) AS prop
                 WITH m, prop WHERE m[prop] = true
-                RETURN DISTINCT prop;""")
+                RETURN DISTINCT prop;"""
+            )
             for r in result:
                 if r[0] not in j:
                     j.append(r[0])
-            
+
         except neo4j.exceptions.ServiceUnavailable as exception:
             raise exception
 
@@ -408,9 +422,8 @@ def get_property_list():
 
 @router.get("/get_atom_properties")
 def get_atom_properties():
-    driver = neo4j.GraphDatabase.driver(
-        "bolt://127.0.0.1:7687", auth=("neo4j", "secret")
-    )
+    driver = GraphDriver()
+
     j = []
     with driver.session() as session:
         try:
@@ -426,9 +439,8 @@ def get_atom_properties():
 
 @router.get("/get_run_list")
 def get_run_list():
-    driver = neo4j.GraphDatabase.driver(
-        "bolt://127.0.0.1:7687", auth=("neo4j", "secret")
-    )
+    driver = GraphDriver()
+
     j = []
     with driver.session() as session:
         try:
@@ -453,13 +465,11 @@ def get_metadata(run: str):
 
 @router.get("/idToTimestep")
 def idToTimestep(run: str):
-    driver = neo4j.GraphDatabase.driver(
-        "bolt://127.0.0.1:7687", auth=("neo4j", "secret")
-    )
+    driver = GraphDriver()
 
     if config.IMPATIENT:
         r = loadTestJson(run, "idToTimestep")
-        if r != None:
+        if r is not None:
             return r
 
     query = """MATCH (n:{run})-[r:{run}]->(:{run})
@@ -483,9 +493,8 @@ def idToTimestep(run: str):
 # move to celery worker
 @router.get("/pcca")
 async def pcca(run: str, clusters: int, optimal: int, m_min: int, m_max: int):
-    driver = neo4j.GraphDatabase.driver(
-        "bolt://127.0.0.1:7687", auth=("neo4j", "secret")
-    )
+    driver = GraphDriver()
+
     if config.IMPATIENT:
         r = loadTestJson(run, "optimal_pcca")
         if r != None:
