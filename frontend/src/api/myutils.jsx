@@ -4,8 +4,9 @@ import 'tippy.js/dist/tippy.css';
 import * as d3 from 'd3';
 
 import React from 'react';
+
 import Box from '@mui/material/Box';
-import GlobalStates from './globalStates';
+import GlobalStates from './globalStates.js';
 import 'tippy.js/themes/translucent.css';
 
 export function djb2(str) {
@@ -311,15 +312,16 @@ export function setUnion(setA, setB) {
     return union;
 }
 
-/* Determines what kind of scale to use for the given array */
-export function getScale(data) {
+/* Determines what kind of scale to use for the given array.
+ * If isOrdinal is true, returns ordinal scale. */
+
+export function getScale(data, isOrdinal) {
     // if array is a range i.e only has two values
     if (data.length === 2) {
         return d3.scaleSequential().domain(data);
     }
 
-    // if array is all discrete numbers
-    if (data.every((d) => Number.isInteger(d))) {
+    if (isOrdinal) {
         return d3.scalePoint().domain(data);
     }
 
@@ -329,5 +331,21 @@ export function getScale(data) {
         return d3.scaleLog().domain(extent);
     }
 
-    return d3.scaleLinear.domain(extent);
+    return d3.scaleLinear().domain(extent);
+}
+
+/* Given a css class name, return all element ids that have that class */
+export function getClassIds(className) {
+    const elements = document.getElementsByClassName(className);
+    const ids = [];
+
+    for (const el of elements) {
+        ids.push(el.getAttribute('id'));
+    }
+
+    return ids;
+}
+
+export function ensureArray(obj) {
+    return obj instanceof Set ? [...obj] : obj;
 }

@@ -1,4 +1,6 @@
 import State from './state';
+import { ensureArray } from './myutils';
+import { loadPropertiesForSubset } from './ajax';
 
 class GlobalStates {
     map = new Map();
@@ -35,6 +37,57 @@ class GlobalStates {
                 this.map.set(state.id, Object.assign(state, s));
             }
         }
+    };
+
+    /* Check if the states indexed by the ids provided in the subset array have the given properties loaded. */
+    subsetHasProperties = (properties, subset) => {
+        const vals = [];
+        for (const property of properties) {
+            vals.push({ val: this.subsetHasProperty(property, subset), name: property });
+        }
+        return {
+            hasProperties: vals.every((d) => d.val),
+            missingProperties: vals.filter((d) => !d.val),
+        };
+    };
+
+    /* Check if the states indexed by the ids provided in the subset array have the given property loaded */
+    subsetHasProperty = (property, subset) => {
+        const ss = ensureArray(subset);
+        const vals = [];
+        for (const s of ss) {
+            const state = this.map.get(s);
+            vals.push(property in state);
+        }
+        return vals.every((d) => d);
+    };
+
+    /* Wrapper for hasProperties in case only one property is needed */
+    ensureSubsetHasProperty = (property, subset) => {
+        this.ensureSubsetHasProperties([property], subset);
+    };
+
+    /* Ensure that the states indexed by the ids provided in the subset array have the given property loaded
+     * Basically, check if the property is loaded, and if not, load it.
+     */
+    ensureSubsetHasProperties = (properties, subset) => {
+        return new Promise((resolve, reject) => {
+            const ss = ensureArray(subset);
+            const { hasProperties, missingProperties } = this.subsetHasProperties(properties, ss);
+            if (!hasProperties) {
+                const mp = missingProperties.map((d) => d.name);
+                loadPropertiesForSubset(mp, ss)
+                    .then((data) => {
+                        this.addPropToStates(data);
+                        resolve();
+                    })
+                    .catch((e) => {
+                        reject(e);
+                    });
+            } else {
+                resolve();
+            }
+        });
     };
 
     get = (id) => {

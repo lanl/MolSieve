@@ -9,18 +9,19 @@ import FormHelperText from '@mui/material/FormHelperText';
 import Button from '@mui/material/Button';
 import Box from '@mui/material/Box';
 
+import { CircularProgress } from '@mui/material';
 import GlobalStates from '../api/globalStates';
 
 import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
 import { useContextMenu } from '../hooks/useContextMenu';
 
 import { onStateMouseOver, getScale } from '../api/myutils';
-import { apply_filters } from '../api/filters';
 
 import '../css/vis.css';
 import '../css/App.css';
 
 import { useExtents } from '../hooks/useExtents';
+import { applyFilters } from '../api/filters';
 
 const margin = { top: 25, bottom: 20, left: 25, right: 25 };
 let sBrush = null;
@@ -29,10 +30,10 @@ let selectionBrushMode = false;
 
 export default function Scatterplot({
     sequence,
+    uniqueStatesProp,
     trajectories,
     loadingCallback,
     stateHovered,
-    runs,
     id,
     title,
     trajectoryName,
@@ -49,7 +50,9 @@ export default function Scatterplot({
     visibleExtent,
     width,
     height,
+    runs,
     isParentHovered,
+    sortBySimilarity = true,
 }) {
     const { contextMenu, toggleMenu } = useContextMenu();
     const [xAttribute, setXAttribute] = useState(xAttributeProp);
@@ -59,6 +62,9 @@ export default function Scatterplot({
     const [yAttributeList, setYAttributeList] = useState(yAttributeListProp);
 
     const [isHovered, setIsHovered] = useState(false);
+
+    // can assume this is being loaded
+    const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
         setIsHovered(isParentHovered);
@@ -133,11 +139,27 @@ export default function Scatterplot({
         );
     });
 
-    options.push(
-        <MenuItem key="id" value="id">
-            id
-        </MenuItem>
-    );
+    useEffect(() => {
+        if (sortBySimilarity) {
+            const structuralProps = [
+                'AcklandJones_counts_OTHER',
+                'AcklandJones_counts_FCC',
+                'AcklandJones_counts_HCP',
+                'AcklandJones_counts_BCC',
+                'CommonNeighborAnalysis_counts_FCC',
+                'CommonNeighborAnalysis_counts_HCP',
+                'CommonNeighborAnalysis_counts_BCC',
+                'CommonNeighborAnalysis_counts_ICO',
+                'CommonNeighborAnalysis_counts_OTHER',
+            ];
+            GlobalStates.ensureSubsetHasProperties(structuralProps, uniqueStatesProp).then(() => {
+                // once that is loaded, calculate state similarity
+                setIsLoading(false);
+            });
+        } else {
+            setIsLoading(false);
+        }
+    }, []);
 
     useEffect(() => {
         ref.current.setAttribute('id', id);
@@ -149,20 +171,32 @@ export default function Scatterplot({
                 svg.selectAll('*').remove();
             }
 
+            // check if acklandJones is loaded, if not, load it for this set
+            if (isLoading) {
+                return;
+            }
+            // check if cna count is loaded, if not, load it for the set
+
             if (xAttributeList === null || yAttributeList === null) {
                 return;
             }
 
-            const scaleX = getScale(xAttributeList).range([margin.left + 5, width - margin.right]);
-            const scaleY = getScale(yAttributeList).range([height - margin.bottom - 5, margin.top]);
+            const scaleX = getScale(xAttributeList, xAttribute === 'id').range([
+                margin.left + 5,
+                width - margin.right,
+            ]);
+            const scaleY = getScale(yAttributeList, yAttribute === 'id').range([
+                height - margin.bottom - 5,
+                margin.top,
+            ]);
 
-            const g = svg.append('g').attr('transform', 'translate(0,0)');
+            const container = svg.append('g').attr('transform', 'translate(0,0)');
 
             if (trajectoryName !== undefined) {
-                g.attr('id', `g_${trajectoryName}`);
+                container.attr('id', `g_${trajectoryName}`);
             }
 
-            const points = g
+            const points = container
                 .selectAll('rect')
                 .data(sequence)
                 .enter()
@@ -185,6 +219,7 @@ export default function Scatterplot({
                     }
                     return 'inline';
                 })
+                .classed('state', true)
                 .classed('clickable', true);
 
             if (setStateClicked) {
@@ -280,7 +315,7 @@ export default function Scatterplot({
             if (title === undefined || title === null) {
                 title = '';
             }
-            title += ` ${xAttribute} vs ${yAttribute}`;
+            title += `scatterplot ${id} ${xAttribute} vs ${yAttribute}`;
 
             svg.append('text')
                 .attr('x', width / 2)
@@ -325,12 +360,28 @@ export default function Scatterplot({
             if (loadingCallback !== undefined) {
                 loadingCallback();
             }
+
+            /* const zoom = d3.zoom().on('zoom', ({ transform }) => {
+                // choose whether to use transform or switch back to only continuous scales
+                // const zx = transform.rescaleX(scaleX);
+                // const zy = transform.rescaleY(scaleY);
+                // const { x, y, k } = transform;
+                // points.attr('transform', `translate(${x},${y})scale(${k},1)`);
+                // .attr('x', (_, i) => zx(xAttributeList[i]));
+                // .attr('y', (_, i) => zy(yAttributeList[i]));
+            });
+
+
+            svg.call(zoom); */
+
+            applyFilters(trajectories, runs, ref);
         },
-        [width, height, xAttributeList, yAttributeList, trajectories]
+        [width, height, xAttributeList, yAttributeList, trajectories, runs, isLoading]
     );
 
     useEffect(() => {
         if (stateHovered) {
+            console.log('stateHovered');
             // .select(`#g_${trajectoryName}`)
             /* d3.select(ref.current).selectAll('rect:not(.invisible)').filter(function(dp) {                                    
                 return (dp.id !== stateHovered.stateID);
@@ -355,15 +406,14 @@ export default function Scatterplot({
         }
     }, [stateHovered]);
 
-    useEffect(() => {
+    /* useEffect(() => {
         if (ref && ref.current && trajectoryName !== undefined) {
-            apply_filters(trajectories, runs, ref);
-        }
+             }
 
         if (loadingCallback !== undefined) {
             loadingCallback();
         }
-    }, [runs]);
+    }, [runs]); */
 
     useEffect(() => {
         d3.select(ref.current).selectAll('.currentSelection').classed('currentSelection', false);
@@ -382,7 +432,7 @@ export default function Scatterplot({
     }, [visibleExtent]);
     return (
         <>
-            {isHovered && (
+            {isHovered && !isLoading && (
                 <Box className="floatingToolBar">
                     <Button color="secondary" size="small" onClick={() => toggleSelectionBrush()}>
                         SelectionBrush
@@ -403,7 +453,7 @@ export default function Scatterplot({
             <svg
                 ref={ref}
                 id={id}
-                className="vis"
+                className="vis filterable"
                 viewBox={[0, 0, width, height]}
                 width={width}
                 height={height}

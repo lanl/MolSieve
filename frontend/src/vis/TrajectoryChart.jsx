@@ -12,8 +12,6 @@ import { useContextMenu } from '../hooks/useContextMenu';
 import '../css/vis.css';
 import { onChunkMouseOver } from '../api/myutils';
 
-import { apply_filters } from '../api/filters';
-
 import Scatterplot from './Scatterplot';
 import EmbeddedChart from './EmbeddedChart';
 
@@ -26,7 +24,6 @@ const margin = {
 
 function TrajectoryChart({
     trajectories,
-    runs,
     loadingCallback,
     setStateHovered,
     setStateClicked,
@@ -35,6 +32,8 @@ function TrajectoryChart({
     visibleExtent,
     width,
     height,
+    properties,
+    runs,
 }) {
     const { contextMenu, toggleMenu } = useContextMenu();
 
@@ -131,9 +130,11 @@ function TrajectoryChart({
                         {(ww, hh, isHovered) => (
                             <Scatterplot
                                 sequence={trajectory.getChunkStatesNotUnique(chunk)}
-                                properties={['timestep', 'id']}
+                                uniqueStatesProp={trajectory.getChunkStates(chunk)}
+                                properties={properties}
                                 width={ww}
                                 height={hh}
+                                runs={runs}
                                 setExtents={setExtents}
                                 trajectories={trajectories}
                                 trajectoryName={trajectoryName}
@@ -141,8 +142,7 @@ function TrajectoryChart({
                                 setStateClicked={setStateClicked}
                                 stateHovered={stateHovered}
                                 isParentHovered={isHovered}
-                                runs={runs}
-                                id={chunk.id}
+                                id={`sc_${chunk.id}`}
                             />
                         )}
                     </EmbeddedChart>
@@ -221,15 +221,8 @@ function TrajectoryChart({
 
             loadingCallback();
         },
-        [width, height, trajectories]
+        [width, height, trajectories, runs]
     );
-
-    useEffect(() => {
-        if (ref !== undefined && ref.current !== undefined) {
-            apply_filters(trajectories, runs, ref);
-        }
-        loadingCallback();
-    }, [runs]);
 
     useEffect(() => {
         if (stateHovered) {
