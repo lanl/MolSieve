@@ -10,7 +10,7 @@ import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
 import { useContextMenu } from '../hooks/useContextMenu';
 
 import '../css/vis.css';
-import { onChunkMouseOver } from '../api/myutils';
+import { onEntityMouseOver } from '../api/myutils';
 
 import Scatterplot from './Scatterplot';
 import EmbeddedChart from './EmbeddedChart';
@@ -75,7 +75,7 @@ function TrajectoryChart({
                 return 'white';
             })
             .on('mouseover', function (_, d) {
-                onChunkMouseOver(this, d, trajectoryName);
+                onEntityMouseOver(this, d);
                 setStateHovered({
                     caller: this,
                     stateID: d.id,
@@ -95,62 +95,58 @@ function TrajectoryChart({
         nodes.exit().remove();
     };
 
-    const renderCharts = (
-        data,
-        trajectoryName,
-        count,
-        scaleX,
-        scaleY,
-        getWidthScale,
-        visibleChunks
-    ) => {
+    const renderCharts = (data, trajectoryName, count, scaleX, scaleY, getWidthScale) => {
         function getX(i, w) {
             if (i > 0) {
-                const d = visibleChunks[i - 1];
+                const d = data[i - 1];
                 const wl = scaleX(getWidthScale(d));
                 return getX(i - 1, w + wl);
             }
             return w;
         }
 
-        const newCharts = data.map((chunk) => {
-            const w = scaleX(getWidthScale(chunk));
-            const trajectory = trajectories[trajectoryName];
-            const h = 400;
+        const trajectory = trajectories[trajectoryName];
+        const scatterCharts = data
+            .filter((d) => d.important)
+            .map((chunk) => {
+                const w = scaleX(getWidthScale(chunk));
+                const h = 400;
 
-            return (
-                <foreignObject
-                    key={`chart_${chunk.id}`}
-                    x={getX(visibleChunks.indexOf(chunk), 0)}
-                    y={scaleY(count) + 12.5}
-                    width={w}
-                    height={h}
-                >
-                    <EmbeddedChart height={h} width={w}>
-                        {(ww, hh, isHovered) => (
-                            <Scatterplot
-                                sequence={trajectory.getChunkStatesNotUnique(chunk)}
-                                uniqueStatesProp={trajectory.getChunkStates(chunk)}
-                                properties={properties}
-                                width={ww}
-                                height={hh}
-                                runs={runs}
-                                setExtents={setExtents}
-                                trajectories={trajectories}
-                                trajectoryName={trajectoryName}
-                                setStateHovered={setStateHovered}
-                                setStateClicked={setStateClicked}
-                                stateHovered={stateHovered}
-                                isParentHovered={isHovered}
-                                id={`sc_${chunk.id}`}
-                            />
-                        )}
-                    </EmbeddedChart>
-                </foreignObject>
-            );
-        });
+                return (
+                    <foreignObject
+                        key={`chart_${chunk.id}`}
+                        x={getX(data.indexOf(chunk), 0)}
+                        y={scaleY(count) + 12.5}
+                        width={w}
+                        height={h}
+                    >
+                        <EmbeddedChart height={h} width={w}>
+                            {(ww, hh, isHovered) => (
+                                <Scatterplot
+                                    sequence={trajectory.getChunkSequence(chunk)}
+                                    uniqueStatesProp={trajectory.getChunkStates(chunk)}
+                                    properties={properties}
+                                    width={ww}
+                                    height={hh}
+                                    runs={runs}
+                                    setExtents={setExtents}
+                                    trajectories={trajectories}
+                                    trajectoryName={trajectoryName}
+                                    setStateHovered={setStateHovered}
+                                    setStateClicked={setStateClicked}
+                                    stateHovered={stateHovered}
+                                    isParentHovered={isHovered}
+                                    id={`sc_${chunk.id}`}
+                                />
+                            )}
+                        </EmbeddedChart>
+                    </foreignObject>
+                );
+            });
 
-        setCharts([...charts, newCharts]);
+        const attributeCharts = data.filter((d) => !d.important).map((chunk) => {});
+
+        setCharts([...charts, scatterCharts]);
     };
 
     const ref = useTrajectoryChartRender(
@@ -214,7 +210,7 @@ function TrajectoryChart({
                 tickNames.push(name);
 
                 renderChunks(topChunkList, name, y, scaleX, scaleY, getWidthScale);
-                renderCharts(iChunks, name, y, scaleX, scaleY, getWidthScale, topChunkList);
+                renderCharts(topChunkList, name, y, scaleX, scaleY, getWidthScale);
 
                 y++;
             }

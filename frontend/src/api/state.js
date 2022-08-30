@@ -48,4 +48,28 @@ export default class State {
             return structure[a] > structure[b] ? a : b;
         });
     }
+
+    /**
+     * Returns all of the state's properties as an html string.
+     *
+     * @returns {[TODO:type]} [TODO:description]
+     */
+    toString() {
+        let propertyString = '';
+        let propCount = 0;
+        const perLine = 3;
+
+        for (const property of Object.keys(this)) {
+            const currentProp = this[property];
+            const capitalized = property.charAt(0).toUpperCase() + property.slice(1);
+
+            propertyString += `<b>${capitalized}</b>: ${currentProp} `;
+
+            propCount++;
+            if (propCount % perLine === 0) {
+                propertyString += '<br>';
+            }
+        }
+        return propertyString;
+    }
 }

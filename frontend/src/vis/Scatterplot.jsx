@@ -9,13 +9,12 @@ import FormHelperText from '@mui/material/FormHelperText';
 import Button from '@mui/material/Button';
 import Box from '@mui/material/Box';
 
-import { CircularProgress } from '@mui/material';
 import GlobalStates from '../api/globalStates';
 
 import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
 import { useContextMenu } from '../hooks/useContextMenu';
 
-import { onStateMouseOver, getScale } from '../api/myutils';
+import { onEntityMouseOver, getScale } from '../api/myutils';
 
 import '../css/vis.css';
 import '../css/App.css';
@@ -209,8 +208,15 @@ export default function Scatterplot({
             if (setStateHovered) {
                 points
                     .on('mouseover', function (_, d) {
-                        onStateMouseOver(this, d);
                         const state = GlobalStates.get(d);
+
+                        /* if (trajectory !== undefined) {
+                            const fuzzyMemberships =
+                                trajectory.fuzzy_memberships[trajectory.current_clustering][d.id];
+                            content += `<b>Fuzzy memberships</b>: ${fuzzyMemberships}<br/>`;
+                        } */
+
+                        onEntityMouseOver(this, state);
                         const traj = trajectories[state.seenIn[0]];
                         const timesteps = traj.idToTimestep.get(d);
                         if (timesteps.length === 1) {

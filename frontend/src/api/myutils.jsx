@@ -6,7 +6,6 @@ import * as d3 from 'd3';
 import React from 'react';
 
 import Box from '@mui/material/Box';
-import GlobalStates from './globalStates.js';
 import 'tippy.js/themes/translucent.css';
 
 export function djb2(str) {
@@ -40,24 +39,6 @@ export function mostOccurringElement(arr) {
     return Object.keys(counts).reduce((a, b) => (counts[a] > counts[b] ? a : b));
 }
 
-export function extractPropertyString(props, d) {
-    let propertyString = '';
-    let propCount = 0;
-    const perLine = 3;
-
-    for (const property of props) {
-        const currentProp = d[property];
-        const capitalized = property.charAt(0).toUpperCase() + property.slice(1);
-
-        propertyString += `<b>${capitalized}</b>: ${currentProp} `;
-
-        propCount++;
-        if (propCount % perLine === 0) {
-            propertyString += '<br>';
-        }
-    }
-    return propertyString;
-}
 
 export function tooltip(node, content) {
     const settings = {
@@ -74,30 +55,14 @@ export function tooltip(node, content) {
     return tippy(node, settings);
 }
 
-export function onStateMouseOver(node, id, trajectory) {
+export function onEntityMouseOver(node, d) {
     // https://atomiks.github.io/tippyjs/v6/addons/#singleton
     // can improve performance further
     let content = '';
 
-    const d = GlobalStates.get(id);
-
-    if (trajectory !== undefined) {
-        const fuzzyMemberships = trajectory.fuzzy_memberships[trajectory.current_clustering][d.id];
-        content += `<b>Fuzzy memberships</b>: ${fuzzyMemberships}<br/>`;
-    }
-
-    const propertyString = extractPropertyString(Object.keys(d), d);
-    content += `${propertyString}`;
+    content += `${d.toString()}`;
     const i = tooltip(node, content);
     i.show();
-}
-
-export function onChunkMouseOver(node, d) {
-    let content = '';
-
-    content += d.toString();
-
-    tooltip(node, content);
 }
 
 // mpn65 color palette

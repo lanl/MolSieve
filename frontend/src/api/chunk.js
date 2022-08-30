@@ -53,6 +53,8 @@ export default class Chunk {
     }
 
     // returns an array of the chunk's children
+    // might want to change this later to be less confusing
+    // i.e just returns either undefined for no children, or the chunk children
     getChildren() {
         if (this.childSize) {
             return this.children;
