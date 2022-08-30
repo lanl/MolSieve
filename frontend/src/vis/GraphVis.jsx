@@ -9,7 +9,6 @@ import ListItemIcon from '@mui/material/ListItemIcon';
 import Checkbox from '@mui/material/Checkbox';
 import Box from '@mui/material/Box';
 
-import { apply_filters } from '../api/filters';
 import { onStateMouseOver, onChunkMouseOver, withinExtent } from '../api/myutils';
 
 import useKeyUp from '../hooks/useKeyUp';
@@ -464,13 +463,6 @@ function GraphVis({
         },
         [width, height, trajectories]
     );
-
-    useEffect(() => {
-        if (ref !== undefined && ref.current !== undefined) {
-            apply_filters(trajectories, runs, ref);
-        }
-        loadingCallback();
-    }, [runs]);
 
     useEffect(() => {
         if (stateHovered !== undefined && stateHovered !== null) {

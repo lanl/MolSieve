@@ -72,11 +72,13 @@ class GlobalStates {
      */
     ensureSubsetHasProperties = (properties, subset) => {
         return new Promise((resolve, reject) => {
-            const ss = ensureArray(subset);
-            const { hasProperties, missingProperties } = this.subsetHasProperties(properties, ss);
+            const { hasProperties, missingProperties } = this.subsetHasProperties(
+                properties,
+                subset
+            );
             if (!hasProperties) {
                 const mp = missingProperties.map((d) => d.name);
-                loadPropertiesForSubset(mp, ss)
+                loadPropertiesForSubset(mp, subset)
                     .then((data) => {
                         this.addPropToStates(data);
                         resolve();

@@ -63,9 +63,6 @@ export default function Scatterplot({
 
     const [isHovered, setIsHovered] = useState(false);
 
-    // can assume this is being loaded
-    const [isLoading, setIsLoading] = useState(true);
-
     useEffect(() => {
         setIsHovered(isParentHovered);
     }, [isParentHovered]);
@@ -140,28 +137,6 @@ export default function Scatterplot({
     });
 
     useEffect(() => {
-        if (sortBySimilarity) {
-            const structuralProps = [
-                'AcklandJones_counts_OTHER',
-                'AcklandJones_counts_FCC',
-                'AcklandJones_counts_HCP',
-                'AcklandJones_counts_BCC',
-                'CommonNeighborAnalysis_counts_FCC',
-                'CommonNeighborAnalysis_counts_HCP',
-                'CommonNeighborAnalysis_counts_BCC',
-                'CommonNeighborAnalysis_counts_ICO',
-                'CommonNeighborAnalysis_counts_OTHER',
-            ];
-            GlobalStates.ensureSubsetHasProperties(structuralProps, uniqueStatesProp).then(() => {
-                // once that is loaded, calculate state similarity
-                setIsLoading(false);
-            });
-        } else {
-            setIsLoading(false);
-        }
-    }, []);
-
-    useEffect(() => {
         ref.current.setAttribute('id', id);
     }, [id]);
 
@@ -171,20 +146,15 @@ export default function Scatterplot({
                 svg.selectAll('*').remove();
             }
 
-            // check if acklandJones is loaded, if not, load it for this set
-            if (isLoading) {
-                return;
-            }
-            // check if cna count is loaded, if not, load it for the set
-
             if (xAttributeList === null || yAttributeList === null) {
                 return;
             }
 
-            const scaleX = getScale(xAttributeList, xAttribute === 'id').range([
+            const scaleX = getScale(xAttributeList, xAttribute === 'timestep').range([
                 margin.left + 5,
                 width - margin.right,
             ]);
+
             const scaleY = getScale(yAttributeList, yAttribute === 'id').range([
                 height - margin.bottom - 5,
                 margin.top,
@@ -376,7 +346,7 @@ export default function Scatterplot({
 
             applyFilters(trajectories, runs, ref);
         },
-        [width, height, xAttributeList, yAttributeList, trajectories, runs, isLoading]
+        [width, height, xAttributeList, yAttributeList, trajectories, runs]
     );
 
     useEffect(() => {
@@ -432,7 +402,7 @@ export default function Scatterplot({
     }, [visibleExtent]);
     return (
         <>
-            {isHovered && !isLoading && (
+            {isHovered && (
                 <Box className="floatingToolBar">
                     <Button color="secondary" size="small" onClick={() => toggleSelectionBrush()}>
                         SelectionBrush
