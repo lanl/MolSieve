@@ -25,6 +25,8 @@ const margin = {
     right: 25,
 };
 
+const minimumChartWidth = 100;
+
 function TrajectoryChart({
     trajectories,
     loadingCallback,
@@ -205,12 +207,12 @@ function TrajectoryChart({
 
                 const unimportantWidthScale = d3
                     .scaleLinear()
-                    .range([margin.left, (width - margin.right) * 0.1])
+                    .range([minimumChartWidth, (width - margin.right) * 0.1])
                     .domain([0, d3.max(uChunks, (d) => d.size)]);
 
                 const importantWidthScale = d3
                     .scaleLinear()
-                    .range([margin.left, width - margin.right])
+                    .range([minimumChartWidth, width - margin.right])
                     .domain([0, d3.max(iChunks, (d) => d.size)]);
 
                 const getWidthScale = (data) => {

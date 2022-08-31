@@ -116,9 +116,13 @@ class App extends React.Component {
                 newTrajectories[run].current_clustering = clusters;
                 newTrajectories[run].set_cluster_info();
 
-                newTrajectories[run].simplifySet(newTrajectories[run].chunkingThreshold);
-                this.setState({ trajectories: newTrajectories });
-                resolve(true);
+                newTrajectories[run]
+                    .simplifySet(newTrajectories[run].chunkingThreshold)
+                    .then((nt) => {
+                        newTrajectories[run] = nt;
+                        this.setState({ trajectories: newTrajectories });
+                        resolve(true);
+                    });
             } else {
                 // if not, recalculate
                 this.load_PCCA(run, clusters, -1, 0, 0, trajectories[run])
@@ -127,17 +131,17 @@ class App extends React.Component {
                             ...trajectories,
                         };
                         traj.add_colors(colors, clusters);
-                        traj.simplifySet(newTrajectories[run].chunkingThreshold);
-                        newTrajectories[run] = traj;
-                        this.setState({
-                            isLoading: false,
-                            trajectories: newTrajectories,
+                        traj.simplifySet(newTrajectories[run].chunkingThreshold).then((nt) => {
+                            newTrajectories[run] = nt;
+                            this.setState({
+                                isLoading: false,
+                                trajectories: newTrajectories,
+                            });
+                            resolve(true);
                         });
-                        resolve(true);
                     })
                     .catch((e) => {
                         this.setState({ isLoading: false });
-                        alert(e);
                         reject(e);
                     });
             }
@@ -259,10 +263,11 @@ class App extends React.Component {
         const { trajectories } = this.state;
         const { [run]: newTraj } = trajectories;
 
-        newTraj.simplifySet(threshold);
-        this.setState((prevState) => ({
-            trajectories: { ...prevState.trajectories, [run]: newTraj },
-        }));
+        newTraj.simplifySet(threshold).then((nt) => {
+            this.setState((prevState) => ({
+                trajectories: { ...prevState.trajectories, [run]: nt },
+            }));
+        });
     };
 
     toggleDrawer = () => {
