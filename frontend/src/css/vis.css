@@ -2,6 +2,14 @@
     stroke: black;
 }
 
+.state {
+  opacity: 0.5;
+}
+
+.state:hover {
+  opacity: 1.0;
+}
+
 .selectedExtent {
     border: 1px solid black;
 }

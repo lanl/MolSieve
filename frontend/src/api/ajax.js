@@ -1,6 +1,8 @@
 import axios from 'axios';
 import Trajectory from './trajectory';
 
+// TODO: decouple trajectory from api calls
+
 /**
  * Ajax query to the backend to retrieve the sequence for a trajectory, given
  * its name and properties.
@@ -172,9 +174,9 @@ export function api_load_metadata(run, trajectory) {
 export function onMessageHandler(onStart, onProgress, onComplete) {
     return (message) => {
         const data = JSON.parse(message.data);
-        if (data.type == 'TASK_COMPLETE') {
+        if (data.type === 'TASK_COMPLETE') {
             onComplete(data);
-        } else if (data.type == 'TASK_START') {
+        } else if (data.type === 'TASK_START') {
             onStart(data);
         } else {
             onProgress(data);
@@ -251,4 +253,25 @@ export function api_generate_ovito_image(number) {
                 reject(e);
             });
     });
+}
+
+export function loadPropertiesForSubset(properties, subset) {
+    return new Promise(function (resolve, reject) {
+        axios
+            .post(
+                '/api/load_properties_for_subset',
+                JSON.stringify({ props: properties, stateIds: subset }),
+                { headers: { 'Content-Type': 'application/json' } }
+            )
+            .then((response) => {
+                resolve(response.data);
+            })
+            .catch((e) => {
+                reject(e);
+            });
+    });
+}
+
+export function loadPropertyForSubset(property, subset) {
+    return loadPropertiesForSubset([property], subset);
 }

@@ -1,15 +1,4 @@
-import { structuralAnalysisProps } from './constants';
-
-const scheme = [
-    '#1b9e77',
-    '#d95f02',
-    '#7570b3',
-    '#e7298a',
-    '#66a61e',
-    '#e6ab02',
-    '#a6761d',
-    '#666666',
-];
+import { structuralAnalysisProps, mpn65 } from './constants';
 
 export default class State {
     id;
@@ -19,7 +8,7 @@ export default class State {
     }
 
     get individualColor() {
-        return scheme[this.id % scheme.length];
+        return mpn65[this.id % mpn65.length];
     }
 
     get clusterIdentifier() {

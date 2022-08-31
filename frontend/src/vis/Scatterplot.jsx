@@ -81,7 +81,7 @@ export default function Scatterplot({
     const toggleSelectionBrush = () => {
         if (!selectionBrushMode) {
             selectionBrushMode = !selectionBrushMode;
-            selectionBrush();
+          selectionBrush();
         } else {
             selectionBrushMode = !selectionBrushMode;
             completeSelection();
@@ -352,7 +352,7 @@ export default function Scatterplot({
 
             applyFilters(trajectories, runs, ref);
         },
-        [width, height, xAttributeList, yAttributeList, trajectories, runs]
+        [xAttributeList, yAttributeList, trajectories, runs]
     );
 
     useEffect(() => {

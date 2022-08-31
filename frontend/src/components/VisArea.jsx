@@ -73,7 +73,7 @@ export default function VisArea({ sx, trajectories, runs, properties }) {
                         Sequence View
                     </Typography>
                     <ChartBox sx={{ flexGrow: 1 }}>
-                        {(width, height) => (
+                        {(width, height, isHovered) => (
                             <TrajectoryChart
                                 width={width}
                                 height={height}
@@ -84,6 +84,7 @@ export default function VisArea({ sx, trajectories, runs, properties }) {
                                 setStateClicked={setStateClicked}
                                 stateHovered={stateHovered}
                                 properties={properties}
+                                isParentHovered={isHovered}
                             />
                         )}
                     </ChartBox>

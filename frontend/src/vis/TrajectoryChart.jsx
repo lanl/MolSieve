@@ -2,17 +2,20 @@ import { React, useEffect, useState } from 'react';
 import * as d3 from 'd3';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
-import ListItemText from '@mui/material/ListItemText';
-import ListItemIcon from '@mui/material/ListItemIcon';
-import Checkbox from '@mui/material/Checkbox';
+import Button from '@mui/material/Button';
+import Box from '@mui/material/Box';
+import Select from '@mui/material/Select';
 
+import { structuralAnalysisProps } from '../api/constants';
 import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
 import { useContextMenu } from '../hooks/useContextMenu';
 
 import '../css/vis.css';
 import { onEntityMouseOver } from '../api/myutils';
+import GlobalStates from '../api/globalStates';
 
 import Scatterplot from './Scatterplot';
+import BoxPlot from './BoxPlot';
 import EmbeddedChart from './EmbeddedChart';
 
 const margin = {
@@ -34,16 +37,17 @@ function TrajectoryChart({
     height,
     properties,
     runs,
+    isParentHovered,
 }) {
     const { contextMenu, toggleMenu } = useContextMenu();
 
-    const [stateHighlight, setStateHighlight] = useState(false);
-
     const [charts, setCharts] = useState([]);
+    const [isHovered, setIsHovered] = useState(false);
+    const [boxPlotAttribute, setBoxPlotAttribute] = useState(structuralAnalysisProps[0]);
 
-    const toggleStateHighlight = () => {
-        setStateHighlight((prev) => !prev);
-    };
+    useEffect(() => {
+        setIsHovered(isParentHovered);
+    }, [isParentHovered]);
 
     const renderChunks = (data, trajectoryName, count, xScale, yScale, getWidthScale) => {
         const trajectory = trajectories[trajectoryName];
@@ -106,22 +110,35 @@ function TrajectoryChart({
         }
 
         const trajectory = trajectories[trajectoryName];
-        const scatterCharts = data
-            .filter((d) => d.important)
-            .map((chunk) => {
-                const w = scaleX(getWidthScale(chunk));
-                const h = 400;
 
-                return (
-                    <foreignObject
-                        key={`chart_${chunk.id}`}
-                        x={getX(data.indexOf(chunk), 0)}
-                        y={scaleY(count) + 12.5}
-                        width={w}
-                        height={h}
-                    >
-                        <EmbeddedChart height={h} width={w}>
-                            {(ww, hh, isHovered) => (
+        // set up global scale for the boxPlots
+
+        const allStateIds = data.filter((d) => !d.important).map((d) => d.selected);
+        const boxPlotStateIds = [].concat.apply([], allStateIds);
+
+        const boxPlotStates = boxPlotStateIds.map((id) => GlobalStates.get(id));
+
+        // range may not always be constant...
+        const globalBoxScale = d3
+            .scaleLinear()
+            .domain(d3.extent(boxPlotStates, (d) => d[boxPlotAttribute]))
+            .range([375, 20]);
+
+        const scatterCharts = data.map((chunk) => {
+            const w = scaleX(getWidthScale(chunk));
+            const h = 400;
+
+            return (
+                <foreignObject
+                    key={`chart_${chunk.id}`}
+                    x={getX(data.indexOf(chunk), 0)}
+                    y={scaleY(count) + 12.5}
+                    width={w}
+                    height={h}
+                >
+                    <EmbeddedChart height={h} width={w}>
+                        {(ww, hh, isEmbeddedParentHovered) =>
+                            chunk.important ? (
                                 <Scatterplot
                                     sequence={trajectory.getChunkSequence(chunk)}
                                     uniqueStatesProp={trajectory.getChunkStates(chunk)}
@@ -135,16 +152,23 @@ function TrajectoryChart({
                                     setStateHovered={setStateHovered}
                                     setStateClicked={setStateClicked}
                                     stateHovered={stateHovered}
-                                    isParentHovered={isHovered}
+                                    isParentHovered={isEmbeddedParentHovered}
                                     id={`sc_${chunk.id}`}
                                 />
-                            )}
-                        </EmbeddedChart>
-                    </foreignObject>
-                );
-            });
-
-        const attributeCharts = data.filter((d) => !d.important).map((chunk) => {});
+                            ) : (
+                                <BoxPlot
+                                    data={chunk.selected}
+                                    property={boxPlotAttribute}
+                                    width={ww}
+                                    height={hh}
+                                    globalScale={globalBoxScale}
+                                />
+                            )
+                        }
+                    </EmbeddedChart>
+                </foreignObject>
+            );
+        });
 
         setCharts([...charts, scatterCharts]);
     };
@@ -217,11 +241,11 @@ function TrajectoryChart({
 
             loadingCallback();
         },
-        [width, height, trajectories, runs]
+        [trajectories, runs, boxPlotAttribute]
     );
 
     useEffect(() => {
-        if (stateHovered) {
+        /* if (stateHovered) {
             if (stateHighlight) {
                 d3.select(ref.current)
                     .selectAll('rect:not(.invisible)')
@@ -258,8 +282,8 @@ function TrajectoryChart({
             d3.select(ref.current)
                 .selectAll('.highlightedState')
                 .classed('highlightedState', false);
-        }
-    }, [stateHovered, stateHighlight]);
+        } */
+    }, [stateHovered]);
 
     useEffect(() => {
         d3.select(ref.current).selectAll('.currentSelection').classed('currentSelection', false);
@@ -289,11 +313,19 @@ function TrajectoryChart({
         }
     }, [visibleExtent]);
 
+    // render properties in properties menu
     return (
         <>
+            {isHovered && (
+                <Box className="floatingToolBar">
+                    <Button color="secondary" size="small" onClick={(e) => toggleMenu(e)}>
+                        BoxPlotAttributes
+                    </Button>
+                </Box>
+            )}
+
             <svg
                 className="vis"
-                onContextMenu={toggleMenu}
                 id="sequence"
                 ref={ref}
                 preserveAspectRatio="none"
@@ -301,6 +333,7 @@ function TrajectoryChart({
             >
                 {charts}
             </svg>
+
             <Menu
                 open={contextMenu !== null}
                 onClose={toggleMenu}
@@ -312,15 +345,20 @@ function TrajectoryChart({
                 }
             >
                 <MenuItem>
-                    <ListItemIcon>
-                        <Checkbox
-                            onChange={() => {
-                                toggleStateHighlight();
-                            }}
-                            checked={stateHighlight}
-                        />
-                    </ListItemIcon>
-                    <ListItemText>Toggle state highlighting</ListItemText>
+                    <Select
+                        value={boxPlotAttribute}
+                        onChange={(e) => {
+                            setBoxPlotAttribute(e.target.value);
+                        }}
+                    >
+                        {structuralAnalysisProps.map((property) => {
+                            return (
+                                <MenuItem key={property} value={property}>
+                                    {property}
+                                </MenuItem>
+                            );
+                        })}
+                    </Select>
                 </MenuItem>
             </Menu>
         </>

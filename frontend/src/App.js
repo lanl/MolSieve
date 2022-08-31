@@ -40,7 +40,7 @@ class App extends React.Component {
             runs: {},
             loadingMessage: 'Loading...',
             colors: [...d3.schemeTableau10, ...d3.schemeAccent],
-            properties: [],
+            properties: ['timestep', 'id'],
         };
     }
 
@@ -157,7 +157,7 @@ class App extends React.Component {
                 const newTraj = new Trajectory();
                 newTraj.sequence = Uint32Array.from(data.sequence);
                 newTraj.uniqueStates = data.uniqueStates.map((state) => state.id);
-
+                newTraj.name = run;
                 GlobalStates.calculateGlobalUniqueStates(data.uniqueStates, run);
 
                 this.load_PCCA(run, clusters, optimal, mMin, mMax, newTraj).then((newTrajPCCA) => {
@@ -166,23 +166,27 @@ class App extends React.Component {
                             newTrajComplete.set_cluster_info();
                             // could be an option
                             newTrajComplete.chunkingThreshold = chunkingThreshold;
-                            newTrajComplete.simplifySet(chunkingThreshold);
-                            const removed = newTrajComplete.set_colors(this.state.colors);
-                            const newTrajectories = {
-                                ...this.state.trajectories,
-                            };
+                            newTrajComplete.simplifySet(chunkingThreshold).then((chunkedTraj) => {
+                                // need to wait for states to finish loading before rendering
+                                const removed = chunkedTraj.set_colors(this.state.colors);
+                                const newTrajectories = {
+                                    ...this.state.trajectories,
+                                };
 
-                            newTrajectories[run] = newTrajComplete;
-                            const newColors = [...this.state.colors];
-                            newColors.splice(0, removed);
+                                newTrajectories[run] = chunkedTraj;
+                                const newColors = [...this.state.colors];
+                                newColors.splice(0, removed);
 
-                            const newRuns = this.initFilters(run, newTrajComplete);
-                            this.setState({
-                                isLoading: false,
-                                runs: newRuns,
-                                trajectories: newTrajectories,
-                                colors: newColors,
-                                properties: [...new Set([...this.state.properties, ...properties])],
+                                const newRuns = this.initFilters(run, newTrajComplete);
+                                this.setState({
+                                    isLoading: false,
+                                    runs: newRuns,
+                                    trajectories: newTrajectories,
+                                    colors: newColors,
+                                    properties: [
+                                        ...new Set([...this.state.properties, ...properties]),
+                                    ],
+                                });
                             });
                         });
                     });
@@ -205,9 +209,9 @@ class App extends React.Component {
 
         const fb = new FilterBuilder();
 
-        filters.clustering_difference = fb.buildClusteringDifference();
-        filters.chunks = fb.buildHideChunks();
-        filters.transitions = fb.buildTransitions();
+        // filters.clustering_difference = fb.buildClusteringDifference();
+        //    filters.chunks = fb.buildHideChunks();
+        // filters.transitions = fb.buildTransitions();
         filters.fuzzy_membership = fb.buildFuzzyMemberships();
 
         runs[run].filters = filters;
@@ -248,7 +252,7 @@ class App extends React.Component {
     updateRun = (run, attribute, value) => {
         const { runs } = this.state;
         runs[run][attribute] = value;
-        this.setState(runs);
+        this.setState({ runs: { ...runs } });
     };
 
     simplifySet = (run, threshold) => {
@@ -281,7 +285,7 @@ class App extends React.Component {
 
         run.filters = filters;
         runs[state.run] = run;
-        this.setState({ runs });
+        this.setState({ runs: { ...runs } });
     };
 
     propagateChange = (filter) => {
@@ -297,7 +301,7 @@ class App extends React.Component {
         thisFilter.enabled = filter.enabled;
 
         runs[filter.run].filters[filter.id] = thisFilter;
-        this.setState({ runs });
+        this.setState({ runs: { ...runs } });
     };
 
     render() {
