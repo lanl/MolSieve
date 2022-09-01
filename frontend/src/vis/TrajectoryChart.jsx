@@ -11,7 +11,7 @@ import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
 import { useContextMenu } from '../hooks/useContextMenu';
 
 import '../css/vis.css';
-import { onEntityMouseOver } from '../api/myutils';
+import { onEntityMouseOver, simpleMovingAverage } from '../api/myutils';
 import GlobalStates from '../api/globalStates';
 
 import Scatterplot from './Scatterplot';
@@ -110,8 +110,6 @@ function TrajectoryChart({
             return w;
         }
 
-        const trajectory = trajectories[trajectoryName];
-
         // set up global scale for the boxPlots
 
         const uStateIds = data.filter((d) => !d.important).map((d) => d.selected);
@@ -156,6 +154,11 @@ function TrajectoryChart({
                                     id={`sc_${chunk.id}`}
                                     property={boxPlotAttribute}
                                     globalScale={globalBoxScale}
+                                    movingAverage={chunk.calculateMovingAverage(
+                                        boxPlotAttribute,
+                                        100,
+                                        simpleMovingAverage
+                                    )}
                                 />
                             ) : (
                                 <BoxPlot

@@ -44,6 +44,7 @@ export default function Scatterplot({
     isParentHovered,
     property,
     globalScale,
+    movingAverage,
 }) {
     const [yAttributeList, setYAttributeList] = useState(yAttributeListProp);
 
@@ -198,7 +199,13 @@ export default function Scatterplot({
                     });
             } else {
                 const datum = [];
+                const mv = [];
 
+                // TODO: 100 should be the moving average period
+                for (let i = 0; i < movingAverage.length; i++) {
+                    const d = { x: i * 100, y: movingAverage[i] };
+                    mv.push(d);
+                }
                 for (let i = 0; i < sequence.length; i++) {
                     const d = { x: xAttributeList[i], y: yAttributeListRender[i] };
                     datum.push(d);
@@ -210,10 +217,18 @@ export default function Scatterplot({
                     .y((d) => scaleY(d.y))
                     .curve(d3.curveCatmullRom.alpha(0.5));
 
+                // sparkline
                 svg.append('path')
                     .datum(datum)
                     .attr('d', line)
                     .attr('stroke', 'black')
+                    .attr('fill', 'none');
+
+                // moving average line
+                svg.append('path')
+                    .datum(mv)
+                    .attr('d', line)
+                    .attr('stroke', 'red')
                     .attr('fill', 'none');
             }
 

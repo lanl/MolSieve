@@ -1,4 +1,5 @@
 import GlobalChunks from './globalChunks';
+import GlobalStates from './globalStates';
 
 const CHUNK = 0;
 
@@ -35,9 +36,10 @@ export default class Chunk {
         this.trajectory = trajectory;
     }
 
-    // calculate selected - used to generate box plots
-    // array of 20 + 10% of chunk states that are characteristic of it
-
+    /* Returns array of 20 + 10% of chunk states that are characteristic of it.
+     * Used to select states for display in a box plot.
+     * NOTE: not a getter because otherwise the results would be randomly recalculated
+     */
     calculateSelected() {
         const entries = [...this.stateCounts.entries()].sort((a, b) => b[1] - a[1]);
 
@@ -52,6 +54,7 @@ export default class Chunk {
             const random = Math.floor(Math.random() * (entries.length - 20)) + 20;
             selected.push(entries[random][0]);
         }
+
         this.selected = selected;
     }
 
@@ -130,6 +133,21 @@ export default class Chunk {
         }
 
         return stateCounts;
+    }
+
+    /**
+     * Calculates the moving average for the given property within the chunk.
+     *
+     * @param {String} property - The property to calculate the moving average for.
+     * @param {Int} n - The length of the moving average period.
+     * @param {Function} mf - A function that takes (data, n) and returns an array of moving averages.
+     * @returns {Array} Array of moving averages.
+     */
+    calculateMovingAverage(property, n, mf) {
+        const stateSequence = this.sequence.map((id) => GlobalStates.get(id));
+        const propertyList = stateSequence.map((d) => d[property]);
+
+        return mf(propertyList, n);
     }
 
     toString() {

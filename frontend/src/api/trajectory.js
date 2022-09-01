@@ -199,17 +199,20 @@ class Trajectory {
             this.chunks = chunks;
             this.chunkingThreshold = chunkingThreshold;
 
-            // load structural properties for all interesting states
-            // seperate into different function ?
-            //
+            const chartChunks = Array.from(this.chunks.values()).filter((d) => !d.hasParent);
+
+            /* load structural properties for all interesting states
+             * i.e states that are within the first level of chunks */
+
             let interestingStates = [];
-            for (const chunk of this.chunks.values()) {
+            for (const chunk of chartChunks) {
                 if (chunk.important) {
                     interestingStates = [...interestingStates, ...chunk.states];
                 } else {
                     chunk.calculateSelected();
                     interestingStates = [...interestingStates, ...chunk.selected];
                 }
+                // for now, set chunk properties here
                 chunk.properties = [...chunk.properties, ...structuralAnalysisProps];
             }
             // remove duplicates

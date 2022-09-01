@@ -39,7 +39,6 @@ export function mostOccurringElement(arr) {
     return Object.keys(counts).reduce((a, b) => (counts[a] > counts[b] ? a : b));
 }
 
-
 export function tooltip(node, content) {
     const settings = {
         allowHTML: true,
@@ -313,4 +312,23 @@ export function getClassIds(className) {
 
 export function ensureArray(obj) {
     return obj instanceof Set ? [...obj] : obj;
+}
+
+/**
+ * Calculates the simple moving average of the given dataset.
+ * TODO: return an object with the values + the period used to calculate them
+ * @param {Array<Number>} values - The values to calculate the average for.
+ * @param {Number} N - The length of the moving average period.
+ * @returns {Array<Number>} An array of moving averages.
+ */
+export function simpleMovingAverage(values, N) {
+    const means = [];
+
+    let i = N - 1;
+    while (++i < values.length + 1) {
+        const ws = values.slice(i - N, i);
+        const sum = ws.reduce((prev, curr) => prev + curr, 0);
+        means.push(sum / N);
+    }
+    return means;
 }
