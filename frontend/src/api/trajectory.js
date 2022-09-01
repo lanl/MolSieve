@@ -88,7 +88,7 @@ class Trajectory {
             const first = chunk.timestep + s * chunkSize;
             const last = s === split - 1 ? chunk.last : first + chunkSize - 1;
             // new Chunk with parent, no children guaranteed
-            const child = Chunk.withParent(first, last, this.sequence[first], true, parentID);
+            const child = Chunk.withParent(first, last, this.sequence[first], true, parentID, this);
             chunks.set(child.id, child);
             if (child.size > sizeThreshold) {
                 const { children, childSize } = this.splitChunks(
@@ -162,7 +162,8 @@ class Trajectory {
                             last,
                             this.sequence[first],
                             important,
-                            cluster
+                            cluster,
+                            this
                         );
                         const { children, childSize } = this.splitChunks(
                             chunk,
@@ -180,7 +181,8 @@ class Trajectory {
                             last,
                             this.sequence[first],
                             important,
-                            cluster
+                            cluster,
+                            this
                         );
                         chunks.set(chunk.id, chunk);
                     }
@@ -198,28 +200,17 @@ class Trajectory {
             this.chunkingThreshold = chunkingThreshold;
 
             // load structural properties for all interesting states
+            // seperate into different function ?
+            //
             let interestingStates = [];
             for (const chunk of this.chunks.values()) {
                 if (chunk.important) {
-                    interestingStates = [...interestingStates, ...this.getChunkStates(chunk)];
+                    interestingStates = [...interestingStates, ...chunk.states];
                 } else {
-                    const stateCounts = this.getChunkStateCounts(chunk);
-                    const entries = [...stateCounts.entries()].sort((a, b) => b[1] - a[1]);
-
-                    // 0 returns only state ID
-                    const selected = [];
-                    for (let i = 0; i < 20; i++) {
-                        selected.push(entries[i][0]);
-                    }
-
-                    for (let j = 0; j < Math.floor(0.1 * entries.length); j++) {
-                        // select 10% of the chunk randomly for the distribution; ignore top 20 in selection
-                        const random = Math.floor(Math.random() * (entries.length - 20)) + 20;
-                        selected.push(entries[random][0]);
-                    }
-                    chunk.selected = selected;
-                    interestingStates = [...interestingStates, ...selected];
+                    chunk.calculateSelected();
+                    interestingStates = [...interestingStates, ...chunk.selected];
                 }
+                chunk.properties = [...chunk.properties, ...structuralAnalysisProps];
             }
             // remove duplicates
             interestingStates = [...new Set(interestingStates)];
@@ -234,7 +225,6 @@ class Trajectory {
     }
 
     /* Returns the length of the trajectory. */
-
     length() {
         return this.sequence.length;
     }
@@ -267,49 +257,8 @@ class Trajectory {
         return newList;
     }
 
-    // returns an array of state ids within a chunk
-    getChunkStates(chunk) {
-        const { timesteps } = chunk;
-        const ids = new Set();
-        for (let i = 0; i < timesteps.length; i++) {
-            ids.add(this.sequence[timesteps[i]]);
-        }
-        return [...ids];
-    }
-
-    // returns the ids within a chunk in temporal order
-    getChunkSequence(chunk) {
-        const { timesteps } = chunk;
-        const ids = [];
-        for (let i = 0; i < timesteps.length; i++) {
-            ids.push(this.sequence[timesteps[i]]);
-        }
-        return ids;
-    }
-
     /**
-     * Counts all of the occurrences of the unique states within a chunk.
-     *
-     * @param {Chunk} chunk - The chunk to calculate the unique state counts for.
-     * @returns {Map} - A map containing the state counts for each unique state within the chunk.
-     */
-    getChunkStateCounts(chunk) {
-        const ids = this.getChunkSequence(chunk);
-
-        const stateCounts = new Map();
-        for (const id of ids) {
-            if (stateCounts.has(id)) {
-                const val = stateCounts.get(id);
-                stateCounts.set(id, val + 1);
-            } else {
-                stateCounts.set(id, 1);
-            }
-        }
-
-        return stateCounts;
-    }
-
-    /* Colors an entity based on its cluster identifier (for chunks, its id; for timesteps, its stateID)
+     * Colors an entity based on its cluster identifier (for chunks, its id; for timesteps, its stateID)
      * Will probably change to id once the mess with chunks / states is sorted
      */
     colorByCluster(entity) {
@@ -342,8 +291,8 @@ class Trajectory {
         if (!iChunk.important || !jChunk.important) {
             return 0;
         }
-        const iSet = this.getChunkStates(iChunk);
-        const jSet = this.getChunkStates(jChunk);
+        const iSet = iChunk.states;
+        const jSet = jChunk.states;
 
         const inter = setIntersection(iSet, jSet);
         const union = setUnion(iSet, jSet);
@@ -351,6 +300,11 @@ class Trajectory {
         return inter.size / union.size;
     }
 
+    /**
+     * Get chunk map as array.
+     *
+     * @returns {Map(Int, Chunk)} List of chunks within trajectory.
+     */
     get chunkList() {
         return Array.from(this.chunks.values()).map((c) => c);
     }

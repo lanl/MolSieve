@@ -37,7 +37,6 @@ function TrajectoryChart({
     visibleExtent,
     width,
     height,
-    properties,
     runs,
     isParentHovered,
 }) {
@@ -116,7 +115,7 @@ function TrajectoryChart({
         // set up global scale for the boxPlots
 
         const uStateIds = data.filter((d) => !d.important).map((d) => d.selected);
-        const iStateIds = data.filter((d) => d.important).map((d) => trajectory.getChunkStates(d));
+        const iStateIds = data.filter((d) => d.important).map((d) => d.states);
         const allStateIds = [...uStateIds, ...iStateIds];
         const boxPlotStateIds = [].concat.apply([], allStateIds);
 
@@ -131,7 +130,6 @@ function TrajectoryChart({
         const scatterCharts = data.map((chunk) => {
             const w = scaleX(getWidthScale(chunk));
             const h = 400;
-
             return (
                 <foreignObject
                     key={`chart_${chunk.id}`}
@@ -144,9 +142,7 @@ function TrajectoryChart({
                         {(ww, hh, isEmbeddedParentHovered) =>
                             chunk.important ? (
                                 <Scatterplot
-                                    sequence={trajectory.getChunkSequence(chunk)}
-                                    uniqueStatesProp={trajectory.getChunkStates(chunk)}
-                                    properties={['timestep', 'id', ...structuralAnalysisProps]}
+                                    sequence={chunk.sequence}
                                     width={ww}
                                     height={hh}
                                     runs={runs}
@@ -158,7 +154,7 @@ function TrajectoryChart({
                                     stateHovered={stateHovered}
                                     isParentHovered={isEmbeddedParentHovered}
                                     id={`sc_${chunk.id}`}
-                                    boxProperty={boxPlotAttribute}
+                                    property={boxPlotAttribute}
                                     globalScale={globalBoxScale}
                                 />
                             ) : (

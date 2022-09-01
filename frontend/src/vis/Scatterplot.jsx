@@ -36,22 +36,18 @@ export default function Scatterplot({
     setStateClicked,
     setStateHovered,
     setExtents,
-    properties,
-    yAttributeProp = properties[1],
     yAttributeListProp = null,
     visibleExtent,
     width,
     height,
     runs,
     isParentHovered,
-    boxProperty,
+    property,
     globalScale,
 }) {
-    const [yAttribute, setYAttribute] = useState(yAttributeProp);
-
     const [yAttributeList, setYAttributeList] = useState(yAttributeListProp);
 
-    const [showSparkLine, setSparkLine] = useState(false);
+    const [showSparkLine, setSparkLine] = useState(true);
     const [isHovered, setIsHovered] = useState(false);
 
     useEffect(() => {
@@ -94,33 +90,21 @@ export default function Scatterplot({
         }
     };
 
-    const useAttributeList = (setAttributeList, attribute, attributeListProp) => {
+    const useAttributeList = (setAttributeList, attribute) => {
         useEffect(() => {
             const uniqueStates = sequence.map((i) => {
                 return GlobalStates.get(i);
             });
 
-            if (attributeListProp === null || attributeListProp === undefined) {
-                if (attribute === 'timestep') {
-                    setAttributeList(timesteps);
-                } else {
-                    setAttributeList(
-                        uniqueStates.map((s) => {
-                            return s[attribute];
-                        })
-                    );
-                }
-            } else {
-                setAttributeList(attributeListProp);
-            }
+            setAttributeList(
+                uniqueStates.map((s) => {
+                    return s[attribute];
+                })
+            );
         }, [GlobalStates, attribute, sequence]);
     };
 
-    useEffect(() => {
-        setYAttribute(boxProperty);
-    }, [boxProperty]);
-
-    useAttributeList(setYAttributeList, yAttribute, yAttributeListProp);
+    useAttributeList(setYAttributeList, property);
 
     useEffect(() => {
         ref.current.setAttribute('id', id);
@@ -148,7 +132,7 @@ export default function Scatterplot({
             ]);
 
             const yAttributeListRender = showSparkLine ? yAttributeList : sequence;
-            const yAttributeRender = showSparkLine ? yAttribute : 'id';
+            const yAttributeRender = showSparkLine ? property : 'id';
 
             const scaleY = showSparkLine
                 ? globalScale
@@ -312,7 +296,7 @@ export default function Scatterplot({
 
             applyFilters(trajectories, runs, ref);
         },
-        [yAttributeList, trajectories, runs, showSparkLine, boxProperty]
+        [yAttributeList, trajectories, runs, showSparkLine, property]
     );
 
     useEffect(() => {
