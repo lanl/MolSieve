@@ -207,7 +207,7 @@ export function getMaxProperty(property, sequence) {
     }
     return max;
 }
-
+// TODO: should move this out to its own file
 export function TabPanel(props) {
     const { children, value, index, ...other } = props;
 
@@ -316,16 +316,16 @@ export function ensureArray(obj) {
 
 /**
  * Calculates the simple moving average of the given dataset.
- * TODO: return an object with the values + the period used to calculate them
  * @param {Array<Number>} values - The values to calculate the average for.
  * @param {Number} N - The length of the moving average period.
  * @returns {Array<Number>} An array of moving averages.
  */
 export function simpleMovingAverage(values, N) {
     const means = [];
+    const length = values.length + 1;
 
     let i = N - 1;
-    while (++i < values.length + 1) {
+    while (++i < length) {
         const ws = values.slice(i - N, i);
         const sum = ws.reduce((prev, curr) => prev + curr, 0);
         means.push(sum / N);

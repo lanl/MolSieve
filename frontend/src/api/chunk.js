@@ -146,7 +146,6 @@ export default class Chunk {
     calculateMovingAverage(property, n, mf) {
         const stateSequence = this.sequence.map((id) => GlobalStates.get(id));
         const propertyList = stateSequence.map((d) => d[property]);
-
         return mf(propertyList, n);
     }
 

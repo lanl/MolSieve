@@ -201,9 +201,8 @@ export default function Scatterplot({
                 const datum = [];
                 const mv = [];
 
-                // TODO: 100 should be the moving average period
                 for (let i = 0; i < movingAverage.length; i++) {
-                    const d = { x: i * 100, y: movingAverage[i] };
+                    const d = { x: i, y: movingAverage[i] };
                     mv.push(d);
                 }
                 for (let i = 0; i < sequence.length; i++) {
