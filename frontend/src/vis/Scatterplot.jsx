@@ -29,42 +29,38 @@ let selectionBrushMode = false;
 
 export default function Scatterplot({
     sequence,
-    uniqueStatesProp,
     trajectories,
-    loadingCallback,
     stateHovered,
     id,
-    title,
     trajectoryName,
     setStateClicked,
     setStateHovered,
     setExtents,
     properties,
-    xAttributeProp = properties[0],
     yAttributeProp = properties[1],
-    xAttributeListProp = null,
     yAttributeListProp = null,
-    enableMenu = true,
-    path = false,
     visibleExtent,
     width,
     height,
     runs,
     isParentHovered,
-    sortBySimilarity = true,
+    boxProperty,
+    globalScale,
 }) {
-    const { contextMenu, toggleMenu } = useContextMenu();
-    const [xAttribute, setXAttribute] = useState(xAttributeProp);
     const [yAttribute, setYAttribute] = useState(yAttributeProp);
 
-    const [xAttributeList, setXAttributeList] = useState(xAttributeListProp);
     const [yAttributeList, setYAttributeList] = useState(yAttributeListProp);
 
+    const [showSparkLine, setSparkLine] = useState(false);
     const [isHovered, setIsHovered] = useState(false);
 
     useEffect(() => {
         setIsHovered(isParentHovered);
     }, [isParentHovered]);
+
+    const toggleSparkLine = () => {
+        setSparkLine(!showSparkLine);
+    };
 
     const { setInternalExtents, completeSelection } = useExtents(setExtents);
 
@@ -81,7 +77,7 @@ export default function Scatterplot({
     const toggleSelectionBrush = () => {
         if (!selectionBrushMode) {
             selectionBrushMode = !selectionBrushMode;
-          selectionBrush();
+            selectionBrush();
         } else {
             selectionBrushMode = !selectionBrushMode;
             completeSelection();
@@ -106,10 +102,6 @@ export default function Scatterplot({
 
             if (attributeListProp === null || attributeListProp === undefined) {
                 if (attribute === 'timestep') {
-                    const timesteps = sequence.map((_, i) => {
-                        return i;
-                    });
-
                     setAttributeList(timesteps);
                 } else {
                     setAttributeList(
@@ -124,16 +116,11 @@ export default function Scatterplot({
         }, [GlobalStates, attribute, sequence]);
     };
 
-    useAttributeList(setXAttributeList, xAttribute, xAttributeListProp);
-    useAttributeList(setYAttributeList, yAttribute, yAttributeListProp);
+    useEffect(() => {
+        setYAttribute(boxProperty);
+    }, [boxProperty]);
 
-    const options = properties.map((property) => {
-        return (
-            <MenuItem key={property} value={property}>
-                {property}
-            </MenuItem>
-        );
-    });
+    useAttributeList(setYAttributeList, yAttribute, yAttributeListProp);
 
     useEffect(() => {
         ref.current.setAttribute('id', id);
@@ -145,19 +132,30 @@ export default function Scatterplot({
                 svg.selectAll('*').remove();
             }
 
-            if (xAttributeList === null || yAttributeList === null) {
+            if (yAttributeList === null) {
                 return;
             }
+
+            const xAttribute = 'timestep';
+
+            const xAttributeList = sequence.map((_, i) => {
+                return i;
+            });
 
             const scaleX = getScale(xAttributeList, xAttribute === 'timestep').range([
                 margin.left + 5,
                 width - margin.right,
             ]);
 
-            const scaleY = getScale(yAttributeList, yAttribute === 'id').range([
-                height - margin.bottom - 5,
-                margin.top,
-            ]);
+            const yAttributeListRender = showSparkLine ? yAttributeList : sequence;
+            const yAttributeRender = showSparkLine ? yAttribute : 'id';
+
+            const scaleY = showSparkLine
+                ? globalScale
+                : getScale(yAttributeListRender, yAttributeRender === 'id').range([
+                      height - margin.bottom - 5,
+                      margin.top,
+                  ]);
 
             const container = svg.append('g').attr('transform', 'translate(0,0)');
 
@@ -165,89 +163,60 @@ export default function Scatterplot({
                 container.attr('id', `g_${trajectoryName}`);
             }
 
-            const points = container
-                .selectAll('rect')
-                .data(sequence)
-                .enter()
-                .append('rect')
-                .attr('x', function (_, i) {
-                    return scaleX(xAttributeList[i]);
-                })
-                .attr('y', function (_, i) {
-                    return scaleY(yAttributeList[i]);
-                })
-                .attr('width', 5)
-                .attr('height', 5)
-                .attr('fill', function (d) {
-                    const state = GlobalStates.get(d);
-                    return state.individualColor;
-                })
-                .attr('display', function (_, i) {
-                    if (xAttributeList[i] === undefined || yAttributeList[i] === undefined) {
-                        return 'none';
-                    }
-                    return 'inline';
-                })
-                .classed('state', true)
-                .classed('clickable', true);
-
-            if (setStateClicked) {
-                points.on('click', function (_, d) {
-                    if (individualSelectionMode) {
-                        d3.select(this).classed('currentSelection', true);
-                        setInternalExtents((prev) => [
-                            ...prev,
-                            { name: trajectoryName, states: [d] },
-                        ]);
-                    } else {
-                        setStateClicked(d);
-                    }
-                });
-            }
-
-            if (setStateHovered) {
-                points
+            if (!showSparkLine) {
+                container
+                    .selectAll('rect')
+                    .data(sequence)
+                    .enter()
+                    .append('rect')
+                    .attr('x', function (_, i) {
+                        return scaleX(xAttributeList[i]);
+                    })
+                    .attr('y', function (_, i) {
+                        return scaleY(yAttributeListRender[i]);
+                    })
+                    .attr('width', 5)
+                    .attr('height', 5)
+                    .attr('fill', function (d) {
+                        const state = GlobalStates.get(d);
+                        return state.individualColor;
+                    })
+                    .classed('state', true)
+                    .classed('clickable', true)
+                    .on('click', function (_, d) {
+                        if (individualSelectionMode) {
+                            d3.select(this).classed('currentSelection', true);
+                            setInternalExtents((prev) => [
+                                ...prev,
+                                { name: trajectoryName, states: [d] },
+                            ]);
+                        } else {
+                            setStateClicked(d);
+                        }
+                    })
                     .on('mouseover', function (_, d) {
                         const state = GlobalStates.get(d);
+                        setStateHovered({
+                            caller: this,
+                            stateID: d,
+                            name: trajectoryName,
+                        });
 
                         /* if (trajectory !== undefined) {
                             const fuzzyMemberships =
                                 trajectory.fuzzy_memberships[trajectory.current_clustering][d.id];
                             content += `<b>Fuzzy memberships</b>: ${fuzzyMemberships}<br/>`;
                         } */
-
                         onEntityMouseOver(this, state);
-                        const traj = trajectories[state.seenIn[0]];
-                        const timesteps = traj.idToTimestep.get(d);
-                        if (timesteps.length === 1) {
-                            setStateHovered({
-                                caller: this,
-                                stateID: d.id,
-                                name: trajectoryName,
-                                timestep: timesteps[0],
-                            });
-                        } else {
-                            setStateHovered({
-                                caller: this,
-                                stateID: d.id,
-                                name: trajectoryName,
-                                timesteps,
-                            });
-                        }
                     })
                     .on('mouseout', function () {
                         setStateHovered(null);
                     });
             } else {
-                points.on('mouseover', function (_, d) {
-                    onStateMouseOver(this, d.id);
-                });
-            }
-
-            if (path) {
                 const datum = [];
+
                 for (let i = 0; i < sequence.length; i++) {
-                    const d = { x: xAttributeList[i], y: yAttributeList[i] };
+                    const d = { x: xAttributeList[i], y: yAttributeListRender[i] };
                     datum.push(d);
                 }
 
@@ -268,7 +237,7 @@ export default function Scatterplot({
             const xAxisPos = height - margin.bottom;
 
             const xUnique = new Set(xAttributeList);
-            const yUnique = new Set(yAttributeList);
+            const yUnique = new Set(yAttributeListRender);
 
             if (xUnique.size < 20) {
                 const xAxis = svg
@@ -288,17 +257,12 @@ export default function Scatterplot({
                     .call(d3.axisLeft().scale(scaleY).ticks(5));
             }
 
-            if (title === undefined || title === null) {
-                title = '';
-            }
-            title += `scatterplot ${id} ${xAttribute} vs ${yAttribute}`;
-
             svg.append('text')
                 .attr('x', width / 2)
                 .attr('y', margin.top)
                 .attr('text-anchor', 'middle')
                 .style('font-size', '12px')
-                .text(title);
+                .text(`scatterplot ${id} ${xAttribute} vs ${yAttributeRender}`);
 
             sBrush = d3
                 .brush()
@@ -312,7 +276,7 @@ export default function Scatterplot({
                         .selectAll('rect')
                         .filter(function (_, i) {
                             const x = scaleX(xAttributeList[i]);
-                            const y = scaleY(yAttributeList[i]);
+                            const y = scaleY(yAttributeListRender[i]);
 
                             return x0 <= x && x < x1 && y0 <= y && y < y1;
                         })
@@ -325,17 +289,13 @@ export default function Scatterplot({
                         .selectAll('rect')
                         .filter(function (_, i) {
                             const x = scaleX(xAttributeList[i]);
-                            const y = scaleY(yAttributeList[i]);
+                            const y = scaleY(yAttributeListRender[i]);
 
                             return x0 <= x && x < x1 && y0 <= y && y < y1;
                         })
                         .data();
                     setInternalExtents((prev) => [...prev, { states: nodes }]);
                 });
-
-            if (loadingCallback !== undefined) {
-                loadingCallback();
-            }
 
             /* const zoom = d3.zoom().on('zoom', ({ transform }) => {
                 // choose whether to use transform or switch back to only continuous scales
@@ -352,7 +312,7 @@ export default function Scatterplot({
 
             applyFilters(trajectories, runs, ref);
         },
-        [xAttributeList, yAttributeList, trajectories, runs]
+        [yAttributeList, trajectories, runs, showSparkLine, boxProperty]
     );
 
     useEffect(() => {
@@ -420,8 +380,8 @@ export default function Scatterplot({
                     >
                         iSelectionBrush
                     </Button>
-                    <Button color="secondary" size="small" onClick={(e) => toggleMenu(e)}>
-                        Attributes
+                    <Button color="secondary" size="small" onClick={() => toggleSparkLine()}>
+                        {showSparkLine ? 'ShowScatter' : 'ShowSparkLine'}
                     </Button>
                 </Box>
             )}
@@ -434,45 +394,10 @@ export default function Scatterplot({
                 width={width}
                 height={height}
             />
-            {enableMenu && (
-                <Menu
-                    open={contextMenu !== null}
-                    onClose={toggleMenu}
-                    anchorReference="anchorPosition"
-                    anchorPosition={
-                        contextMenu !== null
-                            ? { top: contextMenu.mouseY, left: contextMenu.mouseX }
-                            : undefined
-                    }
-                >
-                    <MenuItem>
-                        <FormControl size="small">
-                            <Select
-                                value={xAttribute}
-                                onChange={(e) => {
-                                    setXAttribute(e.target.value);
-                                }}
-                            >
-                                {options}
-                            </Select>
-                            <FormHelperText>X attribute</FormHelperText>
-                        </FormControl>
-                    </MenuItem>
-                    <MenuItem>
-                        <FormControl size="small">
-                            <Select
-                                value={yAttribute}
-                                onChange={(e) => {
-                                    setYAttribute(e.target.value);
-                                }}
-                            >
-                                {options}
-                            </Select>
-                            <FormHelperText>Y attribute</FormHelperText>
-                        </FormControl>
-                    </MenuItem>
-                </Menu>
-            )}
         </>
     );
 }
+
+/* <Button color="secondary" size="small" onClick={(e) => toggleMenu(e)}>
+                        Attributes
+                    </Button> */

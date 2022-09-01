@@ -144,7 +144,7 @@ function TrajectoryChart({
                                 <Scatterplot
                                     sequence={trajectory.getChunkSequence(chunk)}
                                     uniqueStatesProp={trajectory.getChunkStates(chunk)}
-                                    properties={properties}
+                                    properties={['timestep', 'id', ...structuralAnalysisProps]}
                                     width={ww}
                                     height={hh}
                                     runs={runs}
@@ -156,6 +156,8 @@ function TrajectoryChart({
                                     stateHovered={stateHovered}
                                     isParentHovered={isEmbeddedParentHovered}
                                     id={`sc_${chunk.id}`}
+                                    boxProperty={boxPlotAttribute}
+                                    globalScale={globalBoxScale}
                                 />
                             ) : (
                                 <BoxPlot
@@ -183,6 +185,7 @@ function TrajectoryChart({
             // clear so we don't draw over-top and cause insane lag
             if (!svg.empty()) {
                 svg.selectAll('*').remove();
+                // need smarter way of re-rendering if stateHovered or something like that doesn't change
                 setCharts([]);
             }
 
@@ -243,6 +246,7 @@ function TrajectoryChart({
 
             loadingCallback();
         },
+        // charts need to be drawn at a different time...
         [trajectories, runs, boxPlotAttribute]
     );
 
