@@ -115,7 +115,9 @@ function TrajectoryChart({
 
         // set up global scale for the boxPlots
 
-        const allStateIds = data.filter((d) => !d.important).map((d) => d.selected);
+        const uStateIds = data.filter((d) => !d.important).map((d) => d.selected);
+        const iStateIds = data.filter((d) => d.important).map((d) => trajectory.getChunkStates(d));
+        const allStateIds = [...uStateIds, ...iStateIds];
         const boxPlotStateIds = [].concat.apply([], allStateIds);
 
         const boxPlotStates = boxPlotStateIds.map((id) => GlobalStates.get(id));
