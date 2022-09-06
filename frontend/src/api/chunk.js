@@ -149,6 +149,16 @@ export default class Chunk {
         return mf(propertyList, n);
     }
 
+    /**
+     * Gets the color of the current chunk.
+     *
+     * @returns {String} Hexadecimal color code of the chunk.
+     */
+    get color() {
+        const { colors, idToCluster } = this.trajectory;
+        return colors[idToCluster[this.clusterIdentifier]];
+    }
+
     toString() {
         return `<b>Timesteps</b>: ${this.timestep} - ${this.last}<br><b>Length</b>: ${this.size}`;
     }
