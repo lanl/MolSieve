@@ -1,28 +1,23 @@
 import { React, useEffect, useState } from 'react';
 import * as d3 from 'd3';
 
-import Menu from '@mui/material/Menu';
-import MenuItem from '@mui/material/MenuItem';
-import FormControl from '@mui/material/FormControl';
-import Select from '@mui/material/Select';
-import FormHelperText from '@mui/material/FormHelperText';
 import Button from '@mui/material/Button';
 import Box from '@mui/material/Box';
 
 import GlobalStates from '../api/globalStates';
 
 import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
-import { useContextMenu } from '../hooks/useContextMenu';
 
 import { onEntityMouseOver, getScale } from '../api/myutils';
 
 import '../css/vis.css';
 import '../css/App.css';
 
+import BoxPlot from './BoxPlot';
 import { useExtents } from '../hooks/useExtents';
 import { applyFilters } from '../api/filters';
 
-const margin = { top: 25, bottom: 20, left: 25, right: 25 };
+const margin = { top: 25, bottom: 20, left: 25, right: 0 };
 let sBrush = null;
 let individualSelectionMode = false;
 let selectionBrushMode = false;
@@ -45,11 +40,15 @@ export default function Scatterplot({
     property,
     globalScale,
     movingAverage,
+    leftBoundary,
+    rightBoundary,
 }) {
     const [yAttributeList, setYAttributeList] = useState(yAttributeListProp);
 
     const [showSparkLine, setSparkLine] = useState(true);
     const [isHovered, setIsHovered] = useState(false);
+
+    const adjWidth = 0.8 * width;
 
     useEffect(() => {
         setIsHovered(isParentHovered);
@@ -129,7 +128,7 @@ export default function Scatterplot({
 
             const scaleX = getScale(xAttributeList, xAttribute === 'timestep').range([
                 margin.left + 5,
-                width - margin.right,
+                adjWidth - margin.right,
             ]);
 
             const yAttributeListRender = showSparkLine ? yAttributeList : sequence;
@@ -256,7 +255,7 @@ export default function Scatterplot({
             }
 
             svg.append('text')
-                .attr('x', width / 2)
+                .attr('x', adjWidth / 2)
                 .attr('y', margin.top)
                 .attr('text-anchor', 'middle')
                 .style('font-size', '12px')
@@ -315,7 +314,6 @@ export default function Scatterplot({
 
     useEffect(() => {
         if (stateHovered) {
-            console.log('stateHovered');
             // .select(`#g_${trajectoryName}`)
             /* d3.select(ref.current).selectAll('rect:not(.invisible)').filter(function(dp) {                                    
                 return (dp.id !== stateHovered.stateID);
@@ -383,15 +381,37 @@ export default function Scatterplot({
                     </Button>
                 </Box>
             )}
-
+            {leftBoundary && (
+                <BoxPlot
+                    showYAxis={false}
+                    data={leftBoundary.selected}
+                    color={leftBoundary.color}
+                    property={property}
+                    width={0.095 * width}
+                    height={height}
+                    globalScale={globalScale}
+                />
+            )}
             <svg
                 ref={ref}
                 id={id}
                 className="vis filterable"
-                viewBox={[0, 0, width, height]}
-                width={width}
+                viewBox={[0, 0, adjWidth, height]}
+                width={adjWidth}
                 height={height}
             />
+
+            {rightBoundary && (
+                <BoxPlot
+                    showYAxis={false}
+                    data={rightBoundary.selected}
+                    color={rightBoundary.color}
+                    property={property}
+                    width={0.1 * width}
+                    height={height}
+                    globalScale={globalScale}
+                />
+            )}
         </>
     );
 }

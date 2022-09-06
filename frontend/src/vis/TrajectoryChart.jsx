@@ -125,20 +125,35 @@ function TrajectoryChart({
             .domain(d3.extent(boxPlotStates, (d) => d[boxPlotAttribute]))
             .range([375, 20]);
 
-        const scatterCharts = data.map((chunk) => {
-            const w = scaleX(getWidthScale(chunk));
-            const h = 400;
-            return (
-                <foreignObject
-                    key={`chart_${chunk.id}`}
-                    x={getX(data.indexOf(chunk), 0)}
-                    y={scaleY(count) + 12.5}
-                    width={w}
-                    height={h}
-                >
-                    <EmbeddedChart height={h} width={w}>
-                        {(ww, hh, isEmbeddedParentHovered) =>
-                            chunk.important ? (
+        const scatterCharts = data
+            .filter((d) => d.important)
+            .map((chunk) => {
+                const w = scaleX(getWidthScale(chunk));
+                const h = 400;
+                const chunkIndex = data.indexOf(chunk);
+
+                let leftBoundary;
+                if (chunkIndex > 0) {
+                    // get -1
+                    leftBoundary = data[chunkIndex - 1];
+                }
+
+                let rightBoundary;
+                if (chunkIndex < data.length - 1) {
+                    // get +1
+                    rightBoundary = data[chunkIndex + 1];
+                }
+
+                return (
+                    <foreignObject
+                        key={`chart_${chunk.id}`}
+                        x={getX(chunkIndex, 0)}
+                        y={scaleY(count) + 12.5}
+                        width={w}
+                        height={h}
+                    >
+                        <EmbeddedChart height={h} width={w}>
+                            {(ww, hh, isEmbeddedParentHovered) => (
                                 <Scatterplot
                                     sequence={chunk.sequence}
                                     width={ww}
@@ -159,21 +174,14 @@ function TrajectoryChart({
                                         100,
                                         simpleMovingAverage
                                     )}
+                                    leftBoundary={leftBoundary}
+                                    rightBoundary={rightBoundary}
                                 />
-                            ) : (
-                                <BoxPlot
-                                    data={chunk.selected}
-                                    property={boxPlotAttribute}
-                                    width={ww}
-                                    height={hh}
-                                    globalScale={globalBoxScale}
-                                />
-                            )
-                        }
-                    </EmbeddedChart>
-                </foreignObject>
-            );
-        });
+                            )}
+                        </EmbeddedChart>
+                    </foreignObject>
+                );
+            });
 
         setCharts([...charts, scatterCharts]);
     };

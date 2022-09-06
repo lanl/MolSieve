@@ -6,9 +6,9 @@ import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
 import GlobalStates from '../api/globalStates';
 import { tooltip } from '../api/myutils';
 
-const margin = { top: 20, bottom: 20, left: 25, right: 25 };
+const margin = { top: 20, bottom: 20, left: 25, right: 20 };
 
-export default function BoxPlot({ data, property, width, height, globalScale }) {
+export default function BoxPlot({ data, property, width, height, globalScale, color, showYAxis }) {
     const ref = useTrajectoryChartRender(
         (svg) => {
             if (!svg.empty()) {
@@ -44,7 +44,9 @@ export default function BoxPlot({ data, property, width, height, globalScale }) 
 
             const yScale = globalScale;
 
-            svg.call(d3.axisRight(yScale));
+            if (showYAxis) {
+                svg.call(d3.axisRight(yScale));
+            }
 
             // center line
             svg.append('line')
@@ -52,7 +54,7 @@ export default function BoxPlot({ data, property, width, height, globalScale }) 
                 .attr('x2', center)
                 .attr('y1', yScale(minThreshold))
                 .attr('y2', yScale(maxThreshold))
-                .attr('stroke', 'black');
+                .attr('stroke', color);
 
             // box
             svg.append('rect')
@@ -61,7 +63,7 @@ export default function BoxPlot({ data, property, width, height, globalScale }) 
                 .attr('height', yScale(q1) - yScale(q3))
                 .attr('width', adjWidth)
                 .attr('fill', 'none')
-                .attr('stroke', 'black');
+                .attr('stroke', color);
 
             svg.selectAll('outliers')
                 .data([minThreshold, median, maxThreshold])
@@ -71,11 +73,11 @@ export default function BoxPlot({ data, property, width, height, globalScale }) 
                 .attr('x2', center + adjWidth / 2)
                 .attr('y1', (d) => yScale(d))
                 .attr('y2', (d) => yScale(d))
-                .attr('stroke', 'black');
+                .attr('stroke', color);
 
             svg.on('mouseover', () => tooltip(svg.node(), `${property}`));
         },
-        [property, data]
+        [property, data, color]
     );
 
     return (
@@ -88,3 +90,8 @@ export default function BoxPlot({ data, property, width, height, globalScale }) 
         />
     );
 }
+
+BoxPlot.defaultProps = {
+    color: 'black',
+    showYAxis: true,
+};
