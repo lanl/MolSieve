@@ -317,18 +317,28 @@ export function ensureArray(obj) {
 /**
  * Calculates the simple moving average of the given dataset.
  * @param {Array<Number>} values - The values to calculate the average for.
- * @param {Number} N - The length of the moving average period.
+ * @param {Number} n - The length of the moving average period.
  * @returns {Array<Number>} An array of moving averages.
  */
-export function simpleMovingAverage(values, N) {
+export function simpleMovingAverage(values, n) {
     const means = [];
     const length = values.length + 1;
 
-    let i = N - 1;
+    let i = n - 1;
     while (++i < length) {
-        const ws = values.slice(i - N, i);
+        const ws = values.slice(i - n, i);
         const sum = ws.reduce((prev, curr) => prev + curr, 0);
-        means.push(sum / N);
+        means.push(sum / n);
     }
+
+    // get the remaining averages with variable window size
+    if (means.length < values.length) {
+        for (let j = means.length; j < values.length; ++j) {
+            const ws = values.slice(j, values.length);
+            const sum = d3.sum(ws);
+            means.push(sum / ws.length);
+        }
+    }
+
     return means;
 }
