@@ -1,22 +1,11 @@
 import { useRef, useState, useLayoutEffect } from 'react';
 
-function debounce(fn, ms) {
-    let timer;
-    return () => {
-        clearTimeout(timer);
-        timer = setTimeout(() => {
-            timer = null;
-            fn.apply(this, arguments);
-        }, ms);
-    };
-}
-
 export const useResize = (modAmount, modifierCount) => {
     const divRef = useRef(null);
     const [width, setWidth] = useState();
     const [height, setHeight] = useState();
 
-    const resize = debounce(function () {
+    const resize = () => {
         if (!divRef || !divRef.current) {
             return;
         }
@@ -32,7 +21,7 @@ export const useResize = (modAmount, modifierCount) => {
                 setHeight(newHeight);
             }
         }
-    }, 250);
+    };
 
     useLayoutEffect(() => {
         resize();

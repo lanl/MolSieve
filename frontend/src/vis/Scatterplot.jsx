@@ -353,23 +353,21 @@ export default function Scatterplot({
     }, [visibleExtent]);
     return (
         <>
-            {isHovered && (
-                <Box className="floatingToolBar">
-                    <Button color="secondary" size="small" onClick={() => toggleSelectionBrush()}>
-                        SelectionBrush
-                    </Button>
-                    <Button
-                        color="secondary"
-                        size="small"
-                        onClick={() => toggleIndividualSelectionMode()}
-                    >
-                        iSelectionBrush
-                    </Button>
-                    <Button color="secondary" size="small" onClick={() => toggleSparkLine()}>
-                        {showSparkLine ? 'ShowScatter' : 'ShowSparkLine'}
-                    </Button>
-                </Box>
-            )}
+            <Box className="floatingToolBar" sx={{ visibility: isHovered ? 'visible' : 'hidden' }}>
+                <Button color="secondary" size="small" onClick={() => toggleSelectionBrush()}>
+                    SelectionBrush
+                </Button>
+                <Button
+                    color="secondary"
+                    size="small"
+                    onClick={() => toggleIndividualSelectionMode()}
+                >
+                    iSelectionBrush
+                </Button>
+                <Button color="secondary" size="small" onClick={() => toggleSparkLine()}>
+                    {showSparkLine ? 'ShowScatter' : 'ShowSparkLine'}
+                </Button>
+            </Box>
             {leftBoundary && !includeBoundaries && (
                 <BoxPlot
                     showYAxis={false}

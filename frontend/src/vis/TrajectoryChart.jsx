@@ -264,7 +264,7 @@ function TrajectoryChart({
             // clear so we don't draw over-top and cause insane lag
             if (!svg.empty()) {
                 svg.selectAll('*').remove();
-                //setCharts([]);
+                // setCharts([]);
             }
 
             let y = 0;
@@ -400,13 +400,11 @@ function TrajectoryChart({
     // render properties in properties menu
     return (
         <>
-            {isHovered && (
-                <Box className="floatingToolBar">
-                    <Button color="secondary" size="small" onClick={(e) => toggleMenu(e)}>
-                        BoxPlotAttributes
-                    </Button>
-                </Box>
-            )}
+            <Box className="floatingToolBar" sx={{ visibility: isHovered ? 'visible' : 'hidden' }}>
+                <Button color="secondary" size="small" onClick={(e) => toggleMenu(e)}>
+                    BoxPlotAttributes
+                </Button>
+            </Box>
 
             <svg
                 className="vis"
