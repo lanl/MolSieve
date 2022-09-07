@@ -27,20 +27,9 @@ export default function BoxPlot({ data, property, width, height, globalScale, co
             const q1 = d3.quantile(sorted, 0.25, accessor);
             const median = d3.median(sorted, accessor);
             const q3 = d3.quantile(sorted, 0.75, accessor);
-            // const iqr = q3 - q1;
+            const iqr = q3 - q1;
             const minThreshold = d3.min(sorted, accessor); // q1 - 1.5 * iqr;
             const maxThreshold = d3.max(sorted, accessor); // q1 + 1.5 * iqr;
-
-            // calculate correct scale - do the outliers go past the threshold lines?
-            /* const domain = [];
-            domain.push(minThreshold < min ? minThreshold : min);
-            domain.push(maxThreshold < max ? max : maxThreshold); */
-
-            // could be an option later
-            /* const yScale = d3
-                .scaleLinear()
-                .domain([minThreshold, maxThreshold])
-                .range([height - margin.bottom, margin.top]); */
 
             const yScale = globalScale;
 
@@ -75,7 +64,12 @@ export default function BoxPlot({ data, property, width, height, globalScale, co
                 .attr('y2', (d) => yScale(d))
                 .attr('stroke', color);
 
-            svg.on('mouseover', () => tooltip(svg.node(), `${property}`));
+            svg.on('mouseover', () =>
+                tooltip(
+                    svg.node(),
+                    `<em>${property}</em><br/> <b>Q1</b>: ${q1} <b>Median</b>: ${median} <b>Q3</b>: ${q3} <b>IQR</b>: ${iqr}`
+                )
+            );
         },
         [property, data, color]
     );
