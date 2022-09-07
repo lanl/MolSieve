@@ -17,8 +17,8 @@ import BoxPlot from './BoxPlot';
 import { useExtents } from '../hooks/useExtents';
 import { applyFilters } from '../api/filters';
 
-const margin = { top: 25, bottom: 20, left: 25, right: 0 };
-let sBrush = null;
+const margin = { top: 25, bottom: 20, left: 30, right: 20 };
+const sBrush = null;
 let individualSelectionMode = false;
 let selectionBrushMode = false;
 
@@ -42,13 +42,14 @@ export default function Scatterplot({
     movingAverage,
     leftBoundary,
     rightBoundary,
+    toggleExpanded,
+    includeBoundaries,
 }) {
     const [yAttributeList, setYAttributeList] = useState(yAttributeListProp);
 
     const [showSparkLine, setSparkLine] = useState(true);
     const [isHovered, setIsHovered] = useState(false);
-
-    const adjWidth = 0.8 * width;
+    const [adjWidth, setAdjWidth] = useState(0.8 * width);
 
     useEffect(() => {
         setIsHovered(isParentHovered);
@@ -57,6 +58,14 @@ export default function Scatterplot({
     const toggleSparkLine = () => {
         setSparkLine(!showSparkLine);
     };
+
+    useEffect(() => {
+        if (includeBoundaries) {
+            setAdjWidth(width);
+        } else {
+            setAdjWidth(0.8 * width);
+        }
+    }, [includeBoundaries]);
 
     const { setInternalExtents, completeSelection } = useExtents(setExtents);
 
@@ -92,8 +101,8 @@ export default function Scatterplot({
 
     const useAttributeList = (setAttributeList, attribute) => {
         useEffect(() => {
-            const uniqueStates = sequence.map((i) => {
-                return GlobalStates.get(i);
+            const uniqueStates = sequence.map((t) => {
+                return GlobalStates.get(t.id);
             });
 
             setAttributeList(
@@ -110,6 +119,15 @@ export default function Scatterplot({
         ref.current.setAttribute('id', id);
     }, [id]);
 
+    const renderBackgroundColor = (svg, scaleX, data, color) => {
+        svg.append('rect')
+            .attr('x', scaleX(data[0]))
+            .attr('y', 0)
+            .attr('height', height - margin.top - margin.bottom)
+            .attr('width', scaleX(data[data.length - 1]) - scaleX(data[0]))
+            .attr('fill', color);
+    };
+
     const ref = useTrajectoryChartRender(
         (svg) => {
             if (!svg.empty()) {
@@ -121,9 +139,8 @@ export default function Scatterplot({
             }
 
             const xAttribute = 'timestep';
-
-            const xAttributeList = sequence.map((_, i) => {
-                return i;
+            const xAttributeList = sequence.map((d) => {
+                return d.timestep;
             });
 
             const scaleX = getScale(xAttributeList, xAttribute === 'timestep').range([
@@ -131,7 +148,7 @@ export default function Scatterplot({
                 adjWidth - margin.right,
             ]);
 
-            const yAttributeListRender = showSparkLine ? yAttributeList : sequence;
+            const yAttributeListRender = showSparkLine ? yAttributeList : sequence.map((d) => d.id);
             const yAttributeRender = showSparkLine ? property : 'id';
 
             const scaleY = showSparkLine
@@ -162,7 +179,7 @@ export default function Scatterplot({
                     .attr('width', 5)
                     .attr('height', 5)
                     .attr('fill', function (d) {
-                        const state = GlobalStates.get(d);
+                        const state = GlobalStates.get(d.id);
                         return state.individualColor;
                     })
                     .classed('state', true)
@@ -172,14 +189,14 @@ export default function Scatterplot({
                             d3.select(this).classed('currentSelection', true);
                             setInternalExtents((prev) => [
                                 ...prev,
-                                { name: trajectoryName, states: [d] },
+                                { name: trajectoryName, states: [d.id] },
                             ]);
                         } else {
                             setStateClicked(d);
                         }
                     })
                     .on('mouseover', function (_, d) {
-                        const state = GlobalStates.get(d);
+                        const state = GlobalStates.get(d.id);
                         setStateHovered({
                             caller: this,
                             stateID: d,
@@ -197,18 +214,23 @@ export default function Scatterplot({
                         setStateHovered(null);
                     });
             } else {
+                if (includeBoundaries) {
+                    const leftTimestep = leftBoundary.timesteps;
+                    const rightTimestep = rightBoundary.timesteps;
+                    renderBackgroundColor(svg, scaleX, leftTimestep, leftBoundary.color);
+                    renderBackgroundColor(svg, scaleX, rightTimestep, rightBoundary.color);
+                }
                 const datum = [];
                 const mv = [];
 
                 for (let i = 0; i < movingAverage.length; i++) {
-                    const d = { x: i, y: movingAverage[i] };
+                    const d = { x: xAttributeList[i], y: movingAverage[i] };
                     mv.push(d);
                 }
                 for (let i = 0; i < sequence.length; i++) {
                     const d = { x: xAttributeList[i], y: yAttributeListRender[i] };
                     datum.push(d);
                 }
-
                 const line = d3
                     .line()
                     .x((d) => scaleX(d.x))
@@ -261,39 +283,6 @@ export default function Scatterplot({
                 .style('font-size', '12px')
                 .text(`scatterplot ${id} ${xAttribute} vs ${yAttributeRender}`);
 
-            sBrush = d3
-                .brush()
-                .keyModifiers(false)
-                .on('start brush', function (e) {
-                    const [[x0, y0], [x1, y1]] = e.selection;
-                    d3.select(ref.current)
-                        .selectAll('.currentSelection')
-                        .classed('currentSelection', false);
-                    d3.select(ref.current)
-                        .selectAll('rect')
-                        .filter(function (_, i) {
-                            const x = scaleX(xAttributeList[i]);
-                            const y = scaleY(yAttributeListRender[i]);
-
-                            return x0 <= x && x < x1 && y0 <= y && y < y1;
-                        })
-                        .classed('currentSelection', true);
-                })
-                .on('end', function (e) {
-                    const [[x0, y0], [x1, y1]] = e.selection;
-                    const nodes = d3
-                        .select(ref.current)
-                        .selectAll('rect')
-                        .filter(function (_, i) {
-                            const x = scaleX(xAttributeList[i]);
-                            const y = scaleY(yAttributeListRender[i]);
-
-                            return x0 <= x && x < x1 && y0 <= y && y < y1;
-                        })
-                        .data();
-                    setInternalExtents((prev) => [...prev, { states: nodes }]);
-                });
-
             /* const zoom = d3.zoom().on('zoom', ({ transform }) => {
                 // choose whether to use transform or switch back to only continuous scales
                 // const zx = transform.rescaleX(scaleX);
@@ -309,7 +298,7 @@ export default function Scatterplot({
 
             applyFilters(trajectories, runs, ref);
         },
-        [yAttributeList, trajectories, runs, showSparkLine, property]
+        [yAttributeList, trajectories, runs, showSparkLine, property, adjWidth]
     );
 
     useEffect(() => {
@@ -381,7 +370,7 @@ export default function Scatterplot({
                     </Button>
                 </Box>
             )}
-            {leftBoundary && (
+            {leftBoundary && !includeBoundaries && (
                 <BoxPlot
                     showYAxis={false}
                     data={leftBoundary.selected}
@@ -399,9 +388,15 @@ export default function Scatterplot({
                 viewBox={[0, 0, adjWidth, height]}
                 width={adjWidth}
                 height={height}
+                onClick={(e) => {
+                    // on double click
+                    if (e.detail === 2) {
+                        toggleExpanded();
+                    }
+                }}
             />
 
-            {rightBoundary && (
+            {rightBoundary && !includeBoundaries && (
                 <BoxPlot
                     showYAxis={false}
                     data={rightBoundary.selected}

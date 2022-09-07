@@ -1,5 +1,6 @@
 import GlobalChunks from './globalChunks';
 import GlobalStates from './globalStates';
+import Timestep from './timestep';
 
 const CHUNK = 0;
 
@@ -113,6 +114,16 @@ export default class Chunk {
             ids.push(trajectory.sequence[timesteps[i]]);
         }
         return ids;
+    }
+
+    // gets the states within the sequence as Timestep objects, useful for rendering
+    get timestepSequence() {
+        const { timesteps, trajectory } = this;
+        const t = [];
+        for (let i = 0; i < timesteps.length; i++) {
+            t.push(new Timestep(timesteps[i], trajectory.sequence[timesteps[i]]));
+        }
+        return t;
     }
 
     /* Counts all of the occurrences of the unique states within a chunk.

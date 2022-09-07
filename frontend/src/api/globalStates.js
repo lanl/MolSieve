@@ -64,7 +64,7 @@ class GlobalStates {
 
     /* Wrapper for hasProperties in case only one property is needed */
     ensureSubsetHasProperty = (property, subset) => {
-        this.ensureSubsetHasProperties([property], subset);
+        return this.ensureSubsetHasProperties([property], subset);
     };
 
     /* Ensure that the states indexed by the ids provided in the subset array have the given property loaded
@@ -72,6 +72,10 @@ class GlobalStates {
      */
     ensureSubsetHasProperties = (properties, subset) => {
         return new Promise((resolve, reject) => {
+            if (subset.length === 0) {
+                resolve();
+            }
+
             const { hasProperties, missingProperties } = this.subsetHasProperties(
                 properties,
                 subset
