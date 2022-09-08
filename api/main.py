@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Body, APIRouter, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, Body, APIRouter, WebSocket, WebSocketDisconnect, HTTPException
 from typing import Optional, List
 
 import neo4j
@@ -258,11 +258,26 @@ def load_properties_for_subset(props: List[str] = Body([]), stateIds: List[int] 
     )
 
     j = {}
+    resultKeys = None
     with driver.session() as session:
         result = session.run(q.text)
+        resultKeys = result.keys()
         j = result.data()
 
-    # throw exception if property does not exist in subset?
+    # property would be missing in the subset if it is equal to None
+    # collect all state ids that have this property missing, and return it as a dictionary
+    # propertyName: listOfIds
+    missingProperties = {}
+    for s in j:
+        for key, value in s.items():
+            if value == None:
+               if key not in missingProperties:
+                   missingProperties[key] = []
+               missingProperties[key].append(s['id']) 
+
+    if len(missingProperties.keys()) > 0:
+        raise HTTPException(status_code=404, detail=missingProperties)
+
     return j
 
 
