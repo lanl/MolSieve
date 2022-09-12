@@ -1,4 +1,11 @@
-from fastapi import FastAPI, Body, APIRouter, WebSocket, WebSocketDisconnect, HTTPException
+from fastapi import (
+    FastAPI,
+    Body,
+    APIRouter,
+    WebSocket,
+    WebSocketDisconnect,
+    HTTPException,
+)
 from typing import Optional, List
 
 import neo4j
@@ -9,7 +16,9 @@ import pygpcca as gp
 import numpy as np
 
 from celery.result import AsyncResult
-from .worker.celery_app import TASK_COMPLETE, celery_app
+
+from .constants import PROPERTY_TO_ANALYSIS
+from .worker.celery_app import TASK_COMPLETE, celery_app, run_analysis_task
 from celery.utils import uuid
 
 # image rendering
@@ -247,38 +256,96 @@ def calculate_path_similarity(
 def load_property_for_subset(prop: str, stateIds: List[int]):
     return load_properties_for_subset([prop], stateIds)
 
-
+# could be websocket
 @router.post("/load_properties_for_subset", status_code=200)
-def load_properties_for_subset(props: List[str] = Body([]), stateIds: List[int] = Body([])):
+async def load_properties_for_subset(
+    props: List[str] = Body([]), stateIds: List[int] = Body([])
+):
     qb = querybuilder.Neo4jQueryBuilder()
     driver = GraphDriver()
 
     q = qb.generate_get_node_list(
-        "State", idAttributeList=stateIds, attributeList=props
+        "State", idAttributeList=stateIds, attributeList=props 
     )
 
     j = {}
-    resultKeys = None
     with driver.session() as session:
         result = session.run(q.text)
-        resultKeys = result.keys()
         j = result.data()
 
-    # property would be missing in the subset if it is equal to None
-    # collect all state ids that have this property missing, and return it as a dictionary
-    # propertyName: listOfIds
+    # check if property is missing in database
+    # optimize with Neo4j
     missingProperties = {}
     for s in j:
         for key, value in s.items():
             if value == None:
-               if key not in missingProperties:
-                   missingProperties[key] = []
-               missingProperties[key].append(s['id']) 
+                if key not in missingProperties:
+                    missingProperties[key] = []
+                missingProperties[key].append(s["id"])
 
     if len(missingProperties.keys()) > 0:
-        raise HTTPException(status_code=404, detail=missingProperties)
+        runAnalyses = {}
+        for key, values in missingProperties.items():
+            analysis = PROPERTY_TO_ANALYSIS.get(key)
+            # if the dict does not know what analysis to do, throw an error
+            if not analysis:
+                raise HTTPException(status_code=404, detail="Unknown property")
+
+            if analysis not in runAnalyses:
+                runAnalyses[analysis] = values
+            else:
+                runAnalyses[analysis] = runAnalyses[analysis] + values
+       
+        for analysisName, states in runAnalyses.items():
+            await run_ovito_analysis(analysisName, states=states)
+           
+        # instead of trying to update the list, just get the list again with the updated values
+        q = qb.generate_get_node_list(
+        "State", idAttributeList=stateIds, attributeList=props 
+        )
+
+        j = {}
+        with driver.session() as session:
+            result = session.run(q.text)
+            j = result.data()
+
+ 
 
     return j
+
+
+# needs to be smarter than this to avoid repetition
+async def run_ovito_analysis(analysisName: str, states: List[int]):
+    driver = GraphDriver()
+
+    qb = querybuilder.Neo4jQueryBuilder(
+        [
+            ("Atom", "PART_OF", "State", "MANY-TO-ONE"),
+        ]
+    )
+    q = qb.generate_get_node_list("State", states, "PART_OF")
+    state_atom_dict = converter.query_to_ASE(driver, q, "Pt")
+
+    results = []
+    
+    # 504 error?
+    new_attributes = calculator.apply_ovito_pipeline_modifier(
+        state_atom_dict, analysisName
+    )
+
+    q = None
+    with driver.session() as session:
+        tx = session.begin_transaction()
+        for id, data in new_attributes.items():
+            # q is a template query that gets filled in with each datapoint
+            if q is None:
+                q = qb.generate_update_entity(data, "State", "id", "node")
+            data.update({"id": id})
+            tx.run(q.text, data)
+        tx.commit()
+        results.append(new_attributes)
+
+    return results
 
 
 # move to celery worker

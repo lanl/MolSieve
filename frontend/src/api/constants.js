@@ -11,6 +11,8 @@ export const structuralAnalysisProps = [
     'CommonNeighborAnalysis_counts_OTHER',
 ];
 
+// need a mapping from property to callback in case it is missing
+
 export const mpn65 = [
     '#ff0029',
     '#377eb8',

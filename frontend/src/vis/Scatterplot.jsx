@@ -123,7 +123,7 @@ export default function Scatterplot({
         svg.append('rect')
             .attr('x', scaleX(data[0]))
             .attr('y', 0)
-            .attr('height', height - margin.top - margin.bottom)
+            .attr('height', height)
             .attr('width', scaleX(data[data.length - 1]) - scaleX(data[0]))
             .attr('fill', color);
     };
@@ -371,7 +371,7 @@ export default function Scatterplot({
             {leftBoundary && !includeBoundaries && (
                 <BoxPlot
                     showYAxis={false}
-                    data={leftBoundary.selected}
+                    data={leftBoundary.calculateStats(property)}
                     color={leftBoundary.color}
                     property={property}
                     width={0.095 * width}
@@ -397,7 +397,7 @@ export default function Scatterplot({
             {rightBoundary && !includeBoundaries && (
                 <BoxPlot
                     showYAxis={false}
-                    data={rightBoundary.selected}
+                    data={rightBoundary.calculateStats(property)}
                     color={rightBoundary.color}
                     property={property}
                     width={0.1 * width}

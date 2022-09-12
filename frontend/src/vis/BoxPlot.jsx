@@ -15,21 +15,9 @@ export default function BoxPlot({ data, property, width, height, globalScale, co
                 svg.selectAll('*').remove();
             }
 
+            const { q1, median, q3, iqr, minThreshold, maxThreshold } = data;
             const adjWidth = width - margin.left - margin.right;
             const center = width / 2;
-
-            const accessor = (d) => d[property];
-
-            // technically, we would want the higher level components to manage the data...
-            const states = data.map((id) => GlobalStates.get(id));
-            const sorted = d3.sort(states, accessor);
-
-            const q1 = d3.quantile(sorted, 0.25, accessor);
-            const median = d3.median(sorted, accessor);
-            const q3 = d3.quantile(sorted, 0.75, accessor);
-            const iqr = q3 - q1;
-            const minThreshold = d3.min(sorted, accessor); // q1 - 1.5 * iqr;
-            const maxThreshold = d3.max(sorted, accessor); // q1 + 1.5 * iqr;
 
             const yScale = globalScale;
 

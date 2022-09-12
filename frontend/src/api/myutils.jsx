@@ -342,3 +342,22 @@ export function simpleMovingAverage(values, n) {
 
     return means;
 }
+
+/**
+ * Calculates the box plot statistics for the given dataset.
+ *
+ * @param {Array<Number>} data - The array of numbers to calculate the statistics for.
+ * @returns {Object} Contains q1, median, q3, iqr and min / max thresholds.
+ */
+export function boxPlotStats(data) {
+    const sorted = d3.sort(data);
+
+    const q1 = d3.quantile(sorted, 0.25);
+    const median = d3.median(sorted);
+    const q3 = d3.quantile(sorted, 0.75);
+    const iqr = q3 - q1;
+    const minThreshold = d3.min(sorted); // q1 - 1.5 * iqr;
+    const maxThreshold = d3.max(sorted); // q1 + 1.5 * iqr;
+
+    return { q1, median, q3, iqr, minThreshold, maxThreshold };
+}

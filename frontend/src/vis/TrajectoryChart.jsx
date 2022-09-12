@@ -118,20 +118,7 @@ function TrajectoryChart({
             return w;
         }
 
-        // set up global scale for the boxPlots
-
-        const uStateIds = data.filter((d) => !d.important).map((d) => d.selected);
-        const iStateIds = data.filter((d) => d.important).map((d) => d.states);
-        const allStateIds = [...uStateIds, ...iStateIds];
-        const boxPlotStateIds = [].concat.apply([], allStateIds);
-
-        const boxPlotStates = boxPlotStateIds.map((id) => GlobalStates.get(id));
-
-        // range may not always be constant...
-        const globalBoxScale = d3
-            .scaleLinear()
-            .domain(d3.extent(boxPlotStates, (d) => d[boxPlotAttribute]))
-            .range([375, 20]);
+        const mvaPeriod = 100;
 
         Promise.all(
             data
@@ -140,30 +127,54 @@ function TrajectoryChart({
                     let checkStates = [];
                     const chunkIndex = data.indexOf(chunk);
                     const isExpanded = expandedChunks.includes(chunk.id);
-                    let leftBoundary;
-                    if (chunkIndex > 0) {
-                        // get -1
-                        leftBoundary = data[chunkIndex - 1];
-                    }
 
-                    let rightBoundary;
-                    if (chunkIndex < data.length - 1) {
-                        // get +1
-                        rightBoundary = data[chunkIndex + 1];
-                    }
+                    const centerMVA = chunk.calculateMovingAverage(
+                        boxPlotAttribute,
+                        mvaPeriod,
+                        simpleMovingAverage
+                    );
 
                     if (isExpanded) {
-                        if (leftBoundary) {
+                        if (chunkIndex > 0) {
+                            // get -1
+                            const leftBoundary = data[chunkIndex - 1];
                             checkStates = [...leftBoundary.states];
+
+                            // ... we still need the entire chunk's properties to be loaded
+
+                            /*const checkPoint = centerMVA[0];
+                            const { median, iqr } = leftBoundary.calculateStats();
+                            const i = leftBoundary.timesteps[leftBoundary.timesteps.length - 1]; */
+                            // while (i > 0 && checkPoint
                         }
 
-                        if (rightBoundary) {
+                        if (chunkIndex < data.length - 1) {
+                            // get +1
+                            const rightBoundary = data[chunkIndex + 1];
                             checkStates = [...checkStates, ...rightBoundary.states];
                         }
                     }
+                    // compare <DIRECTION>-most average - median <DIRECTION> vs IQR of direction
+                    // if within range, stop expansion
+                    // else include state, push <DIRECTION>
                     return GlobalStates.ensureSubsetHasProperty(boxPlotAttribute, checkStates);
                 })
         ).then(() => {
+            // set up global scale for the boxPlots
+            // try to make global scale correct for when boundaries are expanded
+            const uStateIds = data.filter((d) => !d.important).map((d) => d.selected);
+            const iStateIds = data.filter((d) => d.important).map((d) => d.states);
+            const allStateIds = [...uStateIds, ...iStateIds];
+            const boxPlotStateIds = [].concat.apply([], allStateIds);
+
+            const boxPlotStates = boxPlotStateIds.map((id) => GlobalStates.get(id));
+
+            // range may not always be constant...
+            const globalBoxScale = d3
+                .scaleLinear()
+                .domain(d3.extent(boxPlotStates, (d) => d[boxPlotAttribute]))
+                .range([375, 20]);
+
             const scatterCharts = data
                 .filter((d) => d.important)
                 .map((chunk) => {
@@ -187,7 +198,7 @@ function TrajectoryChart({
                     let seq = chunk.timestepSequence;
                     let mva = chunk.calculateMovingAverage(
                         boxPlotAttribute,
-                        100,
+                        mvaPeriod,
                         simpleMovingAverage
                     );
 
@@ -196,7 +207,7 @@ function TrajectoryChart({
                         mva = [
                             ...leftBoundary.calculateMovingAverage(
                                 boxPlotAttribute,
-                                100,
+                                mvaPeriod,
                                 simpleMovingAverage
                             ),
                             ...mva,
@@ -209,7 +220,7 @@ function TrajectoryChart({
                             ...mva,
                             ...rightBoundary.calculateMovingAverage(
                                 boxPlotAttribute,
-                                100,
+                                mvaPeriod,
                                 simpleMovingAverage
                             ),
                         ];
