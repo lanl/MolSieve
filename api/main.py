@@ -256,7 +256,19 @@ def calculate_path_similarity(
 def load_property_for_subset(prop: str, stateIds: List[int]):
     return load_properties_for_subset([prop], stateIds)
 
-# could be websocket
+
+@router.websocket("/load_properties_for_subset")
+async def ws_load_properties_for_subset(websocket: WebSocket):
+    await websocket.accept()
+    try:
+        while True:
+            data = await websocket.receive_json()
+            results = await load_properties_for_subset(data["props"], data["stateIds"])
+            await websocket.send_json(results)
+    except WebSocketDisconnect:
+        print("Websocket disconnected")
+
+
 @router.post("/load_properties_for_subset", status_code=200)
 async def load_properties_for_subset(
     props: List[str] = Body([]), stateIds: List[int] = Body([])
@@ -265,7 +277,7 @@ async def load_properties_for_subset(
     driver = GraphDriver()
 
     q = qb.generate_get_node_list(
-        "State", idAttributeList=stateIds, attributeList=props 
+        "State", idAttributeList=stateIds, attributeList=props
     )
 
     j = {}
@@ -295,21 +307,19 @@ async def load_properties_for_subset(
                 runAnalyses[analysis] = values
             else:
                 runAnalyses[analysis] = runAnalyses[analysis] + values
-       
+
         for analysisName, states in runAnalyses.items():
             await run_ovito_analysis(analysisName, states=states)
-           
+
         # instead of trying to update the list, just get the list again with the updated values
         q = qb.generate_get_node_list(
-        "State", idAttributeList=stateIds, attributeList=props 
+            "State", idAttributeList=stateIds, attributeList=props
         )
 
         j = {}
         with driver.session() as session:
             result = session.run(q.text)
             j = result.data()
-
- 
 
     return j
 
@@ -327,7 +337,7 @@ async def run_ovito_analysis(analysisName: str, states: List[int]):
     state_atom_dict = converter.query_to_ASE(driver, q, "Pt")
 
     results = []
-    
+
     # 504 error?
     new_attributes = calculator.apply_ovito_pipeline_modifier(
         state_atom_dict, analysisName
