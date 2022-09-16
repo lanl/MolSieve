@@ -1,6 +1,7 @@
 import GlobalChunks from './globalChunks';
 import GlobalStates from './globalStates';
 import Timestep from './timestep';
+import { boxPlotStats } from './myutils';
 
 const CHUNK = 0;
 
@@ -152,10 +153,15 @@ export default class Chunk {
      * @param {String} property - The property to calculate the moving average for.
      * @param {Int} n - The length of the moving average period.
      * @param {Function} mf - A function that takes (data, n) and returns an array of moving averages.
+     * @param {Array} range - Optional, if specified, calculates the moving average only for the given timestep range
      * @returns {Array} Array of moving averages.
      */
-    calculateMovingAverage(property, n, mf) {
-        const stateSequence = this.sequence.map((id) => GlobalStates.get(id));
+    calculateMovingAverage(property, n, mf, range) {
+        let { sequence } = this;
+        if (range) {
+            sequence = sequence.slice(range[0], range[1]);
+        }
+        const stateSequence = sequence.map((id) => GlobalStates.get(id));
         const propertyList = stateSequence.map((d) => d[property]);
         return mf(propertyList, n);
     }
@@ -172,5 +178,16 @@ export default class Chunk {
 
     toString() {
         return `<b>Timesteps</b>: ${this.timestep} - ${this.last}<br><b>Length</b>: ${this.size}`;
+    }
+
+    /**
+     * Calculates box plot stats for the given chunk.
+     *
+     * @returns {Object} Contains q1, median, q3, IQR, and max / min thresholds.
+     */
+    calculateStats(property) {
+        const data = this.selected ? this.selected : this.states;
+        const states = data.map((id) => GlobalStates.get(id)[property]);
+        return boxPlotStats(states);
     }
 }
