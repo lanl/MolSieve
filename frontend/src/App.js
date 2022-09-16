@@ -162,6 +162,7 @@ class App extends React.Component {
                 newTraj.sequence = Uint32Array.from(data.sequence);
                 newTraj.uniqueStates = data.uniqueStates.map((state) => state.id);
                 newTraj.name = run;
+
                 GlobalStates.calculateGlobalUniqueStates(data.uniqueStates, run);
 
                 this.load_PCCA(run, clusters, optimal, mMin, mMax, newTraj).then((newTrajPCCA) => {

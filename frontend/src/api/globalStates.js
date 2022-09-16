@@ -99,6 +99,11 @@ class GlobalStates {
     get = (id) => {
         return this.map.get(id);
     };
+
+    // could do extends to not have to write this
+    values = () => {
+        return this.map.values();
+    };
 }
 
 const instance = new GlobalStates();

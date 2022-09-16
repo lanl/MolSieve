@@ -11,7 +11,7 @@ import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
 import { useContextMenu } from '../hooks/useContextMenu';
 
 import '../css/vis.css';
-import { onEntityMouseOver, simpleMovingAverage } from '../api/myutils';
+import { onEntityMouseOver, simpleMovingAverage, boxPlotStats } from '../api/myutils';
 import GlobalStates from '../api/globalStates';
 
 import Scatterplot from './Scatterplot';
@@ -25,6 +25,7 @@ const margin = {
 };
 
 const minimumChartWidth = 100;
+const mvaPeriod = 100;
 
 function TrajectoryChart({
     trajectories,
@@ -108,6 +109,129 @@ function TrajectoryChart({
         nodes.exit().remove();
     };
 
+    const renderChunkChart = (
+        chunk,
+        allStateIds,
+        isExpanded,
+        chartX,
+        chartY,
+        chartWidth,
+        trajectoryName,
+        leftBoundary,
+        rightBoundary,
+        sliceBy
+    ) => {
+        const allStates = allStateIds.map((id) => GlobalStates.get(id));
+
+        const globalBoxScale = d3
+            .scaleLinear()
+            .domain(d3.extent(allStates, (d) => d[boxPlotAttribute]))
+            .range([375, 20]);
+
+        const w = chartWidth; // scaleX(getWidthScale(chunk));
+        const h = 400;
+
+        let seq = chunk.timestepSequence;
+        let mva = chunk.calculateMovingAverage(boxPlotAttribute, mvaPeriod, simpleMovingAverage);
+
+        if (isExpanded && leftBoundary) {
+            const left = leftBoundary.timestepSequence.length - sliceBy;
+            const right = leftBoundary.timestepSequence.length;
+            seq = [...leftBoundary.timestepSequence.slice(left - 1, right), ...seq];
+            mva = [
+                ...leftBoundary.calculateMovingAverage(
+                    boxPlotAttribute,
+                    mvaPeriod,
+                    simpleMovingAverage,
+                    [left, right]
+                ),
+                ...mva,
+            ];
+        }
+
+        if (isExpanded && rightBoundary) {
+            const left = 0;
+            const right = sliceBy;
+
+            seq = [...seq, ...rightBoundary.timestepSequence.slice(left, right + 1)];
+            mva = [
+                ...mva,
+                ...rightBoundary.calculateMovingAverage(
+                    boxPlotAttribute,
+                    mvaPeriod,
+                    simpleMovingAverage,
+                    [left, right]
+                ),
+            ];
+        }
+
+        const chart = (
+            <foreignObject key={`chart_${chunk.id}`} x={chartX} y={chartY} width={w} height={h}>
+                <EmbeddedChart key={`div_${chunk.id}`} height={h} width={w}>
+                    {(ww, hh, isEmbeddedParentHovered) => (
+                        <Scatterplot
+                            key={`sc_${chunk.id}`}
+                            sequence={seq}
+                            width={ww}
+                            height={hh}
+                            runs={runs}
+                            movingAverage={mva}
+                            setExtents={setExtents}
+                            trajectories={trajectories}
+                            trajectoryName={trajectoryName}
+                            setStateHovered={setStateHovered}
+                            setStateClicked={setStateClicked}
+                            stateHovered={stateHovered}
+                            isParentHovered={isEmbeddedParentHovered}
+                            id={`sc_${chunk.id}`}
+                            property={boxPlotAttribute}
+                            globalScale={globalBoxScale}
+                            toggleExpanded={() => expandChunk(chunk)}
+                            includeBoundaries={isExpanded}
+                            leftBoundary={leftBoundary}
+                            rightBoundary={rightBoundary}
+                            sliceBy={sliceBy}
+                        />
+                    )}
+                </EmbeddedChart>
+            </foreignObject>
+        );
+        setCharts([...charts, chart]);
+    };
+
+    const getBoundaryStates = (leftBoundary, rightBoundary, i, seen) => {
+        const moveBy = 100;
+        let checkStates = [];
+        let leftStates = [];
+        let rightStates = [];
+
+        if (leftBoundary) {
+            const left = leftBoundary.timestepSequence.length - moveBy * (i + 1);
+            const right = leftBoundary.timestepSequence.length - moveBy * i;
+            // need boundary checks
+            leftStates = [...leftBoundary.timestepSequence.slice(left - 1, right).map((d) => d.id)];
+            checkStates = [...leftStates];
+        }
+
+        if (rightBoundary) {
+            const left = moveBy * i;
+            const right = moveBy * (i + 1);
+            rightStates = [
+                ...rightBoundary.timestepSequence.slice(left, right + 1).map((d) => d.id),
+            ];
+            checkStates = [...checkStates, ...rightStates];
+        }
+
+        const sendStates = [];
+        for (const state of checkStates) {
+            if (!seen.has(state)) {
+                seen.add(state);
+                sendStates.push(state);
+            }
+        }
+        return { sendStates, rightStates, leftStates };
+    };
+
     const renderCharts = (data, trajectoryName, count, scaleX, scaleY, getWidthScale) => {
         function getX(i, w) {
             if (i > 0) {
@@ -118,153 +242,139 @@ function TrajectoryChart({
             return w;
         }
 
-        const mvaPeriod = 100;
+        data.filter((d) => d.important).map((chunk) => {
+            const chunkIndex = data.indexOf(chunk);
+            const isExpanded = expandedChunks.includes(chunk.id);
+            let leftBoundary;
+            let rightBoundary;
+            if (chunkIndex > 0) {
+                // get -1
+                leftBoundary = data[chunkIndex - 1];
+            }
 
-        Promise.all(
-            data
-                .filter((d) => d.important)
-                .map((chunk) => {
-                    let checkStates = [];
-                    const chunkIndex = data.indexOf(chunk);
-                    const isExpanded = expandedChunks.includes(chunk.id);
+            if (chunkIndex < data.length - 1) {
+                // get +1
+                rightBoundary = data[chunkIndex + 1];
+            }
 
-                    const centerMVA = chunk.calculateMovingAverage(
-                        boxPlotAttribute,
-                        mvaPeriod,
-                        simpleMovingAverage
+            // start here
+            if (isExpanded) {
+                const socket = new WebSocket('ws://localhost:8000/api/load_properties_for_subset');
+                const seen = new Set();
+                let i = 0;
+                let lStates = [];
+                let rStates = [];
+
+                const centerMVA = chunk.calculateMovingAverage(
+                    boxPlotAttribute,
+                    mvaPeriod,
+                    simpleMovingAverage
+                );
+
+                socket.addEventListener('open', (e) => {
+                    const boundaryStates = getBoundaryStates(leftBoundary, rightBoundary, i, seen);
+                    lStates = boundaryStates.leftStates;
+                    rStates = boundaryStates.rightStates;
+                    i++;
+                    socket.send(
+                        JSON.stringify({
+                            props: [boxPlotAttribute],
+                            stateIds: boundaryStates.sendStates,
+                        })
                     );
-
-                    if (isExpanded) {
-                        if (chunkIndex > 0) {
-                            // get -1
-                            const leftBoundary = data[chunkIndex - 1];
-                            checkStates = [...leftBoundary.states];
-
-                            // ... we still need the entire chunk's properties to be loaded
-
-                            /*const checkPoint = centerMVA[0];
-                            const { median, iqr } = leftBoundary.calculateStats();
-                            const i = leftBoundary.timesteps[leftBoundary.timesteps.length - 1]; */
-                            // while (i > 0 && checkPoint
-                        }
-
-                        if (chunkIndex < data.length - 1) {
-                            // get +1
-                            const rightBoundary = data[chunkIndex + 1];
-                            checkStates = [...checkStates, ...rightBoundary.states];
-                        }
-                    }
-                    // compare <DIRECTION>-most average - median <DIRECTION> vs IQR of direction
-                    // if within range, stop expansion
-                    // else include state, push <DIRECTION>
-                    return GlobalStates.ensureSubsetHasProperty(boxPlotAttribute, checkStates);
-                })
-        ).then(() => {
-            // set up global scale for the boxPlots
-            // try to make global scale correct for when boundaries are expanded
-            const uStateIds = data.filter((d) => !d.important).map((d) => d.selected);
-            const iStateIds = data.filter((d) => d.important).map((d) => d.states);
-            const allStateIds = [...uStateIds, ...iStateIds];
-            const boxPlotStateIds = [].concat.apply([], allStateIds);
-
-            const boxPlotStates = boxPlotStateIds.map((id) => GlobalStates.get(id));
-
-            // range may not always be constant...
-            const globalBoxScale = d3
-                .scaleLinear()
-                .domain(d3.extent(boxPlotStates, (d) => d[boxPlotAttribute]))
-                .range([375, 20]);
-
-            const scatterCharts = data
-                .filter((d) => d.important)
-                .map((chunk) => {
-                    const w = scaleX(getWidthScale(chunk));
-                    const h = 400;
-                    const chunkIndex = data.indexOf(chunk);
-                    const isExpanded = expandedChunks.includes(chunk.id);
-
-                    let leftBoundary;
-                    if (chunkIndex > 0) {
-                        // get -1
-                        leftBoundary = data[chunkIndex - 1];
-                    }
-
-                    let rightBoundary;
-                    if (chunkIndex < data.length - 1) {
-                        // get +1
-                        rightBoundary = data[chunkIndex + 1];
-                    }
-
-                    let seq = chunk.timestepSequence;
-                    let mva = chunk.calculateMovingAverage(
-                        boxPlotAttribute,
-                        mvaPeriod,
-                        simpleMovingAverage
-                    );
-
-                    if (isExpanded && leftBoundary) {
-                        seq = [...leftBoundary.timestepSequence, ...seq];
-                        mva = [
-                            ...leftBoundary.calculateMovingAverage(
-                                boxPlotAttribute,
-                                mvaPeriod,
-                                simpleMovingAverage
-                            ),
-                            ...mva,
-                        ];
-                    }
-
-                    if (isExpanded && rightBoundary) {
-                        seq = [...seq, ...rightBoundary.timestepSequence];
-                        mva = [
-                            ...mva,
-                            ...rightBoundary.calculateMovingAverage(
-                                boxPlotAttribute,
-                                mvaPeriod,
-                                simpleMovingAverage
-                            ),
-                        ];
-                    }
-
-                    return (
-                        <foreignObject
-                            key={`chart_${chunk.id}`}
-                            x={getX(chunkIndex, 0)}
-                            y={scaleY(count) + 12.5}
-                            width={w}
-                            height={h}
-                        >
-                            <EmbeddedChart key={`div_${chunk.id}`} height={h} width={w}>
-                                {(ww, hh, isEmbeddedParentHovered) => (
-                                    <Scatterplot
-                                        key={`sc_${chunk.id}`}
-                                        sequence={seq}
-                                        width={ww}
-                                        height={hh}
-                                        runs={runs}
-                                        setExtents={setExtents}
-                                        trajectories={trajectories}
-                                        trajectoryName={trajectoryName}
-                                        setStateHovered={setStateHovered}
-                                        setStateClicked={setStateClicked}
-                                        stateHovered={stateHovered}
-                                        isParentHovered={isEmbeddedParentHovered}
-                                        id={`sc_${chunk.id}`}
-                                        property={boxPlotAttribute}
-                                        globalScale={globalBoxScale}
-                                        movingAverage={mva}
-                                        toggleExpanded={() => expandChunk(chunk)}
-                                        includeBoundaries={isExpanded}
-                                        leftBoundary={leftBoundary}
-                                        rightBoundary={rightBoundary}
-                                    />
-                                )}
-                            </EmbeddedChart>
-                        </foreignObject>
-                    );
+                    // should set state to loading or something
                 });
-            setCharts([...charts, scatterCharts]);
+
+                socket.addEventListener('message', (e) => {
+                    const parsedData = JSON.parse(e.data);
+                    GlobalStates.addPropToStates(parsedData);
+                    const lData = lStates.map((d) => GlobalStates.get(d)[boxPlotAttribute]);
+                    const rData = rStates.map((d) => GlobalStates.get(d)[boxPlotAttribute]);
+
+                    const lStats = boxPlotStats(lData);
+                    const rStats = boxPlotStats(rData);
+
+                    let sendStates = [];
+
+                    renderChunkChart(
+                        chunk,
+                        [...lStates, ...chunk.states, ...rStates],
+                        isExpanded,
+                        getX(chunkIndex, 0),
+                        scaleY(count) + 12.5,
+                        scaleX(getWidthScale(chunk)),
+                        trajectoryName,
+                        leftBoundary,
+                        rightBoundary,
+                        i * 100
+                    );
+
+                    const boundaryStates = getBoundaryStates(leftBoundary, rightBoundary, i, seen);
+
+                    if (!(centerMVA[0] - lStats.iqr < lStats.median < centerMVA[0] + lStats.iqr)) {
+                        lStates = [...lStates, ...boundaryStates.leftStates];
+                        sendStates = [...boundaryStates.leftStates];
+                    }
+
+                    if (
+                        !(
+                            centerMVA[centerMVA.length - 1] - rStats.iqr <
+                            rStats.median <
+                            centerMVA[centerMVA.length - 1] + rStats.iqr
+                        )
+                    ) {
+                        // then request the next boundary states for right
+                        rStates = [...rStates, ...boundaryStates.rightStates];
+                        sendStates = [...sendStates, ...boundaryStates.rightStates];
+                    }
+
+                    // send requested states, if not, close connection
+                    if (!sendStates.length) {
+                        socket.close();
+                    } else {
+                        i++;
+
+                        socket.send(
+                            JSON.stringify({
+                                props: [boxPlotAttribute],
+                                stateIds: sendStates,
+                            })
+                        );
+                    }
+                });
+            } else {
+                let allStates = [...chunk.states];
+                if (leftBoundary) {
+                    allStates = [...leftBoundary.selected, ...allStates];
+                }
+
+                if (rightBoundary) {
+                    allStates = [...allStates, ...rightBoundary.selected];
+                }
+
+                renderChunkChart(
+                    chunk,
+                    allStates,
+                    isExpanded,
+                    getX(chunkIndex, 0),
+                    scaleY(count) + 12.5,
+                    scaleX(getWidthScale(chunk)),
+                    trajectoryName,
+                    leftBoundary,
+                    rightBoundary
+                );
+            }
+
+            // compare <DIRECTION>-most average - median <DIRECTION> vs IQR of direction
+            // if within range, stop expansion
+            // else include state, push <DIRECTION>
+            // send request for subset, render and then await message
+            // wait only for first message - no need actually, these properties are guaranteed to be when chunks were being split
+
+            // need list of all states within (leftBoundary, rightBoundary, center)
         });
+        // set up global scale for the boxPlots
+        // try to make global scale correct for when boundaries are expanded
     };
 
     const ref = useTrajectoryChartRender(

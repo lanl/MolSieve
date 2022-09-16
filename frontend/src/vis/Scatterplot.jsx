@@ -44,6 +44,7 @@ export default function Scatterplot({
     rightBoundary,
     toggleExpanded,
     includeBoundaries,
+    sliceBy,
 }) {
     const [yAttributeList, setYAttributeList] = useState(yAttributeListProp);
 
@@ -215,28 +216,32 @@ export default function Scatterplot({
                     });
             } else {
                 if (includeBoundaries) {
-                    const leftTimestep = leftBoundary.timesteps;
-                    const rightTimestep = rightBoundary.timesteps;
+                    const leftTimestep = leftBoundary.timesteps.slice(
+                        leftBoundary.timesteps.length - sliceBy,
+                        leftBoundary.timesteps.length
+                    );
+                    const rightTimestep = rightBoundary.timesteps.slice(0, sliceBy);
                     renderBackgroundColor(svg, scaleX, leftTimestep, leftBoundary.color);
                     renderBackgroundColor(svg, scaleX, rightTimestep, rightBoundary.color);
                 }
                 const datum = [];
                 const mv = [];
 
-                for (let i = 0; i < movingAverage.length; i++) {
-                    const d = { x: xAttributeList[i], y: movingAverage[i] };
-                    mv.push(d);
-                }
-                for (let i = 0; i < sequence.length; i++) {
-                    const d = { x: xAttributeList[i], y: yAttributeListRender[i] };
-                    datum.push(d);
-                }
                 const line = d3
                     .line()
                     .x((d) => scaleX(d.x))
                     .y((d) => scaleY(d.y))
                     .curve(d3.curveCatmullRom.alpha(0.5));
 
+                for (let i = 0; i < sequence.length; i++) {
+                    const d = { x: xAttributeList[i], y: yAttributeListRender[i] };
+                    datum.push(d);
+                }
+
+                for (let i = 0; i < movingAverage.length; i++) {
+                    const d = { x: xAttributeList[i], y: movingAverage[i] };
+                    mv.push(d);
+                }
                 // sparkline
                 svg.append('path')
                     .datum(datum)
