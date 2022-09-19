@@ -15,7 +15,6 @@ import '../css/App.css';
 
 import BoxPlot from './BoxPlot';
 import { useExtents } from '../hooks/useExtents';
-import { applyFilters } from '../api/filters';
 
 const margin = { top: 25, bottom: 20, left: 30, right: 20 };
 const sBrush = null;
@@ -50,7 +49,6 @@ export default function Scatterplot({
 
     const [showSparkLine, setSparkLine] = useState(true);
     const [isHovered, setIsHovered] = useState(false);
-    const [adjWidth, setAdjWidth] = useState(0.8 * width);
 
     useEffect(() => {
         setIsHovered(isParentHovered);
@@ -59,14 +57,6 @@ export default function Scatterplot({
     const toggleSparkLine = () => {
         setSparkLine(!showSparkLine);
     };
-
-    useEffect(() => {
-        if (includeBoundaries) {
-            setAdjWidth(width);
-        } else {
-            setAdjWidth(0.8 * width);
-        }
-    }, [includeBoundaries]);
 
     const { setInternalExtents, completeSelection } = useExtents(setExtents);
 
@@ -146,7 +136,7 @@ export default function Scatterplot({
 
             const scaleX = getScale(xAttributeList, xAttribute === 'timestep').range([
                 margin.left + 5,
-                adjWidth - margin.right,
+                width - margin.right,
             ]);
 
             const yAttributeListRender = showSparkLine ? yAttributeList : sequence.map((d) => d.id);
@@ -282,7 +272,7 @@ export default function Scatterplot({
             }
 
             svg.append('text')
-                .attr('x', adjWidth / 2)
+                .attr('x', width / 2)
                 .attr('y', margin.top)
                 .attr('text-anchor', 'middle')
                 .style('font-size', '12px')
@@ -301,9 +291,9 @@ export default function Scatterplot({
 
             svg.call(zoom); */
 
-            applyFilters(trajectories, runs, ref);
+            // applyFilters(trajectories, runs, ref);
         },
-        [yAttributeList, trajectories, runs, showSparkLine, property, adjWidth]
+        [yAttributeList, trajectories, runs, showSparkLine, property, width]
     );
 
     useEffect(() => {
@@ -373,23 +363,12 @@ export default function Scatterplot({
                     {showSparkLine ? 'ShowScatter' : 'ShowSparkLine'}
                 </Button>
             </Box>
-            {leftBoundary && !includeBoundaries && (
-                <BoxPlot
-                    showYAxis={false}
-                    data={leftBoundary.calculateStats(property)}
-                    color={leftBoundary.color}
-                    property={property}
-                    width={0.095 * width}
-                    height={height}
-                    globalScale={globalScale}
-                />
-            )}
             <svg
                 ref={ref}
                 id={id}
                 className="vis filterable"
-                viewBox={[0, 0, adjWidth, height]}
-                width={adjWidth}
+                viewBox={[0, 0, width, height]}
+                width={width}
                 height={height}
                 onClick={(e) => {
                     // on double click
@@ -398,18 +377,6 @@ export default function Scatterplot({
                     }
                 }}
             />
-
-            {rightBoundary && !includeBoundaries && (
-                <BoxPlot
-                    showYAxis={false}
-                    data={rightBoundary.calculateStats(property)}
-                    color={rightBoundary.color}
-                    property={property}
-                    width={0.1 * width}
-                    height={height}
-                    globalScale={globalScale}
-                />
-            )}
         </>
     );
 }
