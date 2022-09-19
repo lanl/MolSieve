@@ -23,6 +23,8 @@ export default function ChunkWrapper({
     setStateClicked,
     runs,
     setExtents,
+    chartX,
+    chartY,
 }) {
     const [isExpanded, setIsExpanded] = useState(false);
     const [allStates, setAllStates] = useState([
@@ -33,6 +35,7 @@ export default function ChunkWrapper({
 
     const [adjWidth, setAdjWidth] = useState(0.8 * width);
     const [sliceBy, setSliceBy] = useState(0);
+    const [isLoading, setIsLoading] = useState(false);
     const [globalBoxScale, setGlobalBoxScale] = useState(() =>
         d3
             .scaleLinear()
@@ -128,145 +131,154 @@ export default function ChunkWrapper({
         setSeq(s);
         setMva(m);
         setGlobalBoxScale(gScale);
+        setIsLoading(false);
     };
 
     useEffect(() => {
-        if (isExpanded) {
-            const socket = new WebSocket('ws://localhost:8000/api/load_properties_for_subset');
-            const seen = new Set();
-            let i = 0;
-            let lStates = [];
-            let rStates = [];
+        if (isLoading) {
+            if (isExpanded) {
+                const socket = new WebSocket('ws://localhost:8000/api/load_properties_for_subset');
+                const seen = new Set();
+                let i = 0;
+                let lStates = [];
+                let rStates = [];
 
-            const centerMVA = chunk.calculateMovingAverage(
-                boxPlotAttribute,
-                mvaPeriod,
-                simpleMovingAverage
-            );
-
-            socket.addEventListener('open', () => {
-                const boundaryStates = getBoundaryStates(leftBoundary, rightBoundary, i, seen);
-                lStates = boundaryStates.leftStates;
-                rStates = boundaryStates.rightStates;
-                i++;
-                socket.send(
-                    JSON.stringify({
-                        props: [boxPlotAttribute],
-                        stateIds: boundaryStates.sendStates,
-                    })
+                const centerMVA = chunk.calculateMovingAverage(
+                    boxPlotAttribute,
+                    mvaPeriod,
+                    simpleMovingAverage
                 );
-                // should set state to loading or something
-            });
 
-            socket.addEventListener('message', (e) => {
-                const parsedData = JSON.parse(e.data);
-                GlobalStates.addPropToStates(parsedData);
-                const lData = lStates.map((d) => GlobalStates.get(d)[boxPlotAttribute]);
-                const rData = rStates.map((d) => GlobalStates.get(d)[boxPlotAttribute]);
-
-                const lStats = boxPlotStats(lData);
-                const rStats = boxPlotStats(rData);
-
-                let sendStates = [];
-
-                render([...lStates, ...chunk.states, ...rStates], width, i * moveBy);
-
-                const boundaryStates = getBoundaryStates(leftBoundary, rightBoundary, i, seen);
-                if (!(centerMVA[0] - lStats.iqr < lStats.median < centerMVA[0] + lStats.iqr)) {
-                    lStates = [...lStates, ...boundaryStates.leftStates];
-                    sendStates = [...boundaryStates.leftStates];
-                }
-
-                if (
-                    !(
-                        centerMVA[centerMVA.length - 1] - rStats.iqr <
-                        rStats.median <
-                        centerMVA[centerMVA.length - 1] + rStats.iqr
-                    )
-                ) {
-                    // then request the next boundary states for right
-                    rStates = [...rStates, ...boundaryStates.rightStates];
-                    sendStates = [...sendStates, ...boundaryStates.rightStates];
-                }
-
-                // send requested states, if not, close connection
-                if (!sendStates.length) {
-                    socket.close();
-                } else {
+                socket.addEventListener('open', () => {
+                    const boundaryStates = getBoundaryStates(leftBoundary, rightBoundary, i, seen);
+                    lStates = boundaryStates.leftStates;
+                    rStates = boundaryStates.rightStates;
                     i++;
                     socket.send(
                         JSON.stringify({
                             props: [boxPlotAttribute],
-                            stateIds: sendStates,
+                            stateIds: boundaryStates.sendStates,
                         })
                     );
+                    // should set state to loading or something
+                });
+
+                socket.addEventListener('message', (e) => {
+                    const parsedData = JSON.parse(e.data);
+                    GlobalStates.addPropToStates(parsedData);
+                    const lData = lStates.map((d) => GlobalStates.get(d)[boxPlotAttribute]);
+                    const rData = rStates.map((d) => GlobalStates.get(d)[boxPlotAttribute]);
+
+                    const lStats = boxPlotStats(lData);
+                    const rStats = boxPlotStats(rData);
+
+                    let sendStates = [];
+
+                    render([...lStates, ...chunk.states, ...rStates], width, i * moveBy);
+
+                    const boundaryStates = getBoundaryStates(leftBoundary, rightBoundary, i, seen);
+                    if (!(centerMVA[0] - lStats.iqr < lStats.median < centerMVA[0] + lStats.iqr)) {
+                        lStates = [...lStates, ...boundaryStates.leftStates];
+                        sendStates = [...boundaryStates.leftStates];
+                    }
+
+                    if (
+                        !(
+                            centerMVA[centerMVA.length - 1] - rStats.iqr <
+                            rStats.median <
+                            centerMVA[centerMVA.length - 1] + rStats.iqr
+                        )
+                    ) {
+                        // then request the next boundary states for right
+                        rStates = [...rStates, ...boundaryStates.rightStates];
+                        sendStates = [...sendStates, ...boundaryStates.rightStates];
+                    }
+
+                    // send requested states, if not, close connection
+                    if (!sendStates.length) {
+                        socket.close();
+                    } else {
+                        i++;
+                        socket.send(
+                            JSON.stringify({
+                                props: [boxPlotAttribute],
+                                stateIds: sendStates,
+                            })
+                        );
+                    }
+                });
+            } else {
+                let newAllStates = [...chunk.states];
+                if (leftBoundary) {
+                    newAllStates = [...leftBoundary.selected, ...allStates];
                 }
-            });
-        } else {
-            let newAllStates = [...chunk.states];
-            if (leftBoundary) {
-                newAllStates = [...leftBoundary.selected, ...allStates];
-            }
 
-            if (rightBoundary) {
-                newAllStates = [...allStates, ...rightBoundary.selected];
-            }
+                if (rightBoundary) {
+                    newAllStates = [...allStates, ...rightBoundary.selected];
+                }
 
-            render(newAllStates, 0.8 * width);
+                render(newAllStates, 0.8 * width);
+            }
         }
+    }, [isLoading]);
+
+    useEffect(() => {
+        setIsLoading(true);
     }, [isExpanded, boxPlotAttribute]);
 
     return (
-        <EmbeddedChart key={`div_${chunk.id}`} height={height} width={width}>
-            {(ww, hh, isEmbeddedParentHovered) => (
-                <>
-                    {leftBoundary && !isExpanded && (
-                        <BoxPlot
-                            showYAxis={false}
-                            data={leftBoundary.calculateStats(boxPlotAttribute)}
-                            color={leftBoundary.color}
-                            property={boxPlotAttribute}
-                            width={0.095 * ww}
+        <foreignObject x={chartX} y={chartY} width={width} height={height}>
+            <EmbeddedChart height={height} width={width} isLoading={isLoading}>
+                {(ww, hh, isEmbeddedParentHovered) => (
+                    <>
+                        {leftBoundary && !isExpanded && (
+                            <BoxPlot
+                                showYAxis={false}
+                                data={leftBoundary.calculateStats(boxPlotAttribute)}
+                                color={leftBoundary.color}
+                                property={boxPlotAttribute}
+                                width={0.095 * ww}
+                                height={hh}
+                                globalScale={globalBoxScale}
+                            />
+                        )}
+
+                        <Scatterplot
+                            sequence={seq}
+                            width={adjWidth}
                             height={hh}
-                            globalScale={globalBoxScale}
-                        />
-                    )}
-
-                    <Scatterplot
-                        sequence={seq}
-                        width={adjWidth}
-                        height={hh}
-                        runs={runs}
-                        movingAverage={mva}
-                        setExtents={setExtents}
-                        trajectories={trajectories}
-                        trajectoryName={trajectoryName}
-                        setStateHovered={setStateHovered}
-                        setStateClicked={setStateClicked}
-                        isParentHovered={isEmbeddedParentHovered}
-                        id={`sc_${chunk.id}`}
-                        property={boxPlotAttribute}
-                        globalScale={globalBoxScale}
-                        toggleExpanded={() => setIsExpanded(!isExpanded)}
-                        includeBoundaries={isExpanded}
-                        leftBoundary={leftBoundary}
-                        rightBoundary={rightBoundary}
-                        sliceBy={sliceBy}
-                    />
-
-                    {rightBoundary && !isExpanded && (
-                        <BoxPlot
-                            showYAxis={false}
-                            data={rightBoundary.calculateStats(boxPlotAttribute)}
-                            color={rightBoundary.color}
+                            runs={runs}
+                            movingAverage={mva}
+                            setExtents={setExtents}
+                            trajectories={trajectories}
+                            trajectoryName={trajectoryName}
+                            setStateHovered={setStateHovered}
+                            setStateClicked={setStateClicked}
+                            isParentHovered={isEmbeddedParentHovered}
+                            id={`sc_${chunk.id}`}
                             property={boxPlotAttribute}
-                            width={0.1 * width}
-                            height={height}
                             globalScale={globalBoxScale}
+                            toggleExpanded={() => setIsExpanded(!isExpanded)}
+                            includeBoundaries={isExpanded}
+                            leftBoundary={leftBoundary}
+                            rightBoundary={rightBoundary}
+                            sliceBy={sliceBy}
                         />
-                    )}
-                </>
-            )}
-        </EmbeddedChart>
+
+                        {rightBoundary && !isExpanded && (
+                            <BoxPlot
+                                showYAxis={false}
+                                data={rightBoundary.calculateStats(boxPlotAttribute)}
+                                color={rightBoundary.color}
+                                property={boxPlotAttribute}
+                                width={0.1 * width}
+                                height={height}
+                                globalScale={globalBoxScale}
+                            />
+                        )}
+                    </>
+                )}
+            </EmbeddedChart>
+        </foreignObject>
     );
 }

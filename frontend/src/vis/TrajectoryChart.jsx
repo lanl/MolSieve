@@ -107,50 +107,45 @@ function TrajectoryChart({
             return w;
         }
 
-        // make this a forEach
-        data.filter((d) => d.important).map((chunk) => {
-            const chunkIndex = data.indexOf(chunk);
-            let leftBoundary;
-            let rightBoundary;
-            if (chunkIndex > 0) {
-                // get -1
-                leftBoundary = data[chunkIndex - 1];
-            }
+        return data
+            .filter((d) => d.important)
+            .map((chunk) => {
+                const chunkIndex = data.indexOf(chunk);
+                let leftBoundary;
+                let rightBoundary;
+                if (chunkIndex > 0) {
+                    // get -1
+                    if (!data[chunkIndex - 1].important) {
+                        leftBoundary = data[chunkIndex - 1];
+                    }
+                }
 
-            if (chunkIndex < data.length - 1) {
-                // get +1
-                rightBoundary = data[chunkIndex + 1];
-            }
+                if (chunkIndex < data.length - 1) {
+                    // get +1
 
-            const w = scaleX(getWidthScale(chunk));
-            const h = 400;
+                    if (!data[chunkIndex + 1].important) {
+                        rightBoundary = data[chunkIndex + 1];
+                    }
+                }
 
-            const chartX = getX(chunkIndex, 0);
-            const chartY = scaleY(count) + 12.5;
+                const w = scaleX(getWidthScale(chunk));
+                const h = 400;
 
-            const chart = {
-                chunk,
-                w,
-                h,
-                chartX,
-                chartY,
-                trajectoryName,
-                leftBoundary,
-                rightBoundary,
-            };
+                const chartX = getX(chunkIndex, 0);
+                const chartY = scaleY(count) + 12.5;
 
-            setCharts((c) => Object.assign(c, { [chunk.id]: chart }));
-        });
-        // compare <DIRECTION>-most average - median <DIRECTION> vs IQR of direction
-        // if within range, stop expansion
-        // else include state, push <DIRECTION>
-        // send request for subset, render and then await message
-        // wait only for first message - no need actually, these properties are guaranteed to be when chunks were being split
-
-        // need list of all states within (leftBoundary, rightBoundary, center)
-
-        // set up global scale for the boxPlots
-        // try to make global scale correct for when boundaries are expanded
+                return {
+                    chunk,
+                    w,
+                    h,
+                    chartX,
+                    chartY,
+                    trajectoryName,
+                    leftBoundary,
+                    rightBoundary,
+                    id: chunk.id,
+                };
+            });
     };
 
     const ref = useTrajectoryChartRender(
@@ -161,9 +156,9 @@ function TrajectoryChart({
             // clear so we don't draw over-top and cause insane lag
             if (!svg.empty()) {
                 svg.selectAll('*').remove();
-                // need a way to delete chunks by ID
             }
 
+            console.log('render');
             let y = 0;
 
             const scaleY = d3
@@ -175,6 +170,9 @@ function TrajectoryChart({
             const chunkGroup = svg.append('g').attr('id', 'chunk');
             const importantGroup = svg.append('g').attr('id', 'sequence_important');
 
+            const oldCharts = Object.keys(charts);
+
+            let ch = [];
             for (const [name, trajectory] of Object.entries(trajectories)) {
                 // trajectory.name = name;
 
@@ -214,14 +212,29 @@ function TrajectoryChart({
                 tickNames.push(name);
 
                 renderChunks(topChunkList, name, y, scaleX, scaleY, getWidthScale);
-                renderCharts(topChunkList, name, y, scaleX, scaleY, getWidthScale);
+                ch = [...ch, ...renderCharts(topChunkList, name, y, scaleX, scaleY, getWidthScale)];
 
                 y++;
             }
 
+            const newCharts = { ...charts };
+            for (const c of ch) {
+                newCharts[c.id] = c;
+            }
+
+            for (const chunk of oldCharts) {
+                if (!Object.keys(newCharts).includes(chunk)) {
+                    delete newCharts[chunk];
+                }
+            }
+
+            // BUG: Memory is still not cleared safely... something is modifying the DOM alongside with
+            // setCharts
+            // Leaving it for now, as it functions correctly
+
+            setCharts(newCharts);
+
             loadingCallback();
-            // need to remove chunks before they get removed by something else...
-            // or find the thing that's removing them from the DOM before they get removed from state
         },
         // charts need to be drawn at a different time...
         [trajectories, runs]
@@ -296,7 +309,6 @@ function TrajectoryChart({
         }
     }, [visibleExtent]);
 
-    console.log(charts);
     // render properties in properties menu
     return (
         <>
@@ -326,29 +338,24 @@ function TrajectoryChart({
                     } = chart;
 
                     return (
-                        <foreignObject
-                            key={`chart_${chunk.id}`}
-                            x={chartX}
-                            y={chartY}
+                        <ChunkWrapper
+                            key={chunk.id}
+                            leftBoundary={leftBoundary}
+                            chunk={chunk}
+                            chartX={chartX}
+                            chartY={chartY}
+                            rightBoundary={rightBoundary}
+                            boxPlotAttribute={boxPlotAttribute}
+                            trajectoryName={trajectoryName}
                             width={w}
                             height={h}
-                        >
-                            <ChunkWrapper
-                                leftBoundary={leftBoundary}
-                                chunk={chunk}
-                                rightBoundary={rightBoundary}
-                                boxPlotAttribute={boxPlotAttribute}
-                                trajectoryName={trajectoryName}
-                                width={w}
-                                height={h}
-                                trajectories={trajectories}
-                                setStateHovered={setStateHovered}
-                                setStateClicked={setStateClicked}
-                                stateHovered={stateHovered}
-                                runs={runs}
-                                setExtents={setExtents}
-                            />
-                        </foreignObject>
+                            trajectories={trajectories}
+                            setStateHovered={setStateHovered}
+                            setStateClicked={setStateClicked}
+                            stateHovered={stateHovered}
+                            runs={runs}
+                            setExtents={setExtents}
+                        />
                     );
                 })}
             </svg>
