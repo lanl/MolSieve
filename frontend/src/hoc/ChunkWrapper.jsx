@@ -22,17 +22,9 @@ export default function ChunkWrapper({
     setStateHovered,
     setStateClicked,
     runs,
-    setExtents,
-    chartX,
-    chartY,
 }) {
     const [isExpanded, setIsExpanded] = useState(false);
-    const [allStates, setAllStates] = useState([
-        ...leftBoundary.selected,
-        ...chunk.states,
-        ...rightBoundary.selected,
-    ]);
-
+    const [allStates, setAllStates] = useState([...chunk.states]);
     const [adjWidth, setAdjWidth] = useState(0.8 * width);
     const [sliceBy, setSliceBy] = useState(0);
     const [isLoading, setIsLoading] = useState(false);
@@ -227,58 +219,50 @@ export default function ChunkWrapper({
     }, [isExpanded, boxPlotAttribute]);
 
     return (
-        <foreignObject x={chartX} y={chartY} width={width} height={height}>
-            <EmbeddedChart height={height} width={width} isLoading={isLoading}>
-                {(ww, hh, isEmbeddedParentHovered) => (
-                    <>
-                        {leftBoundary && !isExpanded && (
-                            <BoxPlot
-                                showYAxis={false}
-                                data={leftBoundary.calculateStats(boxPlotAttribute)}
-                                color={leftBoundary.color}
-                                property={boxPlotAttribute}
-                                width={0.095 * ww}
-                                height={hh}
-                                globalScale={globalBoxScale}
-                            />
-                        )}
+        <>
+            {leftBoundary && !isExpanded && (
+                <BoxPlot
+                    showYAxis={false}
+                    data={leftBoundary.calculateStats(boxPlotAttribute)}
+                    color={leftBoundary.color}
+                    property={boxPlotAttribute}
+                    width={0.095 * width}
+                    height={height}
+                    globalScale={globalBoxScale}
+                />
+            )}
 
-                        <Scatterplot
-                            sequence={seq}
-                            width={adjWidth}
-                            height={hh}
-                            runs={runs}
-                            movingAverage={mva}
-                            setExtents={setExtents}
-                            trajectories={trajectories}
-                            trajectoryName={trajectoryName}
-                            setStateHovered={setStateHovered}
-                            setStateClicked={setStateClicked}
-                            isParentHovered={isEmbeddedParentHovered}
-                            id={`sc_${chunk.id}`}
-                            property={boxPlotAttribute}
-                            globalScale={globalBoxScale}
-                            toggleExpanded={() => setIsExpanded(!isExpanded)}
-                            includeBoundaries={isExpanded}
-                            leftBoundary={leftBoundary}
-                            rightBoundary={rightBoundary}
-                            sliceBy={sliceBy}
-                        />
+            <Scatterplot
+                sequence={seq}
+                width={adjWidth}
+                height={height}
+                runs={runs}
+                movingAverage={mva}
+                trajectories={trajectories}
+                trajectoryName={trajectoryName}
+                setStateHovered={setStateHovered}
+                setStateClicked={setStateClicked}
+                id={`sc_${chunk.id}`}
+                property={boxPlotAttribute}
+                globalScale={globalBoxScale}
+                toggleExpanded={() => setIsExpanded(!isExpanded)}
+                includeBoundaries={isExpanded}
+                leftBoundary={leftBoundary}
+                rightBoundary={rightBoundary}
+                sliceBy={sliceBy}
+            />
 
-                        {rightBoundary && !isExpanded && (
-                            <BoxPlot
-                                showYAxis={false}
-                                data={rightBoundary.calculateStats(boxPlotAttribute)}
-                                color={rightBoundary.color}
-                                property={boxPlotAttribute}
-                                width={0.1 * width}
-                                height={height}
-                                globalScale={globalBoxScale}
-                            />
-                        )}
-                    </>
-                )}
-            </EmbeddedChart>
-        </foreignObject>
+            {rightBoundary && !isExpanded && (
+                <BoxPlot
+                    showYAxis={false}
+                    data={rightBoundary.calculateStats(boxPlotAttribute)}
+                    color={rightBoundary.color}
+                    property={boxPlotAttribute}
+                    width={0.1 * width}
+                    height={height}
+                    globalScale={globalBoxScale}
+                />
+            )}
+        </>
     );
 }

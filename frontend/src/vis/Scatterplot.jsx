@@ -1,9 +1,6 @@
 import { React, useEffect, useState } from 'react';
 import * as d3 from 'd3';
 
-import Button from '@mui/material/Button';
-import Box from '@mui/material/Box';
-
 import GlobalStates from '../api/globalStates';
 
 import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
@@ -13,7 +10,6 @@ import { onEntityMouseOver, getScale } from '../api/myutils';
 import '../css/vis.css';
 import '../css/App.css';
 
-import BoxPlot from './BoxPlot';
 import { useExtents } from '../hooks/useExtents';
 
 const margin = { top: 25, bottom: 20, left: 30, right: 20 };
@@ -346,9 +342,30 @@ export default function Scatterplot({
             }
         }
     }, [visibleExtent]);
+
     return (
-        <>
-            <Box className="floatingToolBar" sx={{ visibility: isHovered ? 'visible' : 'hidden' }}>
+        <svg
+            ref={ref}
+            id={id}
+            className="vis filterable"
+            viewBox={[0, 0, width, height]}
+            width={width}
+            height={height}
+            onClick={(e) => {
+                // on double click
+                if (e.detail === 2) {
+                    toggleExpanded();
+                }
+            }}
+        />
+    );
+}
+
+/* <Button color="secondary" size="small" onClick={(e) => toggleMenu(e)}>
+                        Attributes
+                    </Button>
+
+<Box className="floatingToolBar" sx={{ visibility: isHovered ? 'visible' : 'hidden' }}>
                 <Button color="secondary" size="small" onClick={() => toggleSelectionBrush()}>
                     SelectionBrush
                 </Button>
@@ -363,24 +380,8 @@ export default function Scatterplot({
                     {showSparkLine ? 'ShowScatter' : 'ShowSparkLine'}
                 </Button>
             </Box>
-            <svg
-                ref={ref}
-                id={id}
-                className="vis filterable"
-                viewBox={[0, 0, width, height]}
-                width={width}
-                height={height}
-                onClick={(e) => {
-                    // on double click
-                    if (e.detail === 2) {
-                        toggleExpanded();
-                    }
-                }}
-            />
-        </>
-    );
-}
 
-/* <Button color="secondary" size="small" onClick={(e) => toggleMenu(e)}>
-                        Attributes
-                    </Button> */
+
+
+
+    */

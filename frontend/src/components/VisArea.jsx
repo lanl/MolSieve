@@ -12,9 +12,6 @@ import LoadingModal from '../modals/LoadingModal';
 import '../css/App.css';
 import GlobalStates from '../api/globalStates';
 
-import { applyFilters } from '../api/filters';
-import { getClassIds } from '../api/myutils';
-
 const SINGLE_STATE_MODAL = 'single_state';
 
 export default function VisArea({ sx, trajectories, runs, properties }) {
@@ -85,6 +82,40 @@ export default function VisArea({ sx, trajectories, runs, properties }) {
                                 stateHovered={stateHovered}
                                 properties={properties}
                                 isParentHovered={isHovered}
+                                charts={Object.keys(trajectories).flatMap((trajectoryName) => {
+                                    const trajectory = trajectories[trajectoryName];
+                                    const { chunkList } = trajectory;
+                                    const topChunkList = chunkList.filter((d) => !d.hasParent);
+                                    const iChunks = topChunkList.filter((d) => d.important);
+
+                                    return iChunks.map((chunk) => {
+                                        const chunkIndex = topChunkList.indexOf(chunk);
+                                        let leftBoundary;
+                                        let rightBoundary;
+                                        if (chunkIndex > 0) {
+                                            // get -1
+                                            if (!topChunkList[chunkIndex - 1].important) {
+                                                leftBoundary = topChunkList[chunkIndex - 1];
+                                            }
+                                        }
+
+                                        if (chunkIndex < topChunkList.length - 1) {
+                                            // get +1
+                                            if (!topChunkList[chunkIndex + 1].important) {
+                                                rightBoundary = topChunkList[chunkIndex + 1];
+                                            }
+                                        }
+
+                                        // for each important chunk in the trajectory
+                                        // build a chart
+                                        return {
+                                            id: chunk.id,
+                                            leftBoundary,
+                                            chunk,
+                                            rightBoundary,
+                                        };
+                                    });
+                                })}
                             />
                         )}
                     </ChartBox>
