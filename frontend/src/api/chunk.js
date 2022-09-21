@@ -45,6 +45,10 @@ export default class Chunk {
     calculateSelected() {
         const entries = [...this.stateCounts.entries()].sort((a, b) => b[1] - a[1]);
 
+        if (entries.length < 20) {
+            this.selected = this.states;
+            return;
+        }
         // 0 returns only state ID
         const selected = [];
         for (let i = 0; i < 20; i++) {
