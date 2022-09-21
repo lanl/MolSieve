@@ -1,22 +1,18 @@
-import { React, createRef, useState, useEffect } from 'react';
+import { React, createRef, useState } from 'react';
 
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
 
 /* This component is intended to allow embedding svgs within svgs as React components */
 // essentially the same as a ChartBox, just with a border
-export default function EmbeddedChart({ children, height, width, margin, isLoading }) {
+export default function EmbeddedChart({ children, height, width, margin }) {
     const ref = createRef();
     const [isHovered, setIsHovered] = useState(false);
-    const [showLoading, setShowLoading] = useState(isLoading);
-
-    useEffect(() => {
-        setShowLoading(isLoading);
-    }, [isLoading]);
 
     return (
         <Box
             ref={ref}
+            sx={{ display: 'flex' }}
             component={Paper}
             border={1}
             width={width - margin.left}
@@ -24,7 +20,7 @@ export default function EmbeddedChart({ children, height, width, margin, isLoadi
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
         >
-            {showLoading ? <Box>Loading</Box> : children(width, height, isHovered)}
+            {children(width, height, isHovered)}
         </Box>
     );
 }

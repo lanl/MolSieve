@@ -100,7 +100,9 @@ function TrajectoryChart({
                 return;
             }
             // clear so we don't draw over-top and cause insane lag
-            console.log('render');
+            if (!svg.empty()) {
+                svg.selectAll('g').remove();
+            }
             let y = 0;
 
             const scaleY = d3
@@ -258,6 +260,8 @@ function TrajectoryChart({
 
                     const chunkIndex = topChunkList.indexOf(chunk);
 
+                    // these values could all be calculated pre-render...
+
                     const unimportantWidthScale = d3
                         .scaleLinear()
                         .range([minimumChartWidth, (width - margin.right) * 0.1])
@@ -300,8 +304,8 @@ function TrajectoryChart({
                             width={chartW}
                             height={400}
                         >
-                            <EmbeddedChart height={400} width={chartW} isLoading={false}>
-                                {(ww, hh, isEmbeddedParentHovered) => (
+                            <EmbeddedChart height={400} width={chartW}>
+                                {(ww, hh, isPHovered) => (
                                     <ChunkWrapper
                                         chunk={chunk}
                                         leftBoundary={leftBoundary}
@@ -312,6 +316,7 @@ function TrajectoryChart({
                                         trajectories={trajectories}
                                         trajectoryName="nano_pt"
                                         runs={runs}
+                                        isParentHovered={isPHovered}
                                     />
                                 )}
                             </EmbeddedChart>

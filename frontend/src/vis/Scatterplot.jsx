@@ -31,28 +31,17 @@ export default function Scatterplot({
     width,
     height,
     runs,
-    isParentHovered,
     property,
     globalScale,
     movingAverage,
     leftBoundary,
     rightBoundary,
-    toggleExpanded,
+    doubleClickAction,
     includeBoundaries,
     sliceBy,
+    showSparkLine,
 }) {
     const [yAttributeList, setYAttributeList] = useState(yAttributeListProp);
-
-    const [showSparkLine, setSparkLine] = useState(true);
-    const [isHovered, setIsHovered] = useState(false);
-
-    useEffect(() => {
-        setIsHovered(isParentHovered);
-    }, [isParentHovered]);
-
-    const toggleSparkLine = () => {
-        setSparkLine(!showSparkLine);
-    };
 
     const { setInternalExtents, completeSelection } = useExtents(setExtents);
 
@@ -201,6 +190,7 @@ export default function Scatterplot({
                         setStateHovered(null);
                     });
             } else {
+                // if I could remove these lines, the code would be totally de-coupled from the data
                 if (includeBoundaries) {
                     const leftTimestep = leftBoundary.timesteps.slice(
                         leftBoundary.timesteps.length - sliceBy,
@@ -354,34 +344,9 @@ export default function Scatterplot({
             onClick={(e) => {
                 // on double click
                 if (e.detail === 2) {
-                    toggleExpanded();
+                    doubleClickAction();
                 }
             }}
         />
     );
 }
-
-/* <Button color="secondary" size="small" onClick={(e) => toggleMenu(e)}>
-                        Attributes
-                    </Button>
-
-<Box className="floatingToolBar" sx={{ visibility: isHovered ? 'visible' : 'hidden' }}>
-                <Button color="secondary" size="small" onClick={() => toggleSelectionBrush()}>
-                    SelectionBrush
-                </Button>
-                <Button
-                    color="secondary"
-                    size="small"
-                    onClick={() => toggleIndividualSelectionMode()}
-                >
-                    iSelectionBrush
-                </Button>
-                <Button color="secondary" size="small" onClick={() => toggleSparkLine()}>
-                    {showSparkLine ? 'ShowScatter' : 'ShowSparkLine'}
-                </Button>
-            </Box>
-
-
-
-
-    */
