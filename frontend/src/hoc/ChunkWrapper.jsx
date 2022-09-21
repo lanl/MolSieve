@@ -36,7 +36,7 @@ export default function ChunkWrapper({
     // allStates should be dependent on left & right boundaries
     const [allStates, setAllStates] = useState([...chunk.states]);
     const [adjWidth, setAdjWidth] = useState(0.8 * width);
-    const [sliceBy, setSliceBy] = useState(0);
+    const [sliceBy, setSliceBy] = useState({ lSlice: 0, rSlice: 0 });
     const [globalBoxScale, setGlobalBoxScale] = useState(() =>
         d3
             .scaleLinear()
@@ -53,23 +53,23 @@ export default function ChunkWrapper({
         chunk.calculateMovingAverage(boxPlotAttribute, mvaPeriod, simpleMovingAverage)
     );
 
-    const getBoundaryStates = (lBoundary, rBoundary, i, seen) => {
+    const getBoundaryStates = (i, seen) => {
         let checkStates = [];
         let leftStates = [];
         let rightStates = [];
 
-        if (lBoundary) {
-            const left = lBoundary.timestepSequence.length - moveBy * (i + 1);
-            const right = lBoundary.timestepSequence.length - moveBy * i;
+        if (leftBoundary) {
+            const left = leftBoundary.timestepSequence.length - moveBy * (i + 1);
+            const right = leftBoundary.timestepSequence.length - moveBy * i;
             // need boundary checks
-            leftStates = [...lBoundary.timestepSequence.slice(left - 1, right).map((d) => d.id)];
+            leftStates = [...leftBoundary.timestepSequence.slice(left, right).map((d) => d.id)];
             checkStates = [...leftStates];
         }
 
-        if (rBoundary) {
+        if (rightBoundary) {
             const left = moveBy * i;
             const right = moveBy * (i + 1);
-            rightStates = [...rBoundary.timestepSequence.slice(left, right + 1).map((d) => d.id)];
+            rightStates = [...rightBoundary.timestepSequence.slice(left, right).map((d) => d.id)];
             checkStates = [...checkStates, ...rightStates];
         }
 
@@ -83,7 +83,8 @@ export default function ChunkWrapper({
         return { sendStates, rightStates, leftStates };
     };
 
-    const render = (states, aWidth, sBy) => {
+    const render = (states, aWidth, lSlice, rSlice) => {
+        // breaks because it assumes that both sides are expanding at the same time... need to do seperately
         let s = chunk.timestepSequence;
         let m = chunk.calculateMovingAverage(boxPlotAttribute, mvaPeriod, simpleMovingAverage);
 
@@ -96,9 +97,9 @@ export default function ChunkWrapper({
                 .range([375, 20]);
 
         if (leftBoundary && isExpanded) {
-            const left = leftBoundary.timestepSequence.length - sBy;
+            const left = leftBoundary.timestepSequence.length - lSlice;
             const right = leftBoundary.timestepSequence.length;
-            s = [...leftBoundary.timestepSequence.slice(left - 1, right), ...s];
+            s = [...leftBoundary.timestepSequence.slice(left), ...s];
             m = [
                 ...leftBoundary.calculateMovingAverage(
                     boxPlotAttribute,
@@ -112,9 +113,9 @@ export default function ChunkWrapper({
 
         if (rightBoundary && isExpanded) {
             const left = 0;
-            const right = sBy;
+            const right = rSlice;
 
-            s = [...s, ...rightBoundary.timestepSequence.slice(left, right + 1)];
+            s = [...s, ...rightBoundary.timestepSequence.slice(left, right)];
             m = [
                 ...m,
                 ...rightBoundary.calculateMovingAverage(
@@ -128,7 +129,7 @@ export default function ChunkWrapper({
 
         setAllStates(states);
         setAdjWidth(aWidth);
-        setSliceBy(sBy);
+        setSliceBy({ lSlice, rSlice });
         setSeq(s);
         setMva(m);
         setGlobalBoxScale(gScale);
@@ -148,11 +149,13 @@ export default function ChunkWrapper({
                 simpleMovingAverage
             );
 
+            // TODO check if median has been reached, then open calculation
             socket.addEventListener('open', () => {
-                const boundaryStates = getBoundaryStates(leftBoundary, rightBoundary, i, seen);
+                const boundaryStates = getBoundaryStates(i, seen);
                 lStates = boundaryStates.leftStates;
                 rStates = boundaryStates.rightStates;
                 i++;
+
                 socket.send(
                     JSON.stringify({
                         props: [boxPlotAttribute],
@@ -165,30 +168,30 @@ export default function ChunkWrapper({
             socket.addEventListener('message', (e) => {
                 const parsedData = JSON.parse(e.data);
                 GlobalStates.addPropToStates(parsedData);
+
                 const lData = lStates.map((d) => GlobalStates.get(d)[boxPlotAttribute]);
                 const rData = rStates.map((d) => GlobalStates.get(d)[boxPlotAttribute]);
 
                 const lStats = boxPlotStats(lData);
                 const rStats = boxPlotStats(rData);
 
+                const renderStates = [...new Set(lStates), ...chunk.states, ...new Set(rStates)];
+
+                render(renderStates, width, lStates.length, rStates.length);
+
                 let sendStates = [];
-
-                render([...lStates, ...chunk.states, ...rStates], width, i * moveBy);
-
-                const boundaryStates = getBoundaryStates(leftBoundary, rightBoundary, i, seen);
-                if (!(centerMVA[0] - lStats.iqr < lStats.median < centerMVA[0] + lStats.iqr)) {
-                    lStates = [...lStates, ...boundaryStates.leftStates];
+                const boundaryStates = getBoundaryStates(i, seen);
+                if (!(lStats.q1 <= centerMVA[0] && lStats.q3 >= centerMVA[0])) {
+                    lStates = [...boundaryStates.leftStates, ...lStates];
                     sendStates = [...boundaryStates.leftStates];
                 }
 
                 if (
                     !(
-                        centerMVA[centerMVA.length - 1] - rStats.iqr <
-                        rStats.median <
-                        centerMVA[centerMVA.length - 1] + rStats.iqr
+                        rStats.q1 <= centerMVA[centerMVA.length - 1] &&
+                        rStats.q3 >= centerMVA[centerMVA.length - 1]
                     )
                 ) {
-                    // then request the next boundary states for right
                     rStates = [...rStates, ...boundaryStates.rightStates];
                     sendStates = [...sendStates, ...boundaryStates.rightStates];
                 }
@@ -201,7 +204,7 @@ export default function ChunkWrapper({
                     socket.send(
                         JSON.stringify({
                             props: [boxPlotAttribute],
-                            stateIds: sendStates,
+                            stateIds: [...new Set(sendStates)],
                         })
                     );
                 }
@@ -209,11 +212,11 @@ export default function ChunkWrapper({
         } else {
             let newAllStates = [...chunk.states];
             if (leftBoundary) {
-                newAllStates = [...leftBoundary.selected, ...allStates];
+                newAllStates = [...leftBoundary.selected, ...newAllStates];
             }
 
             if (rightBoundary) {
-                newAllStates = [...allStates, ...rightBoundary.selected];
+                newAllStates = [...newAllStates, ...rightBoundary.selected];
             }
 
             render(newAllStates, 0.8 * width);
@@ -226,16 +229,6 @@ export default function ChunkWrapper({
                 className="floatingToolBar"
                 sx={{ visibility: isParentHovered ? 'visible' : 'hidden' }}
             >
-                <Button color="secondary" size="small" onClick={() => toggleSelectionBrush()}>
-                    SelectionBrush
-                </Button>
-                <Button
-                    color="secondary"
-                    size="small"
-                    onClick={() => toggleIndividualSelectionMode()}
-                >
-                    iSelectionBrush
-                </Button>
                 <Button color="secondary" size="small" onClick={() => toggleSparkLine()}>
                     {showSparkLine ? 'ShowScatter' : 'ShowSparkLine'}
                 </Button>

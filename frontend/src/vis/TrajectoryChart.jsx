@@ -115,8 +115,6 @@ function TrajectoryChart({
             const importantGroup = svg.append('g').attr('id', 'sequence_important');
 
             for (const [name, trajectory] of Object.entries(trajectories)) {
-                // trajectory.name = name;
-
                 const { chunkList } = trajectory;
                 const topChunkList = chunkList.filter((d) => !d.hasParent);
                 const uChunks = topChunkList.filter((d) => !d.important);
@@ -246,7 +244,7 @@ function TrajectoryChart({
                 viewBox={[0, 0, width, height]}
             >
                 {charts.map((child) => {
-                    const { chunk, id, leftBoundary, rightBoundary } = child;
+                    const { chunk, id, leftBoundary, rightBoundary, trajectoryName } = child;
                     const { trajectory } = chunk;
                     const scaleY = d3
                         .scaleLinear()
@@ -314,7 +312,7 @@ function TrajectoryChart({
                                         height={hh}
                                         boxPlotAttribute={boxPlotAttribute}
                                         trajectories={trajectories}
-                                        trajectoryName="nano_pt"
+                                        trajectoryName={trajectoryName}
                                         runs={runs}
                                         isParentHovered={isPHovered}
                                     />

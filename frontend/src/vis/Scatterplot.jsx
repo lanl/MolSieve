@@ -86,7 +86,7 @@ export default function Scatterplot({
                     return s[attribute];
                 })
             );
-        }, [GlobalStates, attribute, sequence]);
+        }, [attribute, sequence]);
     };
 
     useAttributeList(setYAttributeList, property);
@@ -190,13 +190,13 @@ export default function Scatterplot({
                         setStateHovered(null);
                     });
             } else {
-                // if I could remove these lines, the code would be totally de-coupled from the data
                 if (includeBoundaries) {
+                    const { lSlice, rSlice } = sliceBy;
                     const leftTimestep = leftBoundary.timesteps.slice(
-                        leftBoundary.timesteps.length - sliceBy,
+                        leftBoundary.timesteps.length - lSlice,
                         leftBoundary.timesteps.length
                     );
-                    const rightTimestep = rightBoundary.timesteps.slice(0, sliceBy);
+                    const rightTimestep = rightBoundary.timesteps.slice(0, rSlice);
                     renderBackgroundColor(svg, scaleX, leftTimestep, leftBoundary.color);
                     renderBackgroundColor(svg, scaleX, rightTimestep, rightBoundary.color);
                 }
@@ -211,6 +211,10 @@ export default function Scatterplot({
 
                 for (let i = 0; i < sequence.length; i++) {
                     const d = { x: xAttributeList[i], y: yAttributeListRender[i] };
+                    if (d.y === undefined) {
+                        console.log(sequence[i], GlobalStates.get(sequence[i].id));
+                    }
+
                     datum.push(d);
                 }
 

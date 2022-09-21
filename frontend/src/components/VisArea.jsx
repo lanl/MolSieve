@@ -113,6 +113,7 @@ export default function VisArea({ sx, trajectories, runs, properties }) {
                                             leftBoundary,
                                             chunk,
                                             rightBoundary,
+                                            trajectoryName,
                                         };
                                     });
                                 })}
