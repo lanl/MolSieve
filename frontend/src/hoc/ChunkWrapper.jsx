@@ -6,7 +6,7 @@ import Button from '@mui/material/Button';
 import Scatterplot from '../vis/Scatterplot';
 
 import BoxPlot from '../vis/BoxPlot';
-import { simpleMovingAverage, boxPlotStats } from '../api/myutils';
+import { simpleMovingAverage, boxPlotStats } from '../api/stats';
 import GlobalStates from '../api/globalStates';
 
 const moveBy = 100;

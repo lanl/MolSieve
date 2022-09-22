@@ -315,49 +315,43 @@ export function ensureArray(obj) {
 }
 
 /**
- * Calculates the simple moving average of the given dataset.
- * @param {Array<Number>} values - The values to calculate the average for.
- * @param {Number} n - The length of the moving average period.
- * @returns {Array<Number>} An array of moving averages.
+ * [TODO:description]
+ *
+ * @param {[TODO:type]} d - [TODO:description]
+ * @param {[TODO:type]} r - [TODO:description]
+ * @returns {[TODO:type]} [TODO:description]
  */
-export function simpleMovingAverage(values, n) {
-    const means = [];
-    const length = values.length + 1;
+export function normalize(d, r) {
+    const max = d3.max(d);
+    const min = d3.min(d);
+    const a = r[0];
+    const b = r[1];
 
-    let i = n - 1;
-    while (++i < length) {
-        const ws = values.slice(i - n, i);
-        const sum = ws.reduce((prev, curr) => prev + curr, 0);
-        means.push(sum / n);
+    const norms = [];
+
+    // https://stats.stackexchange.com/questions/178626/how-to-normalize-data-between-1-and-1
+    for (const v of d) {
+        norms.push((b - a) * ((v - min) / (max - min)) + a);
     }
 
-    // get the remaining averages with variable window size
-    if (means.length < values.length) {
-        for (let j = means.length; j < values.length; ++j) {
-            const ws = values.slice(j, values.length);
-            const sum = d3.sum(ws);
-            means.push(sum / ws.length);
-        }
-    }
-
-    return means;
+    return norms;
 }
 
 /**
- * Calculates the box plot statistics for the given dataset.
+ * [TODO:description]
  *
- * @param {Array<Number>} data - The array of numbers to calculate the statistics for.
- * @returns {Object} Contains q1, median, q3, iqr and min / max thresholds.
+ * @param {[TODO:type]} d - [TODO:description]
+ * @param {[TODO:type]} r - [TODO:description]
  */
-export function boxPlotStats(data) {
-    const sorted = d3.sort(data);
+export function normalizeDict(d, r) {
+    const keys = Object.keys(d);
+    const values = Object.values(d);
+    const normValues = normalize(values, r);
 
-    const q1 = d3.quantile(sorted, 0.25);
-    const median = d3.median(sorted);
-    const q3 = d3.quantile(sorted, 0.75);
-    const iqr = q3 - q1;
-    const minThreshold = d3.min(sorted); // q1 - 1.5 * iqr;
-    const maxThreshold = d3.max(sorted); // q1 + 1.5 * iqr;
+    const normDict = {};
+    keys.forEach((k, i) => {
+        normDict[k] = normValues[i];
+    });
 
-    return { q1, median, q3, iqr, minThreshold, maxThreshold };
+    return normDict;
 }

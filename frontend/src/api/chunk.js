@@ -1,7 +1,7 @@
 import GlobalChunks from './globalChunks';
 import GlobalStates from './globalStates';
 import Timestep from './timestep';
-import { boxPlotStats } from './myutils';
+import { boxPlotStats } from './stats';
 
 const CHUNK = 0;
 

@@ -1,8 +1,10 @@
+import * as d3 from 'd3';
 import Chunk from './chunk';
 import Timestep from './timestep';
 import GlobalStates from './globalStates';
 import { structuralAnalysisProps } from './constants';
-import { setIntersection, setUnion } from './myutils';
+import { setIntersection, setUnion, normalizeDict } from './myutils';
+import { zTest } from './stats';
 
 class Trajectory {
     // sequence is an array of ids that indexes into the globalUniqueState array
@@ -218,13 +220,52 @@ class Trajectory {
             // remove duplicates
             interestingStates = [...new Set(interestingStates)];
 
-            // TODO: set callback to line 46 analysisTab with steps acklandjones and CNA
             GlobalStates.ensureSubsetHasProperties(structuralAnalysisProps, interestingStates)
                 .then(() => {
+                    this.calculateFeatureImportance();
                     resolve(this);
                 })
                 .catch((e) => reject(e));
         });
+    }
+
+    /**
+     * Calculates the distribution difference between unimportant chunks for each property.
+     * This generates an array of objects; each object is a dictionary of z-scores for each property.
+     * This array is then aggregated in a seperate object, and stored in the trajectory.
+     */
+    calculateFeatureImportance() {
+        const { chunkList } = this;
+        const pairs = chunkList
+            .filter((d) => !d.hasParent && !d.important)
+            .reduce((result, _, i, array) => {
+                result.push(array.slice(i, i + 2));
+                return result;
+            }, [])
+            .filter((a) => a.length > 1);
+
+        const differences = pairs.map((pair) => {
+            const pairDifferences = {};
+            const c1 = pair[0].selected.map((id) => GlobalStates.get(id));
+            const c2 = pair[1].selected.map((id) => GlobalStates.get(id));
+
+            for (const prop of structuralAnalysisProps) {
+                const s1 = c1.map((d) => d[prop]);
+                const s2 = c2.map((d) => d[prop]);
+                pairDifferences[prop] = zTest(s1, s2);
+            }
+            return pairDifferences;
+        });
+
+        const aggregateDifferences = {};
+        for (const prop of structuralAnalysisProps) {
+            aggregateDifferences[prop] = d3.mean(differences, (d) => d[prop]);
+        }
+
+        this.featureImportance = aggregateDifferences;
+
+        console.log(aggregateDifferences);
+        console.log(normalizeDict(aggregateDifferences, [-1, 1]));
     }
 
     /* Returns the length of the trajectory. */

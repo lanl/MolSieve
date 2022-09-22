@@ -106,8 +106,6 @@ export default function VisArea({ sx, trajectories, runs, properties }) {
                                             }
                                         }
 
-                                        // for each important chunk in the trajectory
-                                        // build a chart
                                         return {
                                             id: chunk.id,
                                             leftBoundary,
