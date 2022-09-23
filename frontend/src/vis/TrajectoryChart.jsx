@@ -12,7 +12,7 @@ import { useContextMenu } from '../hooks/useContextMenu';
 import ChunkWrapper from '../hoc/ChunkWrapper';
 import EmbeddedChart from './EmbeddedChart';
 import '../css/vis.css';
-import { onEntityMouseOver } from '../api/myutils';
+import { onEntityMouseOver, normalizeDict } from '../api/myutils';
 
 const margin = {
     top: 25,
@@ -341,9 +341,20 @@ function TrajectoryChart({
                         }}
                     >
                         {structuralAnalysisProps.map((property) => {
+                            // move z-score into menuitem
+                            const zScores = [];
+                            for (const trajectory of Object.values(trajectories)) {
+                                const { featureImportance } = trajectory;
+                                const normDict = normalizeDict(featureImportance, [-1, 1]);
+                                zScores.push(
+                                    <span style={{ color: d3.interpolateRdBu(normDict[property]) }}>
+                                        {featureImportance[property].toFixed(3)}
+                                    </span>
+                                );
+                            }
                             return (
-                                <MenuItem key={property} value={property}>
-                                    {property}
+                                <MenuItem dense divider key={property} value={property}>
+                                    {property} {zScores}
                                 </MenuItem>
                             );
                         })}

@@ -1,7 +1,6 @@
 import { React, useState, useEffect, useCallback } from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
-
 import TrajectoryChart from '../vis/TrajectoryChart';
 import Legend from '../vis/Legend';
 import ChartBox from './ChartBox';
@@ -56,17 +55,27 @@ export default function VisArea({ sx, trajectories, runs, properties }) {
     }, [runs]); */
 
     return (
-        <Box sx={sx}>
+        <Box sx={{ display: 'flex', flexDirection: 'row', flex: 1, marginLeft: '5px' }}>
             {isLoading && <LoadingModal open={isLoading} title="Rendering..." />}
-            <Box sx={{ display: 'flex', flexDirection: 'row' }}>
-                <Box sx={{ display: 'flex', flexBasis: '10%', flexDirection: 'column' }}>
-                    <Typography align="center" gutterBottom color="secondary" variant="h6">
+            <Box sx={{ display: 'flex', flexDirection: 'row', gap: '10px' }}>
+                <Box
+                    sx={{
+                        display: 'flex',
+                        flexBasis: '10%',
+                        flexDirection: 'column',
+                    }}
+                >
+                    <Typography align="center" color="secondary" variant="h6">
                         Legend
                     </Typography>
-                    <Legend trajectories={trajectories} />
+                    <ChartBox>
+                        {(width, height) => (
+                            <Legend width={width} height={height} trajectories={trajectories} />
+                        )}
+                    </ChartBox>
                 </Box>
                 <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-                    <Typography align="center" gutterBottom color="secondary" variant="h6">
+                    <Typography align="center" color="secondary" variant="h6">
                         Sequence View
                     </Typography>
                     <ChartBox sx={{ flexGrow: 1 }}>

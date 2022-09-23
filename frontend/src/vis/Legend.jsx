@@ -1,28 +1,19 @@
-import { React, useEffect, useState } from 'react';
+import { React } from 'react';
 import * as d3 from 'd3';
 import '../css/vis.css';
-import Box from '@mui/material/Box';
 
 import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
-import { useResize } from '../hooks/useResize';
 
 const margin = {
-    top: 35,
+    top: 25,
     bottom: 20,
     left: 25,
     right: 25,
 };
 
-export default function Legend({ trajectories }) {
-    const { width, height, divRef } = useResize();
-
+export default function Legend({ trajectories, width, height }) {
     const ref = useTrajectoryChartRender(
         (svg) => {
-            if (height === undefined || width === undefined) {
-                return;
-            }
-            // clear so we don't draw over-top and cause insane lag
-
             if (!svg.empty()) {
                 svg.selectAll('*').remove();
             }
@@ -68,9 +59,5 @@ export default function Legend({ trajectories }) {
         [trajectories]
     );
 
-    return (
-        <Box ref={divRef}>
-            <svg className="vis" id="legend" ref={ref} viewBox={[0, 0, width, height]} />
-        </Box>
-    );
+    return <svg className="vis" id="legend" ref={ref} viewBox={[0, 0, width, height]} />;
 }

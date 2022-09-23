@@ -358,12 +358,7 @@ class App extends React.Component {
                     )}
                 </Toolbar>
 
-                <VisArea
-                    sx={{ display: 'flex', alignItems: 'stretch', flex: 1 }}
-                    trajectories={trajectories}
-                    runs={runs}
-                    properties={properties}
-                />
+                <VisArea trajectories={trajectories} runs={runs} properties={properties} />
 
                 {Object.keys(trajectories).length > 0 && (
                     <ControlDrawer
