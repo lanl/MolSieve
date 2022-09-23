@@ -263,9 +263,6 @@ class Trajectory {
         }
 
         this.featureImportance = aggregateDifferences;
-
-        console.log(aggregateDifferences);
-        console.log(normalizeDict(aggregateDifferences, [-1, 1]));
     }
 
     /* Returns the length of the trajectory. */

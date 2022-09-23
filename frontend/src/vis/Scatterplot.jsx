@@ -12,7 +12,7 @@ import '../css/App.css';
 
 import { useExtents } from '../hooks/useExtents';
 
-const margin = { top: 25, bottom: 20, left: 30, right: 20 };
+const margin = { top: 25, bottom: 25, left: 30, right: 5 };
 const sBrush = null;
 let individualSelectionMode = false;
 let selectionBrushMode = false;

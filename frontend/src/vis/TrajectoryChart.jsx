@@ -21,7 +21,7 @@ const margin = {
     right: 0,
 };
 
-const minimumChartWidth = 100;
+const minimumChartWidth = 200;
 
 function TrajectoryChart({
     trajectories,
@@ -66,7 +66,7 @@ function TrajectoryChart({
             .append('rect')
             .attr('id', (d) => `c_${d.id}`)
             .attr('x', (_, i) => getX(i, 0))
-            .attr('y', yScale(count))
+            .attr('y', yScale(count) + 200)
             .attr('width', (d) => xScale(getWidthScale(d)))
             .attr('height', 25)
             .attr('fill', (d) => {
@@ -84,6 +84,9 @@ function TrajectoryChart({
             })
             .on('mouseout', function () {
                 setStateHovered(null);
+            })
+            .attr('visibility', (d) => {
+                return d.important ? 'hidden' : 'visible';
             })
             .classed('chunk', true)
             .classed(trajectoryName, true)
@@ -310,6 +313,7 @@ function TrajectoryChart({
                                         rightBoundary={rightBoundary}
                                         width={ww}
                                         height={hh}
+                                        setStateHovered={setStateHovered}
                                         boxPlotAttribute={boxPlotAttribute}
                                         trajectories={trajectories}
                                         trajectoryName={trajectoryName}
@@ -348,12 +352,17 @@ function TrajectoryChart({
                                 const { featureImportance } = trajectory;
                                 const normDict = normalizeDict(featureImportance, [-1, 1]);
                                 zScores.push(
-                                    <span
-                                        key={`${property}_${trajectoryName}`}
-                                        style={{ color: d3.interpolateRdBu(normDict[property]) }}
-                                    >
-                                        {featureImportance[property].toFixed(3)}
-                                    </span>
+                                    <>
+                                        <span> </span>
+                                        <span
+                                            key={`${property}_${trajectoryName}`}
+                                            style={{
+                                                color: d3.interpolateRdBu(normDict[property]),
+                                            }}
+                                        >
+                                            {featureImportance[property].toFixed(2)}
+                                        </span>
+                                    </>
                                 );
                             }
                             return (

@@ -6,7 +6,7 @@ import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
 import GlobalStates from '../api/globalStates';
 import { tooltip } from '../api/myutils';
 
-const margin = { top: 20, bottom: 20, left: 25, right: 20 };
+const margin = { top: 20, bottom: 20, left: 15, right: 20 };
 
 export default function BoxPlot({ data, property, width, height, globalScale, color, showYAxis }) {
     const ref = useTrajectoryChartRender(

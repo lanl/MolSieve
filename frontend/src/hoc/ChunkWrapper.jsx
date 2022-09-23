@@ -46,7 +46,7 @@ export default function ChunkWrapper({
                     (d) => d[boxPlotAttribute]
                 )
             )
-            .range([375, 20])
+            .range([height, 0])
     );
     const [seq, setSeq] = useState(chunk.timestepSequence);
     const [mva, setMva] = useState(
@@ -240,7 +240,7 @@ export default function ChunkWrapper({
                     data={leftBoundary.calculateStats(boxPlotAttribute)}
                     color={leftBoundary.color}
                     property={boxPlotAttribute}
-                    width={0.095 * width}
+                    width={0.1 * width}
                     height={height}
                     globalScale={globalBoxScale}
                 />

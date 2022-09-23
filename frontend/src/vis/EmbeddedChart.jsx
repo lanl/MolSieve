@@ -28,8 +28,6 @@ export default function EmbeddedChart({ children, height, width, margin }) {
 EmbeddedChart.defaultProps = {
     margin: {
         top: 2.5,
-        bottom: 5,
         left: 5,
-        right: 5,
     },
 };
