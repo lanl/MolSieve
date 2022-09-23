@@ -1,6 +1,7 @@
 import { React, useState, useEffect, useCallback } from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
+import Container from '@mui/material/Container';
 import TrajectoryChart from '../vis/TrajectoryChart';
 import Legend from '../vis/Legend';
 import ChartBox from './ChartBox';
@@ -55,29 +56,10 @@ export default function VisArea({ sx, trajectories, runs, properties }) {
     }, [runs]); */
 
     return (
-        <Box sx={{ display: 'flex', flexDirection: 'row', flex: 1, marginLeft: '5px' }}>
+        <Container maxWidth={false} sx={{ display: 'flex', flexDirection: 'row', flex: 1 }}>
             {isLoading && <LoadingModal open={isLoading} title="Rendering..." />}
             <Box sx={{ display: 'flex', flexDirection: 'row', gap: '10px' }}>
-                <Box
-                    sx={{
-                        display: 'flex',
-                        flexBasis: '10%',
-                        flexDirection: 'column',
-                    }}
-                >
-                    <Typography align="center" color="secondary" variant="h6">
-                        Legend
-                    </Typography>
-                    <ChartBox>
-                        {(width, height) => (
-                            <Legend width={width} height={height} trajectories={trajectories} />
-                        )}
-                    </ChartBox>
-                </Box>
                 <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-                    <Typography align="center" color="secondary" variant="h6">
-                        Sequence View
-                    </Typography>
                     <ChartBox sx={{ flexGrow: 1 }}>
                         {(width, height, isHovered) => (
                             <TrajectoryChart
@@ -140,6 +122,6 @@ export default function VisArea({ sx, trajectories, runs, properties }) {
                     }}
                 />
             )}
-        </Box>
+        </Container>
     );
 }

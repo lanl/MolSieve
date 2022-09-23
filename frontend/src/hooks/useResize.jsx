@@ -1,6 +1,6 @@
 import { useRef, useState, useLayoutEffect } from 'react';
 
-export const useResize = (modAmount, modifierCount) => {
+export const useResize = () => {
     const divRef = useRef(null);
     const [width, setWidth] = useState();
     const [height, setHeight] = useState();
@@ -14,12 +14,7 @@ export const useResize = (modAmount, modifierCount) => {
         const newHeight = divRef.current.offsetHeight;
         if (newWidth < window.innerWidth && newHeight < window.innerHeight) {
             setWidth(newWidth);
-
-            if (modAmount !== undefined && modifierCount !== undefined) {
-                setHeight(newHeight + modAmount * modifierCount);
-            } else {
-                setHeight(newHeight);
-            }
+            setHeight(newHeight);
         }
     };
 

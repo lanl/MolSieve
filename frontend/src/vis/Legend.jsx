@@ -18,6 +18,9 @@ export default function Legend({ trajectories, width, height }) {
                 svg.selectAll('*').remove();
             }
 
+            if (width === undefined || height === undefined) {
+                return;
+            }
             const scaleY = d3
                 .scaleLinear()
                 .range([margin.top, height - margin.bottom])
@@ -56,8 +59,8 @@ export default function Legend({ trajectories, width, height }) {
                 count++;
             }
         },
-        [trajectories]
+        [trajectories, width, height]
     );
 
-    return <svg className="vis" id="legend" ref={ref} viewBox={[0, 0, width, height]} />;
+    return <svg id="legend" ref={ref} viewBox={[0, 0, width, height]} />;
 }

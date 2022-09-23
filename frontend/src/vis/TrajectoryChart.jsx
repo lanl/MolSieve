@@ -18,7 +18,7 @@ const margin = {
     top: 25,
     bottom: 20,
     left: 25,
-    right: 25,
+    right: 0,
 };
 
 const minimumChartWidth = 100;
@@ -343,11 +343,15 @@ function TrajectoryChart({
                         {structuralAnalysisProps.map((property) => {
                             // move z-score into menuitem
                             const zScores = [];
-                            for (const trajectory of Object.values(trajectories)) {
+                            for (const trajectoryName of Object.keys(trajectories)) {
+                                const trajectory = trajectories[trajectoryName];
                                 const { featureImportance } = trajectory;
                                 const normDict = normalizeDict(featureImportance, [-1, 1]);
                                 zScores.push(
-                                    <span style={{ color: d3.interpolateRdBu(normDict[property]) }}>
+                                    <span
+                                        key={`${property}_${trajectoryName}`}
+                                        style={{ color: d3.interpolateRdBu(normDict[property]) }}
+                                    >
                                         {featureImportance[property].toFixed(3)}
                                     </span>
                                 );

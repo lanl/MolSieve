@@ -358,8 +358,6 @@ class App extends React.Component {
                     )}
                 </Toolbar>
 
-                <VisArea trajectories={trajectories} runs={runs} properties={properties} />
-
                 {Object.keys(trajectories).length > 0 && (
                     <ControlDrawer
                         trajectories={trajectories}
@@ -375,6 +373,8 @@ class App extends React.Component {
                         setProperties={this.setProperties}
                     />
                 )}
+
+                <VisArea trajectories={trajectories} runs={runs} properties={properties} />
 
                 <AjaxMenu
                     anchorEl={this.runListButton.current}
