@@ -36,6 +36,9 @@ export function simpleMovingAverage(values, n) {
  * @returns {Object} Contains q1, median, q3, iqr and min / max thresholds.
  */
 export function boxPlotStats(data) {
+    if (!data) {
+        return undefined;
+    }
     const sorted = d3.sort(data);
 
     const q1 = d3.quantile(sorted, 0.25);

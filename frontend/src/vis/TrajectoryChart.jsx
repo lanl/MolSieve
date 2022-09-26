@@ -350,20 +350,22 @@ function TrajectoryChart({
                             for (const trajectoryName of Object.keys(trajectories)) {
                                 const trajectory = trajectories[trajectoryName];
                                 const { featureImportance } = trajectory;
-                                const normDict = normalizeDict(featureImportance, [-1, 1]);
-                                zScores.push(
-                                    <>
-                                        <span> </span>
-                                        <span
-                                            key={`${property}_${trajectoryName}`}
-                                            style={{
-                                                color: d3.interpolateRdBu(normDict[property]),
-                                            }}
-                                        >
-                                            {featureImportance[property].toFixed(2)}
-                                        </span>
-                                    </>
-                                );
+                                if (featureImportance) {
+                                    const normDict = normalizeDict(featureImportance, [-1, 1]);
+                                    zScores.push(
+                                        <>
+                                            <span> </span>
+                                            <span
+                                                key={`${property}_${trajectoryName}`}
+                                                style={{
+                                                    color: d3.interpolateRdBu(normDict[property]),
+                                                }}
+                                            >
+                                                {featureImportance[property].toFixed(2)}
+                                            </span>
+                                        </>
+                                    );
+                                }
                             }
                             return (
                                 <MenuItem dense divider key={property} value={property}>

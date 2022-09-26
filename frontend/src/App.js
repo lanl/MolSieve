@@ -171,27 +171,26 @@ class App extends React.Component {
                             newTrajComplete.set_cluster_info();
                             // could be an option
                             newTrajComplete.chunkingThreshold = chunkingThreshold;
-                            newTrajComplete.simplifySet(chunkingThreshold).then((chunkedTraj) => {
-                                // need to wait for states to finish loading before rendering
-                                const removed = chunkedTraj.set_colors(this.state.colors);
-                                const newTrajectories = {
-                                    ...this.state.trajectories,
-                                };
+                            this.setState({ loadingMessage: `Simplifying ${run}...` });
 
-                                newTrajectories[run] = chunkedTraj;
-                                const newColors = [...this.state.colors];
-                                newColors.splice(0, removed);
+                            newTrajComplete.simplifySet(chunkingThreshold);
+                            // need to wait for states to finish loading before rendering
+                            const removed = newTrajComplete.set_colors(this.state.colors);
+                            const newTrajectories = {
+                                ...this.state.trajectories,
+                            };
 
-                                const newRuns = this.initFilters(run, newTrajComplete);
-                                this.setState({
-                                    isLoading: false,
-                                    runs: newRuns,
-                                    trajectories: newTrajectories,
-                                    colors: newColors,
-                                    properties: [
-                                        ...new Set([...this.state.properties, ...properties]),
-                                    ],
-                                });
+                            newTrajectories[run] = newTrajComplete;
+                            const newColors = [...this.state.colors];
+                            newColors.splice(0, removed);
+
+                            const newRuns = this.initFilters(run, newTrajComplete);
+                            this.setState({
+                                isLoading: false,
+                                runs: newRuns,
+                                trajectories: newTrajectories,
+                                colors: newColors,
+                                properties: [...new Set([...this.state.properties, ...properties])],
                             });
                         });
                     });
@@ -264,11 +263,10 @@ class App extends React.Component {
         const { trajectories } = this.state;
         const { [run]: newTraj } = trajectories;
 
-        newTraj.simplifySet(threshold).then((nt) => {
-            this.setState((prevState) => ({
-                trajectories: { ...prevState.trajectories, [run]: nt },
-            }));
-        });
+        newTraj.simplifySet(threshold);
+        this.setState((prevState) => ({
+            trajectories: { ...prevState.trajectories, [run]: newTraj },
+        }));
     };
 
     toggleDrawer = () => {

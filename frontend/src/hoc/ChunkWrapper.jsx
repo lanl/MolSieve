@@ -26,6 +26,7 @@ export default function ChunkWrapper({
     runs,
     isParentHovered,
 }) {
+    const [isLoaded, setIsLoaded] = useState(false);
     const [isExpanded, setIsExpanded] = useState(false);
     const [showSparkLine, setSparkLine] = useState(true);
 
@@ -33,43 +34,32 @@ export default function ChunkWrapper({
         setSparkLine(!showSparkLine);
     };
 
-    // allStates should be dependent on left & right boundaries
-    const [allStates, setAllStates] = useState([...chunk.states]);
-    const [adjWidth, setAdjWidth] = useState(0.8 * width);
-    const [sliceBy, setSliceBy] = useState({ lSlice: 0, rSlice: 0 });
-    const [globalBoxScale, setGlobalBoxScale] = useState(() =>
-        d3
-            .scaleLinear()
-            .domain(
-                d3.extent(
-                    allStates.map((id) => GlobalStates.get(id)),
-                    (d) => d[boxPlotAttribute]
-                )
-            )
-            .range([height, 0])
-    );
-    const [seq, setSeq] = useState(chunk.timestepSequence);
-    const [mva, setMva] = useState(
-        chunk.calculateMovingAverage(boxPlotAttribute, mvaPeriod, simpleMovingAverage)
-    );
+    const [allStates, setAllStates] = useState();
+    const [adjWidth, setAdjWidth] = useState();
+    const [sliceBy, setSliceBy] = useState();
+    const [globalBoxScale, setGlobalBoxScale] = useState();
+    const [seq, setSeq] = useState();
+    const [mva, setMva] = useState();
+    const [lBoxStats, setLBoxStats] = useState();
+    const [rBoxStats, setRBoxStats] = useState();
 
-    const getBoundaryStates = (i, seen) => {
+    const getBoundaryStates = (i, seen, lSequence, rSequence) => {
         let checkStates = [];
         let leftStates = [];
         let rightStates = [];
 
-        if (leftBoundary) {
-            const left = leftBoundary.timestepSequence.length - moveBy * (i + 1);
-            const right = leftBoundary.timestepSequence.length - moveBy * i;
+        if (lSequence) {
+            const left = lSequence.length - moveBy * (i + 1);
+            const right = lSequence.length - moveBy * i;
             // need boundary checks
-            leftStates = [...leftBoundary.timestepSequence.slice(left, right).map((d) => d.id)];
+            leftStates = [...lSequence.slice(left, right)];
             checkStates = [...leftStates];
         }
 
-        if (rightBoundary) {
+        if (rSequence) {
             const left = moveBy * i;
             const right = moveBy * (i + 1);
-            rightStates = [...rightBoundary.timestepSequence.slice(left, right).map((d) => d.id)];
+            rightStates = [...rSequence.slice(left, right)];
             checkStates = [...checkStates, ...rightStates];
         }
 
@@ -133,15 +123,21 @@ export default function ChunkWrapper({
         setSeq(s);
         setMva(m);
         setGlobalBoxScale(gScale);
+        setIsLoaded(true);
     };
 
     useEffect(() => {
+        const socket = new WebSocket('ws://localhost:8000/api/load_properties_for_subset');
+        const seen = new Set();
+        let i = 0;
+        let lStates = [];
+        let rStates = [];
+
         if (isExpanded) {
-            const socket = new WebSocket('ws://localhost:8000/api/load_properties_for_subset');
-            const seen = new Set();
-            let i = 0;
-            let lStates = [];
-            let rStates = [];
+            const lToDo = leftBoundary ? leftBoundary.timestepSequence.map((d) => d.id) : undefined;
+            const rToDo = rightBoundary
+                ? rightBoundary.timestepSequence.map((d) => d.id)
+                : undefined;
 
             const centerMVA = chunk.calculateMovingAverage(
                 boxPlotAttribute,
@@ -149,9 +145,8 @@ export default function ChunkWrapper({
                 simpleMovingAverage
             );
 
-            // TODO check if median has been reached, then open calculation
             socket.addEventListener('open', () => {
-                const boundaryStates = getBoundaryStates(i, seen);
+                const boundaryStates = getBoundaryStates(i, seen, lToDo, rToDo);
                 lStates = boundaryStates.leftStates;
                 rStates = boundaryStates.rightStates;
                 i++;
@@ -162,7 +157,6 @@ export default function ChunkWrapper({
                         stateIds: boundaryStates.sendStates,
                     })
                 );
-                // should set state to loading or something
             });
 
             socket.addEventListener('message', (e) => {
@@ -180,7 +174,7 @@ export default function ChunkWrapper({
                 render(renderStates, width, lStates.length, rStates.length);
 
                 let sendStates = [];
-                const boundaryStates = getBoundaryStates(i, seen);
+                const boundaryStates = getBoundaryStates(i, seen, lToDo, rToDo);
                 if (!(lStats.q1 <= centerMVA[0] && lStats.q3 >= centerMVA[0])) {
                     lStates = [...boundaryStates.leftStates, ...lStates];
                     sendStates = [...boundaryStates.leftStates];
@@ -210,20 +204,78 @@ export default function ChunkWrapper({
                 }
             });
         } else {
-            let newAllStates = [...chunk.states];
-            if (leftBoundary) {
-                newAllStates = [...leftBoundary.selected, ...newAllStates];
-            }
+            const lToDo = leftBoundary ? leftBoundary.selected : undefined;
+            const rToDo = rightBoundary ? rightBoundary.selected : undefined;
+            let cStates = [];
 
-            if (rightBoundary) {
-                newAllStates = [...newAllStates, ...rightBoundary.selected];
-            }
+            socket.addEventListener('open', () => {
+                const boundaryStates = getBoundaryStates(i, seen, lToDo, rToDo);
+                lStates = boundaryStates.leftStates;
+                rStates = boundaryStates.rightStates;
+                cStates = [...chunk.states.slice(i * moveBy, (i + 1) * moveBy)];
 
-            render(newAllStates, 0.8 * width);
+                i++;
+
+                socket.send(
+                    JSON.stringify({
+                        props: [boxPlotAttribute],
+                        stateIds: [...boundaryStates.sendStates, ...cStates],
+                    })
+                );
+            });
+
+            socket.addEventListener('message', (e) => {
+                const parsedData = JSON.parse(e.data);
+                GlobalStates.addPropToStates(parsedData);
+
+                const lData = lStates.map((d) => GlobalStates.get(d)[boxPlotAttribute]);
+                const rData = rStates.map((d) => GlobalStates.get(d)[boxPlotAttribute]);
+
+                const lStats = boxPlotStats(lData);
+                const rStats = boxPlotStats(rData);
+                setLBoxStats(lStats);
+                setRBoxStats(rStats);
+
+                render(cStates, 0.8 * width);
+
+                let sendStates = [];
+
+                // if the chunks have not been fully loaded, continue
+
+                if (i * moveBy < chunk.states.length) {
+                    const nc = [...chunk.states.slice(i * moveBy, (i + 1) * moveBy)];
+                    cStates = [...cStates, ...nc];
+                    sendStates = nc;
+                }
+
+                const bs = getBoundaryStates(i, seen, lToDo, rToDo);
+
+                if (lToDo && i * moveBy < lToDo.length) {
+                    lStates = [...bs.leftStates, ...lStates];
+                    sendStates = [...sendStates, ...bs.leftStates];
+                }
+
+                if (rToDo && i * moveBy < rToDo.length) {
+                    rStates = [...rStates, ...bs.rightStates];
+                    sendStates = [...sendStates, ...bs.rightStates];
+                }
+
+                if (!sendStates.length) {
+                    socket.close();
+                } else {
+                    i++;
+                    socket.send(
+                        JSON.stringify({
+                            props: [boxPlotAttribute],
+                            stateIds: [...new Set(sendStates)],
+                        })
+                    );
+                }
+            });
         }
     }, [isExpanded, boxPlotAttribute]);
 
-    return (
+    return isLoaded ? (
         <>
             <Box
                 className="floatingToolBar"
@@ -237,7 +289,7 @@ export default function ChunkWrapper({
             {leftBoundary && !isExpanded && (
                 <BoxPlot
                     showYAxis={false}
-                    data={leftBoundary.calculateStats(boxPlotAttribute)}
+                    data={lBoxStats}
                     color={leftBoundary.color}
                     property={boxPlotAttribute}
                     width={0.1 * width}
@@ -270,7 +322,7 @@ export default function ChunkWrapper({
             {rightBoundary && !isExpanded && (
                 <BoxPlot
                     showYAxis={false}
-                    data={rightBoundary.calculateStats(boxPlotAttribute)}
+                    data={rBoxStats}
                     color={rightBoundary.color}
                     property={boxPlotAttribute}
                     width={0.1 * width}
@@ -279,5 +331,7 @@ export default function ChunkWrapper({
                 />
             )}
         </>
+    ) : (
+        <div> Loading... </div>
     );
 }

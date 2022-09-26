@@ -110,64 +110,62 @@ class Trajectory {
 
     simplifySet(chunkingThreshold) {
         // jank + ugly, need to refactor
-        return new Promise((resolve, reject) => {
-            // reset, we're dealing with a new set of chunks
-            const chunks = new Map();
-            const sizeThreshold = 50;
-            const epsilon = 0.0001;
-            const split = 4;
+        // reset, we're dealing with a new set of chunks
+        const chunks = new Map();
+        const sizeThreshold = 50;
+        const epsilon = 0.0001;
 
-            // returns 0 if unimportant, 1 if important
-            const importance = this.sequence.map(
-                (id) =>
-                    Math.max(...this.fuzzy_memberships[this.current_clustering][id]) <=
-                    chunkingThreshold + epsilon
-            );
+        // returns 0 if unimportant, 1 if important
+        const importance = this.sequence.map(
+            (id) =>
+                Math.max(...this.fuzzy_memberships[this.current_clustering][id]) <=
+                chunkingThreshold + epsilon
+        );
 
-            // go through importance array, and if a 1 occurs without at least sizeThreshold more 1s
-            // convert it into a 0
-            for (let i = 0; i < importance.length; i++) {
-                if (importance[i] === 1) {
-                    let j = i + 1;
-                    while (j < importance.length && importance[j] === 1) {
-                        j++;
-                    }
-                    if (j - i < sizeThreshold) {
-                        for (i; i < j; i++) {
-                            importance[i] = 0;
-                        }
-                    }
-                    i = j;
+        // go through importance array, and if a 1 occurs without at least sizeThreshold more 1s
+        // convert it into a 0
+        for (let i = 0; i < importance.length; i++) {
+            if (importance[i] === 1) {
+                let j = i + 1;
+                while (j < importance.length && importance[j] === 1) {
+                    j++;
                 }
+                if (j - i < sizeThreshold) {
+                    for (i; i < j; i++) {
+                        importance[i] = 0;
+                    }
+                }
+                i = j;
             }
+        }
 
-            let first = 0;
-            let last = 0;
-            let important = importance[0];
-            let cluster = this.idToCluster[this.sequence[0]];
+        let first = 0;
+        let last = 0;
+        let important = importance[0];
+        let cluster = this.idToCluster[this.sequence[0]];
 
-            for (let timestep = 0; timestep < this.sequence.length; timestep++) {
-                const id = this.sequence[timestep];
-                const isCurrImportant = importance[timestep];
+        for (let timestep = 0; timestep < this.sequence.length; timestep++) {
+            const id = this.sequence[timestep];
+            const isCurrImportant = importance[timestep];
 
-                // if the current timestep is not in the same cluster or importance
-                if (
-                    important !== isCurrImportant ||
-                    cluster !== this.idToCluster[id] ||
-                    timestep === this.sequence.length - 1
-                ) {
-                    // save this chunk if its important, and above the cluster size
-                    if (important) {
-                        // create new important chunk
-                        const chunk = new Chunk(
-                            first,
-                            last,
-                            this.sequence[first],
-                            important,
-                            cluster,
-                            this
-                        );
-                        const { children, childSize } = this.splitChunks(
+            // if the current timestep is not in the same cluster or importance
+            if (
+                important !== isCurrImportant ||
+                cluster !== this.idToCluster[id] ||
+                timestep === this.sequence.length - 1
+            ) {
+                // save this chunk if its important, and above the cluster size
+                if (important) {
+                    // create new important chunk
+                    const chunk = new Chunk(
+                        first,
+                        last,
+                        this.sequence[first],
+                        important,
+                        cluster,
+                        this
+                    );
+                    /* const { children, childSize } = this.splitChunks(
                             chunk,
                             split,
                             sizeThreshold,
@@ -175,58 +173,41 @@ class Trajectory {
                             chunks
                         );
                         chunk.children = children;
-                        chunk.childSize = childSize;
-                        chunks.set(chunk.id, chunk);
-                    } else {
-                        const chunk = new Chunk(
-                            first,
-                            last,
-                            this.sequence[first],
-                            important,
-                            cluster,
-                            this
-                        );
-                        chunks.set(chunk.id, chunk);
-                    }
-
-                    first = timestep;
-                    last = timestep;
-                    important = isCurrImportant;
-                    cluster = this.idToCluster[id];
+                        chunk.childSize = childSize; */
+                    chunks.set(chunk.id, chunk);
                 } else {
-                    last = timestep;
+                    const chunk = new Chunk(
+                        first,
+                        last,
+                        this.sequence[first],
+                        important,
+                        cluster,
+                        this
+                    );
+                    chunks.set(chunk.id, chunk);
                 }
+
+                first = timestep;
+                last = timestep;
+                important = isCurrImportant;
+                cluster = this.idToCluster[id];
+            } else {
+                last = timestep;
             }
+        }
 
-            this.chunks = chunks;
-            this.chunkingThreshold = chunkingThreshold;
+        this.chunks = chunks;
+        this.chunkingThreshold = chunkingThreshold;
 
-            const chartChunks = Array.from(this.chunks.values()).filter((d) => !d.hasParent);
+        const chartChunks = Array.from(this.chunks.values()).filter((d) => !d.hasParent);
 
-            /* load structural properties for all interesting states
-             * i.e states that are within the first level of chunks */
-
-            let interestingStates = [];
-            for (const chunk of chartChunks) {
-                if (chunk.important) {
-                    interestingStates = [...interestingStates, ...chunk.states];
-                } else {
-                    chunk.calculateSelected();
-                    interestingStates = [...interestingStates, ...chunk.selected];
-                }
-                // for now, set chunk properties here
-                chunk.properties = [...chunk.properties, ...structuralAnalysisProps];
+        for (const chunk of chartChunks) {
+            if (!chunk.important) {
+                chunk.calculateSelected();
             }
-            // remove duplicates
-            interestingStates = [...new Set(interestingStates)];
-
-            GlobalStates.ensureSubsetHasProperties(structuralAnalysisProps, interestingStates)
-                .then(() => {
-                    this.calculateFeatureImportance();
-                    resolve(this);
-                })
-                .catch((e) => reject(e));
-        });
+            // for now, set chunk properties here
+            chunk.properties = [...chunk.properties, ...structuralAnalysisProps];
+        }
     }
 
     /**

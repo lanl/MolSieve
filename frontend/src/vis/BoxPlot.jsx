@@ -3,7 +3,6 @@ import { React } from 'react';
 import * as d3 from 'd3';
 
 import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
-import GlobalStates from '../api/globalStates';
 import { tooltip } from '../api/myutils';
 
 const margin = { top: 20, bottom: 20, left: 15, right: 20 };
@@ -13,6 +12,10 @@ export default function BoxPlot({ data, property, width, height, globalScale, co
         (svg) => {
             if (!svg.empty()) {
                 svg.selectAll('*').remove();
+            }
+
+            if (!data) {
+                return;
             }
 
             const { q1, median, q3, iqr, minThreshold, maxThreshold } = data;
