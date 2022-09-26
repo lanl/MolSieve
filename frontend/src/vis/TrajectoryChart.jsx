@@ -260,7 +260,7 @@ function TrajectoryChart({
                     const iChunks = topChunkList.filter((d) => d.important);
 
                     const chunkIndex = topChunkList.indexOf(chunk);
-
+                    const trajectoryIndex = Object.keys(trajectories).indexOf(trajectoryName);
                     // these values could all be calculated pre-render...
 
                     const unimportantWidthScale = d3
@@ -301,7 +301,7 @@ function TrajectoryChart({
                         <foreignObject
                             key={id}
                             x={getX(chunkIndex, 0, topChunkList, scaleX, getWidthScale)}
-                            y={scaleY(0) + 12.5}
+                            y={scaleY(trajectoryIndex) + 12.5}
                             width={chartW}
                             height={400}
                         >
