@@ -1,4 +1,4 @@
-import { React, useEffect, useState } from 'react';
+import { React, useEffect, useState, useLayoutEffect } from 'react';
 import * as d3 from 'd3';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
@@ -11,6 +11,8 @@ import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
 import { useContextMenu } from '../hooks/useContextMenu';
 import ChunkWrapper from '../hoc/ChunkWrapper';
 import EmbeddedChart from './EmbeddedChart';
+import GlobalStates from '../api/globalStates';
+
 import '../css/vis.css';
 import { onEntityMouseOver, normalizeDict } from '../api/myutils';
 
@@ -66,9 +68,9 @@ function TrajectoryChart({
             .append('rect')
             .attr('id', (d) => `c_${d.id}`)
             .attr('x', (_, i) => getX(i, 0))
-            .attr('y', yScale(count) + 200)
+            .attr('y', yScale(count))
             .attr('width', (d) => xScale(getWidthScale(d)))
-            .attr('height', 25)
+            .attr('height', 35)
             .attr('fill', (d) => {
                 if (!d.important) return trajectory.colorByCluster(d);
                 return 'white';
@@ -301,11 +303,11 @@ function TrajectoryChart({
                         <foreignObject
                             key={id}
                             x={getX(chunkIndex, 0, topChunkList, scaleX, getWidthScale)}
-                            y={scaleY(trajectoryIndex) + 12.5}
+                            y={scaleY(trajectoryIndex)}
                             width={chartW}
-                            height={400}
+                            height={35}
                         >
-                            <EmbeddedChart height={400} width={chartW}>
+                            <EmbeddedChart height={35} width={chartW}>
                                 {(ww, hh, isPHovered) => (
                                     <ChunkWrapper
                                         chunk={chunk}

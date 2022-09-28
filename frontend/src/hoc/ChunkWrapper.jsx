@@ -8,6 +8,7 @@ import Scatterplot from '../vis/Scatterplot';
 import BoxPlot from '../vis/BoxPlot';
 import { simpleMovingAverage, boxPlotStats } from '../api/stats';
 import GlobalStates from '../api/globalStates';
+import GlobalChartScale from '../api/GlobalChartScale';
 
 const moveBy = 100;
 const mvaPeriod = 100;
@@ -34,10 +35,8 @@ export default function ChunkWrapper({
         setSparkLine(!showSparkLine);
     };
 
-    const [allStates, setAllStates] = useState();
     const [adjWidth, setAdjWidth] = useState();
     const [sliceBy, setSliceBy] = useState();
-    const [globalBoxScale, setGlobalBoxScale] = useState();
     const [seq, setSeq] = useState();
     const [mva, setMva] = useState();
     const [lBoxStats, setLBoxStats] = useState();
@@ -80,11 +79,11 @@ export default function ChunkWrapper({
 
         const as = states.map((id) => GlobalStates.get(id));
 
-        const gScale = () =>
-            d3
-                .scaleLinear()
-                .domain(d3.extent(as, (d) => d[boxPlotAttribute]))
-                .range([375, 20]);
+        const vals = as.map((d) => d[boxPlotAttribute]);
+
+        // alternatively, can have this be a state in the parent
+        // update in parent and then push it down
+        GlobalChartScale.update(vals, boxPlotAttribute);
 
         if (leftBoundary && isExpanded) {
             const left = leftBoundary.timestepSequence.length - lSlice;
@@ -117,12 +116,10 @@ export default function ChunkWrapper({
             ];
         }
 
-        setAllStates(states);
         setAdjWidth(aWidth);
         setSliceBy({ lSlice, rSlice });
         setSeq(s);
         setMva(m);
-        setGlobalBoxScale(gScale);
         setIsLoaded(true);
     };
 
@@ -277,15 +274,6 @@ export default function ChunkWrapper({
 
     return isLoaded ? (
         <>
-            <Box
-                className="floatingToolBar"
-                sx={{ visibility: isParentHovered ? 'visible' : 'hidden' }}
-            >
-                <Button color="secondary" size="small" onClick={() => toggleSparkLine()}>
-                    {showSparkLine ? 'ShowScatter' : 'ShowSparkLine'}
-                </Button>
-            </Box>
-
             {leftBoundary && !isExpanded && (
                 <BoxPlot
                     showYAxis={false}
@@ -294,7 +282,7 @@ export default function ChunkWrapper({
                     property={boxPlotAttribute}
                     width={0.1 * width}
                     height={height}
-                    globalScale={globalBoxScale}
+                    globalScale={GlobalChartScale.scale}
                 />
             )}
 
@@ -310,12 +298,12 @@ export default function ChunkWrapper({
                 setStateClicked={setStateClicked}
                 id={`sc_${chunk.id}`}
                 property={boxPlotAttribute}
-                globalScale={globalBoxScale}
                 doubleClickAction={() => setIsExpanded(!isExpanded)}
                 includeBoundaries={isExpanded}
                 leftBoundary={leftBoundary}
                 rightBoundary={rightBoundary}
                 sliceBy={sliceBy}
+                globalScale={GlobalChartScale.scale}
                 showSparkLine={showSparkLine}
             />
 
@@ -327,7 +315,7 @@ export default function ChunkWrapper({
                     property={boxPlotAttribute}
                     width={0.1 * width}
                     height={height}
-                    globalScale={globalBoxScale}
+                    globalScale={GlobalChartScale.scale}
                 />
             )}
         </>
@@ -335,3 +323,14 @@ export default function ChunkWrapper({
         <div> Loading... </div>
     );
 }
+
+/* 
+    <Box
+        className="floatingToolBar"
+        sx={{ visibility: isParentHovered ? 'visible' : 'hidden' }}
+    >
+        <Button color="secondary" size="small" onClick={() => toggleSparkLine()}>
+            {showSparkLine ? 'ShowScatter' : 'ShowSparkLine'}
+        </Button>
+    </Box>
+*/

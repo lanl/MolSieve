@@ -2,6 +2,7 @@ import { React, useEffect, useState } from 'react';
 import * as d3 from 'd3';
 
 import GlobalStates from '../api/globalStates';
+import GlobalChartScale from '../api/GlobalChartScale';
 
 import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
 
@@ -12,7 +13,7 @@ import '../css/App.css';
 
 import { useExtents } from '../hooks/useExtents';
 
-const margin = { top: 25, bottom: 25, left: 30, right: 5 };
+const margin = { top: 5, bottom: 5, left: 5, right: 5 };
 const sBrush = null;
 let individualSelectionMode = false;
 let selectionBrushMode = false;
@@ -32,7 +33,6 @@ export default function Scatterplot({
     height,
     runs,
     property,
-    globalScale,
     movingAverage,
     leftBoundary,
     rightBoundary,
@@ -40,6 +40,7 @@ export default function Scatterplot({
     includeBoundaries,
     sliceBy,
     showSparkLine,
+    globalScale,
 }) {
     const [yAttributeList, setYAttributeList] = useState(yAttributeListProp);
 
@@ -209,25 +210,25 @@ export default function Scatterplot({
                     .y((d) => scaleY(d.y))
                     .curve(d3.curveCatmullRom.alpha(0.5));
 
-                for (let i = 0; i < sequence.length; i++) {
+                /*                for (let i = 0; i < sequence.length; i++) {
                     const d = { x: xAttributeList[i], y: yAttributeListRender[i] };
                     if (d.y === undefined) {
                         console.log(sequence[i], GlobalStates.get(sequence[i].id));
                     }
 
                     datum.push(d);
-                }
+                } */
 
                 for (let i = 0; i < movingAverage.length; i++) {
                     const d = { x: xAttributeList[i], y: movingAverage[i] };
                     mv.push(d);
                 }
                 // sparkline
-                svg.append('path')
+                /* svg.append('path')
                     .datum(datum)
                     .attr('d', line)
                     .attr('stroke', 'black')
-                    .attr('fill', 'none');
+                    .attr('fill', 'none'); */
 
                 // moving average line
                 svg.append('path')
@@ -255,18 +256,18 @@ export default function Scatterplot({
                     .attr('transform', 'rotate(15)');
             }
 
-            if (yUnique.size < 20) {
+            /* if (yUnique.size < 20) {
                 svg.append('g')
                     .attr('transform', `translate(${yAxisPos},0)`)
                     .call(d3.axisLeft().scale(scaleY).ticks(5));
-            }
+            } */
 
-            svg.append('text')
+            /* svg.append('text')
                 .attr('x', width / 2)
                 .attr('y', margin.top)
                 .attr('text-anchor', 'middle')
                 .style('font-size', '12px')
-                .text(`scatterplot ${id} ${xAttribute} vs ${yAttributeRender}`);
+                .text(`scatterplot ${id} ${xAttribute} vs ${yAttributeRender}`); */
 
             /* const zoom = d3.zoom().on('zoom', ({ transform }) => {
                 // choose whether to use transform or switch back to only continuous scales
@@ -283,7 +284,7 @@ export default function Scatterplot({
 
             // applyFilters(trajectories, runs, ref);
         },
-        [yAttributeList, trajectories, runs, showSparkLine, property, width]
+        [yAttributeList, trajectories, runs, showSparkLine, property, width, globalScale]
     );
 
     useEffect(() => {

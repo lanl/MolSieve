@@ -1,7 +1,6 @@
 import { React, createRef, useState } from 'react';
 
 import Box from '@mui/material/Box';
-import Paper from '@mui/material/Paper';
 
 /* This component is intended to allow embedding svgs within svgs as React components */
 // essentially the same as a ChartBox, just with a border
@@ -13,7 +12,6 @@ export default function EmbeddedChart({ children, height, width, margin }) {
         <Box
             ref={ref}
             sx={{ display: 'flex' }}
-            component={Paper}
             border={1}
             width={width - margin.left}
             height={height - margin.top}
@@ -28,6 +26,6 @@ export default function EmbeddedChart({ children, height, width, margin }) {
 EmbeddedChart.defaultProps = {
     margin: {
         top: 2.5,
-        left: 5,
+        left: 0,
     },
 };
