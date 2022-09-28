@@ -17,7 +17,7 @@ export default function ChunkWrapper({
     leftBoundary,
     chunk,
     rightBoundary,
-    boxPlotAttribute,
+    property,
     width,
     height,
     trajectory,
@@ -74,27 +74,25 @@ export default function ChunkWrapper({
     const render = (states, aWidth, lSlice, rSlice) => {
         // breaks because it assumes that both sides are expanding at the same time... need to do seperately
         let s = chunk.timestepSequence;
-        let m = chunk.calculateMovingAverage(boxPlotAttribute, mvaPeriod, simpleMovingAverage);
+        let m = chunk.calculateMovingAverage(property, mvaPeriod, simpleMovingAverage);
 
         const as = states.map((id) => GlobalStates.get(id));
 
-        const vals = as.map((d) => d[boxPlotAttribute]);
+        const vals = as.map((d) => d[property]);
 
         // alternatively, can have this be a state in the parent
         // update in parent and then push it down
-        GlobalChartScale.update(vals, boxPlotAttribute);
+        GlobalChartScale.update(vals, property);
 
         if (leftBoundary && isExpanded) {
             const left = leftBoundary.timestepSequence.length - lSlice;
             const right = leftBoundary.timestepSequence.length;
             s = [...leftBoundary.timestepSequence.slice(left), ...s];
             m = [
-                ...leftBoundary.calculateMovingAverage(
-                    boxPlotAttribute,
-                    mvaPeriod,
-                    simpleMovingAverage,
-                    [left, right]
-                ),
+                ...leftBoundary.calculateMovingAverage(property, mvaPeriod, simpleMovingAverage, [
+                    left,
+                    right,
+                ]),
                 ...m,
             ];
         }
@@ -106,12 +104,10 @@ export default function ChunkWrapper({
             s = [...s, ...rightBoundary.timestepSequence.slice(left, right)];
             m = [
                 ...m,
-                ...rightBoundary.calculateMovingAverage(
-                    boxPlotAttribute,
-                    mvaPeriod,
-                    simpleMovingAverage,
-                    [left, right]
-                ),
+                ...rightBoundary.calculateMovingAverage(property, mvaPeriod, simpleMovingAverage, [
+                    left,
+                    right,
+                ]),
             ];
         }
 
@@ -136,7 +132,7 @@ export default function ChunkWrapper({
                 : undefined;
 
             const centerMVA = chunk.calculateMovingAverage(
-                boxPlotAttribute,
+                property,
                 mvaPeriod,
                 simpleMovingAverage
             );
@@ -149,7 +145,7 @@ export default function ChunkWrapper({
 
                 socket.send(
                     JSON.stringify({
-                        props: [boxPlotAttribute],
+                        props: [property],
                         stateIds: boundaryStates.sendStates,
                     })
                 );
@@ -159,8 +155,8 @@ export default function ChunkWrapper({
                 const parsedData = JSON.parse(e.data);
                 GlobalStates.addPropToStates(parsedData);
 
-                const lData = lStates.map((d) => GlobalStates.get(d)[boxPlotAttribute]);
-                const rData = rStates.map((d) => GlobalStates.get(d)[boxPlotAttribute]);
+                const lData = lStates.map((d) => GlobalStates.get(d)[property]);
+                const rData = rStates.map((d) => GlobalStates.get(d)[property]);
 
                 const lStats = boxPlotStats(lData);
                 const rStats = boxPlotStats(rData);
@@ -193,7 +189,7 @@ export default function ChunkWrapper({
                     i++;
                     socket.send(
                         JSON.stringify({
-                            props: [boxPlotAttribute],
+                            props: [property],
                             stateIds: [...new Set(sendStates)],
                         })
                     );
@@ -214,7 +210,7 @@ export default function ChunkWrapper({
 
                 socket.send(
                     JSON.stringify({
-                        props: [boxPlotAttribute],
+                        props: [property],
                         stateIds: [...boundaryStates.sendStates, ...cStates],
                     })
                 );
@@ -224,8 +220,8 @@ export default function ChunkWrapper({
                 const parsedData = JSON.parse(e.data);
                 GlobalStates.addPropToStates(parsedData);
 
-                const lData = lStates.map((d) => GlobalStates.get(d)[boxPlotAttribute]);
-                const rData = rStates.map((d) => GlobalStates.get(d)[boxPlotAttribute]);
+                const lData = lStates.map((d) => GlobalStates.get(d)[property]);
+                const rData = rStates.map((d) => GlobalStates.get(d)[property]);
 
                 const lStats = boxPlotStats(lData);
                 const rStats = boxPlotStats(rData);
@@ -262,14 +258,14 @@ export default function ChunkWrapper({
                     i++;
                     socket.send(
                         JSON.stringify({
-                            props: [boxPlotAttribute],
+                            props: [property],
                             stateIds: [...new Set(sendStates)],
                         })
                     );
                 }
             });
         }
-    }, [isExpanded, boxPlotAttribute, width, height]);
+    }, [isExpanded, property, width, height]);
 
     return isLoaded ? (
         <>
@@ -278,7 +274,7 @@ export default function ChunkWrapper({
                     showYAxis={false}
                     data={lBoxStats}
                     color={leftBoundary.color}
-                    property={boxPlotAttribute}
+                    property={property}
                     width={0.1 * width}
                     height={height}
                     globalScale={GlobalChartScale.scale}
@@ -295,7 +291,7 @@ export default function ChunkWrapper({
                 setStateHovered={setStateHovered}
                 setStateClicked={setStateClicked}
                 id={`sc_${chunk.id}`}
-                property={boxPlotAttribute}
+                property={property}
                 doubleClickAction={() => setIsExpanded(!isExpanded)}
                 includeBoundaries={isExpanded}
                 leftBoundary={leftBoundary}
@@ -310,7 +306,7 @@ export default function ChunkWrapper({
                     showYAxis={false}
                     data={rBoxStats}
                     color={rightBoundary.color}
-                    property={boxPlotAttribute}
+                    property={property}
                     width={0.1 * width}
                     height={height}
                     globalScale={GlobalChartScale.scale}

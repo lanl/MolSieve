@@ -1,14 +1,6 @@
 import { React, useEffect, useState, useLayoutEffect } from 'react';
 import * as d3 from 'd3';
-import Menu from '@mui/material/Menu';
-import MenuItem from '@mui/material/MenuItem';
-import Button from '@mui/material/Button';
-import Box from '@mui/material/Box';
-import Select from '@mui/material/Select';
-
-import { structuralAnalysisProps } from '../api/constants';
 import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
-import { useContextMenu } from '../hooks/useContextMenu';
 import ChunkWrapper from '../hoc/ChunkWrapper';
 import EmbeddedChart from './EmbeddedChart';
 import GlobalStates from '../api/globalStates';
@@ -36,10 +28,9 @@ function TrajectoryChart({
     run,
     isParentHovered,
     charts,
-    trajectories,
+    property
 }) {
     const [isHovered, setIsHovered] = useState(false);
-    const [boxPlotAttribute, setBoxPlotAttribute] = useState(structuralAnalysisProps[0]);
 
     useEffect(() => {
         setIsHovered(isParentHovered);
@@ -224,93 +215,85 @@ function TrajectoryChart({
     }, [visibleExtent]);
 
     return (
-        <>
-            <Box className="floatingToolBar" sx={{ visibility: isHovered ? 'visible' : 'hidden' }}>
-                <Button color="secondary" size="small" onClick={(e) => toggleMenu(e)}>
-                    BoxPlotAttributes
-                </Button>
-            </Box>
+        <svg
+            className="vis"
+            id={`${trajectory.name}_sequence`}
+            ref={ref}
+            preserveAspectRatio="none"
+            viewBox={[0, 0, width, height]}
+        >
+            {charts.map((child) => {
+                const { chunk, id, leftBoundary, rightBoundary } = child;
 
-            <svg
-                className="vis"
-                id={`${trajectory.name}_sequence`}
-                ref={ref}
-                preserveAspectRatio="none"
-                viewBox={[0, 0, width, height]}
-            >
-                {charts.map((child) => {
-                    const { chunk, id, leftBoundary, rightBoundary } = child;
+                const { chunkList } = trajectory;
+                const topChunkList = chunkList.filter((d) => !d.hasParent);
+                const uChunks = topChunkList.filter((d) => !d.important);
+                const iChunks = topChunkList.filter((d) => d.important);
 
-                    const { chunkList } = trajectory;
-                    const topChunkList = chunkList.filter((d) => !d.hasParent);
-                    const uChunks = topChunkList.filter((d) => !d.important);
-                    const iChunks = topChunkList.filter((d) => d.important);
+                const chunkIndex = topChunkList.indexOf(chunk);
 
-                    const chunkIndex = topChunkList.indexOf(chunk);
+                const unimportantWidthScale = d3
+                    .scaleLinear()
+                    .range([minimumChartWidth, (width - margin.right) * 0.1])
+                    .domain([0, d3.max(uChunks, (d) => d.size)]);
 
-                    const unimportantWidthScale = d3
-                        .scaleLinear()
-                        .range([minimumChartWidth, (width - margin.right) * 0.1])
-                        .domain([0, d3.max(uChunks, (d) => d.size)]);
+                const importantWidthScale = d3
+                    .scaleLinear()
+                    .range([minimumChartWidth, width - margin.right])
+                    .domain([0, d3.max(iChunks, (d) => d.size)]);
 
-                    const importantWidthScale = d3
-                        .scaleLinear()
-                        .range([minimumChartWidth, width - margin.right])
-                        .domain([0, d3.max(iChunks, (d) => d.size)]);
+                const getWidthScale = (data) => {
+                    if (data.important) {
+                        return importantWidthScale(data.size);
+                    }
+                    return unimportantWidthScale(data.size);
+                };
 
-                    const getWidthScale = (data) => {
-                        if (data.important) {
-                            return importantWidthScale(data.size);
-                        }
-                        return unimportantWidthScale(data.size);
-                    };
+                const totalSum = d3.sum(topChunkList, (d) => getWidthScale(d));
 
-                    const totalSum = d3.sum(topChunkList, (d) => getWidthScale(d));
+                const scaleX = (w) => {
+                    // given a width, scale it down so that it will fit within 1 screen
+                    const per = w / totalSum;
+                    return per * (width - margin.right);
+                };
+                const getX = (i, w) => {
+                    if (i > 0) {
+                        const d = topChunkList[i - 1];
+                        const wl = scaleX(getWidthScale(d));
+                        return getX(i - 1, w + wl);
+                    }
+                    return w;
+                };
 
-                    const scaleX = (w) => {
-                        // given a width, scale it down so that it will fit within 1 screen
-                        const per = w / totalSum;
-                        return per * (width - margin.right);
-                    };
-                    const getX = (i, w) => {
-                        if (i > 0) {
-                            const d = topChunkList[i - 1];
-                            const wl = scaleX(getWidthScale(d));
-                            return getX(i - 1, w + wl);
-                        }
-                        return w;
-                    };
-
-                    const chartW = scaleX(getWidthScale(chunk));
-                    return (
-                        <foreignObject
-                            key={id}
-                            x={getX(chunkIndex, 0, topChunkList, scaleX, getWidthScale)}
-                            y={height / 2}
-                            width={chartW}
-                            height={height / 2}
-                        >
-                            <EmbeddedChart height={height / 2} width={chartW}>
-                                {(ww, hh, isPHovered) => (
-                                    <ChunkWrapper
-                                        chunk={chunk}
-                                        leftBoundary={leftBoundary}
-                                        rightBoundary={rightBoundary}
-                                        width={ww}
-                                        height={hh}
-                                        setStateHovered={setStateHovered}
-                                        boxPlotAttribute={boxPlotAttribute}
-                                        trajectory={trajectory}
-                                        run={run}
-                                        isParentHovered={isPHovered}
-                                    />
-                                )}
-                            </EmbeddedChart>
-                        </foreignObject>
-                    );
-                })}
-            </svg>
-        </>
+                const chartW = scaleX(getWidthScale(chunk));
+                return (
+                    <foreignObject
+                        key={id}
+                        x={getX(chunkIndex, 0, topChunkList, scaleX, getWidthScale)}
+                        y={height / 2}
+                        width={chartW}
+                        height={height / 2}
+                    >
+                        <EmbeddedChart height={height / 2} width={chartW}>
+                            {(ww, hh, isPHovered) => (
+                                <ChunkWrapper
+                                    chunk={chunk}
+                                    leftBoundary={leftBoundary}
+                                    rightBoundary={rightBoundary}
+                                    width={ww}
+                                    height={hh}
+                                    setStateHovered={setStateHovered}
+                                    property={property}
+                                    trajectory={trajectory}
+                                    run={run}
+                                    isParentHovered={isPHovered}
+                                />
+                            )}
+                        </EmbeddedChart>
+                    </foreignObject>
+                );
+            })}
+        </svg>
     );
 }
 

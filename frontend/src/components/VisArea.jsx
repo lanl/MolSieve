@@ -2,6 +2,11 @@ import { React, useState, useEffect, useCallback } from 'react';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Container from '@mui/material/Container';
+import Button from '@mui/material/Button';
+import Menu from '@mui/material/Menu';
+import MenuItem from '@mui/material/MenuItem';
+import Select from '@mui/material/Select';
+import * as d3 from 'd3';
 import TrajectoryChart from '../vis/TrajectoryChart';
 import Legend from '../vis/Legend';
 import ChartBox from './ChartBox';
@@ -12,6 +17,10 @@ import LoadingModal from '../modals/LoadingModal';
 import '../css/App.css';
 import GlobalStates from '../api/globalStates';
 
+import { useContextMenu } from '../hooks/useContextMenu';
+import { onEntityMouseOver, normalizeDict } from '../api/myutils';
+import { structuralAnalysisProps } from '../api/constants';
+
 const SINGLE_STATE_MODAL = 'single_state';
 
 export default function VisArea({ sx, trajectories, runs, properties }) {
@@ -19,6 +28,8 @@ export default function VisArea({ sx, trajectories, runs, properties }) {
     const [isLoading, setIsLoading] = useState(false);
     const [stateHovered, setStateHovered] = useState(null);
     const [stateClicked, setClicked] = useState(null);
+    const [globalProperty, setGlobalProperty] = useState(structuralAnalysisProps[0]);
+    const { contextMenu, toggleMenu } = useContextMenu();
 
     /* Sets the currently clicked state to the supplied ID */
     const setStateClicked = (id) => {
@@ -55,62 +66,76 @@ export default function VisArea({ sx, trajectories, runs, properties }) {
         ids.forEach((id) => applyFilters(trajectories, runs, id));
     }, [runs]); */
 
-    console.log(runs);
     return (
         <Container id="c" maxWidth={false} sx={{ display: 'flex', flexDirection: 'row', flex: 1 }}>
             {isLoading && <LoadingModal open={isLoading} title="Rendering..." />}
             <Box sx={{ display: 'flex', flexDirection: 'row', gap: '10px' }}>
                 <ChartBox sx={{ flexGrow: 1 }}>
-                    {(width, height, isHovered) =>
-                        Object.values(trajectories).map((trajectory, idx) => {
-                            const { chunkList } = trajectory;
-                            const topChunkList = chunkList.filter((d) => !d.hasParent);
-                            const iChunks = topChunkList.filter((d) => d.important);
+                    {(width, height, isHovered) => (
+                        <>
+                            <Box
+                                className="floatingToolBar"
+                                sx={{ visibility: isHovered ? 'visible' : 'hidden' }}
+                            >
+                                <Button
+                                    color="secondary"
+                                    size="small"
+                                    onClick={(e) => toggleMenu(e)}
+                                >
+                                    BoxPlotAttributes
+                                </Button>
+                            </Box>
 
-                            const charts = iChunks.map((chunk) => {
-                                const chunkIndex = topChunkList.indexOf(chunk);
-                                let leftBoundary;
-                                let rightBoundary;
-                                if (chunkIndex > 0) {
-                                    // get -1
-                                    if (!topChunkList[chunkIndex - 1].important) {
-                                        leftBoundary = topChunkList[chunkIndex - 1];
+                            {Object.values(trajectories).map((trajectory) => {
+                                const { chunkList } = trajectory;
+                                const topChunkList = chunkList.filter((d) => !d.hasParent);
+                                const iChunks = topChunkList.filter((d) => d.important);
+
+                                const charts = iChunks.map((chunk) => {
+                                    const chunkIndex = topChunkList.indexOf(chunk);
+                                    let leftBoundary;
+                                    let rightBoundary;
+                                    if (chunkIndex > 0) {
+                                        // get -1
+                                        if (!topChunkList[chunkIndex - 1].important) {
+                                            leftBoundary = topChunkList[chunkIndex - 1];
+                                        }
                                     }
-                                }
 
-                                if (chunkIndex < topChunkList.length - 1) {
-                                    // get +1
-                                    if (!topChunkList[chunkIndex + 1].important) {
-                                        rightBoundary = topChunkList[chunkIndex + 1];
+                                    if (chunkIndex < topChunkList.length - 1) {
+                                        // get +1
+                                        if (!topChunkList[chunkIndex + 1].important) {
+                                            rightBoundary = topChunkList[chunkIndex + 1];
+                                        }
                                     }
-                                }
 
-                                return {
-                                    id: chunk.id,
-                                    leftBoundary,
-                                    chunk,
-                                    rightBoundary,
-                                };
-                            });
+                                    return {
+                                        id: chunk.id,
+                                        leftBoundary,
+                                        chunk,
+                                        rightBoundary,
+                                    };
+                                });
 
-                            return (
-                                <TrajectoryChart
-                                    width={width || window.innerWidth}
-                                    height={70}
-                                    trajectory={trajectory}
-                                    run={runs[trajectory.name]}
-                                    chunkThreshold={runs[trajectory.name].chunkingThreshold}
-                                    loadingCallback={() => setIsLoading(false)}
-                                    setStateHovered={setStateHovered}
-                                    setStateClicked={setStateClicked}
-                                    stateHovered={stateHovered}
-                                    properties={properties}
-                                    isParentHovered={isHovered}
-                                    charts={charts}
-                                />
-                            );
-                        })
-                    }
+                                return (
+                                    <TrajectoryChart
+                                        width={width || window.innerWidth}
+                                        height={70}
+                                        trajectory={trajectory}
+                                        run={runs[trajectory.name]}
+                                        loadingCallback={() => setIsLoading(false)}
+                                        setStateHovered={setStateHovered}
+                                        setStateClicked={setStateClicked}
+                                        stateHovered={stateHovered}
+                                        properties={properties}
+                                        isParentHovered={isHovered}
+                                        charts={charts}
+                                        property={globalProperty}
+                                    />
+                                );
+                            })}
+                        </>
+                    )}
                 </ChartBox>
             </Box>
 
@@ -124,11 +149,7 @@ export default function VisArea({ sx, trajectories, runs, properties }) {
                     }}
                 />
             )}
-        </Container>
-    );
-}
 
-/*
             <Menu
                 open={contextMenu !== null}
                 onClose={toggleMenu}
@@ -141,9 +162,9 @@ export default function VisArea({ sx, trajectories, runs, properties }) {
             >
                 <MenuItem>
                     <Select
-                        value={boxPlotAttribute}
+                        value={globalProperty}
                         onChange={(e) => {
-                            setBoxPlotAttribute(e.target.value);
+                            setGlobalProperty(e.target.value);
                         }}
                     >
                         {structuralAnalysisProps.map((property) => {
@@ -178,4 +199,6 @@ export default function VisArea({ sx, trajectories, runs, properties }) {
                     </Select>
                 </MenuItem>
             </Menu>
-*/
+        </Container>
+    );
+}
