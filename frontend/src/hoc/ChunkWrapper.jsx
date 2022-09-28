@@ -18,13 +18,12 @@ export default function ChunkWrapper({
     chunk,
     rightBoundary,
     boxPlotAttribute,
-    trajectoryName,
     width,
     height,
-    trajectories,
+    trajectory,
     setStateHovered,
     setStateClicked,
-    runs,
+    run,
     isParentHovered,
 }) {
     const [isLoaded, setIsLoaded] = useState(false);
@@ -270,7 +269,7 @@ export default function ChunkWrapper({
                 }
             });
         }
-    }, [isExpanded, boxPlotAttribute]);
+    }, [isExpanded, boxPlotAttribute, width, height]);
 
     return isLoaded ? (
         <>
@@ -290,10 +289,9 @@ export default function ChunkWrapper({
                 sequence={seq}
                 width={adjWidth}
                 height={height}
-                runs={runs}
+                run={run}
                 movingAverage={mva}
-                trajectories={trajectories}
-                trajectoryName={trajectoryName}
+                trajectory={trajectory}
                 setStateHovered={setStateHovered}
                 setStateClicked={setStateClicked}
                 id={`sc_${chunk.id}`}

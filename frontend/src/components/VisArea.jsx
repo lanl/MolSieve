@@ -55,61 +55,63 @@ export default function VisArea({ sx, trajectories, runs, properties }) {
         ids.forEach((id) => applyFilters(trajectories, runs, id));
     }, [runs]); */
 
+    console.log(runs);
     return (
-        <Container maxWidth={false} sx={{ display: 'flex', flexDirection: 'row', flex: 1 }}>
+        <Container id="c" maxWidth={false} sx={{ display: 'flex', flexDirection: 'row', flex: 1 }}>
             {isLoading && <LoadingModal open={isLoading} title="Rendering..." />}
             <Box sx={{ display: 'flex', flexDirection: 'row', gap: '10px' }}>
-                <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-                    <ChartBox sx={{ flexGrow: 1 }}>
-                        {(width, height, isHovered) => (
-                            <TrajectoryChart
-                                width={width}
-                                height={height}
-                                trajectories={trajectories}
-                                runs={runs}
-                                loadingCallback={() => setIsLoading(false)}
-                                setStateHovered={setStateHovered}
-                                setStateClicked={setStateClicked}
-                                stateHovered={stateHovered}
-                                properties={properties}
-                                isParentHovered={isHovered}
-                                charts={Object.keys(trajectories).flatMap((trajectoryName) => {
-                                    const trajectory = trajectories[trajectoryName];
-                                    const { chunkList } = trajectory;
-                                    const topChunkList = chunkList.filter((d) => !d.hasParent);
-                                    const iChunks = topChunkList.filter((d) => d.important);
+                <ChartBox sx={{ flexGrow: 1 }}>
+                    {(width, height, isHovered) =>
+                        Object.values(trajectories).map((trajectory, idx) => {
+                            const { chunkList } = trajectory;
+                            const topChunkList = chunkList.filter((d) => !d.hasParent);
+                            const iChunks = topChunkList.filter((d) => d.important);
 
-                                    return iChunks.map((chunk) => {
-                                        const chunkIndex = topChunkList.indexOf(chunk);
-                                        let leftBoundary;
-                                        let rightBoundary;
-                                        if (chunkIndex > 0) {
-                                            // get -1
-                                            if (!topChunkList[chunkIndex - 1].important) {
-                                                leftBoundary = topChunkList[chunkIndex - 1];
-                                            }
-                                        }
+                            const charts = iChunks.map((chunk) => {
+                                const chunkIndex = topChunkList.indexOf(chunk);
+                                let leftBoundary;
+                                let rightBoundary;
+                                if (chunkIndex > 0) {
+                                    // get -1
+                                    if (!topChunkList[chunkIndex - 1].important) {
+                                        leftBoundary = topChunkList[chunkIndex - 1];
+                                    }
+                                }
 
-                                        if (chunkIndex < topChunkList.length - 1) {
-                                            // get +1
-                                            if (!topChunkList[chunkIndex + 1].important) {
-                                                rightBoundary = topChunkList[chunkIndex + 1];
-                                            }
-                                        }
+                                if (chunkIndex < topChunkList.length - 1) {
+                                    // get +1
+                                    if (!topChunkList[chunkIndex + 1].important) {
+                                        rightBoundary = topChunkList[chunkIndex + 1];
+                                    }
+                                }
 
-                                        return {
-                                            id: chunk.id,
-                                            leftBoundary,
-                                            chunk,
-                                            rightBoundary,
-                                            trajectoryName,
-                                        };
-                                    });
-                                })}
-                            />
-                        )}
-                    </ChartBox>
-                </Box>
+                                return {
+                                    id: chunk.id,
+                                    leftBoundary,
+                                    chunk,
+                                    rightBoundary,
+                                };
+                            });
+
+                            return (
+                                <TrajectoryChart
+                                    width={width || window.innerWidth}
+                                    height={70}
+                                    trajectory={trajectory}
+                                    run={runs[trajectory.name]}
+                                    chunkThreshold={runs[trajectory.name].chunkingThreshold}
+                                    loadingCallback={() => setIsLoading(false)}
+                                    setStateHovered={setStateHovered}
+                                    setStateClicked={setStateClicked}
+                                    stateHovered={stateHovered}
+                                    properties={properties}
+                                    isParentHovered={isHovered}
+                                    charts={charts}
+                                />
+                            );
+                        })
+                    }
+                </ChartBox>
             </Box>
 
             {/* works for now, not the cleanest solution */}
@@ -125,3 +127,55 @@ export default function VisArea({ sx, trajectories, runs, properties }) {
         </Container>
     );
 }
+
+/*
+            <Menu
+                open={contextMenu !== null}
+                onClose={toggleMenu}
+                anchorReference="anchorPosition"
+                anchorPosition={
+                    contextMenu !== null
+                        ? { top: contextMenu.mouseY, left: contextMenu.mouseX }
+                        : undefined
+                }
+            >
+                <MenuItem>
+                    <Select
+                        value={boxPlotAttribute}
+                        onChange={(e) => {
+                            setBoxPlotAttribute(e.target.value);
+                        }}
+                    >
+                        {structuralAnalysisProps.map((property) => {
+                            // move z-score into menuitem
+                            const zScores = [];
+                            for (const trajectoryName of Object.keys(trajectories)) {
+                                const trajectory = trajectories[trajectoryName];
+                                const { featureImportance } = trajectory;
+                                if (featureImportance) {
+                                    const normDict = normalizeDict(featureImportance, [-1, 1]);
+                                    zScores.push(
+                                        <>
+                                            <span> </span>
+                                            <span
+                                                key={`${property}_${trajectoryName}`}
+                                                style={{
+                                                    color: d3.interpolateRdBu(normDict[property]),
+                                                }}
+                                            >
+                                                {featureImportance[property].toFixed(2)}
+                                            </span>
+                                        </>
+                                    );
+                                }
+                            }
+                            return (
+                                <MenuItem dense divider key={property} value={property}>
+                                    {property} {zScores}
+                                </MenuItem>
+                            );
+                        })}
+                    </Select>
+                </MenuItem>
+            </Menu>
+*/

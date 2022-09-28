@@ -10,12 +10,10 @@ export const useResize = () => {
             return;
         }
 
-        const newWidth = divRef.current.offsetWidth;
+        const newWidth = divRef.current.clientWidth;
         const newHeight = divRef.current.offsetHeight;
-        if (newWidth < window.innerWidth && newHeight < window.innerHeight) {
-            setWidth(newWidth);
-            setHeight(newHeight);
-        }
+        setWidth(newWidth);
+        setHeight(newHeight);
     };
 
     useLayoutEffect(() => {
@@ -24,7 +22,6 @@ export const useResize = () => {
 
     useLayoutEffect(() => {
         window.addEventListener('resize', resize);
-        return () => window.removeEventListener('resize', resize);
     }, []);
 
     return { width, height, divRef };

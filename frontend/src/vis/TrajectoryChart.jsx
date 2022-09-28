@@ -26,19 +26,18 @@ const margin = {
 const minimumChartWidth = 200;
 
 function TrajectoryChart({
-    trajectories,
+    trajectory,
     loadingCallback,
     setStateHovered,
     stateHovered,
     visibleExtent,
     width,
     height,
-    runs,
+    run,
     isParentHovered,
     charts,
+    trajectories,
 }) {
-    const { contextMenu, toggleMenu } = useContextMenu();
-
     const [isHovered, setIsHovered] = useState(false);
     const [boxPlotAttribute, setBoxPlotAttribute] = useState(structuralAnalysisProps[0]);
 
@@ -46,8 +45,8 @@ function TrajectoryChart({
         setIsHovered(isParentHovered);
     }, [isParentHovered]);
 
-    const renderChunks = (data, trajectoryName, count, xScale, yScale, getWidthScale) => {
-        const trajectory = trajectories[trajectoryName];
+    const renderChunks = (data, xScale, getWidthScale) => {
+        const { name } = trajectory;
 
         const getX = (i, w) => {
             if (i > 0) {
@@ -59,7 +58,7 @@ function TrajectoryChart({
         };
 
         const nodes = d3
-            .select(`#c_${trajectoryName}`)
+            .select(`#c_${name}`)
             .selectAll('rect')
             .data(data, (d) => d.id);
 
@@ -68,7 +67,7 @@ function TrajectoryChart({
             .append('rect')
             .attr('id', (d) => `c_${d.id}`)
             .attr('x', (_, i) => getX(i, 0))
-            .attr('y', yScale(count))
+            .attr('y', height / 2)
             .attr('width', (d) => xScale(getWidthScale(d)))
             .attr('height', 35)
             .attr('fill', (d) => {
@@ -80,7 +79,7 @@ function TrajectoryChart({
                 setStateHovered({
                     caller: this,
                     stateID: d.id,
-                    name: trajectoryName,
+                    name,
                     timestep: d.timestep,
                 });
             })
@@ -91,7 +90,7 @@ function TrajectoryChart({
                 return d.important ? 'hidden' : 'visible';
             })
             .classed('chunk', true)
-            .classed(trajectoryName, true)
+            .classed(name, true)
             .classed('unimportant', (d) => !d.important)
             .classed('important', (d) => d.important)
             .classed('breakdown', (d) => d.parentID);
@@ -108,60 +107,51 @@ function TrajectoryChart({
             if (!svg.empty()) {
                 svg.selectAll('g').remove();
             }
-            let y = 0;
 
-            const scaleY = d3
+            const { chunkList, name } = trajectory;
+            const topChunkList = chunkList.filter((d) => !d.hasParent);
+            const uChunks = topChunkList.filter((d) => !d.important);
+            const iChunks = topChunkList.filter((d) => d.important);
+
+            const unimportantWidthScale = d3
                 .scaleLinear()
-                .range([margin.top, height - margin.bottom])
-                .domain([0, Object.keys(trajectories).length]);
+                .range([minimumChartWidth, (width - margin.right) * 0.1])
+                .domain([0, d3.max(uChunks, (d) => d.size)]);
+
+            const importantWidthScale = d3
+                .scaleLinear()
+                .range([minimumChartWidth, width - margin.right])
+                .domain([0, d3.max(iChunks, (d) => d.size)]);
+
+            const getWidthScale = (data) => {
+                if (data.important) {
+                    return importantWidthScale(data.size);
+                }
+                return unimportantWidthScale(data.size);
+            };
+
+            const totalSum = d3.sum(topChunkList, (d) => getWidthScale(d));
+
+            const scaleX = (w) => {
+                // given a width, scale it down so that it will fit within 1 screen
+                const per = w / totalSum;
+                return per * (width - margin.right);
+            };
 
             const tickNames = [];
             const chunkGroup = svg.append('g').attr('id', 'chunk');
             const importantGroup = svg.append('g').attr('id', 'sequence_important');
 
-            for (const [name, trajectory] of Object.entries(trajectories)) {
-                const { chunkList } = trajectory;
-                const topChunkList = chunkList.filter((d) => !d.hasParent);
-                const uChunks = topChunkList.filter((d) => !d.important);
-                const iChunks = topChunkList.filter((d) => d.important);
+            importantGroup.append('g').attr('id', `g_${name}`).attr('name', `${name}`);
+            chunkGroup.append('g').attr('id', `c_${name}`).attr('name', `${name}`);
 
-                const unimportantWidthScale = d3
-                    .scaleLinear()
-                    .range([minimumChartWidth, (width - margin.right) * 0.1])
-                    .domain([0, d3.max(uChunks, (d) => d.size)]);
+            tickNames.push(name);
 
-                const importantWidthScale = d3
-                    .scaleLinear()
-                    .range([minimumChartWidth, width - margin.right])
-                    .domain([0, d3.max(iChunks, (d) => d.size)]);
+            renderChunks(topChunkList, scaleX, getWidthScale);
 
-                const getWidthScale = (data) => {
-                    if (data.important) {
-                        return importantWidthScale(data.size);
-                    }
-                    return unimportantWidthScale(data.size);
-                };
-
-                const totalSum = d3.sum(topChunkList, (d) => getWidthScale(d));
-
-                const scaleX = (w) => {
-                    // given a width, scale it down so that it will fit within 1 screen
-                    const per = w / totalSum;
-                    return per * (width - margin.right);
-                };
-
-                importantGroup.append('g').attr('id', `g_${name}`).attr('name', `${name}`);
-                chunkGroup.append('g').attr('id', `c_${name}`).attr('name', `${name}`);
-
-                tickNames.push(name);
-
-                renderChunks(topChunkList, name, y, scaleX, scaleY, getWidthScale);
-
-                y++;
-            }
             loadingCallback();
         },
-        [trajectories, runs]
+        [trajectory, run, width, height, charts]
     );
 
     useEffect(() => {
@@ -243,18 +233,13 @@ function TrajectoryChart({
 
             <svg
                 className="vis"
-                id="sequence"
+                id={`${trajectory.name}_sequence`}
                 ref={ref}
                 preserveAspectRatio="none"
                 viewBox={[0, 0, width, height]}
             >
                 {charts.map((child) => {
-                    const { chunk, id, leftBoundary, rightBoundary, trajectoryName } = child;
-                    const { trajectory } = chunk;
-                    const scaleY = d3
-                        .scaleLinear()
-                        .range([margin.top, height - margin.bottom])
-                        .domain([0, Object.keys(trajectories).length]);
+                    const { chunk, id, leftBoundary, rightBoundary } = child;
 
                     const { chunkList } = trajectory;
                     const topChunkList = chunkList.filter((d) => !d.hasParent);
@@ -262,8 +247,6 @@ function TrajectoryChart({
                     const iChunks = topChunkList.filter((d) => d.important);
 
                     const chunkIndex = topChunkList.indexOf(chunk);
-                    const trajectoryIndex = Object.keys(trajectories).indexOf(trajectoryName);
-                    // these values could all be calculated pre-render...
 
                     const unimportantWidthScale = d3
                         .scaleLinear()
@@ -303,11 +286,11 @@ function TrajectoryChart({
                         <foreignObject
                             key={id}
                             x={getX(chunkIndex, 0, topChunkList, scaleX, getWidthScale)}
-                            y={scaleY(trajectoryIndex)}
+                            y={height / 2}
                             width={chartW}
-                            height={35}
+                            height={height / 2}
                         >
-                            <EmbeddedChart height={35} width={chartW}>
+                            <EmbeddedChart height={height / 2} width={chartW}>
                                 {(ww, hh, isPHovered) => (
                                     <ChunkWrapper
                                         chunk={chunk}
@@ -317,9 +300,8 @@ function TrajectoryChart({
                                         height={hh}
                                         setStateHovered={setStateHovered}
                                         boxPlotAttribute={boxPlotAttribute}
-                                        trajectories={trajectories}
-                                        trajectoryName={trajectoryName}
-                                        runs={runs}
+                                        trajectory={trajectory}
+                                        run={run}
                                         isParentHovered={isPHovered}
                                     />
                                 )}
@@ -328,56 +310,6 @@ function TrajectoryChart({
                     );
                 })}
             </svg>
-
-            <Menu
-                open={contextMenu !== null}
-                onClose={toggleMenu}
-                anchorReference="anchorPosition"
-                anchorPosition={
-                    contextMenu !== null
-                        ? { top: contextMenu.mouseY, left: contextMenu.mouseX }
-                        : undefined
-                }
-            >
-                <MenuItem>
-                    <Select
-                        value={boxPlotAttribute}
-                        onChange={(e) => {
-                            setBoxPlotAttribute(e.target.value);
-                        }}
-                    >
-                        {structuralAnalysisProps.map((property) => {
-                            // move z-score into menuitem
-                            const zScores = [];
-                            for (const trajectoryName of Object.keys(trajectories)) {
-                                const trajectory = trajectories[trajectoryName];
-                                const { featureImportance } = trajectory;
-                                if (featureImportance) {
-                                    const normDict = normalizeDict(featureImportance, [-1, 1]);
-                                    zScores.push(
-                                        <>
-                                            <span> </span>
-                                            <span
-                                                key={`${property}_${trajectoryName}`}
-                                                style={{
-                                                    color: d3.interpolateRdBu(normDict[property]),
-                                                }}
-                                            >
-                                                {featureImportance[property].toFixed(2)}
-                                            </span>
-                                        </>
-                                    );
-                                }
-                            }
-                            return (
-                                <MenuItem dense divider key={property} value={property}>
-                                    {property} {zScores}
-                                </MenuItem>
-                            );
-                        })}
-                    </Select>
-                </MenuItem>
-            </Menu>
         </>
     );
 }

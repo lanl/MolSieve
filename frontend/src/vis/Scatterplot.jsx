@@ -20,7 +20,7 @@ let selectionBrushMode = false;
 
 export default function Scatterplot({
     sequence,
-    trajectories,
+    trajectory,
     stateHovered,
     id,
     trajectoryName,
@@ -31,7 +31,7 @@ export default function Scatterplot({
     visibleExtent,
     width,
     height,
-    runs,
+    run,
     property,
     movingAverage,
     leftBoundary,
@@ -284,7 +284,16 @@ export default function Scatterplot({
 
             // applyFilters(trajectories, runs, ref);
         },
-        [yAttributeList, trajectories, runs, showSparkLine, property, width, globalScale]
+        [
+            yAttributeList,
+            trajectory,
+            run,
+            showSparkLine,
+            property,
+            width,
+            globalScale,
+            GlobalChartScale,
+        ]
     );
 
     useEffect(() => {
