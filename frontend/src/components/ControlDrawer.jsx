@@ -24,15 +24,13 @@ import DialogActions from '@mui/material/DialogActions';
 import Divider from '@mui/material/Divider';
 
 import Toolbar from '@mui/material/Toolbar';
-import Paper from '@mui/material/Paper';
 import Container from '@mui/material/Container';
-import Box from '@mui/material/Box';
 import AnalysisTab from '../modals/AnalysisTab';
 import AddFilterModal from '../modals/AddFilterModal';
 
 import ChartBox from './ChartBox';
 import FilterComponent from './FilterComponent';
-import Legend from '../vis/Legend';
+import Timeline from '../vis/Timeline';
 
 const ADD_FILTER_MODAL = 'add-filter-modal';
 const METADATA_MODAL = 'metadata-modal';
@@ -202,7 +200,9 @@ function ControlDrawer({
                         {(width) => {
                             // 50px per trajectory
                             const h = Object.keys(trajectories).length * 50;
-                            return <Legend width={width} height={h} trajectories={trajectories} />;
+                            return Object.values(trajectories).map((trajectory) => (
+                                <Timeline width={width} height={h} trajectory={trajectory} />
+                            ));
                         }}
                     </ChartBox>
                     {controls}
