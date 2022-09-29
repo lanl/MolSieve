@@ -90,8 +90,17 @@ export default function VisArea({ sx, trajectories, runs, properties }) {
                                 const { chunkList } = trajectory;
                                 const topChunkList = chunkList.filter((d) => !d.hasParent);
                                 const iChunks = topChunkList.filter((d) => d.important);
+                                const uChunks = topChunkList.filter((d) => !d.important);
 
-                                const charts = iChunks.map((chunk) => {
+                                const uCharts = uChunks.map((chunk) => {
+                                    return {
+                                        id: chunk.id,
+                                        chunk,
+                                        important: chunk.important,
+                                    };
+                                });
+
+                                const iCharts = iChunks.map((chunk) => {
                                     const chunkIndex = topChunkList.indexOf(chunk);
                                     let leftBoundary;
                                     let rightBoundary;
@@ -114,13 +123,16 @@ export default function VisArea({ sx, trajectories, runs, properties }) {
                                         leftBoundary,
                                         chunk,
                                         rightBoundary,
+                                        important: chunk.important,
                                     };
                                 });
+
+                                const charts = [...iCharts, ...uCharts];
 
                                 return (
                                     <TrajectoryChart
                                         width={width || window.innerWidth}
-                                        height={70}
+                                        height={140}
                                         trajectory={trajectory}
                                         run={runs[trajectory.name]}
                                         loadingCallback={() => setIsLoading(false)}

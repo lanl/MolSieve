@@ -175,7 +175,15 @@ function ControlDrawer({
 
     return (
         <>
-            <Drawer hideBackdrop anchor="right" open={drawerOpen} onClose={() => toggleDrawer()}>
+            <Drawer
+                ModalProps={{
+                    keepMounted: true,
+                }}
+                hideBackdrop
+                anchor="right"
+                open={drawerOpen}
+                onClose={() => toggleDrawer()}
+            >
                 <Toolbar
                     variant="dense"
                     sx={{
@@ -201,7 +209,12 @@ function ControlDrawer({
                             // 50px per trajectory
                             const h = Object.keys(trajectories).length * 50;
                             return Object.values(trajectories).map((trajectory) => (
-                                <Timeline width={width} height={h} trajectory={trajectory} />
+                                <Timeline
+                                    width={width}
+                                    height={h}
+                                    trajectory={trajectory}
+                                    run={runs[trajectory.name]}
+                                />
                             ));
                         }}
                     </ChartBox>

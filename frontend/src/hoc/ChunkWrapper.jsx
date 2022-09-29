@@ -268,51 +268,25 @@ export default function ChunkWrapper({
     }, [isExpanded, property, width, height]);
 
     return isLoaded ? (
-        <>
-            {leftBoundary && !isExpanded && (
-                <BoxPlot
-                    showYAxis={false}
-                    data={lBoxStats}
-                    color={leftBoundary.color}
-                    property={property}
-                    width={0.1 * width}
-                    height={height}
-                    globalScale={GlobalChartScale.scale}
-                />
-            )}
-
-            <Scatterplot
-                sequence={seq}
-                width={adjWidth}
-                height={height}
-                run={run}
-                movingAverage={mva}
-                trajectory={trajectory}
-                setStateHovered={setStateHovered}
-                setStateClicked={setStateClicked}
-                id={`sc_${chunk.id}`}
-                property={property}
-                doubleClickAction={() => setIsExpanded(!isExpanded)}
-                includeBoundaries={isExpanded}
-                leftBoundary={leftBoundary}
-                rightBoundary={rightBoundary}
-                sliceBy={sliceBy}
-                globalScale={GlobalChartScale.scale}
-                showSparkLine={showSparkLine}
-            />
-
-            {rightBoundary && !isExpanded && (
-                <BoxPlot
-                    showYAxis={false}
-                    data={rBoxStats}
-                    color={rightBoundary.color}
-                    property={property}
-                    width={0.1 * width}
-                    height={height}
-                    globalScale={GlobalChartScale.scale}
-                />
-            )}
-        </>
+        <Scatterplot
+            sequence={seq}
+            width={width}
+            height={height}
+            run={run}
+            movingAverage={mva}
+            trajectory={trajectory}
+            setStateHovered={setStateHovered}
+            setStateClicked={setStateClicked}
+            id={`sc_${chunk.id}`}
+            property={property}
+            doubleClickAction={() => setIsExpanded(!isExpanded)}
+            includeBoundaries={isExpanded}
+            leftBoundary={leftBoundary}
+            rightBoundary={rightBoundary}
+            sliceBy={sliceBy}
+            globalScale={GlobalChartScale.scale}
+            showSparkLine={showSparkLine}
+        />
     ) : (
         <div> Loading... </div>
     );
@@ -327,4 +301,31 @@ export default function ChunkWrapper({
             {showSparkLine ? 'ShowScatter' : 'ShowSparkLine'}
         </Button>
     </Box>
-*/
+
+            {leftBoundary && !isExpanded && (
+                <BoxPlot
+                    showYAxis={false}
+                    data={lBoxStats}
+                    color={leftBoundary.color}
+                    property={property}
+                    width={0.1 * width}
+                    height={height}
+                    globalScale={GlobalChartScale.scale}
+                />
+            )}
+            {rightBoundary && !isExpanded && (
+                <BoxPlot
+                    showYAxis={false}
+                    data={rBoxStats}
+                    color={rightBoundary.color}
+                    property={property}
+                    width={0.1 * width}
+                    height={height}
+                    globalScale={GlobalChartScale.scale}
+                />
+            )}
+        </>
+ 
+ 
+
+    */

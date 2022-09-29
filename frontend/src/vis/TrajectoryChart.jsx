@@ -2,6 +2,7 @@ import { React, useEffect, useState, useLayoutEffect } from 'react';
 import * as d3 from 'd3';
 import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
 import ChunkWrapper from '../hoc/ChunkWrapper';
+import BoxPlotWrapper from '../hoc/BoxPlotWrapper';
 import EmbeddedChart from './EmbeddedChart';
 import GlobalStates from '../api/globalStates';
 
@@ -20,6 +21,7 @@ const minimumChartWidth = 200;
 function TrajectoryChart({
     trajectory,
     loadingCallback,
+
     setStateHovered,
     stateHovered,
     visibleExtent,
@@ -28,7 +30,7 @@ function TrajectoryChart({
     run,
     isParentHovered,
     charts,
-    property
+    property,
 }) {
     const [isHovered, setIsHovered] = useState(false);
 
@@ -60,11 +62,9 @@ function TrajectoryChart({
             .attr('x', (_, i) => getX(i, 0))
             .attr('y', height / 2)
             .attr('width', (d) => xScale(getWidthScale(d)))
-            .attr('height', 35)
-            .attr('fill', (d) => {
-                if (!d.important) return trajectory.colorByCluster(d);
-                return 'white';
-            })
+            .attr('height', height / 2)
+            .attr('fill', (d) => trajectory.colorByCluster(d))
+            .attr('stroke', (d) => trajectory.colorByCluster(d))
             .on('mouseover', function (_, d) {
                 onEntityMouseOver(this, d);
                 setStateHovered({
@@ -223,7 +223,7 @@ function TrajectoryChart({
             viewBox={[0, 0, width, height]}
         >
             {charts.map((child) => {
-                const { chunk, id, leftBoundary, rightBoundary } = child;
+                const { chunk, id, leftBoundary, rightBoundary, important } = child;
 
                 const { chunkList } = trajectory;
                 const topChunkList = chunkList.filter((d) => !d.hasParent);
@@ -274,21 +274,30 @@ function TrajectoryChart({
                         width={chartW}
                         height={height / 2}
                     >
-                        <EmbeddedChart height={height / 2} width={chartW}>
-                            {(ww, hh, isPHovered) => (
-                                <ChunkWrapper
-                                    chunk={chunk}
-                                    leftBoundary={leftBoundary}
-                                    rightBoundary={rightBoundary}
-                                    width={ww}
-                                    height={hh}
-                                    setStateHovered={setStateHovered}
-                                    property={property}
-                                    trajectory={trajectory}
-                                    run={run}
-                                    isParentHovered={isPHovered}
-                                />
-                            )}
+                        <EmbeddedChart height={height / 2} width={chartW} color={chunk.color}>
+                            {(ww, hh, isPHovered) =>
+                                important ? (
+                                    <ChunkWrapper
+                                        chunk={chunk}
+                                        leftBoundary={leftBoundary}
+                                        rightBoundary={rightBoundary}
+                                        width={ww}
+                                        height={hh}
+                                        setStateHovered={setStateHovered}
+                                        property={property}
+                                        trajectory={trajectory}
+                                        run={run}
+                                        isParentHovered={isPHovered}
+                                    />
+                                ) : (
+                                    <BoxPlotWrapper
+                                        chunk={chunk}
+                                        width={ww}
+                                        height={hh}
+                                        property={property}
+                                    />
+                                )
+                            }
                         </EmbeddedChart>
                     </foreignObject>
                 );

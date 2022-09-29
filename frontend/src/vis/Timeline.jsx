@@ -11,7 +11,7 @@ const margin = {
     right: 25,
 };
 
-export default function Timeline({ trajectory, width, height }) {
+export default function Timeline({ trajectory, width, height, run }) {
     const ref = useTrajectoryChartRender(
         (svg) => {
             if (!svg.empty()) {
@@ -44,7 +44,9 @@ export default function Timeline({ trajectory, width, height }) {
                 .attr('y', height / 2)
                 .attr('height', 5)
                 .attr('width', (d) => scaleX(d.last) - scaleX(d.timestep))
-                .attr('fill', (d) => trajectory.colorByCluster(d));
+                .attr('fill', (d) => trajectory.colorByCluster(d))
+                .classed('unimportant', (d) => !d.important)
+                .classed('important', (d) => d.important);
 
             g.append('text')
                 .attr('x', width / 2)
@@ -74,7 +76,7 @@ export default function Timeline({ trajectory, width, height }) {
 
             brushG.call(brush).call(brush.move, defaultSelection);
         },
-        [trajectory, width, height]
+        [trajectory, width, height, run]
     );
 
     return <svg id={`timeline_${trajectory.name}`} ref={ref} viewBox={[0, 0, width, height]} />;

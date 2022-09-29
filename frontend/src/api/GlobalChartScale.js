@@ -21,7 +21,7 @@ class GlobalChartScale {
     };
 
     updateScale = () => {
-        this.s = d3.scaleLinear().domain([this.min, this.max]).range([30, 5]);
+        this.s = d3.scaleLinear().domain([this.min, this.max]).range([65, 5]);
     };
 
     get scale() {

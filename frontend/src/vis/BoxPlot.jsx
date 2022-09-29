@@ -5,7 +5,7 @@ import * as d3 from 'd3';
 import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
 import { tooltip } from '../api/myutils';
 
-const margin = { top: 20, bottom: 20, left: 15, right: 20 };
+const margin = { top: 20, bottom: 20, left: 0, right: 0 };
 
 export default function BoxPlot({ data, property, width, height, globalScale, color, showYAxis }) {
     const ref = useTrajectoryChartRender(
@@ -29,12 +29,12 @@ export default function BoxPlot({ data, property, width, height, globalScale, co
             }
 
             // center line
-            svg.append('line')
+            /* svg.append('line')
                 .attr('x1', center)
                 .attr('x2', center)
                 .attr('y1', yScale(minThreshold))
                 .attr('y2', yScale(maxThreshold))
-                .attr('stroke', color);
+                .attr('stroke', color); */
 
             // box
             svg.append('rect')
@@ -42,18 +42,30 @@ export default function BoxPlot({ data, property, width, height, globalScale, co
                 .attr('y', yScale(q3))
                 .attr('height', yScale(q1) - yScale(q3))
                 .attr('width', adjWidth)
-                .attr('fill', 'none')
-                .attr('stroke', color);
+                .attr('fill', 'gray');
 
             svg.selectAll('outliers')
-                .data([minThreshold, median, maxThreshold])
+                .data([q1, q3])
                 .enter()
                 .append('line')
                 .attr('x1', center - adjWidth / 2)
                 .attr('x2', center + adjWidth / 2)
                 .attr('y1', (d) => yScale(d))
                 .attr('y2', (d) => yScale(d))
-                .attr('stroke', color);
+                .attr('stroke-width', 2)
+                .attr('stroke', 'black');
+
+            svg.selectAll('median')
+                .data([median])
+                .enter()
+                .append('line')
+                .attr('x1', center - adjWidth / 2)
+                .attr('x2', center + adjWidth / 2)
+                .attr('y1', (d) => yScale(d))
+                .attr('y2', (d) => yScale(d))
+                .attr('stroke-width', 2)
+                .attr('stroke-dasharray', 4)
+                .attr('stroke', 'red');
 
             svg.on('mouseover', () =>
                 tooltip(
