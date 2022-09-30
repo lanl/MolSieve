@@ -21,7 +21,6 @@ const minimumChartWidth = 200;
 function TrajectoryChart({
     trajectory,
     loadingCallback,
-
     setStateHovered,
     stateHovered,
     visibleExtent,
@@ -33,6 +32,15 @@ function TrajectoryChart({
     property,
 }) {
     const [isHovered, setIsHovered] = useState(false);
+    const [globalScale, setGlobalScale] = useState({min: Number.MAX_VALUE, max: Number.MIN_VALUE});
+
+    const updateGlobalScale = (valMin, valMax) => {
+        const { min, max } = globalScale;
+
+        if (min > valMin || max < valMax) {
+            setGlobalScale({ min: valMin, max: valMax });
+        }
+    };
 
     useEffect(() => {
         setIsHovered(isParentHovered);
@@ -130,8 +138,10 @@ function TrajectoryChart({
             };
 
             const tickNames = [];
-            const chunkGroup = svg.append('g').attr('id', 'chunk');
-            const importantGroup = svg.append('g').attr('id', 'sequence_important');
+            const g = svg.append('g').attr('id', `tmain_${name}`);
+
+            const chunkGroup = g.append('g').attr('id', 'chunk');
+            const importantGroup = g.append('g').attr('id', 'sequence_important');
 
             importantGroup.append('g').attr('id', `g_${name}`).attr('name', `${name}`);
             chunkGroup.append('g').attr('id', `c_${name}`).attr('name', `${name}`);
@@ -145,6 +155,12 @@ function TrajectoryChart({
         [trajectory, run, width, height, charts]
     );
 
+    useEffect(() => {
+        d3.select(`#tmain_${trajectory.name}`).attr(
+            'transform',
+            `translate(${run.extents[0]},${run.extents[1]})`
+        );
+    }, [run.extents]);
     useEffect(() => {
         /* if (stateHovered) {
             if (stateHighlight) {
@@ -256,6 +272,7 @@ function TrajectoryChart({
                     const per = w / totalSum;
                     return per * (width - margin.right);
                 };
+
                 const getX = (i, w) => {
                     if (i > 0) {
                         const d = topChunkList[i - 1];
@@ -288,6 +305,8 @@ function TrajectoryChart({
                                         trajectory={trajectory}
                                         run={run}
                                         isParentHovered={isPHovered}
+                                        globalScale={globalScale}
+                                        updateGlobalScale={updateGlobalScale}
                                     />
                                 ) : (
                                     <BoxPlotWrapper
@@ -295,6 +314,8 @@ function TrajectoryChart({
                                         width={ww}
                                         height={hh}
                                         property={property}
+                                        globalScale={globalScale}
+                                        updateGlobalScale={updateGlobalScale}
                                     />
                                 )
                             }

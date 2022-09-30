@@ -8,7 +8,6 @@ import Scatterplot from '../vis/Scatterplot';
 import BoxPlot from '../vis/BoxPlot';
 import { simpleMovingAverage, boxPlotStats } from '../api/stats';
 import GlobalStates from '../api/globalStates';
-import GlobalChartScale from '../api/GlobalChartScale';
 
 const moveBy = 100;
 const mvaPeriod = 100;
@@ -25,10 +24,21 @@ export default function ChunkWrapper({
     setStateClicked,
     run,
     isParentHovered,
+    globalScale,
+    updateGlobalScale,
 }) {
     const [isLoaded, setIsLoaded] = useState(false);
     const [isExpanded, setIsExpanded] = useState(false);
     const [showSparkLine, setSparkLine] = useState(true);
+
+    const [scale, setScale] = useState(() =>
+        d3.scaleLinear().domain([Number.MIN_VALUE, Number.MAX_VALUE]).range([height, 5])
+    );
+
+    useEffect(() => {
+        const { min, max } = globalScale;
+        setScale(() => d3.scaleLinear().domain([min, max]).range([height, 5]));
+    }, [globalScale]);
 
     const toggleSparkLine = () => {
         setSparkLine(!showSparkLine);
@@ -82,7 +92,9 @@ export default function ChunkWrapper({
 
         // alternatively, can have this be a state in the parent
         // update in parent and then push it down
-        GlobalChartScale.update(vals, property);
+        // GlobalChartScale.update(vals, property);
+
+        updateGlobalScale(d3.min(vals), d3.max(vals));
 
         if (leftBoundary && isExpanded) {
             const left = leftBoundary.timestepSequence.length - lSlice;
@@ -284,7 +296,7 @@ export default function ChunkWrapper({
             leftBoundary={leftBoundary}
             rightBoundary={rightBoundary}
             sliceBy={sliceBy}
-            globalScale={GlobalChartScale.scale}
+            globalScale={scale}
             showSparkLine={showSparkLine}
         />
     ) : (
