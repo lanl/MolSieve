@@ -181,30 +181,9 @@ export default function VisArea({ sx, trajectories, runs, properties }) {
                     >
                         {structuralAnalysisProps.map((property) => {
                             // move z-score into menuitem
-                            const zScores = [];
-                            for (const trajectoryName of Object.keys(trajectories)) {
-                                const trajectory = trajectories[trajectoryName];
-                                const { featureImportance } = trajectory;
-                                if (featureImportance) {
-                                    const normDict = normalizeDict(featureImportance, [-1, 1]);
-                                    zScores.push(
-                                        <>
-                                            <span> </span>
-                                            <span
-                                                key={`${property}_${trajectoryName}`}
-                                                style={{
-                                                    color: d3.interpolateRdBu(normDict[property]),
-                                                }}
-                                            >
-                                                {featureImportance[property].toFixed(2)}
-                                            </span>
-                                        </>
-                                    );
-                                }
-                            }
                             return (
                                 <MenuItem dense divider key={property} value={property}>
-                                    {property} {zScores}
+                                    {property}
                                 </MenuItem>
                             );
                         })}

@@ -185,6 +185,7 @@ class App extends React.Component {
                             newColors.splice(0, removed);
 
                             const newRuns = this.initFilters(run, newTrajComplete);
+
                             this.setState({
                                 isLoading: false,
                                 runs: newRuns,
@@ -207,6 +208,7 @@ class App extends React.Component {
         runs[run] = {
             current_clustering: newTraj.current_clustering,
             chunkingThreshold: newTraj.chunkingThreshold,
+            extents: [0, newTraj.sequence.length],
         };
 
         const filters = {};
@@ -369,6 +371,7 @@ class App extends React.Component {
                         propagateChange={this.propagateChange}
                         properties={properties}
                         setProperties={this.setProperties}
+                        setExtent={this.setExtent}
                     />
                 )}
 

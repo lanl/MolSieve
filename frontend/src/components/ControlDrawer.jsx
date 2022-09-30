@@ -32,6 +32,9 @@ import ChartBox from './ChartBox';
 import FilterComponent from './FilterComponent';
 import Timeline from '../vis/Timeline';
 
+import { structuralAnalysisProps } from '../api/constants';
+import ZTable from './ZTable';
+
 const ADD_FILTER_MODAL = 'add-filter-modal';
 const METADATA_MODAL = 'metadata-modal';
 const ANALYSIS_MODAL = 'analysis-modal';
@@ -175,15 +178,7 @@ function ControlDrawer({
 
     return (
         <>
-            <Drawer
-                ModalProps={{
-                    keepMounted: true,
-                }}
-                hideBackdrop
-                anchor="right"
-                open={drawerOpen}
-                onClose={() => toggleDrawer()}
-            >
+            <Drawer hideBackdrop anchor="right" open={drawerOpen} onClose={() => toggleDrawer()}>
                 <Toolbar
                     variant="dense"
                     sx={{
@@ -191,7 +186,7 @@ function ControlDrawer({
                         boxShadow: '0 1px 2px rgba(0,0,0,0.4)',
                     }}
                 >
-                    <Typography sx={{ flexGrow: 1 }}>Controls</Typography>
+                    <Typography sx={{ flexGrow: 1 }}>Control Panel</Typography>
 
                     <Button
                         size="small"
@@ -211,6 +206,7 @@ function ControlDrawer({
                             return Object.values(trajectories).map((trajectory) => (
                                 <Timeline
                                     width={width}
+                                    setExtent={(name, values) => updateRun(name, 'extents', values)}
                                     height={h}
                                     trajectory={trajectory}
                                     run={runs[trajectory.name]}
@@ -218,6 +214,7 @@ function ControlDrawer({
                             ));
                         }}
                     </ChartBox>
+                    <ZTable trajectories={trajectories} propertyList={structuralAnalysisProps} />
                     {controls}
                 </Container>
             </Drawer>

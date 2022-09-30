@@ -42,7 +42,7 @@ export default function BoxPlot({ data, property, width, height, globalScale, co
                 .attr('y', yScale(q3))
                 .attr('height', yScale(q1) - yScale(q3))
                 .attr('width', adjWidth)
-                .attr('fill', 'gray');
+                .attr('fill', 'white');
 
             svg.selectAll('outliers')
                 .data([q1, q3])

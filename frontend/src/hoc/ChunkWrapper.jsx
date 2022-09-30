@@ -298,6 +298,7 @@ export default function ChunkWrapper({
             sliceBy={sliceBy}
             globalScale={scale}
             showSparkLine={showSparkLine}
+            lineColor={trajectory.colorByCluster(chunk)}
         />
     ) : (
         <div> Loading... </div>

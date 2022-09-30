@@ -11,7 +11,7 @@ const margin = {
     right: 25,
 };
 
-export default function Timeline({ trajectory, width, height, run }) {
+export default function Timeline({ trajectory, width, height, run, setExtent }) {
     const ref = useTrajectoryChartRender(
         (svg) => {
             if (!svg.empty()) {
@@ -67,6 +67,7 @@ export default function Timeline({ trajectory, width, height, run }) {
                 .on('brush', function ({ selection }) {
                     const start = Math.round(scaleX.invert(selection[0]));
                     const end = Math.round(scaleX.invert(selection[1]));
+                    setExtent(name, [start, end]);
                 })
                 .on('end', function ({ selection }) {
                     if (!selection) {
