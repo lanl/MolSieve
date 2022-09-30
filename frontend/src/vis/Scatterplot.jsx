@@ -13,7 +13,7 @@ import '../css/App.css';
 
 import { useExtents } from '../hooks/useExtents';
 
-const margin = { top: 5, bottom: 5, left: 5, right: 5 };
+const margin = { top: 5, bottom: 5, left: 0, right: 5 };
 const sBrush = null;
 let individualSelectionMode = false;
 let selectionBrushMode = false;
@@ -41,6 +41,7 @@ export default function Scatterplot({
     sliceBy,
     showSparkLine,
     globalScale,
+    lineColor,
 }) {
     const [yAttributeList, setYAttributeList] = useState(yAttributeListProp);
 
@@ -102,7 +103,8 @@ export default function Scatterplot({
             .attr('y', 0)
             .attr('height', height)
             .attr('width', scaleX(data[data.length - 1]) - scaleX(data[0]))
-            .attr('fill', color);
+            .attr('fill', color)
+            .classed('unimportant', true);
     };
 
     const ref = useTrajectoryChartRender(
@@ -121,8 +123,8 @@ export default function Scatterplot({
             });
 
             const scaleX = getScale(xAttributeList, xAttribute === 'timestep').range([
-                margin.left + 5,
-                width - margin.right,
+                margin.left,
+                width,
             ]);
 
             const yAttributeListRender = showSparkLine ? yAttributeList : sequence.map((d) => d.id);
@@ -234,8 +236,16 @@ export default function Scatterplot({
                 svg.append('path')
                     .datum(mv)
                     .attr('d', line)
-                    .attr('stroke', 'red')
-                    .attr('fill', 'none');
+                    .attr('stroke', 'gray')
+                    .attr('fill', lineColor)
+                    .attr(
+                        'd',
+                        d3
+                            .area()
+                            .x((d) => scaleX(d.x))
+                            .y0(scaleY(0))
+                            .y1((d) => scaleY(d.y))
+                    );
             }
 
             const yAxisPos = margin.left;
@@ -364,3 +374,7 @@ export default function Scatterplot({
         />
     );
 }
+
+Scatterplot.defaultProps = {
+    lineColor: 'black',
+};

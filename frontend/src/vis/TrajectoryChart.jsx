@@ -32,7 +32,10 @@ function TrajectoryChart({
     property,
 }) {
     const [isHovered, setIsHovered] = useState(false);
-    const [globalScale, setGlobalScale] = useState({min: Number.MAX_VALUE, max: Number.MIN_VALUE});
+    const [globalScale, setGlobalScale] = useState({
+        min: Number.MAX_VALUE,
+        max: Number.MIN_VALUE,
+    });
 
     const updateGlobalScale = (valMin, valMax) => {
         const { min, max } = globalScale;
@@ -41,6 +44,14 @@ function TrajectoryChart({
             setGlobalScale({ min: valMin, max: valMax });
         }
     };
+
+    // reset globalScale whenever property changes
+    useEffect(() => {
+        setGlobalScale({
+            min: Number.MAX_VALUE,
+            max: Number.MIN_VALUE,
+        });
+    }, [property]);
 
     useEffect(() => {
         setIsHovered(isParentHovered);
@@ -156,6 +167,7 @@ function TrajectoryChart({
     );
 
     useEffect(() => {
+        console.log(run.extents);
         d3.select(`#tmain_${trajectory.name}`).attr(
             'transform',
             `translate(${run.extents[0]},${run.extents[1]})`
