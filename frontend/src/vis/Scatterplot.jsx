@@ -246,6 +246,20 @@ export default function Scatterplot({
                             .y0(scaleY(0))
                             .y1((d) => scaleY(d.y))
                     );
+
+                // median line
+                const median = d3.median(yAttributeListRender);
+                svg.selectAll('median')
+                    .data([median])
+                    .enter()
+                    .append('line')
+                    .attr('x1', scaleX(0))
+                    .attr('x2', width)
+                    .attr('y1', (d) => scaleY(d))
+                    .attr('y2', (d) => scaleY(d))
+                    .attr('stroke-width', 2)
+                    .attr('stroke-dasharray', 4)
+                    .attr('stroke', 'red');
             }
 
             const yAxisPos = margin.left;
@@ -310,7 +324,7 @@ export default function Scatterplot({
                     ttInstance = tooltip(tooltipCircle.node(), '');
                 }
                 ttInstance.setContent(
-                    `<b>Timestep</b>:${timestep}<br/><b>${property}</b>: ${value} <br/><b>ID</b>:${stateID}<br/>`
+                    `<b>Timestep</b>: ${timestep}<br/><b>${property}</b>: ${value} <br/><b>ID</b>: ${stateID}<br/>`
                 );
                 ttInstance.show();
             });
