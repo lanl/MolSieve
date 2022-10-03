@@ -24,6 +24,7 @@ export default function Timeline({ trajectory, width, height, run, setExtent }) 
 
             const g = svg.append('g');
             const { chunkList, sequence, name } = trajectory;
+            const { extents } = run;
 
             const topChunkList = chunkList.filter((d) => !d.hasParent);
             const trajG = svg.append('g').classed(name, true);
@@ -54,7 +55,7 @@ export default function Timeline({ trajectory, width, height, run, setExtent }) 
                 .attr('text-anchor', 'middle')
                 .text(name);
 
-            const defaultSelection = scaleX.range();
+            const defaultSelection = [scaleX(extents[0]), scaleX(extents[1])];
 
             const brushG = svg.append('g');
 
@@ -77,7 +78,7 @@ export default function Timeline({ trajectory, width, height, run, setExtent }) 
 
             brushG.call(brush).call(brush.move, defaultSelection);
         },
-        [trajectory, width, height, run]
+        [trajectory, width, height, run, run.chunkingThreshold, trajectory.current_clustering]
     );
 
     return <svg id={`timeline_${trajectory.name}`} ref={ref} viewBox={[0, 0, width, height]} />;
