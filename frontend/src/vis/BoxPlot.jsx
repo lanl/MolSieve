@@ -55,12 +55,12 @@ export default function BoxPlot({
                 .classed('unimportant', true);
 
             // box
-            /* svg.append('rect')
+            svg.append('rect')
                 .attr('x', center - adjWidth / 2)
                 .attr('y', yScale(q3))
                 .attr('height', yScale(q1) - yScale(q3))
                 .attr('width', adjWidth)
-                .attr('fill', 'white');*/
+                .attr('fill', 'white');
 
             svg.selectAll('outliers')
                 .data([q1, q3])

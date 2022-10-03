@@ -195,13 +195,17 @@ export default function Scatterplot({
             } else {
                 if (includeBoundaries) {
                     const { lSlice, rSlice } = sliceBy;
-                    const leftTimestep = leftBoundary.timesteps.slice(
-                        leftBoundary.timesteps.length - lSlice,
-                        leftBoundary.timesteps.length
-                    );
-                    const rightTimestep = rightBoundary.timesteps.slice(0, rSlice);
-                    renderBackgroundColor(svg, scaleX, leftTimestep, leftBoundary.color);
-                    renderBackgroundColor(svg, scaleX, rightTimestep, rightBoundary.color);
+                    if (leftBoundary) {
+                        const leftTimestep = leftBoundary.timesteps.slice(
+                            leftBoundary.timesteps.length - lSlice,
+                            leftBoundary.timesteps.length
+                        );
+                        renderBackgroundColor(svg, scaleX, leftTimestep, leftBoundary.color);
+                    }
+                    if (rightBoundary) {
+                        const rightTimestep = rightBoundary.timesteps.slice(0, rSlice);
+                        renderBackgroundColor(svg, scaleX, rightTimestep, rightBoundary.color);
+                    }
                 }
                 const datum = [];
                 const mv = [];

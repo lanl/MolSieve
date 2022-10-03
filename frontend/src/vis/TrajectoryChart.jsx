@@ -200,9 +200,12 @@ function TrajectoryChart({
     const uChunks = topChunkList.filter((d) => !d.important);
     const iChunks = topChunkList.filter((d) => d.important);
 
+    const unimportantWidthExtent =
+        iChunks.length > 0 ? (width - margin.right) * 0.1 : width - margin.right;
+
     const unimportantWidthScale = d3
         .scaleLinear()
-        .range([minimumChartWidth, (width - margin.right) * 0.1])
+        .range([minimumChartWidth, unimportantWidthExtent])
         .domain([0, d3.max(uChunks, (d) => d.size)]);
 
     const importantWidthScale = d3

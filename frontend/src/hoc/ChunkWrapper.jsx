@@ -1,13 +1,11 @@
 import { React, useState, useEffect } from 'react';
 
 import * as d3 from 'd3';
-import Box from '@mui/material/Box';
-import Button from '@mui/material/Button';
 import Scatterplot from '../vis/Scatterplot';
 
-import BoxPlot from '../vis/BoxPlot';
 import { simpleMovingAverage, boxPlotStats } from '../api/stats';
 import GlobalStates from '../api/globalStates';
+import WebSocketManager from '../api/websocketmanager';
 
 const moveBy = 100;
 const mvaPeriod = 100;
@@ -28,6 +26,9 @@ export default function ChunkWrapper({
     updateGlobalScale,
 }) {
     const [isLoaded, setIsLoaded] = useState(false);
+
+    const [isInterrupted, setIsInterrupted] = useState(false);
+
     const [isExpanded, setIsExpanded] = useState(false);
     const [showSparkLine, setSparkLine] = useState(true);
 
@@ -40,16 +41,9 @@ export default function ChunkWrapper({
         setScale(() => d3.scaleLinear().domain([min, max]).range([height, 5]));
     }, [globalScale]);
 
-    const toggleSparkLine = () => {
-        setSparkLine(!showSparkLine);
-    };
-
-    const [adjWidth, setAdjWidth] = useState();
     const [sliceBy, setSliceBy] = useState();
     const [seq, setSeq] = useState();
     const [mva, setMva] = useState();
-    const [lBoxStats, setLBoxStats] = useState();
-    const [rBoxStats, setRBoxStats] = useState();
 
     const getBoundaryStates = (i, seen, lSequence, rSequence) => {
         let checkStates = [];
@@ -81,7 +75,7 @@ export default function ChunkWrapper({
         return { sendStates, rightStates, leftStates };
     };
 
-    const render = (states, aWidth, lSlice, rSlice) => {
+    const render = (states, lSlice, rSlice) => {
         // breaks because it assumes that both sides are expanding at the same time... need to do seperately
         let s = chunk.timestepSequence;
         let m = chunk.calculateMovingAverage(property, mvaPeriod, simpleMovingAverage);
@@ -89,10 +83,6 @@ export default function ChunkWrapper({
         const as = states.map((id) => GlobalStates.get(id));
 
         const vals = as.map((d) => d[property]);
-
-        // alternatively, can have this be a state in the parent
-        // update in parent and then push it down
-        // GlobalChartScale.update(vals, property);
 
         updateGlobalScale(d3.min(vals), d3.max(vals));
 
@@ -123,7 +113,6 @@ export default function ChunkWrapper({
             ];
         }
 
-        setAdjWidth(aWidth);
         setSliceBy({ lSlice, rSlice });
         setSeq(s);
         setMva(m);
@@ -131,17 +120,32 @@ export default function ChunkWrapper({
     };
 
     useEffect(() => {
-        const socket = new WebSocket('ws://localhost:8000/api/load_properties_for_subset');
+        const socket = WebSocketManager.connect(
+            'ws://localhost:8000/api/load_properties_for_subset'
+        );
         const seen = new Set();
         let i = 0;
         let lStates = [];
         let rStates = [];
+
+        socket.addEventListener('close', ({ code }) => {
+            if (code === 3001) {
+                setIsInterrupted(true);
+            }
+        });
 
         if (isExpanded) {
             const lToDo = leftBoundary ? leftBoundary.timestepSequence.map((d) => d.id) : undefined;
             const rToDo = rightBoundary
                 ? rightBoundary.timestepSequence.map((d) => d.id)
                 : undefined;
+
+            // should expansion be allowed if neither are visible?
+            if (!lToDo && !rToDo) {
+                socket.close();
+                setIsExpanded(false);
+                return;
+            }
 
             const centerMVA = chunk.calculateMovingAverage(
                 property,
@@ -175,7 +179,7 @@ export default function ChunkWrapper({
 
                 const renderStates = [...new Set(lStates), ...chunk.states, ...new Set(rStates)];
 
-                render(renderStates, width, lStates.length, rStates.length);
+                render(renderStates, lStates.length, rStates.length);
 
                 let sendStates = [];
                 const boundaryStates = getBoundaryStates(i, seen, lToDo, rToDo);
@@ -232,15 +236,7 @@ export default function ChunkWrapper({
                 const parsedData = JSON.parse(e.data);
                 GlobalStates.addPropToStates(parsedData);
 
-                const lData = lStates.map((d) => GlobalStates.get(d)[property]);
-                const rData = rStates.map((d) => GlobalStates.get(d)[property]);
-
-                const lStats = boxPlotStats(lData);
-                const rStats = boxPlotStats(rData);
-                setLBoxStats(lStats);
-                setRBoxStats(rStats);
-
-                render(cStates, 0.8 * width);
+                render(cStates);
 
                 let sendStates = [];
 
@@ -265,7 +261,7 @@ export default function ChunkWrapper({
                 }
 
                 if (!sendStates.length) {
-                    socket.close();
+                    socket.close(1000);
                 } else {
                     i++;
                     socket.send(
@@ -278,6 +274,10 @@ export default function ChunkWrapper({
             });
         }
     }, [isExpanded, property, width, height]);
+
+    if (isInterrupted) {
+        return <div>Loading interrupted</div>;
+    }
 
     return isLoaded ? (
         <Scatterplot

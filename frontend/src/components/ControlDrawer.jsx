@@ -206,7 +206,9 @@ function ControlDrawer({
                             return Object.values(trajectories).map((trajectory) => (
                                 <Timeline
                                     width={width}
-                                    setExtent={(name, values) => updateRun(name, 'extents', values)}
+                                    setExtent={(name, values) => {
+                                        updateRun(name, 'extents', values);
+                                    }}
                                     height={h}
                                     trajectory={trajectory}
                                     run={runs[trajectory.name]}

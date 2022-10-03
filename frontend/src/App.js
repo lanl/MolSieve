@@ -109,8 +109,8 @@ class App extends React.Component {
     recalculate_clustering = (run, clusters) =>
         // first check if the state has that clustering already calculated
         new Promise((resolve, reject) => {
-            WebSocketManager.clear();
             const { trajectories, colors } = this.state;
+            WebSocketManager.clear();
 
             const currentTraj = trajectories[run];
 
@@ -259,7 +259,6 @@ class App extends React.Component {
     };
 
     updateRun = (run, attribute, value) => {
-        WebSocketManager.clear();
         const { runs } = this.state;
         runs[run][attribute] = value;
         this.setState({ runs: { ...runs } });
@@ -267,7 +266,6 @@ class App extends React.Component {
 
     simplifySet = (run, threshold) => {
         WebSocketManager.clear();
-
         const { trajectories } = this.state;
         const { [run]: newTraj } = trajectories;
 
