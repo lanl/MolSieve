@@ -324,7 +324,9 @@ export default function Scatterplot({
                     ttInstance = tooltip(tooltipCircle.node(), '');
                 }
                 ttInstance.setContent(
-                    `<b>Timestep</b>: ${timestep}<br/><b>${property}</b>: ${value} <br/><b>ID</b>: ${stateID}<br/>`
+                    `<b>Timestep</b>: ${timestep}<br/><b>${property}</b>: ${value.toFixed(
+                        2
+                    )} <br/><b>ID</b>: ${stateID}<br/>`
                 );
                 ttInstance.show();
             });
