@@ -117,51 +117,6 @@ function TrajectoryChart({
             if (!svg.empty()) {
                 svg.selectAll('g').remove();
             }
-
-            const { chunkList, name } = trajectory;
-            const topChunkList = chunkList.filter((d) => !d.hasParent);
-            const uChunks = topChunkList.filter((d) => !d.important);
-            const iChunks = topChunkList.filter((d) => d.important);
-
-            const unimportantWidthScale = d3
-                .scaleLinear()
-                .range([minimumChartWidth, (width - margin.right) * 0.1])
-                .domain([0, d3.max(uChunks, (d) => d.size)]);
-
-            const importantWidthScale = d3
-                .scaleLinear()
-                .range([minimumChartWidth, width - margin.right])
-                .domain([0, d3.max(iChunks, (d) => d.size)]);
-
-            const getWidthScale = (data) => {
-                if (data.important) {
-                    return importantWidthScale(data.size);
-                }
-                return unimportantWidthScale(data.size);
-            };
-
-            const totalSum = d3.sum(topChunkList, (d) => getWidthScale(d));
-
-            const scaleX = (w) => {
-                // given a width, scale it down so that it will fit within 1 screen
-                const per = w / totalSum;
-                return per * (width - margin.right);
-            };
-
-            const tickNames = [];
-            const g = svg.append('g').attr('id', `tmain_${name}`);
-
-            const chunkGroup = g.append('g').attr('id', 'chunk');
-            const importantGroup = g.append('g').attr('id', 'sequence_important');
-
-            importantGroup.append('g').attr('id', `g_${name}`).attr('name', `${name}`);
-            chunkGroup.append('g').attr('id', `c_${name}`).attr('name', `${name}`);
-
-            tickNames.push(name);
-
-            renderChunks(topChunkList, scaleX, getWidthScale);
-
-            loadingCallback();
         },
         [trajectory, run, width, height, charts]
     );

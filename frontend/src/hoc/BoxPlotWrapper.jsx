@@ -42,6 +42,7 @@ export default function ChunkWrapper({
         <BoxPlot
             showYAxis={false}
             data={boxStats}
+            chunk={chunk}
             property={property}
             width={width}
             height={height}

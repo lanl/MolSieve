@@ -7,7 +7,16 @@ import { tooltip } from '../api/myutils';
 
 const margin = { top: 20, bottom: 20, left: 0, right: 0 };
 
-export default function BoxPlot({ data, property, width, height, globalScale, color, showYAxis }) {
+export default function BoxPlot({
+    data,
+    property,
+    width,
+    height,
+    globalScale,
+    color,
+    showYAxis,
+    chunk,
+}) {
     const ref = useTrajectoryChartRender(
         (svg) => {
             if (!svg.empty()) {
@@ -36,13 +45,22 @@ export default function BoxPlot({ data, property, width, height, globalScale, co
                 .attr('y2', yScale(maxThreshold))
                 .attr('stroke', color); */
 
-            // box
+            // background color
             svg.append('rect')
+                .attr('x', 0)
+                .attr('y', 0)
+                .attr('height', height)
+                .attr('width', width)
+                .attr('fill', chunk.color)
+                .classed('unimportant', true);
+
+            // box
+            /* svg.append('rect')
                 .attr('x', center - adjWidth / 2)
                 .attr('y', yScale(q3))
                 .attr('height', yScale(q1) - yScale(q3))
                 .attr('width', adjWidth)
-                .attr('fill', 'white');
+                .attr('fill', 'white');*/
 
             svg.selectAll('outliers')
                 .data([q1, q3])
@@ -70,7 +88,7 @@ export default function BoxPlot({ data, property, width, height, globalScale, co
             svg.on('mouseover', () =>
                 tooltip(
                     svg.node(),
-                    `<em>${property}</em><br/> <b>Q1</b>: ${q1} <b>Median</b>: ${median} <b>Q3</b>: ${q3} <b>IQR</b>: ${iqr}`
+                    `${chunk.toString()}<br/><em>${property}</em><br/> <b>Q1</b>: ${q1} <b>Median</b>: ${median} <b>Q3</b>: ${q3} <b>IQR</b>: ${iqr}`
                 )
             );
         },
