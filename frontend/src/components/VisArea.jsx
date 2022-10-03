@@ -87,8 +87,13 @@ export default function VisArea({ sx, trajectories, runs, properties }) {
                             </Box>
 
                             {Object.values(trajectories).map((trajectory) => {
-                                const { chunkList } = trajectory;
-                                const topChunkList = chunkList.filter((d) => !d.hasParent);
+                                const { chunkList, name } = trajectory;
+                                const topChunkList = chunkList
+                                    .filter((d) => !d.hasParent)
+                                    .filter((d) => {
+                                        const { extents } = runs[name];
+                                        return extents[0] <= d.timestep && extents[1] >= d.last;
+                                    });
                                 const iChunks = topChunkList.filter((d) => d.important);
                                 const uChunks = topChunkList.filter((d) => !d.important);
 

@@ -122,13 +122,6 @@ function TrajectoryChart({
     );
 
     useEffect(() => {
-        console.log(run.extents);
-        d3.select(`#tmain_${trajectory.name}`).attr(
-            'transform',
-            `translate(${run.extents[0]},${run.extents[1]})`
-        );
-    }, [run.extents]);
-    useEffect(() => {
         /* if (stateHovered) {
             if (stateHighlight) {
                 d3.select(ref.current)
@@ -198,7 +191,12 @@ function TrajectoryChart({
     }, [visibleExtent]);
 
     const { chunkList } = trajectory;
-    const topChunkList = chunkList.filter((d) => !d.hasParent);
+    const topChunkList = chunkList
+        .filter((d) => !d.hasParent)
+        .filter((d) => {
+            const { extents } = run;
+            return extents[0] <= d.timestep && extents[1] >= d.last;
+        });
     const uChunks = topChunkList.filter((d) => !d.important);
     const iChunks = topChunkList.filter((d) => d.important);
 
