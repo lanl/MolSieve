@@ -6,7 +6,7 @@ import GlobalChartScale from '../api/GlobalChartScale';
 
 import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
 
-import { onEntityMouseOver, getScale } from '../api/myutils';
+import { onEntityMouseOver, getScale, tooltip } from '../api/myutils';
 
 import '../css/vis.css';
 import '../css/App.css';
@@ -17,6 +17,7 @@ const margin = { top: 5, bottom: 5, left: 0, right: 5 };
 const sBrush = null;
 let individualSelectionMode = false;
 let selectionBrushMode = false;
+let ttInstance;
 
 export default function Scatterplot({
     sequence,
@@ -117,15 +118,14 @@ export default function Scatterplot({
                 return;
             }
 
-            const xAttribute = 'timestep';
             const xAttributeList = sequence.map((d) => {
                 return d.timestep;
             });
 
-            const scaleX = getScale(xAttributeList, xAttribute === 'timestep').range([
-                margin.left,
-                width,
-            ]);
+            const scaleX = d3
+                .scaleLinear()
+                .domain(d3.extent(xAttributeList))
+                .range([margin.left, width]);
 
             const yAttributeListRender = showSparkLine ? yAttributeList : sequence.map((d) => d.id);
             const yAttributeRender = showSparkLine ? property : 'id';
@@ -288,9 +288,42 @@ export default function Scatterplot({
                 // .attr('x', (_, i) => zx(xAttributeList[i]));
                 // .attr('y', (_, i) => zy(yAttributeList[i]));
             });
-
-
             svg.call(zoom); */
+
+            const tooltipCircle = svg.selectAll('circle').data([0]).enter().append('circle');
+
+            // add value tooltip
+            svg.on('mousemove', (event) => {
+                const i = d3.bisectCenter(xAttributeList, scaleX.invert(d3.pointer(event)[0]));
+                const timestep = xAttributeList[i];
+                const value = movingAverage[i];
+                const stateID = trajectory.sequence[i];
+
+                tooltipCircle
+                    .attr('cx', scaleX(timestep))
+                    .attr('cy', scaleY(value))
+                    .attr('stroke', 'gray')
+                    .attr('fill', 'black')
+                    .attr('r', 3);
+
+                if (!ttInstance) {
+                    ttInstance = tooltip(tooltipCircle.node(), '');
+                }
+                ttInstance.setContent(
+                    `<b>Timestep</b>:${timestep}<br/><b>${property}</b>: ${value} <br/><b>ID</b>:${stateID}<br/>`
+                );
+                ttInstance.show();
+            });
+
+            svg.on('mouseenter', () => {
+                tooltipCircle.attr('visibility', 'visible');
+            });
+            // clean up memory
+            svg.on('mouseleave', () => {
+                tooltipCircle.attr('visibility', 'hidden');
+                ttInstance.destroy();
+                ttInstance = undefined;
+            });
 
             // applyFilters(trajectories, runs, ref);
         },
