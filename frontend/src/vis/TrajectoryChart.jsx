@@ -197,6 +197,45 @@ function TrajectoryChart({
         }
     }, [visibleExtent]);
 
+    const { chunkList } = trajectory;
+    const topChunkList = chunkList.filter((d) => !d.hasParent);
+    const uChunks = topChunkList.filter((d) => !d.important);
+    const iChunks = topChunkList.filter((d) => d.important);
+
+    const unimportantWidthScale = d3
+        .scaleLinear()
+        .range([minimumChartWidth, (width - margin.right) * 0.1])
+        .domain([0, d3.max(uChunks, (d) => d.size)]);
+
+    const importantWidthScale = d3
+        .scaleLinear()
+        .range([minimumChartWidth, width - margin.right])
+        .domain([0, d3.max(iChunks, (d) => d.size)]);
+
+    const getWidthScale = (data) => {
+        if (data.important) {
+            return importantWidthScale(data.size);
+        }
+        return unimportantWidthScale(data.size);
+    };
+
+    const totalSum = d3.sum(topChunkList, (d) => getWidthScale(d));
+
+    const scaleX = (w) => {
+        // given a width, scale it down so that it will fit within 1 screen
+        const per = w / totalSum;
+        return per * (width - margin.right);
+    };
+
+    const getX = (i, w) => {
+        if (i > 0) {
+            const d = topChunkList[i - 1];
+            const wl = scaleX(getWidthScale(d));
+            return getX(i - 1, w + wl);
+        }
+        return w;
+    };
+
     return (
         <svg
             className="vis"
@@ -208,46 +247,7 @@ function TrajectoryChart({
             {charts.map((child) => {
                 const { chunk, id, leftBoundary, rightBoundary, important } = child;
 
-                const { chunkList } = trajectory;
-                const topChunkList = chunkList.filter((d) => !d.hasParent);
-                const uChunks = topChunkList.filter((d) => !d.important);
-                const iChunks = topChunkList.filter((d) => d.important);
-
                 const chunkIndex = topChunkList.indexOf(chunk);
-
-                const unimportantWidthScale = d3
-                    .scaleLinear()
-                    .range([minimumChartWidth, (width - margin.right) * 0.1])
-                    .domain([0, d3.max(uChunks, (d) => d.size)]);
-
-                const importantWidthScale = d3
-                    .scaleLinear()
-                    .range([minimumChartWidth, width - margin.right])
-                    .domain([0, d3.max(iChunks, (d) => d.size)]);
-
-                const getWidthScale = (data) => {
-                    if (data.important) {
-                        return importantWidthScale(data.size);
-                    }
-                    return unimportantWidthScale(data.size);
-                };
-
-                const totalSum = d3.sum(topChunkList, (d) => getWidthScale(d));
-
-                const scaleX = (w) => {
-                    // given a width, scale it down so that it will fit within 1 screen
-                    const per = w / totalSum;
-                    return per * (width - margin.right);
-                };
-
-                const getX = (i, w) => {
-                    if (i > 0) {
-                        const d = topChunkList[i - 1];
-                        const wl = scaleX(getWidthScale(d));
-                        return getX(i - 1, w + wl);
-                    }
-                    return w;
-                };
 
                 const chartW = scaleX(getWidthScale(chunk));
                 return (
