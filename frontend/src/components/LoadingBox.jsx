@@ -3,17 +3,9 @@ import React from 'react';
 import Box from '@mui/material/Box';
 import CircularProgress from '@mui/material/CircularProgress';
 
-export default function LoadingBox({ children, fillContainer }) {
-    const flexGrow = fillContainer ? 1 : 0;
+export default function LoadingBox({ children, sx }) {
     return (
-        <Box
-            sx={{
-                display: 'flex',
-                flexGrow,
-                alignItems: 'center',
-                justifyContent: 'center',
-            }}
-        >
+        <Box sx={sx}>
             <CircularProgress color="primary" />
             {children}
         </Box>
@@ -22,4 +14,10 @@ export default function LoadingBox({ children, fillContainer }) {
 
 LoadingBox.defaultProps = {
     fillContainer: true,
+    sx: {
+        display: 'flex',
+        flexGrow: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
 };

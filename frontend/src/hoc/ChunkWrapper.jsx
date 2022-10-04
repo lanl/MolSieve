@@ -27,6 +27,7 @@ export default function ChunkWrapper({
     updateGlobalScale,
 }) {
     const [isLoaded, setIsLoaded] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
 
     const [isInterrupted, setIsInterrupted] = useState(false);
 
@@ -129,6 +130,8 @@ export default function ChunkWrapper({
         let lStates = [];
         let rStates = [];
 
+        setIsLoading(true);
+
         socket.addEventListener('close', ({ code }) => {
             if (code === 3001) {
                 setIsInterrupted(true);
@@ -201,7 +204,8 @@ export default function ChunkWrapper({
 
                 // send requested states, if not, close connection
                 if (!sendStates.length) {
-                    socket.close();
+                    socket.close(1000);
+                    setIsLoading(false);
                 } else {
                     i++;
                     socket.send(
@@ -263,6 +267,7 @@ export default function ChunkWrapper({
 
                 if (!sendStates.length) {
                     socket.close(1000);
+                    setIsLoading(false);
                 } else {
                     i++;
                     socket.send(
