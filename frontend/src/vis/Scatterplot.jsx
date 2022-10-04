@@ -193,21 +193,40 @@ export default function Scatterplot({
                         setStateHovered(null);
                     });
             } else {
+                let leftTimestep;
+                let rightTimestep;
                 if (includeBoundaries) {
                     const { lSlice, rSlice } = sliceBy;
                     if (leftBoundary) {
-                        const leftTimestep = leftBoundary.timesteps.slice(
+                        leftTimestep = leftBoundary.timesteps.slice(
                             leftBoundary.timesteps.length - lSlice,
                             leftBoundary.timesteps.length
                         );
                         renderBackgroundColor(svg, scaleX, leftTimestep, leftBoundary.color);
                     }
                     if (rightBoundary) {
-                        const rightTimestep = rightBoundary.timesteps.slice(0, rSlice);
+                        rightTimestep = rightBoundary.timesteps.slice(0, rSlice);
                         renderBackgroundColor(svg, scaleX, rightTimestep, rightBoundary.color);
                     }
                 }
-                const datum = [];
+
+                // color background with the color of the next chunk
+                // helps user see what the chunk is transitioning to
+                if (rightBoundary) {
+                    let colorBackground = xAttributeList;
+                    if (includeBoundaries) {
+                        // need to remove this from the list so that the colors do not overlap
+                        if (leftBoundary) {
+                            colorBackground = colorBackground.slice(leftTimestep.length + 1);
+                        }
+                        colorBackground = colorBackground.slice(
+                            0,
+                            colorBackground.length - rightTimestep.length + 1
+                        );
+                    }
+                    renderBackgroundColor(svg, scaleX, colorBackground, rightBoundary.color);
+                }
+
                 const mv = [];
 
                 const line = d3

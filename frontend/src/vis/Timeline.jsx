@@ -68,6 +68,7 @@ export default function Timeline({ trajectory, width, height, run, setExtent }) 
                 .on('brush', function ({ selection }) {
                     const start = Math.round(scaleX.invert(selection[0]));
                     const end = Math.round(scaleX.invert(selection[1]));
+                    // this gets called one time before the start, which is why websockets get cleared on initial render
                     setExtent(name, [start, end]);
                 })
                 .on('end', function ({ selection }) {

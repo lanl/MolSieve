@@ -191,6 +191,8 @@ function TrajectoryChart({
     }, [visibleExtent]);
 
     const { chunkList } = trajectory;
+
+    // here we can filter out the un-rendered charts right away since we only care about rendering here
     const topChunkList = chunkList
         .filter((d) => !d.hasParent)
         .filter((d) => {

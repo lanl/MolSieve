@@ -21,6 +21,8 @@ import { useContextMenu } from '../hooks/useContextMenu';
 import { onEntityMouseOver, normalizeDict } from '../api/myutils';
 import { structuralAnalysisProps } from '../api/constants';
 
+import WebSocketManager from '../api/websocketmanager';
+
 const SINGLE_STATE_MODAL = 'single_state';
 
 export default function VisArea({ sx, trajectories, runs, properties }) {
@@ -66,6 +68,7 @@ export default function VisArea({ sx, trajectories, runs, properties }) {
         ids.forEach((id) => applyFilters(trajectories, runs, id));
     }, [runs]); */
 
+    // only clear websockets when charts change!
     return (
         <Container id="c" maxWidth={false} sx={{ display: 'flex', flexDirection: 'row', flex: 1 }}>
             {isLoading && <LoadingModal open={isLoading} title="Rendering..." />}
@@ -88,14 +91,26 @@ export default function VisArea({ sx, trajectories, runs, properties }) {
 
                             {Object.values(trajectories).map((trajectory) => {
                                 const { chunkList, name } = trajectory;
-                                const topChunkList = chunkList
-                                    .filter((d) => !d.hasParent)
+                                // this is all of the chunks we need for data
+                                const topChunkList = chunkList.filter((d) => !d.hasParent);
+
+                                // the important chunks we will render
+                                const iChunks = topChunkList
+                                    .filter((d) => d.important)
                                     .filter((d) => {
                                         const { extents } = runs[name];
                                         return extents[0] <= d.timestep && extents[1] >= d.last;
                                     });
-                                const iChunks = topChunkList.filter((d) => d.important);
-                                const uChunks = topChunkList.filter((d) => !d.important);
+
+                                // the unimportant chunks we will render
+                                const uChunks = topChunkList
+                                    .filter((d) => !d.important)
+                                    .filter((d) => {
+                                        const { extents } = runs[name];
+                                        return extents[0] <= d.timestep && extents[1] >= d.last;
+                                    });
+
+                                // NOTE: we STILL need the topChunkList to be all of the chunks for expansion to work when zoomed in!
 
                                 const uCharts = uChunks.map((chunk) => {
                                     return {
