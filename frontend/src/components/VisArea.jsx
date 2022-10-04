@@ -63,7 +63,7 @@ export default function VisArea({ sx, trajectories, runs, properties }) {
 
     const selectChunk = (chunk) => {
         // add chunk if it is not already in the array, otherwise remove it from the array
-        if (!selectedChunks.includes(chunk.id)) {
+        if (!selectedChunks.map((d) => d.id).includes(chunk.id)) {
             // add chunk to array, if it is larger than 2, remove the first element
             if (selectedChunks.length === 2) {
                 setSelectedChunks([...selectedChunks.slice(1), chunk]);
