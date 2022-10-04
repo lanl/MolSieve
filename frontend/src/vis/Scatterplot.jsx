@@ -259,7 +259,7 @@ export default function Scatterplot({
                 svg.append('path')
                     .datum(mv)
                     .attr('d', line)
-                    .attr('stroke', 'gray')
+                    .attr('stroke', '#8b8b8b')
                     .attr('fill', lineColor)
                     .attr(
                         'd',

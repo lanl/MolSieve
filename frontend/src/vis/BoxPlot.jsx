@@ -60,7 +60,7 @@ export default function BoxPlot({
                 .attr('y', yScale(q3))
                 .attr('height', yScale(q1) - yScale(q3))
                 .attr('width', adjWidth)
-                .attr('fill', 'white');
+                .attr('fill', '#ededed');
 
             svg.selectAll('outliers')
                 .data([q1, q3])
@@ -70,8 +70,8 @@ export default function BoxPlot({
                 .attr('x2', center + adjWidth / 2)
                 .attr('y1', (d) => yScale(d))
                 .attr('y2', (d) => yScale(d))
-                .attr('stroke-width', 2)
-                .attr('stroke', 'black');
+                .attr('stroke-width', 1.5)
+                .attr('stroke', '#8b8b8b');
 
             svg.selectAll('median')
                 .data([median])

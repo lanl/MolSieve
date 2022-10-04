@@ -16,12 +16,12 @@ export default function EmbeddedChart({
     const ref = createRef();
     const [isHovered, setIsHovered] = useState(false);
 
-    const borderStyle = selected ? 'dashed' : 'solid';
+    const borderStyle = selected ? 3 : 1;
     return (
         <Box
             ref={ref}
-            sx={{ display: 'flex', borderStyle }}
-            border={1}
+            sx={{ display: 'flex' }}
+            border={borderStyle}
             borderColor={color}
             width={width - margin.left}
             height={height - margin.top}

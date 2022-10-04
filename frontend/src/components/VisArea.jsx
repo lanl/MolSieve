@@ -1,14 +1,12 @@
 import { React, useState, useEffect, useCallback } from 'react';
 import Box from '@mui/material/Box';
-import Typography from '@mui/material/Typography';
 import Container from '@mui/material/Container';
 import Button from '@mui/material/Button';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
 import Select from '@mui/material/Select';
-import * as d3 from 'd3';
+import Grid from '@mui/material/Grid';
 import TrajectoryChart from '../vis/TrajectoryChart';
-import Legend from '../vis/Legend';
 import ChartBox from './ChartBox';
 
 import SingleStateModal from '../modals/SingleStateModal';
@@ -17,11 +15,11 @@ import LoadingModal from '../modals/LoadingModal';
 import '../css/App.css';
 import GlobalStates from '../api/globalStates';
 
+import ChunkComparisonView from '../hoc/ChunkComparisonView';
+
 import { useContextMenu } from '../hooks/useContextMenu';
 import { onEntityMouseOver, normalizeDict } from '../api/myutils';
 import { structuralAnalysisProps } from '../api/constants';
-
-import WebSocketManager from '../api/websocketmanager';
 
 const SINGLE_STATE_MODAL = 'single_state';
 
@@ -33,6 +31,8 @@ export default function VisArea({ sx, trajectories, runs, properties }) {
 
     const [chunkSelectionMode, setChunkSelectionMode] = useState(false);
     const [selectedChunks, setSelectedChunks] = useState([]);
+
+    const [chunkPairs, setChunkPairs] = useState([]);
 
     const [globalProperty, setGlobalProperty] = useState(structuralAnalysisProps[0]);
     const { contextMenu, toggleMenu } = useContextMenu();
@@ -66,15 +66,25 @@ export default function VisArea({ sx, trajectories, runs, properties }) {
         if (!selectedChunks.includes(chunk.id)) {
             // add chunk to array, if it is larger than 2, remove the first element
             if (selectedChunks.length === 2) {
-                setSelectedChunks([...selectedChunks.slice(1), chunk.id]);
+                setSelectedChunks([...selectedChunks.slice(1), chunk]);
             } else {
-                setSelectedChunks([...selectedChunks, chunk.id]);
+                setSelectedChunks([...selectedChunks, chunk]);
             }
         } else {
-            setSelectedChunks(selectedChunks.filter((id) => id !== chunk.id));
+            setSelectedChunks(selectedChunks.filter((oChunk) => oChunk.id !== chunk.id));
         }
     };
 
+    const selectionButtonClick = () => {
+        if (chunkSelectionMode) {
+            // check contents of selectedChunks, and then clear them
+            if (selectedChunks.length === 2) {
+                setChunkPairs([...chunkPairs, selectedChunks]);
+            }
+            setSelectedChunks([]);
+        }
+        setChunkSelectionMode(!chunkSelectionMode);
+    };
     useEffect(() => {
         if (stateClicked) {
             toggleModal(SINGLE_STATE_MODAL);
@@ -88,7 +98,11 @@ export default function VisArea({ sx, trajectories, runs, properties }) {
 
     // only clear websockets when charts change!
     return (
-        <Container id="c" maxWidth={false} sx={{ display: 'flex', flexDirection: 'row', flex: 1 }}>
+        <Container
+            id="c"
+            maxWidth={false}
+            sx={{ display: 'flex', flexDirection: 'column', flex: 1 }}
+        >
             {isLoading && <LoadingModal open={isLoading} title="Rendering..." />}
             <Box sx={{ display: 'flex', flexDirection: 'row', gap: '10px' }}>
                 <ChartBox sx={{ flexGrow: 1 }}>
@@ -108,7 +122,7 @@ export default function VisArea({ sx, trajectories, runs, properties }) {
                                 <Button
                                     color="secondary"
                                     size="small"
-                                    onClick={() => setChunkSelectionMode(!chunkSelectionMode)}
+                                    onClick={() => selectionButtonClick()}
                                 >
                                     ChunkSelectionMode
                                 </Button>
@@ -198,6 +212,21 @@ export default function VisArea({ sx, trajectories, runs, properties }) {
                     )}
                 </ChartBox>
             </Box>
+            <Grid container spacing={2}>
+                {chunkPairs.map((pair) => {
+                    const c1 = pair[0];
+                    const c2 = pair[1];
+                    return (
+                        <Grid item xs={2}>
+                            <ChunkComparisonView
+                                chunk1={c1}
+                                chunk2={c2}
+                                property={globalProperty}
+                            />
+                        </Grid>
+                    );
+                })}
+            </Grid>
 
             {/* works for now, not the cleanest solution */}
             {currentModal === SINGLE_STATE_MODAL && stateClicked && (
