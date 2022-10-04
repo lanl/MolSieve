@@ -30,6 +30,9 @@ function TrajectoryChart({
     isParentHovered,
     charts,
     property,
+    chunkSelectionMode,
+    selectChunk,
+    selectedChunks,
 }) {
     const [isHovered, setIsHovered] = useState(false);
     const [globalScale, setGlobalScale] = useState({
@@ -261,7 +264,17 @@ function TrajectoryChart({
                         width={chartW}
                         height={height / 2}
                     >
-                        <EmbeddedChart height={height / 2} width={chartW} color={chunk.color}>
+                        <EmbeddedChart
+                            height={height / 2}
+                            width={chartW}
+                            color={chunk.color}
+                            onChartClick={() => {
+                                if (chunkSelectionMode) {
+                                    selectChunk(chunk);
+                                }
+                            }}
+                            selected={selectedChunks.includes(chunk.id)}
+                        >
                             {(ww, hh, isPHovered) =>
                                 important ? (
                                     <ChunkWrapper
@@ -277,6 +290,7 @@ function TrajectoryChart({
                                         isParentHovered={isPHovered}
                                         globalScale={globalScale}
                                         updateGlobalScale={updateGlobalScale}
+                                        disableControls={chunkSelectionMode}
                                     />
                                 ) : (
                                     <BoxPlotWrapper

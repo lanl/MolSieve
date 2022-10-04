@@ -30,6 +30,10 @@ export default function VisArea({ sx, trajectories, runs, properties }) {
     const [isLoading, setIsLoading] = useState(false);
     const [stateHovered, setStateHovered] = useState(null);
     const [stateClicked, setClicked] = useState(null);
+
+    const [chunkSelectionMode, setChunkSelectionMode] = useState(false);
+    const [selectedChunks, setSelectedChunks] = useState([]);
+
     const [globalProperty, setGlobalProperty] = useState(structuralAnalysisProps[0]);
     const { contextMenu, toggleMenu } = useContextMenu();
 
@@ -54,6 +58,20 @@ export default function VisArea({ sx, trajectories, runs, properties }) {
             setCurrentModal(currentModal);
         } else {
             setCurrentModal(key);
+        }
+    };
+
+    const selectChunk = (chunk) => {
+        // add chunk if it is not already in the array, otherwise remove it from the array
+        if (!selectedChunks.includes(chunk.id)) {
+            // add chunk to array, if it is larger than 2, remove the first element
+            if (selectedChunks.length === 2) {
+                setSelectedChunks([...selectedChunks.slice(1), chunk.id]);
+            } else {
+                setSelectedChunks([...selectedChunks, chunk.id]);
+            }
+        } else {
+            setSelectedChunks(selectedChunks.filter((id) => id !== chunk.id));
         }
     };
 
@@ -86,6 +104,13 @@ export default function VisArea({ sx, trajectories, runs, properties }) {
                                     onClick={(e) => toggleMenu(e)}
                                 >
                                     BoxPlotAttributes
+                                </Button>
+                                <Button
+                                    color="secondary"
+                                    size="small"
+                                    onClick={() => setChunkSelectionMode(!chunkSelectionMode)}
+                                >
+                                    ChunkSelectionMode
                                 </Button>
                             </Box>
 
@@ -163,6 +188,9 @@ export default function VisArea({ sx, trajectories, runs, properties }) {
                                         isParentHovered={isHovered}
                                         charts={charts}
                                         property={globalProperty}
+                                        chunkSelectionMode={chunkSelectionMode}
+                                        selectChunk={(chunk) => selectChunk(chunk)}
+                                        selectedChunks={selectedChunks}
                                     />
                                 );
                             })}

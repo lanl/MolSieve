@@ -25,6 +25,7 @@ export default function ChunkWrapper({
     isParentHovered,
     globalScale,
     updateGlobalScale,
+    disableControls,
 }) {
     const [isLoaded, setIsLoaded] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
@@ -297,7 +298,11 @@ export default function ChunkWrapper({
             setStateClicked={setStateClicked}
             id={`sc_${chunk.id}`}
             property={property}
-            doubleClickAction={() => setIsExpanded(!isExpanded)}
+            doubleClickAction={() => {
+                if (!disableControls) {
+                    setIsExpanded(!isExpanded);
+                }
+            }}
             includeBoundaries={isExpanded}
             leftBoundary={leftBoundary}
             rightBoundary={rightBoundary}
