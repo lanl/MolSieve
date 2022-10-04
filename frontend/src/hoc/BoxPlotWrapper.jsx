@@ -5,6 +5,7 @@ import { boxPlotStats } from '../api/stats';
 
 import BoxPlot from '../vis/BoxPlot';
 import GlobalStates from '../api/globalStates';
+import LoadingBox from '../components/LoadingBox';
 
 export default function ChunkWrapper({
     chunk,
@@ -49,6 +50,6 @@ export default function ChunkWrapper({
             globalScale={scale}
         />
     ) : (
-        <div>Loading...</div>
+        <LoadingBox/>
     );
 }

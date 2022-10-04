@@ -6,6 +6,7 @@ import Scatterplot from '../vis/Scatterplot';
 import { simpleMovingAverage, boxPlotStats } from '../api/stats';
 import GlobalStates from '../api/globalStates';
 import WebSocketManager from '../api/websocketmanager';
+import LoadingBox from '../components/LoadingBox';
 
 const moveBy = 100;
 const mvaPeriod = 100;
@@ -301,7 +302,7 @@ export default function ChunkWrapper({
             lineColor={trajectory.colorByCluster(chunk)}
         />
     ) : (
-        <div> Loading... </div>
+        <LoadingBox />
     );
 }
 
