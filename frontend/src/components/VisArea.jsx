@@ -85,6 +85,7 @@ export default function VisArea({ sx, trajectories, runs, properties }) {
         }
         setChunkSelectionMode(!chunkSelectionMode);
     };
+
     useEffect(() => {
         if (stateClicked) {
             toggleModal(SINGLE_STATE_MODAL);
@@ -95,6 +96,12 @@ export default function VisArea({ sx, trajectories, runs, properties }) {
         const ids = getClassIds('filterable');
         ids.forEach((id) => applyFilters(trajectories, runs, id));
     }, [runs]); */
+
+    useEffect(() => {
+        setSelectedChunks([]);
+        setChunkPairs([]);
+        setChunkSelectionMode(false);
+    }, [trajectories]);
 
     // only clear websockets when charts change!
     return (
@@ -216,11 +223,17 @@ export default function VisArea({ sx, trajectories, runs, properties }) {
                 {chunkPairs.map((pair) => {
                     const c1 = pair[0];
                     const c2 = pair[1];
+
+                    // sort so that c1 is always the smaller id number
+                    // could also do by timestep - sorted by temporal order
+                    const first = c1.id < c2.id ? c1 : c2;
+                    const second = c1.id < c2.id ? c2 : c1;
+
                     return (
                         <Grid item xs={2}>
                             <ChunkComparisonView
-                                chunk1={c1}
-                                chunk2={c2}
+                                chunk1={first}
+                                chunk2={second}
                                 property={globalProperty}
                             />
                         </Grid>

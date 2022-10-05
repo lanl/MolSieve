@@ -58,7 +58,7 @@ export default function Timeline({ trajectory, width, height, run, setExtent }) 
             const defaultSelection = [scaleX(extents[0]), scaleX(extents[1])];
 
             const brushG = svg.append('g');
-
+            // https://observablehq.com/@d3/click-to-recenter-brush
             const brush = d3
                 .brushX()
                 .extent([
@@ -69,6 +69,7 @@ export default function Timeline({ trajectory, width, height, run, setExtent }) 
                     const start = Math.round(scaleX.invert(selection[0]));
                     const end = Math.round(scaleX.invert(selection[1]));
                     // this gets called one time before the start, which is why websockets get cleared on initial render
+                    // also why the chunk selection view gets cleared
                     setExtent(name, [start, end]);
                 })
                 .on('end', function ({ selection }) {
@@ -79,7 +80,7 @@ export default function Timeline({ trajectory, width, height, run, setExtent }) 
 
             brushG.call(brush).call(brush.move, defaultSelection);
         },
-        [trajectory, width, height, run, run.chunkingThreshold, trajectory.current_clustering]
+        [trajectory, width, height, trajectory.chunkingThreshold, trajectory.current_clustering]
     );
 
     return <svg id={`timeline_${trajectory.name}`} ref={ref} viewBox={[0, 0, width, height]} />;

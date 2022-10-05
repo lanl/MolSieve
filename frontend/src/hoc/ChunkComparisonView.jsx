@@ -1,6 +1,5 @@
 import { React, useEffect, useState } from 'react';
 import Typography from '@mui/material/Typography';
-import Box from '@mui/material/Box';
 import QQPlot from '../vis/QQPlot';
 import GlobalStates from '../api/globalStates';
 import ChartBox from '../components/ChartBox';
