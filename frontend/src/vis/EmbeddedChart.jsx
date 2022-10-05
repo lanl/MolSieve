@@ -1,7 +1,7 @@
 import { React, createRef, useState } from 'react';
 
 import Box from '@mui/material/Box';
-
+import '../css/App.css';
 /* This component is intended to allow embedding svgs within svgs as React components */
 // essentially the same as a ChartBox, just with a border
 export default function EmbeddedChart({
@@ -12,6 +12,7 @@ export default function EmbeddedChart({
     color,
     onChartClick,
     selected,
+    id,
 }) {
     const ref = createRef();
     const [isHovered, setIsHovered] = useState(false);
@@ -21,6 +22,7 @@ export default function EmbeddedChart({
         <Box
             ref={ref}
             sx={{ display: 'flex' }}
+            className="embeddedChart"
             border={borderStyle}
             borderColor={color}
             width={width - margin.left}
@@ -28,6 +30,7 @@ export default function EmbeddedChart({
             onClick={() => onChartClick()}
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
+            id={id}
         >
             {children(width, height, isHovered)}
         </Box>

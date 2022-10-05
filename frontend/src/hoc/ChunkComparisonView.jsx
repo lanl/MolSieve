@@ -1,5 +1,6 @@
 import { React, useEffect, useState } from 'react';
 import Typography from '@mui/material/Typography';
+import Paper from '@mui/material/Paper';
 import QQPlot from '../vis/QQPlot';
 import GlobalStates from '../api/globalStates';
 import ChartBox from '../components/ChartBox';
@@ -26,7 +27,7 @@ export default function ChunkComparisonView({ chunk1, chunk2, property }) {
         });
     }, [chunk1, chunk2, property]);
     return isLoaded ? (
-        <>
+        <Paper>
             <Typography>
                 {chunk1.id} vs {chunk2.id}
             </Typography>
@@ -35,7 +36,7 @@ export default function ChunkComparisonView({ chunk1, chunk2, property }) {
                     <QQPlot dist1={dist1} dist2={dist2} width={width} height={height} />
                 )}
             </ChartBox>
-        </>
+        </Paper>
     ) : (
         <LoadingBox />
     );

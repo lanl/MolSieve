@@ -272,6 +272,7 @@ function TrajectoryChart({
                                     selectChunk(chunk);
                                 }
                             }}
+                            id={`ec_${chunk.id}`}
                             selected={selectedChunks.map((d) => d.id).includes(chunk.id)}
                         >
                             {(ww, hh, isPHovered) =>

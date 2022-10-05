@@ -224,8 +224,28 @@ export default function VisArea({ sx, trajectories, runs, properties }) {
                     const first = c1.id < c2.id ? c1 : c2;
                     const second = c1.id < c2.id ? c2 : c1;
 
+                    // not the best way to do it, but ok for now
                     return (
-                        <Grid item xs={2}>
+                        <Grid
+                            item
+                            xs={2}
+                            onMouseEnter={() => {
+                                const charts = document.querySelectorAll('.embeddedChart');
+                                for (const chart of charts) {
+                                    if (chart.id !== `ec_${c1.id}` && chart.id !== `ec_${c2.id}`) {
+                                        chart.classList.add('unfocused');
+                                    }
+                                }
+                            }}
+                            onMouseLeave={() => {
+                                const charts = document.querySelectorAll(
+                                    '.embeddedChart.unfocused'
+                                );
+                                for (const chart of charts) {
+                                    chart.classList.remove('unfocused');
+                                }
+                            }}
+                        >
                             <ChunkComparisonView
                                 chunk1={first}
                                 chunk2={second}

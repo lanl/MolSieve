@@ -15,3 +15,9 @@ img {
   right: 5px;
 }
 
+.embeddedChart {
+}
+
+.unfocused {
+    opacity: 0.3;
+}

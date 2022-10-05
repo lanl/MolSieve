@@ -91,10 +91,3 @@
 .arrowed {    
     marker-end: url(#arrow);
 }
-
-.embeddedChart {
-    border: 1px;
-    position: absolute;
-    z-index:9999;
-    background-color: red;
-}
