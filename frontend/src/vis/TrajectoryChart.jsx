@@ -20,7 +20,6 @@ const minimumChartWidth = 200;
 
 function TrajectoryChart({
     trajectory,
-    loadingCallback,
     setStateHovered,
     stateHovered,
     visibleExtent,

@@ -102,7 +102,7 @@ class App extends React.Component {
     };
 
     /** Function called by the PCCA slider allocated for each run.
-     * Reruns the PCCA for however many clusters the user specifies
+     *  Reruns the PCCA for however many clusters the user specifies
      *  @param {string} run - Run to recalculate the clustering for
      *  @param {number} clusters - Number of clusters to split the trajectory into.
      */
@@ -119,13 +119,9 @@ class App extends React.Component {
                 newTrajectories[run].current_clustering = clusters;
                 newTrajectories[run].set_cluster_info();
 
-                newTrajectories[run]
-                    .simplifySet(newTrajectories[run].chunkingThreshold)
-                    .then((nt) => {
-                        newTrajectories[run] = nt;
-                        this.setState({ trajectories: newTrajectories });
-                        resolve(true);
-                    });
+                newTrajectories[run].simplifySet(newTrajectories[run].chunkingThreshold);
+                this.setState({ trajectories: newTrajectories });
+                resolve(true);
             } else {
                 // if not, recalculate
                 this.load_PCCA(run, clusters, -1, 0, 0, trajectories[run])
@@ -134,14 +130,12 @@ class App extends React.Component {
                             ...trajectories,
                         };
                         traj.add_colors(colors, clusters);
-                        traj.simplifySet(newTrajectories[run].chunkingThreshold).then((nt) => {
-                            newTrajectories[run] = nt;
-                            this.setState({
-                                isLoading: false,
-                                trajectories: newTrajectories,
-                            });
-                            resolve(true);
+                        traj.simplifySet(newTrajectories[run].chunkingThreshold);
+                        this.setState({
+                            isLoading: false,
+                            trajectories: newTrajectories,
                         });
+                        resolve(true);
                     })
                     .catch((e) => {
                         this.setState({ isLoading: false });

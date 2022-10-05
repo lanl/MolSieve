@@ -10,7 +10,6 @@ import TrajectoryChart from '../vis/TrajectoryChart';
 import ChartBox from './ChartBox';
 
 import SingleStateModal from '../modals/SingleStateModal';
-import LoadingModal from '../modals/LoadingModal';
 
 import '../css/App.css';
 import GlobalStates from '../api/globalStates';
@@ -25,13 +24,11 @@ const SINGLE_STATE_MODAL = 'single_state';
 
 export default function VisArea({ sx, trajectories, runs, properties }) {
     const [currentModal, setCurrentModal] = useState(null);
-    const [isLoading, setIsLoading] = useState(false);
     const [stateHovered, setStateHovered] = useState(null);
     const [stateClicked, setClicked] = useState(null);
 
     const [chunkSelectionMode, setChunkSelectionMode] = useState(false);
     const [selectedChunks, setSelectedChunks] = useState([]);
-
     const [chunkPairs, setChunkPairs] = useState([]);
 
     const [globalProperty, setGlobalProperty] = useState(structuralAnalysisProps[0]);
@@ -110,7 +107,6 @@ export default function VisArea({ sx, trajectories, runs, properties }) {
             maxWidth={false}
             sx={{ display: 'flex', flexDirection: 'column', flex: 1 }}
         >
-            {isLoading && <LoadingModal open={isLoading} title="Rendering..." />}
             <Box sx={{ display: 'flex', flexDirection: 'row', gap: '10px' }}>
                 <ChartBox sx={{ flexGrow: 1 }}>
                     {(width, height, isHovered) => (
@@ -201,7 +197,6 @@ export default function VisArea({ sx, trajectories, runs, properties }) {
                                         height={140}
                                         trajectory={trajectory}
                                         run={runs[trajectory.name]}
-                                        loadingCallback={() => setIsLoading(false)}
                                         setStateHovered={setStateHovered}
                                         setStateClicked={setStateClicked}
                                         stateHovered={stateHovered}
