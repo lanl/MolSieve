@@ -1,6 +1,7 @@
 import { React, useEffect, useState } from 'react';
-import Typography from '@mui/material/Typography';
 import Paper from '@mui/material/Paper';
+import Tabs from '@mui/material/Tabs';
+import Tab from '@mui/material/Tab';
 import QQPlot from '../vis/QQPlot';
 import GlobalStates from '../api/globalStates';
 import ChartBox from '../components/ChartBox';
@@ -8,6 +9,9 @@ import LoadingBox from '../components/LoadingBox';
 
 export default function ChunkComparisonView({ chunk1, chunk2, property }) {
     const [isLoaded, setIsLoaded] = useState(false);
+
+    const [tab, setTab] = useState('one');
+
     const [dist1, setDist1] = useState(null);
     const [dist2, setDist2] = useState(null);
 
@@ -28,9 +32,10 @@ export default function ChunkComparisonView({ chunk1, chunk2, property }) {
     }, [chunk1, chunk2, property]);
     return isLoaded ? (
         <Paper>
-            <Typography>
-                {chunk1.id} vs {chunk2.id}
-            </Typography>
+            <Tabs variant="fullWidth" value={tab} onChange={(e, v) => setTab(v)}>
+                <Tab value="one" label="QQPlot" />
+                <Tab value="two" label="Structural Comparison View" wrapped />
+            </Tabs>
             <ChartBox>
                 {(width, height) => (
                     <QQPlot dist1={dist1} dist2={dist2} width={width} height={height} />

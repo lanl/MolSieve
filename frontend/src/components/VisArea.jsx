@@ -5,7 +5,6 @@ import Button from '@mui/material/Button';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
 import Select from '@mui/material/Select';
-import Grid from '@mui/material/Grid';
 import TrajectoryChart from '../vis/TrajectoryChart';
 import ChartBox from './ChartBox';
 
@@ -107,7 +106,7 @@ export default function VisArea({ sx, trajectories, runs, properties }) {
             maxWidth={false}
             sx={{ display: 'flex', flexDirection: 'column', flex: 1 }}
         >
-            <Box sx={{ display: 'flex', flexDirection: 'row', gap: '10px' }}>
+            <Box sx={{ display: 'flex', flexDirection: 'row', gap: '10px', flexBasis: '66%' }}>
                 <ChartBox sx={{ flexGrow: 1 }}>
                     {(width, height, isHovered) => (
                         <>
@@ -214,7 +213,18 @@ export default function VisArea({ sx, trajectories, runs, properties }) {
                     )}
                 </ChartBox>
             </Box>
-            <Grid container spacing={2}>
+            <Box
+                sx={{
+                    flexGrow: 1,
+                    display: 'inline-flex',
+                    flexDirection: 'row',
+                    gap: '5px',
+                    alignItems: 'center',
+                    overflow: 'scroll',
+                    backgroundColor: 'lightgray',
+                    flexWrap: 'nowrap',
+                }}
+            >
                 {chunkPairs.map((pair) => {
                     const c1 = pair[0];
                     const c2 = pair[1];
@@ -226,9 +236,10 @@ export default function VisArea({ sx, trajectories, runs, properties }) {
 
                     // not the best way to do it, but ok for now
                     return (
-                        <Grid
-                            item
-                            xs={2}
+                        <Box
+                            sx={{
+                                flex: '0 0 auto',
+                            }}
                             onMouseEnter={() => {
                                 const charts = document.querySelectorAll('.embeddedChart');
                                 for (const chart of charts) {
@@ -251,10 +262,10 @@ export default function VisArea({ sx, trajectories, runs, properties }) {
                                 chunk2={second}
                                 property={globalProperty}
                             />
-                        </Grid>
+                        </Box>
                     );
                 })}
-            </Grid>
+            </Box>
 
             {/* works for now, not the cleanest solution */}
             {currentModal === SINGLE_STATE_MODAL && stateClicked && (
