@@ -13,6 +13,7 @@ import Button from '@mui/material/Button';
 import Slider from '@mui/material/Slider';
 
 import Typography from '@mui/material/Typography';
+import Toolbar from '@mui/material/Toolbar';
 
 import Drawer from '@mui/material/Drawer';
 
@@ -23,7 +24,9 @@ import DialogActions from '@mui/material/DialogActions';
 
 import Divider from '@mui/material/Divider';
 
-import Toolbar from '@mui/material/Toolbar';
+import IconButton from '@mui/material/IconButton';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+
 import Container from '@mui/material/Container';
 import AnalysisTab from '../modals/AnalysisTab';
 import AddFilterModal from '../modals/AddFilterModal';
@@ -176,27 +179,22 @@ function ControlDrawer({
         </Accordion>
     ));
 
+    // we want persistent because it doesn't draw a backdrop & its state is saved between opening and closing it
     return (
         <>
-            <Drawer hideBackdrop anchor="right" open={drawerOpen} onClose={() => toggleDrawer()}>
+            <Drawer
+                anchor="right"
+                variant="persistent"
+                open={drawerOpen}
+                onClose={() => toggleDrawer()}
+            >
                 <Toolbar
                     variant="dense"
-                    sx={{
-                        fontColor: '#394043',
-                        boxShadow: '0 1px 2px rgba(0,0,0,0.4)',
-                    }}
+                    sx={{ fontColor: '#394043', boxShadow: '0 1px 2px rgba(0,0,0,0.4)' }}
                 >
-                    <Typography sx={{ flexGrow: 1 }}>Control Panel</Typography>
-
-                    <Button
-                        size="small"
-                        color="inherit"
-                        onClick={() => {
-                            toggleDrawer();
-                        }}
-                    >
-                        X
-                    </Button>
+                    <IconButton onClick={() => toggleDrawer()}>
+                        <ChevronRightIcon />
+                    </IconButton>
                 </Toolbar>
                 <Container maxWidth="xs">
                     <ChartBox>
