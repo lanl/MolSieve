@@ -6,9 +6,9 @@ import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
 
 const margin = {
     top: 25,
-    bottom: 20,
-    left: 25,
-    right: 25,
+    bottom: 25,
+    left: 40,
+    right: 40,
 };
 
 export default function QQPlot({ dist1, dist2, width, height }) {
@@ -69,6 +69,27 @@ export default function QQPlot({ dist1, dist2, width, height }) {
                 .attr('cy', (i) => scaleY(q(qy, i, n)))
                 .attr('opacity', 0.6)
                 .attr('r', 2);
+
+            // x-axis
+            svg.append('g')
+                .attr('transform', `translate(0,${height - margin.bottom + 6})`)
+                .call(d3.axisBottom(scaleX.copy().interpolate(d3.interpolateRound)))
+                .call((g) => g.select('.domain').remove())
+                .call((g) =>
+                    g
+                        .selectAll('.tick line')
+                        .clone()
+                        .attr('stroke-opacity', 0.1)
+                        .attr('y1', -height)
+                );
+            // y-axis
+            svg.append('g')
+                .attr('transform', `translate(${margin.left - 6},0)`)
+                .call(d3.axisLeft(scaleY.copy().interpolate(d3.interpolateRound)))
+                .call((g) => g.select('.domain').remove())
+                .call((g) =>
+                    g.selectAll('.tick line').clone().attr('stroke-opacity', 0.1).attr('x1', width)
+                );
         },
         [dist1, dist2, width, height]
     );
