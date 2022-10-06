@@ -111,6 +111,16 @@ export default function Scatterplot({
     const ref = useTrajectoryChartRender(
         (svg) => {
             if (!svg.empty()) {
+                // clean up listeners
+                if (ttInstance) {
+                    ttInstance.hide();
+                    ttInstance.destroy();
+                    ttInstance = undefined;
+                }
+                svg.on('mouseenter', null);
+                svg.on('mousemove', null);
+                svg.on('mouseleave', null);
+
                 svg.selectAll('*').remove();
             }
 
@@ -137,27 +147,20 @@ export default function Scatterplot({
                       margin.top,
                   ]);
 
-            const container = svg.append('g').attr('transform', 'translate(0,0)');
-
-            if (trajectoryName !== undefined) {
-                container.attr('id', `g_${trajectoryName}`);
-            }
-
             if (!showSparkLine) {
-                container
-                    .selectAll('rect')
+                svg.selectAll('rect')
                     .data(sequence)
                     .enter()
                     .append('rect')
-                    .attr('x', function (_, i) {
+                    .attr('x', (_, i) => {
                         return scaleX(xAttributeList[i]);
                     })
-                    .attr('y', function (_, i) {
+                    .attr('y', (_, i) => {
                         return scaleY(yAttributeListRender[i]);
                     })
                     .attr('width', 5)
                     .attr('height', 5)
-                    .attr('fill', function (d) {
+                    .attr('fill', (d) => {
                         const state = GlobalStates.get(d.id);
                         return state.individualColor;
                     })
@@ -283,6 +286,43 @@ export default function Scatterplot({
                     .attr('stroke-width', 2)
                     .attr('stroke-dasharray', 4)
                     .attr('stroke', 'red');
+
+                const tooltipCircle = svg.selectAll('circle').data([0]).enter().append('circle');
+
+                // add value tooltip
+                svg.on('mousemove', (event) => {
+                    const i = d3.bisectCenter(xAttributeList, scaleX.invert(d3.pointer(event)[0]));
+                    const timestep = xAttributeList[i];
+                    const value = movingAverage[i];
+                    const stateID = trajectory.sequence[i];
+
+                    tooltipCircle
+                        .attr('cx', scaleX(timestep))
+                        .attr('cy', scaleY(value))
+                        .attr('stroke', 'gray')
+                        .attr('fill', 'black')
+                        .attr('r', 3);
+
+                    if (!ttInstance) {
+                        ttInstance = tooltip(tooltipCircle.node(), '');
+                    }
+                    ttInstance.setContent(
+                        `<b>Timestep</b>: ${timestep}<br/><b>${property}</b>: ${value.toFixed(
+                            2
+                        )} <br/><b>ID</b>: ${stateID}<br/>`
+                    );
+                    ttInstance.show();
+                });
+
+                svg.on('mouseenter', () => {
+                    tooltipCircle.attr('visibility', 'visible');
+                });
+                // clean up memory
+                svg.on('mouseleave', () => {
+                    tooltipCircle.attr('visibility', 'hidden');
+                    ttInstance.destroy();
+                    ttInstance = undefined;
+                });
             }
 
             const yAxisPos = margin.left;
@@ -327,43 +367,6 @@ export default function Scatterplot({
             });
             svg.call(zoom); */
 
-            const tooltipCircle = svg.selectAll('circle').data([0]).enter().append('circle');
-
-            // add value tooltip
-            svg.on('mousemove', (event) => {
-                const i = d3.bisectCenter(xAttributeList, scaleX.invert(d3.pointer(event)[0]));
-                const timestep = xAttributeList[i];
-                const value = movingAverage[i];
-                const stateID = trajectory.sequence[i];
-
-                tooltipCircle
-                    .attr('cx', scaleX(timestep))
-                    .attr('cy', scaleY(value))
-                    .attr('stroke', 'gray')
-                    .attr('fill', 'black')
-                    .attr('r', 3);
-
-                if (!ttInstance) {
-                    ttInstance = tooltip(tooltipCircle.node(), '');
-                }
-                ttInstance.setContent(
-                    `<b>Timestep</b>: ${timestep}<br/><b>${property}</b>: ${value.toFixed(
-                        2
-                    )} <br/><b>ID</b>: ${stateID}<br/>`
-                );
-                ttInstance.show();
-            });
-
-            svg.on('mouseenter', () => {
-                tooltipCircle.attr('visibility', 'visible');
-            });
-            // clean up memory
-            svg.on('mouseleave', () => {
-                tooltipCircle.attr('visibility', 'hidden');
-                ttInstance.destroy();
-                ttInstance = undefined;
-            });
-
             // applyFilters(trajectories, runs, ref);
         },
         [
@@ -379,13 +382,18 @@ export default function Scatterplot({
     );
 
     useEffect(() => {
+        // need faster solution for this to be smoother
         if (stateHovered) {
-            // .select(`#g_${trajectoryName}`)
-            /* d3.select(ref.current).selectAll('rect:not(.invisible)').filter(function(dp) {                                    
-                return (dp.id !== stateHovered.stateID);
-            }).classed("highlightedInvisible", true);
-            
-            d3.select(ref.current).selectAll('rect:not(.highlightedInvisible)').classed("highlightedStates", true); */
+            /* d3.select(ref.current)
+                .selectAll('rect:not(.invisible)')
+                .filter(function (dp) {
+                    return dp.id !== stateHovered.stateID;
+                })
+                .classed('highlightedInvisible', true);
+
+            d3.select(ref.current)
+                .selectAll('rect:not(.highlightedInvisible)')
+                .classed('highlightedStates', true);
 
             d3.select(ref.current)
                 .selectAll('rect')
@@ -400,7 +408,7 @@ export default function Scatterplot({
                 .classed('highlightedStates', false);
             d3.select(ref.current)
                 .selectAll('.highlightedState')
-                .classed('highlightedState', false);
+                .classed('highlightedState', false); */
         }
     }, [stateHovered]);
 
@@ -413,7 +421,7 @@ export default function Scatterplot({
         }
     }, [runs]); */
 
-    useEffect(() => {
+    /* useEffect(() => {
         d3.select(ref.current).selectAll('.currentSelection').classed('currentSelection', false);
 
         if (visibleExtent) {
@@ -427,7 +435,7 @@ export default function Scatterplot({
                     .classed('currentSelection', true);
             }
         }
-    }, [visibleExtent]);
+    }, [visibleExtent]); */
 
     return (
         <svg

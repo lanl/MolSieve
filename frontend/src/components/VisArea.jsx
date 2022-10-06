@@ -88,6 +88,7 @@ export default function VisArea({ sx, trajectories, runs, properties }) {
         }
     }, [stateClicked]);
 
+    useEffect(() => {}, [stateHovered]);
     /* useEffect(() => {
         const ids = getClassIds('filterable');
         ids.forEach((id) => applyFilters(trajectories, runs, id));

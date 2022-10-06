@@ -117,6 +117,7 @@ function TrajectoryChart({
             }
             // clear so we don't draw over-top and cause insane lag
             if (!svg.empty()) {
+                // NOTE: deletes all g elements, even ones inside foreignObjects!
                 svg.selectAll('g').remove();
             }
         },
@@ -164,7 +165,7 @@ function TrajectoryChart({
         } */
     }, [stateHovered]);
 
-    useEffect(() => {
+    /* useEffect(() => {
         d3.select(ref.current).selectAll('.currentSelection').classed('currentSelection', false);
 
         if (visibleExtent) {
@@ -190,7 +191,7 @@ function TrajectoryChart({
                     .classed('currentSelection', true);
             }
         }
-    }, [visibleExtent]);
+    }, [visibleExtent]); */
 
     const { chunkList } = trajectory;
 
@@ -284,6 +285,7 @@ function TrajectoryChart({
                                         width={ww}
                                         height={hh}
                                         setStateHovered={setStateHovered}
+                                        stateHovered={stateHovered}
                                         property={property}
                                         trajectory={trajectory}
                                         run={run}

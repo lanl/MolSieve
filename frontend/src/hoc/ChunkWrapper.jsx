@@ -1,6 +1,8 @@
 import { React, useState, useEffect } from 'react';
 
 import * as d3 from 'd3';
+import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
 import Scatterplot from '../vis/Scatterplot';
 
 import { simpleMovingAverage, boxPlotStats } from '../api/stats';
@@ -24,6 +26,7 @@ export default function ChunkWrapper({
     run,
     isParentHovered,
     globalScale,
+    stateHovered,
     updateGlobalScale,
     disableControls,
 }) {
@@ -287,46 +290,49 @@ export default function ChunkWrapper({
     }
 
     return isLoaded ? (
-        <Scatterplot
-            sequence={seq}
-            width={width}
-            height={height}
-            run={run}
-            movingAverage={mva}
-            trajectory={trajectory}
-            setStateHovered={setStateHovered}
-            setStateClicked={setStateClicked}
-            id={`sc_${chunk.id}`}
-            property={property}
-            doubleClickAction={() => {
-                if (!disableControls) {
-                    setIsExpanded(!isExpanded);
-                }
-            }}
-            includeBoundaries={isExpanded}
-            leftBoundary={leftBoundary}
-            rightBoundary={rightBoundary}
-            sliceBy={sliceBy}
-            globalScale={scale}
-            showSparkLine={showSparkLine}
-            lineColor={trajectory.colorByCluster(chunk)}
-        />
+        <>
+            <Box
+                className="floatingToolBar"
+                sx={{ visibility: isParentHovered ? 'visible' : 'hidden' }}
+            >
+                <Button color="secondary" size="small" onClick={() => setSparkLine(!showSparkLine)}>
+                    {showSparkLine ? 'ShowScatter' : 'ShowSparkLine'}
+                </Button>
+            </Box>
+
+            <Scatterplot
+                sequence={seq}
+                width={width}
+                height={height}
+                run={run}
+                movingAverage={mva}
+                trajectory={trajectory}
+                setStateHovered={setStateHovered}
+                setStateClicked={setStateClicked}
+                id={`sc_${chunk.id}`}
+                property={property}
+                doubleClickAction={() => {
+                    if (!disableControls) {
+                        setIsExpanded(!isExpanded);
+                    }
+                }}
+                includeBoundaries={isExpanded}
+                leftBoundary={leftBoundary}
+                rightBoundary={rightBoundary}
+                stateHovered={stateHovered}
+                sliceBy={sliceBy}
+                globalScale={scale}
+                showSparkLine={showSparkLine}
+                lineColor={trajectory.colorByCluster(chunk)}
+            />
+        </>
     ) : (
         <LoadingBox />
     );
 }
 
 /* 
-    <Box
-        className="floatingToolBar"
-        sx={{ visibility: isParentHovered ? 'visible' : 'hidden' }}
-    >
-        <Button color="secondary" size="small" onClick={() => toggleSparkLine()}>
-            {showSparkLine ? 'ShowScatter' : 'ShowSparkLine'}
-        </Button>
-    </Box>
-
-            {leftBoundary && !isExpanded && (
+                {leftBoundary && !isExpanded && (
                 <BoxPlot
                     showYAxis={false}
                     data={lBoxStats}

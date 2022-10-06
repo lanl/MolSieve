@@ -54,14 +54,28 @@ export function tooltip(node, content) {
     return tippy(node, settings);
 }
 
+function oneShotTooltip(node, content) {
+    const settings = {
+        allowHTML: true,
+        arrow: true,
+        theme: 'translucent',
+        placement: 'auto',
+    };
+
+    if (content) {
+        settings.content = content;
+    }
+    tippy(node, settings);
+}
+
 export function onEntityMouseOver(node, d) {
     // https://atomiks.github.io/tippyjs/v6/addons/#singleton
     // can improve performance further
     let content = '';
 
     content += `${d.toString()}`;
-    const i = tooltip(node, content);
-    i.show();
+    // faster if creating many instances
+    oneShotTooltip(node, content);
 }
 
 // mpn65 color palette
