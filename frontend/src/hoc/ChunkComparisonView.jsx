@@ -2,15 +2,18 @@ import { React, useEffect, useState } from 'react';
 import Paper from '@mui/material/Paper';
 import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
+import TabPanel from '../components/TabPanel';
+
 import QQPlot from '../vis/QQPlot';
 import GlobalStates from '../api/globalStates';
 import ChartBox from '../components/ChartBox';
 import LoadingBox from '../components/LoadingBox';
+import StructuralComparison from '../vis/StructuralComparison';
 
 export default function ChunkComparisonView({ chunk1, chunk2, property }) {
     const [isLoaded, setIsLoaded] = useState(false);
 
-    const [tab, setTab] = useState('one');
+    const [tab, setTab] = useState(0);
 
     const [dist1, setDist1] = useState(null);
     const [dist2, setDist2] = useState(null);
@@ -30,17 +33,23 @@ export default function ChunkComparisonView({ chunk1, chunk2, property }) {
             });
         });
     }, [chunk1, chunk2, property]);
+
     return isLoaded ? (
         <Paper>
-            <Tabs variant="fullWidth" value={tab} onChange={(e, v) => setTab(v)}>
-                <Tab value="one" label="QQPlot" />
-                <Tab value="two" label="Structural Comparison View" wrapped />
+            <Tabs variant="fullWidth" value={tab} onChange={(_, v) => setTab(v)}>
+                <Tab label="QQPlot" />
+                <Tab label="Structural Comparison View" wrapped />
             </Tabs>
-            <ChartBox>
-                {(width, height) => (
-                    <QQPlot dist1={dist1} dist2={dist2} width={width} height={height} />
-                )}
-            </ChartBox>
+            <TabPanel value={tab} index={0}>
+                <ChartBox>
+                    {(width, height) => (
+                        <QQPlot dist1={dist1} dist2={dist2} width={width} height={height} />
+                    )}
+                </ChartBox>
+            </TabPanel>
+            <TabPanel value={tab} index={1}>
+                <StructuralComparison chunk1={chunk1} chunk2={chunk2} />
+            </TabPanel>
         </Paper>
     ) : (
         <LoadingBox />

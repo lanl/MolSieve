@@ -5,6 +5,7 @@ import Button from '@mui/material/Button';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
 import Select from '@mui/material/Select';
+import Stack from '@mui/material/Stack';
 import TrajectoryChart from '../vis/TrajectoryChart';
 import ChartBox from './ChartBox';
 
@@ -214,16 +215,16 @@ export default function VisArea({ sx, trajectories, runs, properties }) {
                     )}
                 </ChartBox>
             </Box>
-            <Box
+            <Stack
+                direction="row"
+                alignItems="center"
+                spacing={0.5}
                 sx={{
-                    flexGrow: 1,
-                    display: 'inline-flex',
-                    flexDirection: 'row',
-                    gap: '5px',
-                    alignItems: 'center',
                     overflow: 'scroll',
-                    backgroundColor: 'lightgray',
-                    flexWrap: 'nowrap',
+                    flexBasis: '33%',
+                    background: '#f8f9f9',
+                    fontColor: '#394043',
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.4)',
                 }}
             >
                 {chunkPairs.map((pair) => {
@@ -266,7 +267,7 @@ export default function VisArea({ sx, trajectories, runs, properties }) {
                         </Box>
                     );
                 })}
-            </Box>
+            </Stack>
 
             {/* works for now, not the cleanest solution */}
             {currentModal === SINGLE_STATE_MODAL && stateClicked && (
