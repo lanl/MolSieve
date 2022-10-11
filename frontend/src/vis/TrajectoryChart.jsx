@@ -32,6 +32,7 @@ function TrajectoryChart({
     chunkSelectionMode,
     selectChunk,
     selectedChunks,
+    setExtents,
 }) {
     const [isHovered, setIsHovered] = useState(false);
     const [globalScale, setGlobalScale] = useState({
@@ -293,6 +294,7 @@ function TrajectoryChart({
                                         globalScale={globalScale}
                                         updateGlobalScale={updateGlobalScale}
                                         disableControls={chunkSelectionMode}
+                                        setExtents={setExtents}
                                     />
                                 ) : (
                                     <BoxPlotWrapper

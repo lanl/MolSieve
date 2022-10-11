@@ -58,6 +58,10 @@ export default function VisArea({ sx, trajectories, runs, properties }) {
         }
     };
 
+    const setExtents = (extent) => {
+        console.log(extent);
+    };
+
     const selectChunk = (chunk) => {
         // add chunk if it is not already in the array, otherwise remove it from the array
         if (!selectedChunks.map((d) => d.id).includes(chunk.id)) {
@@ -208,6 +212,7 @@ export default function VisArea({ sx, trajectories, runs, properties }) {
                                         chunkSelectionMode={chunkSelectionMode}
                                         selectChunk={(chunk) => selectChunk(chunk)}
                                         selectedChunks={selectedChunks}
+                                        setExtents={setExtents}
                                     />
                                 );
                             })}

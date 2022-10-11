@@ -14,9 +14,8 @@ import '../css/App.css';
 import { useExtents } from '../hooks/useExtents';
 
 const margin = { top: 5, bottom: 5, left: 0, right: 5 };
-const sBrush = null;
-let individualSelectionMode = false;
-let selectionBrushMode = false;
+
+let sBrush = null;
 let ttInstance;
 
 export default function Scatterplot({
@@ -43,10 +42,12 @@ export default function Scatterplot({
     showSparkLine,
     globalScale,
     lineColor,
+    selectionMode,
+    onSetExtentsComplete,
 }) {
     const [yAttributeList, setYAttributeList] = useState(yAttributeListProp);
 
-    const { setInternalExtents, completeSelection } = useExtents(setExtents);
+    const { setInternalExtents, completeSelection } = useExtents(setExtents, onSetExtentsComplete);
 
     const selectionBrush = () => {
         if (sBrush != null) {
@@ -55,26 +56,6 @@ export default function Scatterplot({
             }
 
             d3.select(ref.current).append('g').attr('class', 'brush').call(sBrush);
-        }
-    };
-
-    const toggleSelectionBrush = () => {
-        if (!selectionBrushMode) {
-            selectionBrushMode = !selectionBrushMode;
-            selectionBrush();
-        } else {
-            selectionBrushMode = !selectionBrushMode;
-            completeSelection();
-        }
-    };
-
-    const toggleIndividualSelectionMode = () => {
-        individualSelectionMode = !individualSelectionMode;
-        if (individualSelectionMode) {
-            completeSelection();
-            d3.select(ref.current)
-                .selectAll('.currentSelection')
-                .classed('currentSelection', false);
         }
     };
 
@@ -91,6 +72,12 @@ export default function Scatterplot({
             );
         }, [attribute, sequence]);
     };
+
+    useEffect(() => {
+        if (selectionMode) {
+            selectionBrush();
+        }
+    }, [selectionMode]);
 
     useAttributeList(setYAttributeList, property);
 
@@ -167,15 +154,7 @@ export default function Scatterplot({
                     .classed('state', true)
                     .classed('clickable', true)
                     .on('click', function (_, d) {
-                        if (individualSelectionMode) {
-                            d3.select(this).classed('currentSelection', true);
-                            setInternalExtents((prev) => [
-                                ...prev,
-                                { name: trajectoryName, states: [d.id] },
-                            ]);
-                        } else {
-                            setStateClicked(d);
-                        }
+                        setStateClicked(d);
                     })
                     .on('mouseover', function (_, d) {
                         const state = GlobalStates.get(d.id);
@@ -325,48 +304,39 @@ export default function Scatterplot({
                 });
             }
 
-            const yAxisPos = margin.left;
-            const xAxisPos = height - margin.bottom;
+            // will work for scatterplot view but not moving average view
+            sBrush = d3
+                .brushX()
+                .keyModifiers(false)
+                .on('start brush', function ({ selection }) {
+                    const start = Math.round(scaleX.invert(selection[0]));
+                    const end = Math.round(scaleX.invert(selection[1]));
 
-            const xUnique = new Set(xAttributeList);
-            const yUnique = new Set(yAttributeListRender);
+                    if (!showSparkLine) {
+                        d3.select(ref.current)
+                            .selectAll('.currentSelection')
+                            .classed('currentSelection', false);
 
-            if (xUnique.size < 20) {
-                const xAxis = svg
-                    .append('g')
-                    .attr('transform', `translate(0,${xAxisPos})`)
-                    .call(d3.axisBottom().scale(scaleX).ticks(5));
+                        d3.select(ref.current)
+                            .selectAll('rect')
+                            .filter((d) => start <= d.timestep && d.timestep <= end)
+                            .classed('currentSelection', true);
+                    }
+                })
+                .on('end', function ({ selection }) {
+                    const start = Math.round(scaleX.invert(selection[0]));
+                    const end = Math.round(scaleX.invert(selection[1]));
 
-                xAxis
-                    .selectAll('text')
-                    .style('text-anchor', 'center')
-                    .attr('transform', 'rotate(15)');
-            }
-
-            /* if (yUnique.size < 20) {
-                svg.append('g')
-                    .attr('transform', `translate(${yAxisPos},0)`)
-                    .call(d3.axisLeft().scale(scaleY).ticks(5));
-            } */
-
-            /* svg.append('text')
-                .attr('x', width / 2)
-                .attr('y', margin.top)
-                .attr('text-anchor', 'middle')
-                .style('font-size', '12px')
-                .text(`scatterplot ${id} ${xAttribute} vs ${yAttributeRender}`); */
-
-            /* const zoom = d3.zoom().on('zoom', ({ transform }) => {
-                // choose whether to use transform or switch back to only continuous scales
-                // const zx = transform.rescaleX(scaleX);
-                // const zy = transform.rescaleY(scaleY);
-                // const { x, y, k } = transform;
-                // points.attr('transform', `translate(${x},${y})scale(${k},1)`);
-                // .attr('x', (_, i) => zx(xAttributeList[i]));
-                // .attr('y', (_, i) => zy(yAttributeList[i]));
-            });
-            svg.call(zoom); */
-
+                    if (!showSparkLine) {
+                        d3.select(ref.current)
+                            .selectAll('.currentSelection')
+                            .classed('currentSelection', false);
+                    }
+                    // just one selection at a time... makes it a LOT easier
+                    const nodes = [start, end];
+                    setInternalExtents((prev) => [...prev, { states: nodes }]);
+                    completeSelection();
+                });
             // applyFilters(trajectories, runs, ref);
         },
         [

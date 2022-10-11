@@ -3,9 +3,6 @@ import tippy from 'tippy.js';
 import 'tippy.js/dist/tippy.css';
 import * as d3 from 'd3';
 
-import React from 'react';
-
-import Box from '@mui/material/Box';
 import 'tippy.js/themes/translucent.css';
 
 export function djb2(str) {
@@ -221,23 +218,6 @@ export function getMaxProperty(property, sequence) {
     }
     return max;
 }
-// TODO: should move this out to its own file
-export function TabPanel(props) {
-    const { children, value, index, ...other } = props;
-
-    return (
-        <div
-            role="tabpanel"
-            hidden={value !== index}
-            id={`simple-tabpanel-${index}`}
-            aria-labelledby={`simple-tab-${index}`}
-            {...other}
-        >
-            {value === index && <Box sx={{ p: 3 }}>{children}</Box>}
-        </div>
-    );
-}
-
 /* Returns a list of sorted trajectories, sorted by sequence length */
 export function getLengthList(trajectories) {
     const lengthList = [];

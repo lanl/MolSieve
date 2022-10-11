@@ -29,14 +29,15 @@ export default function ChunkWrapper({
     stateHovered,
     updateGlobalScale,
     disableControls,
+    setExtents,
 }) {
     const [isLoaded, setIsLoaded] = useState(false);
-    const [isLoading, setIsLoading] = useState(false);
 
     const [isInterrupted, setIsInterrupted] = useState(false);
 
     const [isExpanded, setIsExpanded] = useState(false);
     const [showSparkLine, setSparkLine] = useState(true);
+    const [selectionMode, setSelectionMode] = useState(false);
 
     const [scale, setScale] = useState(() =>
         d3.scaleLinear().domain([Number.MIN_VALUE, Number.MAX_VALUE]).range([height, 5])
@@ -134,8 +135,6 @@ export default function ChunkWrapper({
         let lStates = [];
         let rStates = [];
 
-        setIsLoading(true);
-
         socket.addEventListener('close', ({ code }) => {
             if (code === 3001) {
                 setIsInterrupted(true);
@@ -209,7 +208,6 @@ export default function ChunkWrapper({
                 // send requested states, if not, close connection
                 if (!sendStates.length) {
                     socket.close(1000);
-                    setIsLoading(false);
                 } else {
                     i++;
                     socket.send(
@@ -271,7 +269,6 @@ export default function ChunkWrapper({
 
                 if (!sendStates.length) {
                     socket.close(1000);
-                    setIsLoading(false);
                 } else {
                     i++;
                     socket.send(
@@ -297,6 +294,13 @@ export default function ChunkWrapper({
             >
                 <Button color="secondary" size="small" onClick={() => setSparkLine(!showSparkLine)}>
                     {showSparkLine ? 'ShowScatter' : 'ShowSparkLine'}
+                </Button>
+                <Button
+                    color="secondary"
+                    size="small"
+                    onClick={() => setSelectionMode(!selectionMode)}
+                >
+                    {selectionMode ? 'CompleteSelection' : 'StartSelection'}
                 </Button>
             </Box>
 
@@ -324,6 +328,9 @@ export default function ChunkWrapper({
                 globalScale={scale}
                 showSparkLine={showSparkLine}
                 lineColor={trajectory.colorByCluster(chunk)}
+                setExtents={setExtents}
+                onSetExtentsComplete={() => setSelectionMode(false)}
+                selectionMode={selectionMode}
             />
         </>
     ) : (
