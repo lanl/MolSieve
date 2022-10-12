@@ -152,17 +152,22 @@ async def generate_ovito_animation(
 
     attr_atom_dict = converter.query_to_ASE(driver, q, "Pt")
 
-    output_path = visualizations.render_ASE_list(
+
+    output_path = 'vid.webm'
+    # https://stackoverflow.com/questions/55873174/how-do-i-return-an-image-in-fastapi/67497103#67497103
+    visualizations.render_ASE_list_to_file(
         attr_atom_dict.values(),
+        output_path,
         image_height=height,
         image_width=width,
     )
 
+    # TODO: make into a stream
+    # TODO: avoid writing video file
     video_string = ""
     with open(output_path, "rb") as video:
         video_string = base64.b64encode(video.read())
     os.remove(output_path)
-
     return {"video": video_string}
 
 
