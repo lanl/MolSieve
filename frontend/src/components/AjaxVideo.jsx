@@ -10,7 +10,7 @@ export default function AjaxVideo({ states, title, width, height }) {
         axios
             .post(
                 '/api/generate_ovito_animation',
-                { states, width, height },
+                { states, width: 640, height: 480 },
                 {
                     headers: {
                         'Content-Type': 'application/json',
@@ -23,7 +23,11 @@ export default function AjaxVideo({ states, title, width, height }) {
                 videoRef.current.setAttribute('src', videoData);
             });
     }, [states, title]);
-    return isLoaded ? <video type="video/webm" controls ref={videoRef} /> : <LoadingBox />;
+    return isLoaded ? (
+        <video width={width} height={height} type="video/webm" controls ref={videoRef} />
+    ) : (
+        <LoadingBox />
+    );
 }
 
 AjaxVideo.defaultProps = {
