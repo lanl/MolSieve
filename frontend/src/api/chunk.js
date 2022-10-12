@@ -2,6 +2,7 @@ import GlobalChunks from './globalChunks';
 import GlobalStates from './globalStates';
 import Timestep from './timestep';
 import { boxPlotStats } from './stats';
+import { cyrb128, mulberry32 } from './random';
 
 const CHUNK = 0;
 
@@ -45,6 +46,9 @@ export default class Chunk {
     calculateSelected() {
         const entries = [...this.stateCounts.entries()].sort((a, b) => b[1] - a[1]);
 
+        const seed = cyrb128('molecular dynamics');
+        const rand = mulberry32(seed[0]);
+
         if (entries.length < 20) {
             this.selected = this.states;
             return;
@@ -57,7 +61,7 @@ export default class Chunk {
 
         for (let j = 0; j < Math.floor(0.1 * entries.length); j++) {
             // select 10% of the chunk randomly for the distribution; ignore top 20 in selection
-            const random = Math.floor(Math.random() * (entries.length - 20)) + 20;
+            const random = Math.floor(rand() * (entries.length - 20)) + 20;
             selected.push(entries[random][0]);
         }
 
