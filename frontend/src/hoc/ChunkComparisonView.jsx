@@ -10,7 +10,7 @@ import ChartBox from '../components/ChartBox';
 import LoadingBox from '../components/LoadingBox';
 import StructuralComparison from '../vis/StructuralComparison';
 
-export default function ChunkComparisonView({ chunk1, chunk2, property }) {
+export default function ChunkComparisonView({ chunk1, chunk2, property, children }) {
     const [isLoaded, setIsLoaded] = useState(false);
 
     const [tab, setTab] = useState(0);
@@ -36,6 +36,7 @@ export default function ChunkComparisonView({ chunk1, chunk2, property }) {
 
     return isLoaded ? (
         <Paper>
+            {children}
             <Tabs variant="fullWidth" value={tab} onChange={(_, v) => setTab(v)}>
                 <Tab label="QQPlot" />
                 <Tab label="Structural Comparison View" wrapped />

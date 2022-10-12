@@ -18,18 +18,20 @@ import ChunkComparisonView from '../hoc/ChunkComparisonView';
 
 import { useContextMenu } from '../hooks/useContextMenu';
 import { onEntityMouseOver, normalizeDict } from '../api/myutils';
+import { createUUID } from '../api/random';
+
 import { structuralAnalysisProps } from '../api/constants';
 
 const SINGLE_STATE_MODAL = 'single_state';
 
-export default function VisArea({ sx, trajectories, runs, properties }) {
+export default function VisArea({ trajectories, runs, properties }) {
     const [currentModal, setCurrentModal] = useState(null);
     const [stateHovered, setStateHovered] = useState(null);
     const [stateClicked, setClicked] = useState(null);
 
     const [chunkSelectionMode, setChunkSelectionMode] = useState(false);
     const [selectedChunks, setSelectedChunks] = useState([]);
-    const [chunkPairs, setChunkPairs] = useState([]);
+    const [chunkPairs, setChunkPairs] = useState({});
 
     const [globalProperty, setGlobalProperty] = useState(structuralAnalysisProps[0]);
     const { contextMenu, toggleMenu } = useContextMenu();
@@ -62,6 +64,22 @@ export default function VisArea({ sx, trajectories, runs, properties }) {
         console.log(extent);
     };
 
+    const focusCharts = (c1, c2) => {
+        const charts = document.querySelectorAll('.embeddedChart');
+        for (const chart of charts) {
+            if (chart.id !== `ec_${c1.id}` && chart.id !== `ec_${c2.id}`) {
+                chart.classList.add('unfocused');
+            }
+        }
+    };
+
+    const unFocusCharts = () => {
+        const charts = document.querySelectorAll('.embeddedChart.unfocused');
+        for (const chart of charts) {
+            chart.classList.remove('unfocused');
+        }
+    };
+
     const selectChunk = (chunk) => {
         // add chunk if it is not already in the array, otherwise remove it from the array
         if (!selectedChunks.map((d) => d.id).includes(chunk.id)) {
@@ -76,11 +94,17 @@ export default function VisArea({ sx, trajectories, runs, properties }) {
         }
     };
 
+    const removeChunkPair = (key) => {
+        const cp = { ...chunkPairs };
+        delete cp[key];
+        setChunkPairs(cp);
+    };
+
     const selectionButtonClick = () => {
         if (chunkSelectionMode) {
             // check contents of selectedChunks, and then clear them
             if (selectedChunks.length === 2) {
-                setChunkPairs([...chunkPairs, selectedChunks]);
+                setChunkPairs({ ...chunkPairs, [createUUID()]: selectedChunks });
             }
             setSelectedChunks([]);
         }
@@ -232,7 +256,9 @@ export default function VisArea({ sx, trajectories, runs, properties }) {
                     boxShadow: '0 1px 2px rgba(0,0,0,0.4)',
                 }}
             >
-                {chunkPairs.map((pair) => {
+                {Object.keys(chunkPairs).map((key) => {
+                    const pair = chunkPairs[key];
+
                     const c1 = pair[0];
                     const c2 = pair[1];
 
@@ -247,28 +273,25 @@ export default function VisArea({ sx, trajectories, runs, properties }) {
                             sx={{
                                 flex: '0 0 auto',
                             }}
-                            onMouseEnter={() => {
-                                const charts = document.querySelectorAll('.embeddedChart');
-                                for (const chart of charts) {
-                                    if (chart.id !== `ec_${c1.id}` && chart.id !== `ec_${c2.id}`) {
-                                        chart.classList.add('unfocused');
-                                    }
-                                }
-                            }}
-                            onMouseLeave={() => {
-                                const charts = document.querySelectorAll(
-                                    '.embeddedChart.unfocused'
-                                );
-                                for (const chart of charts) {
-                                    chart.classList.remove('unfocused');
-                                }
-                            }}
+                            onMouseEnter={() => focusCharts(c1, c2)}
+                            onMouseLeave={() => unFocusCharts()}
                         >
                             <ChunkComparisonView
                                 chunk1={first}
                                 chunk2={second}
                                 property={globalProperty}
-                            />
+                            >
+                                <Button
+                                    color="secondary"
+                                    size="small"
+                                    onClick={() => {
+                                        removeChunkPair(key);
+                                        unFocusCharts();
+                                    }}
+                                >
+                                    X
+                                </Button>
+                            </ChunkComparisonView>
                         </Box>
                     );
                 })}
