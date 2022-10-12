@@ -141,17 +141,21 @@ async def generate_ovito_image(number: str):
 
 
 @router.post("/generate_ovito_animation")
-async def generate_ovito_animation(title: str, states: List[int] = Body(...)):
+async def generate_ovito_animation(
+    width: int = Body(200), height: int = Body(200), states: List[int] = Body(...)
+):
     driver = GraphDriver()
 
     qb = querybuilder.Neo4jQueryBuilder([("Atom", "PART_OF", "State", "MANY-TO-ONE")])
 
     q = qb.generate_get_node_list("State", states, "PART_OF")
 
-    attr_atom_dict = converter.query_to_ASE(driver, qb, q, "Pt")
+    attr_atom_dict = converter.query_to_ASE(driver, q, "Pt")
 
     output_path = visualizations.render_ASE_list(
-        attr_atom_dict.values(), list(attr_atom_dict.keys())
+        attr_atom_dict.values(),
+        image_height=height,
+        image_width=width,
     )
 
     video_string = ""

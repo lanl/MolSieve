@@ -2,17 +2,21 @@ import { React, useState, useRef, useEffect } from 'react';
 import axios from 'axios';
 import LoadingBox from './LoadingBox';
 
-export default function AjaxVideo({ states, title }) {
+export default function AjaxVideo({ states, title, width, height }) {
     const [isLoaded, setIsLoaded] = useState(false);
     const videoRef = useRef();
 
     useEffect(() => {
         axios
-            .post('/api/generate_ovito_animation', JSON.stringify(states), {
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-            })
+            .post(
+                '/api/generate_ovito_animation',
+                { states, width, height },
+                {
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                }
+            )
             .then((response) => {
                 const videoData = `data:video/webm;base64,${response.data.video}`;
                 setIsLoaded(true);
@@ -21,3 +25,8 @@ export default function AjaxVideo({ states, title }) {
     }, [states, title]);
     return isLoaded ? <video type="video/webm" controls ref={videoRef} /> : <LoadingBox />;
 }
+
+AjaxVideo.defaultProps = {
+    width: 200,
+    height: 200,
+};
