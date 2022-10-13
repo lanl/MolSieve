@@ -304,7 +304,12 @@ export default function Scatterplot({
                 });
             }
 
-            // will work for scatterplot view but not moving average view
+            // add chunk id for debugging
+            svg.append('text')
+                .attr('x', width / 2)
+                .attr('y', margin.top + margin.bottom)
+                .text(`${id}`);
+
             sBrush = d3
                 .brushX()
                 .keyModifiers(false)

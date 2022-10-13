@@ -17,7 +17,8 @@ import GlobalStates from '../api/globalStates';
 import ChunkComparisonView from '../hoc/ChunkComparisonView';
 
 import { useContextMenu } from '../hooks/useContextMenu';
-import { chunkSimilarity } from '../api/myutils';
+import usePrevious from '../hooks/usePrevious';
+import { chunkSimilarity, tooltip } from '../api/myutils';
 import { createUUID } from '../api/random';
 
 import { structuralAnalysisProps } from '../api/constants';
@@ -40,6 +41,9 @@ export default function VisArea({ trajectories, runs, properties }) {
     const [chunkSelectionMode, setChunkSelectionMode] = useState(NO_SELECT);
     const [selectedChunks, setSelectedChunks] = useState([]);
     const [chunkPairs, setChunkPairs] = useState({});
+
+    const [toolTipList, setToolTipList] = useState([]);
+    const oldToolTipList = usePrevious(toolTipList);
 
     const [globalProperty, setGlobalProperty] = useState(structuralAnalysisProps[0]);
     const { contextMenu, toggleMenu } = useContextMenu();
@@ -83,7 +87,7 @@ export default function VisArea({ trajectories, runs, properties }) {
         let visible = [];
         for (const trajectory of Object.values(trajectories)) {
             const { iChunks, uChunks, topChunkList } = getVisibleChunks(trajectory);
-            visible = [...iChunks, ...uChunks];
+            visible = [...visible, ...iChunks, ...uChunks];
         }
         return visible;
     };
@@ -95,6 +99,10 @@ export default function VisArea({ trajectories, runs, properties }) {
 
     const findSimilar = () => {
         if (chunkSelectionMode === NO_SELECT) {
+            /* const charts = document.querySelectorAll('.embeddedChart');
+            for (const chart of charts) {
+                chart.style.opacity = `${1.0}`;
+            } */
             setChunkSelectionMode(FIND_SIMILAR_SELECT);
         }
 
@@ -106,14 +114,55 @@ export default function VisArea({ trajectories, runs, properties }) {
                 const similarities = {};
                 for (const vc of visible) {
                     const sim = chunkSimilarity(selected, vc);
-                    similarities[vc.id] = sim;
+                    similarities[`ec_${vc.id}`] = sim;
                 }
-                console.log(similarities);
+
+                const charts = document.querySelectorAll('.embeddedChart');
+                const ttList = [];
+                for (const chart of charts) {
+                    if (similarities[chart.id] !== undefined) {
+                        // chart.style.opacity = `${similarities[chart.id]}`;
+                        const tt = tooltip(chart, `${similarities[chart.id].toFixed(3)}`, {
+                            allowHTML: true,
+                            arrow: true,
+                            theme: 'translucent',
+                            placement: 'top',
+                        });
+                        ttList.push(tt);
+                    }
+                }
+
+                setToolTipList(ttList);
             }
             setChunkSelectionMode(NO_SELECT);
         }
     };
 
+    useEffect(() => {
+        if (toolTipList.length > 0) {
+            for (const tt of toolTipList) {
+                tt.show();
+            }
+        } else if (oldToolTipList) {
+            for (const tt of oldToolTipList) {
+                tt.hide();
+                tt.destroy();
+            }
+        }
+    }, [toolTipList]);
+
+    useEffect(() => {
+        setChunkPairs([]);
+        setChunkSelectionMode(NO_SELECT);
+    }, [trajectories]);
+
+    useEffect(() => {
+        if (chunkSelectionMode === NO_SELECT) {
+            setSelectedChunks([]);
+        } else {
+            setToolTipList([]);
+        }
+    }, [chunkSelectionMode]);
     // essentially the same as useCallback
     /* setStateClickedProp = this.setStateClicked.bind(this);
 
@@ -183,7 +232,6 @@ export default function VisArea({ trajectories, runs, properties }) {
             if (selectedChunks.length === SELECTION_LENGTH[CHUNK_COMPARISON_SELECT]) {
                 setChunkPairs({ ...chunkPairs, [createUUID()]: selectedChunks });
             }
-            setSelectedChunks([]);
             setChunkSelectionMode(NO_SELECT);
         }
     };
@@ -199,12 +247,6 @@ export default function VisArea({ trajectories, runs, properties }) {
         const ids = getClassIds('filterable');
         ids.forEach((id) => applyFilters(trajectories, runs, id));
     }, [runs]); */
-
-    useEffect(() => {
-        setSelectedChunks([]);
-        setChunkPairs([]);
-        setChunkSelectionMode(NO_SELECT);
-    }, [trajectories]);
 
     // only clear websockets when charts change!
     return (

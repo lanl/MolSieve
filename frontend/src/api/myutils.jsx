@@ -36,19 +36,20 @@ export function mostOccurringElement(arr) {
     return Object.keys(counts).reduce((a, b) => (counts[a] > counts[b] ? a : b));
 }
 
-export function tooltip(node, content) {
-    const settings = {
+export function tooltip(node, content, settings) {
+    const defaults = {
         allowHTML: true,
         arrow: true,
         theme: 'translucent',
         placement: 'auto',
     };
 
+    const used = !settings ? defaults : settings;
+
     if (content) {
-        settings.content = content;
-        return tippy(node, settings);
+        used.content = content;
     }
-    return tippy(node, settings);
+    return tippy(node, used);
 }
 
 function oneShotTooltip(node, content) {

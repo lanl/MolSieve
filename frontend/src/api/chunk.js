@@ -206,7 +206,7 @@ export default class Chunk {
     }
 
     toString() {
-        return `<b>Timesteps</b>: ${this.timestep} - ${this.last}<br><b>Length</b>: ${this.size}`;
+        return `<b>Timesteps</b>: ${this.timestep} - ${this.last}<br><b>Length</b>: ${this.size}<br><b>ID</b>: ${this.id}`;
     }
 
     /**

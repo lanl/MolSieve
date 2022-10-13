@@ -50,6 +50,6 @@ export default function ChunkWrapper({
             globalScale={scale}
         />
     ) : (
-        <LoadingBox/>
+        <LoadingBox />
     );
 }
