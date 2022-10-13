@@ -1,4 +1,4 @@
-import { React, useState, useEffect, useCallback } from 'react';
+import { React, useState, useEffect } from 'react';
 import Box from '@mui/material/Box';
 import Container from '@mui/material/Container';
 import Button from '@mui/material/Button';
@@ -17,28 +17,101 @@ import GlobalStates from '../api/globalStates';
 import ChunkComparisonView from '../hoc/ChunkComparisonView';
 
 import { useContextMenu } from '../hooks/useContextMenu';
-import { onEntityMouseOver, normalizeDict } from '../api/myutils';
+import { chunkSimilarity } from '../api/myutils';
 import { createUUID } from '../api/random';
 
 import { structuralAnalysisProps } from '../api/constants';
 
 const SINGLE_STATE_MODAL = 'single_state';
 
+const NO_SELECT = 0;
+const CHUNK_COMPARISON_SELECT = 1;
+const FIND_SIMILAR_SELECT = 2;
+
+// index with current selection mode to determine how many chunks should be selected
+// for a valid selection
+const SELECTION_LENGTH = [0, 2, 1];
+
 export default function VisArea({ trajectories, runs, properties }) {
     const [currentModal, setCurrentModal] = useState(null);
     const [stateHovered, setStateHovered] = useState(null);
     const [stateClicked, setClicked] = useState(null);
 
-    const [chunkSelectionMode, setChunkSelectionMode] = useState(false);
+    const [chunkSelectionMode, setChunkSelectionMode] = useState(NO_SELECT);
     const [selectedChunks, setSelectedChunks] = useState([]);
     const [chunkPairs, setChunkPairs] = useState({});
 
     const [globalProperty, setGlobalProperty] = useState(structuralAnalysisProps[0]);
     const { contextMenu, toggleMenu } = useContextMenu();
 
+    /**
+     * [TODO:description]
+     *
+     * @param {[TODO:type]} trajectory - [TODO:description]
+     * @returns {[TODO:type]} [TODO:description]
+     */
+    const getVisibleChunks = (trajectory) => {
+        const { chunkList, name } = trajectory;
+        // this is all of the chunks we need for data
+        const topChunkList = chunkList.filter((d) => !d.hasParent);
+
+        // the important chunks we will render
+        const iChunks = topChunkList
+            .filter((d) => d.important)
+            .filter((d) => {
+                const { extents } = runs[name];
+                return extents[0] <= d.timestep && extents[1] >= d.last;
+            });
+
+        // the unimportant chunks we will render
+        const uChunks = topChunkList
+            .filter((d) => !d.important)
+            .filter((d) => {
+                const { extents } = runs[name];
+                return extents[0] <= d.timestep && extents[1] >= d.last;
+            });
+
+        return { iChunks, uChunks, topChunkList };
+    };
+
+    /**
+     * [TODO:description]
+     *
+     * @returns {[TODO:type]} [TODO:description]
+     */
+    const getAllVisibleChunks = () => {
+        let visible = [];
+        for (const trajectory of Object.values(trajectories)) {
+            const { iChunks, uChunks, topChunkList } = getVisibleChunks(trajectory);
+            visible = [...iChunks, ...uChunks];
+        }
+        return visible;
+    };
+
     /* Sets the currently clicked state to the supplied ID */
     const setStateClicked = (id) => {
         setClicked(GlobalStates.get(id));
+    };
+
+    const findSimilar = () => {
+        if (chunkSelectionMode === NO_SELECT) {
+            setChunkSelectionMode(FIND_SIMILAR_SELECT);
+        }
+
+        if (chunkSelectionMode === FIND_SIMILAR_SELECT) {
+            if (selectedChunks.length === SELECTION_LENGTH[FIND_SIMILAR_SELECT]) {
+                // compare all chunks to the one that was selected
+                const selected = selectedChunks[0];
+                const visible = getAllVisibleChunks().filter((c) => c.id !== selected.id);
+                const similarities = {};
+                for (const vc of visible) {
+                    const sim = chunkSimilarity(selected, vc);
+                    similarities[vc.id] = sim;
+                }
+                console.log(similarities);
+            }
+            setChunkSelectionMode(NO_SELECT);
+        }
     };
 
     // essentially the same as useCallback
@@ -64,6 +137,7 @@ export default function VisArea({ trajectories, runs, properties }) {
         console.log(extent);
     };
 
+    // perhaps these should be states instead of directly modifying the javascript like this
     const focusCharts = (c1, c2) => {
         const charts = document.querySelectorAll('.embeddedChart');
         for (const chart of charts) {
@@ -83,8 +157,8 @@ export default function VisArea({ trajectories, runs, properties }) {
     const selectChunk = (chunk) => {
         // add chunk if it is not already in the array, otherwise remove it from the array
         if (!selectedChunks.map((d) => d.id).includes(chunk.id)) {
-            // add chunk to array, if it is larger than 2, remove the first element
-            if (selectedChunks.length === 2) {
+            // check if the selected length is acceptable for the current mode
+            if (selectedChunks.length === SELECTION_LENGTH[chunkSelectionMode]) {
                 setSelectedChunks([...selectedChunks.slice(1), chunk]);
             } else {
                 setSelectedChunks([...selectedChunks, chunk]);
@@ -101,14 +175,17 @@ export default function VisArea({ trajectories, runs, properties }) {
     };
 
     const selectionButtonClick = () => {
-        if (chunkSelectionMode) {
+        if (chunkSelectionMode === NO_SELECT) {
+            setChunkSelectionMode(CHUNK_COMPARISON_SELECT);
+        }
+        if (chunkSelectionMode === CHUNK_COMPARISON_SELECT) {
             // check contents of selectedChunks, and then clear them
-            if (selectedChunks.length === 2) {
+            if (selectedChunks.length === SELECTION_LENGTH[CHUNK_COMPARISON_SELECT]) {
                 setChunkPairs({ ...chunkPairs, [createUUID()]: selectedChunks });
             }
             setSelectedChunks([]);
+            setChunkSelectionMode(NO_SELECT);
         }
-        setChunkSelectionMode(!chunkSelectionMode);
     };
 
     useEffect(() => {
@@ -126,7 +203,7 @@ export default function VisArea({ trajectories, runs, properties }) {
     useEffect(() => {
         setSelectedChunks([]);
         setChunkPairs([]);
-        setChunkSelectionMode(false);
+        setChunkSelectionMode(NO_SELECT);
     }, [trajectories]);
 
     // only clear websockets when charts change!
@@ -156,30 +233,24 @@ export default function VisArea({ trajectories, runs, properties }) {
                                     size="small"
                                     onClick={() => selectionButtonClick()}
                                 >
-                                    ChunkSelectionMode
+                                    {chunkSelectionMode !== CHUNK_COMPARISON_SELECT
+                                        ? 'ChunkComparison'
+                                        : 'ToggleChunkComparison'}
+                                </Button>
+                                <Button
+                                    color="secondary"
+                                    size="small"
+                                    onClick={() => findSimilar()}
+                                >
+                                    {chunkSelectionMode !== FIND_SIMILAR_SELECT
+                                        ? 'FindSimilar'
+                                        : 'ToggleFindSimilar'}
                                 </Button>
                             </Box>
 
                             {Object.values(trajectories).map((trajectory) => {
-                                const { chunkList, name } = trajectory;
-                                // this is all of the chunks we need for data
-                                const topChunkList = chunkList.filter((d) => !d.hasParent);
-
-                                // the important chunks we will render
-                                const iChunks = topChunkList
-                                    .filter((d) => d.important)
-                                    .filter((d) => {
-                                        const { extents } = runs[name];
-                                        return extents[0] <= d.timestep && extents[1] >= d.last;
-                                    });
-
-                                // the unimportant chunks we will render
-                                const uChunks = topChunkList
-                                    .filter((d) => !d.important)
-                                    .filter((d) => {
-                                        const { extents } = runs[name];
-                                        return extents[0] <= d.timestep && extents[1] >= d.last;
-                                    });
+                                const { uChunks, iChunks, topChunkList } =
+                                    getVisibleChunks(trajectory);
 
                                 // NOTE: we STILL need the topChunkList to be all of the chunks for expansion to work when zoomed in!
 

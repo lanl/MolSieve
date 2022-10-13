@@ -110,9 +110,14 @@ export default class Chunk {
         return timesteps;
     }
 
-    // returns an array of state ids within a chunk
+    // returns an array of unique state ids within a chunk
     get states() {
         return [...new Set(this.sequence)];
+    }
+
+    // returns a Set of unique states id within a chunk
+    get statesSet() {
+        return new Set(this.sequence);
     }
 
     // gets the ids inside a chunk in order
@@ -135,10 +140,10 @@ export default class Chunk {
         return t;
     }
 
-    /* Counts all of the occurrences of the unique states within a chunk.
+    /**
+     * Counts all of the occurrences of the unique states within a chunk.
      *
-     * @param {Chunk} chunk - The chunk to calculate the unique state counts for.
-     * @returns {Map} - A map containing the state counts for each unique state within the chunk.
+     * @returns {Map<Number,Number>} - A map containing the state counts for each unique state within the chunk.
      */
     get stateCounts() {
         const { sequence } = this;
@@ -153,6 +158,22 @@ export default class Chunk {
         }
 
         return stateCounts;
+    }
+
+    /**
+     * Returns the percentage of time the chunk spent in each unique state.
+     *
+     * @returns {Map<Number,Number>} - A map of stateID : percent occurence within a chunk.
+     */
+    get stateRatios() {
+        const { stateCounts, sequence } = this;
+        const stateRatios = new Map();
+
+        for (const [id, count] of stateCounts) {
+            stateRatios.set(id, count / sequence.length);
+        }
+
+        return stateRatios;
     }
 
     /**

@@ -60,57 +60,6 @@ function TrajectoryChart({
         setIsHovered(isParentHovered);
     }, [isParentHovered]);
 
-    const renderChunks = (data, xScale, getWidthScale) => {
-        const { name } = trajectory;
-
-        const getX = (i, w) => {
-            if (i > 0) {
-                const d = data[i - 1];
-                const wl = xScale(getWidthScale(d));
-                return getX(i - 1, w + wl);
-            }
-            return w;
-        };
-
-        const nodes = d3
-            .select(`#c_${name}`)
-            .selectAll('rect')
-            .data(data, (d) => d.id);
-
-        nodes
-            .enter()
-            .append('rect')
-            .attr('id', (d) => `c_${d.id}`)
-            .attr('x', (_, i) => getX(i, 0))
-            .attr('y', height / 2)
-            .attr('width', (d) => xScale(getWidthScale(d)))
-            .attr('height', height / 2)
-            .attr('fill', (d) => trajectory.colorByCluster(d))
-            .attr('stroke', (d) => trajectory.colorByCluster(d))
-            .on('mouseover', function (_, d) {
-                onEntityMouseOver(this, d);
-                setStateHovered({
-                    caller: this,
-                    stateID: d.id,
-                    name,
-                    timestep: d.timestep,
-                });
-            })
-            .on('mouseout', function () {
-                setStateHovered(null);
-            })
-            .attr('visibility', (d) => {
-                return d.important ? 'hidden' : 'visible';
-            })
-            .classed('chunk', true)
-            .classed(name, true)
-            .classed('unimportant', (d) => !d.important)
-            .classed('important', (d) => d.important)
-            .classed('breakdown', (d) => d.parentID);
-
-        nodes.exit().remove();
-    };
-
     const ref = useTrajectoryChartRender(
         (svg) => {
             if (height === undefined || width === undefined) {

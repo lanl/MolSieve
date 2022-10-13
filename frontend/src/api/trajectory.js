@@ -3,7 +3,7 @@ import Chunk from './chunk';
 import Timestep from './timestep';
 import GlobalStates from './globalStates';
 import { structuralAnalysisProps } from './constants';
-import { setIntersection, setUnion, normalizeDict } from './myutils';
+import { chunkSimilarity } from './myutils';
 import { zTest } from './stats';
 
 class Trajectory {
@@ -310,16 +310,7 @@ class Trajectory {
         const iChunk = this.chunks.get(i);
         const jChunk = this.chunks.get(j);
 
-        if (!iChunk.important || !jChunk.important) {
-            return 0;
-        }
-        const iSet = iChunk.states;
-        const jSet = jChunk.states;
-
-        const inter = setIntersection(iSet, jSet);
-        const union = setUnion(iSet, jSet);
-
-        return inter.size / union.size;
+        return chunkSimilarity(iChunk, jChunk);
     }
 
     /**

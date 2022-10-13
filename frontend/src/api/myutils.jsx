@@ -349,3 +349,20 @@ export function normalizeDict(d, r) {
 
     return normDict;
 }
+
+/**
+ * Returns similarity between two chunks as a function of their state space intersection / union.
+ *
+ * @param {Chunk} a - Chunk a
+ * @param {Chunk} b - Chunk b
+ * @returns {Number} Percent similarity
+ */
+export function chunkSimilarity(a, b) {
+    const aSet = a.statesSet;
+    const bSet = b.statesSet;
+
+    const inter = setIntersection(aSet, bSet);
+    const union = setUnion(aSet, bSet);
+
+    return inter.size / union.size;
+}
