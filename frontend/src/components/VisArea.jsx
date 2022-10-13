@@ -28,10 +28,11 @@ const SINGLE_STATE_MODAL = 'single_state';
 const NO_SELECT = 0;
 const CHUNK_COMPARISON_SELECT = 1;
 const FIND_SIMILAR_SELECT = 2;
+const CLEAR_SELECTION = 3;
 
 // index with current selection mode to determine how many chunks should be selected
 // for a valid selection
-const SELECTION_LENGTH = [0, 2, 1];
+const SELECTION_LENGTH = [0, 2, 1, 3];
 
 export default function VisArea({ trajectories, runs, properties }) {
     const [currentModal, setCurrentModal] = useState(null);
@@ -92,6 +93,31 @@ export default function VisArea({ trajectories, runs, properties }) {
         return visible;
     };
 
+    const focusCharts = (c1, c2) => {
+        const charts = document.querySelectorAll('.embeddedChart');
+        for (const chart of charts) {
+            if (chart.id !== `ec_${c1.id}` && chart.id !== `ec_${c2.id}`) {
+                chart.classList.add('unfocused');
+            }
+        }
+    };
+
+    const focusChart = (c1) => {
+        const charts = document.querySelectorAll('.embeddedChart');
+        for (const chart of charts) {
+            if (chart.id !== `ec_${c1.id}`) {
+                chart.classList.add('unfocused');
+            }
+        }
+    };
+
+    const unFocusCharts = () => {
+        const charts = document.querySelectorAll('.embeddedChart.unfocused');
+        for (const chart of charts) {
+            chart.classList.remove('unfocused');
+        }
+    };
+
     /* Sets the currently clicked state to the supplied ID */
     const setStateClicked = (id) => {
         setClicked(GlobalStates.get(id));
@@ -110,6 +136,8 @@ export default function VisArea({ trajectories, runs, properties }) {
             if (selectedChunks.length === SELECTION_LENGTH[FIND_SIMILAR_SELECT]) {
                 // compare all chunks to the one that was selected
                 const selected = selectedChunks[0];
+                focusChart(selected.id);
+
                 const visible = getAllVisibleChunks().filter((c) => c.id !== selected.id);
                 const similarities = {};
                 for (const vc of visible) {
@@ -122,7 +150,7 @@ export default function VisArea({ trajectories, runs, properties }) {
                 for (const chart of charts) {
                     if (similarities[chart.id] !== undefined) {
                         // chart.style.opacity = `${similarities[chart.id]}`;
-                        const tt = tooltip(chart, `${similarities[chart.id].toFixed(3)}`, {
+                        const tt = tooltip(chart, `${similarities[chart.id].toFixed(3) * 100}%`, {
                             allowHTML: true,
                             arrow: true,
                             theme: 'translucent',
@@ -160,7 +188,12 @@ export default function VisArea({ trajectories, runs, properties }) {
         if (chunkSelectionMode === NO_SELECT) {
             setSelectedChunks([]);
         } else {
+            unFocusCharts();
             setToolTipList([]);
+
+            if(chunkSelectionMode === CLEAR_SELECTION) {
+                setChunkSelectionMode(NO_SELECT);
+            }
         }
     }, [chunkSelectionMode]);
     // essentially the same as useCallback
@@ -187,22 +220,6 @@ export default function VisArea({ trajectories, runs, properties }) {
     };
 
     // perhaps these should be states instead of directly modifying the javascript like this
-    const focusCharts = (c1, c2) => {
-        const charts = document.querySelectorAll('.embeddedChart');
-        for (const chart of charts) {
-            if (chart.id !== `ec_${c1.id}` && chart.id !== `ec_${c2.id}`) {
-                chart.classList.add('unfocused');
-            }
-        }
-    };
-
-    const unFocusCharts = () => {
-        const charts = document.querySelectorAll('.embeddedChart.unfocused');
-        for (const chart of charts) {
-            chart.classList.remove('unfocused');
-        }
-    };
-
     const selectChunk = (chunk) => {
         // add chunk if it is not already in the array, otherwise remove it from the array
         if (!selectedChunks.map((d) => d.id).includes(chunk.id)) {
@@ -287,6 +304,13 @@ export default function VisArea({ trajectories, runs, properties }) {
                                     {chunkSelectionMode !== FIND_SIMILAR_SELECT
                                         ? 'FindSimilar'
                                         : 'ToggleFindSimilar'}
+                                </Button>
+                                <Button
+                                    color="secondary"
+                                    size="small"
+                                    onClick={() => setChunkSelectionMode(CLEAR_SELECTION)}
+                                >
+                                    ClearSelection
                                 </Button>
                             </Box>
 
