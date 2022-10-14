@@ -16,7 +16,6 @@ import GlobalStates from '../api/globalStates';
 
 import ChunkComparisonView from '../hoc/ChunkComparisonView';
 
-import { useContextMenu } from '../hooks/useContextMenu';
 import usePrevious from '../hooks/usePrevious';
 import { chunkSimilarity, tooltip } from '../api/myutils';
 import { createUUID } from '../api/random';
@@ -43,11 +42,12 @@ export default function VisArea({ trajectories, runs, properties }) {
     const [selectedChunks, setSelectedChunks] = useState([]);
     const [chunkPairs, setChunkPairs] = useState({});
 
+    const [anchorEl, setAnchorEl] = useState(null);
+
     const [toolTipList, setToolTipList] = useState([]);
     const oldToolTipList = usePrevious(toolTipList);
 
     const [globalProperty, setGlobalProperty] = useState(structuralAnalysisProps[0]);
-    const { contextMenu, toggleMenu } = useContextMenu();
 
     /**
      * [TODO:description]
@@ -87,7 +87,7 @@ export default function VisArea({ trajectories, runs, properties }) {
     const getAllVisibleChunks = () => {
         let visible = [];
         for (const trajectory of Object.values(trajectories)) {
-            const { iChunks, uChunks, topChunkList } = getVisibleChunks(trajectory);
+            const { iChunks, uChunks, _ } = getVisibleChunks(trajectory);
             visible = [...visible, ...iChunks, ...uChunks];
         }
         return visible;
@@ -191,7 +191,7 @@ export default function VisArea({ trajectories, runs, properties }) {
             unFocusCharts();
             setToolTipList([]);
 
-            if(chunkSelectionMode === CLEAR_SELECTION) {
+            if (chunkSelectionMode === CLEAR_SELECTION) {
                 setChunkSelectionMode(NO_SELECT);
             }
         }
@@ -283,9 +283,10 @@ export default function VisArea({ trajectories, runs, properties }) {
                                 <Button
                                     color="secondary"
                                     size="small"
-                                    onClick={(e) => toggleMenu(e)}
+                                    id="setAttributeButton"
+                                    onClick={(e) => setAnchorEl(e.currentTarget)}
                                 >
-                                    BoxPlotAttributes
+                                    AttributeSelection
                                 </Button>
                                 <Button
                                     color="secondary"
@@ -299,7 +300,12 @@ export default function VisArea({ trajectories, runs, properties }) {
                                 <Button
                                     color="secondary"
                                     size="small"
-                                    onClick={() => findSimilar()}
+                                    onClick={(e) =>
+                                        chunkSelectionMode !== FIND_SIMILAR_SELECT
+                                            ? findSimilar()
+                                            : setAnchorEl(e.currentTarget)
+                                    }
+                                    id="findSimilarButton"
                                 >
                                     {chunkSelectionMode !== FIND_SIMILAR_SELECT
                                         ? 'FindSimilar'
@@ -444,16 +450,37 @@ export default function VisArea({ trajectories, runs, properties }) {
                     }}
                 />
             )}
-
+            {/* equivalent to (condition) ? true : false; do this to get rid of annoying open prop is null error */}
             <Menu
-                open={contextMenu !== null}
-                onClose={toggleMenu}
-                anchorReference="anchorPosition"
-                anchorPosition={
-                    contextMenu !== null
-                        ? { top: contextMenu.mouseY, left: contextMenu.mouseX }
-                        : undefined
-                }
+                open={!!(anchorEl && anchorEl.id === 'findSimilarButton')}
+                anchorEl={anchorEl}
+                onClose={() => setAnchorEl(null)}
+            >
+                {/* call with corresponding similarity function */}
+                <MenuItem
+                    onClick={() => {
+                        findSimilar();
+                        setAnchorEl(null);
+                    }}
+                    dense
+                    divider
+                >
+                    Unique state set comparison
+                </MenuItem>
+                <MenuItem
+                    onClick={() => {
+                        findSimilar();
+                        setAnchorEl(null);
+                    }}
+                    dense
+                >
+                    State ratio comparison
+                </MenuItem>
+            </Menu>
+            <Menu
+                open={!!(anchorEl && anchorEl.id === 'setAttributeButton')}
+                anchorEl={anchorEl}
+                onClose={() => setAnchorEl(null)}
             >
                 <MenuItem>
                     <Select
