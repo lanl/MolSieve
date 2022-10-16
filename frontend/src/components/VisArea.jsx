@@ -17,7 +17,7 @@ import GlobalStates from '../api/globalStates';
 import ChunkComparisonView from '../hoc/ChunkComparisonView';
 
 import usePrevious from '../hooks/usePrevious';
-import { chunkSimilarity, tooltip } from '../api/myutils';
+import { chunkSimilarity, stateRatioChunkSimilarity, tooltip } from '../api/myutils';
 import { createUUID } from '../api/random';
 
 import { structuralAnalysisProps } from '../api/constants';
@@ -123,7 +123,7 @@ export default function VisArea({ trajectories, runs, properties }) {
         setClicked(GlobalStates.get(id));
     };
 
-    const findSimilar = () => {
+    const findSimilar = (chunkSimilarityFunc) => {
         if (chunkSelectionMode === NO_SELECT) {
             /* const charts = document.querySelectorAll('.embeddedChart');
             for (const chart of charts) {
@@ -141,7 +141,7 @@ export default function VisArea({ trajectories, runs, properties }) {
                 const visible = getAllVisibleChunks().filter((c) => c.id !== selected.id);
                 const similarities = {};
                 for (const vc of visible) {
-                    const sim = chunkSimilarity(selected, vc);
+                    const sim = chunkSimilarityFunc(selected, vc);
                     similarities[`ec_${vc.id}`] = sim;
                 }
 
@@ -459,7 +459,7 @@ export default function VisArea({ trajectories, runs, properties }) {
                 {/* call with corresponding similarity function */}
                 <MenuItem
                     onClick={() => {
-                        findSimilar();
+                        findSimilar(chunkSimilarity);
                         setAnchorEl(null);
                     }}
                     dense
@@ -469,7 +469,7 @@ export default function VisArea({ trajectories, runs, properties }) {
                 </MenuItem>
                 <MenuItem
                     onClick={() => {
-                        findSimilar();
+                        findSimilar(stateRatioChunkSimilarity);
                         setAnchorEl(null);
                     }}
                     dense

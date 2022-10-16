@@ -367,3 +367,60 @@ export function chunkSimilarity(a, b) {
 
     return inter.size / union.size;
 }
+
+/**
+ * Compares two sets and returns them as a sorted object; {smallest, largest}
+ * @param {Set<Any>} a - Set to compare
+ * @param {Set<Any>} b - Set to compare
+ * @returns {Set<Any>, Set<Any>} The two sorted sets
+ */
+export function compareSets(a, b) {
+    if (a.size !== b.size) {
+        const largest = a.size > b.size ? a : b;
+
+        let smallest;
+        if (a.size === largest) {
+            smallest = b;
+        } else {
+            smallest = a;
+        }
+
+        return { smallest, largest };
+    }
+    return { a, b };
+}
+
+/**
+ * Calculates the state ratio similarity between two chunks.
+ *
+ * @param {Chunk} a - Chunk to compare
+ * @param {Chunk} b - Chunk to compare
+ * @returns {Number} - Similarity score
+ */
+export function stateRatioChunkSimilarity(a, b) {
+    const aRatios = a.stateRatios;
+    const bRatios = b.stateRatios;
+
+    const { smallest, largest } = compareSets(aRatios, bRatios);
+
+    const sim = [];
+    for (const [stateID, ratio] of largest) {
+        const sVal = smallest.get(stateID);
+        if (sVal) {
+            sim.push(ratio - sVal);
+        } else {
+            sim.push(0);
+        }
+    }
+
+    // scale each difference between 1 and 0
+    const diffScale = d3.scaleLinear().range([0, 1]).domain(d3.extent(sim));
+    let sum = 0;
+    for (const s of sim) {
+        sum += diffScale(s);
+    }
+
+    // return the complement of this total sum
+
+    return 1 - sum / largest.size;
+}
