@@ -23,6 +23,7 @@ import {
 } from './api/ajax';
 import ControlDrawer from './components/ControlDrawer';
 import GlobalStates from './api/globalStates';
+import { createUUID } from './api/random';
 
 import WebSocketManager from './api/websocketmanager';
 
@@ -159,6 +160,7 @@ class App extends React.Component {
                 newTraj.sequence = Uint32Array.from(data.sequence);
                 newTraj.uniqueStates = data.uniqueStates.map((state) => state.id);
                 newTraj.name = run;
+                newTraj.id = createUUID();
 
                 GlobalStates.calculateGlobalUniqueStates(data.uniqueStates, run);
 

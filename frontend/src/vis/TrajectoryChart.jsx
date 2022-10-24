@@ -30,11 +30,14 @@ function TrajectoryChart({
     charts,
     property,
     chunkSelectionMode,
-    selectChunk,
-    selectedChunks,
+    trajectorySelectionMode,
+    selectObject,
+    selectedObjects,
     setExtents,
 }) {
     const [isHovered, setIsHovered] = useState(false);
+    const [isSelected, setIsSelected] = useState(false);
+
     const [globalScale, setGlobalScale] = useState({
         min: Number.MAX_VALUE,
         max: Number.MIN_VALUE,
@@ -199,6 +202,11 @@ function TrajectoryChart({
             ref={ref}
             preserveAspectRatio="none"
             viewBox={[0, 0, width, height]}
+            onClick={() => {
+                if (trajectorySelectionMode) {
+                    selectObject(trajectory);
+                }
+            }}
         >
             {charts.map((child) => {
                 const { chunk, id, leftBoundary, rightBoundary, important } = child;
@@ -219,12 +227,16 @@ function TrajectoryChart({
                             width={chartW}
                             color={chunk.color}
                             onChartClick={() => {
-                                if (chunkSelectionMode) {
-                                    selectChunk(chunk);
+                                if (chunkSelectionMode && !trajectorySelectionMode) {
+                                    selectObject(chunk);
                                 }
                             }}
                             id={`ec_${chunk.id}`}
-                            selected={selectedChunks.map((d) => d.id).includes(chunk.id)}
+                            selected={
+                                chunkSelectionMode &&
+                                !trajectorySelectionMode &&
+                                selectedObjects.map((d) => d.id).includes(chunk.id)
+                            }
                         >
                             {(ww, hh, isPHovered) =>
                                 important ? (
@@ -260,6 +272,21 @@ function TrajectoryChart({
                     </foreignObject>
                 );
             })}
+            <rect
+                x={0}
+                y={height / 2}
+                width={width}
+                height={height / 2}
+                stroke="gray"
+                fill="none"
+                strokeWidth={2}
+                opacity={
+                    trajectorySelectionMode &&
+                    selectedObjects.map((d) => d.id).includes(trajectory.id)
+                        ? 1.0
+                        : 0.0
+                }
+            />
         </svg>
     );
 }

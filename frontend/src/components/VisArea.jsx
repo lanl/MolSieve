@@ -34,18 +34,19 @@ const NO_SELECT = 0;
 const CHUNK_COMPARISON_SELECT = 1;
 const FIND_SIMILAR_SELECT = 2;
 const CLEAR_SELECTION = 3;
+const SWAP_SELECTIONS = 4;
 
 // index with current selection mode to determine how many chunks should be selected
 // for a valid selection
-const SELECTION_LENGTH = [0, 2, 1, 3];
+const SELECTION_LENGTH = [0, 2, 1, 3, 2];
 
 export default function VisArea({ trajectories, runs, properties }) {
     const [currentModal, setCurrentModal] = useState(null);
     const [stateHovered, setStateHovered] = useState(null);
     const [stateClicked, setClicked] = useState(null);
 
-    const [chunkSelectionMode, setChunkSelectionMode] = useState(NO_SELECT);
-    const [selectedChunks, setSelectedChunks] = useState([]);
+    const [selectionMode, setSelectionMode] = useState(NO_SELECT);
+    const [selectedObjects, setSelectedObjects] = useState([]);
     const [chunkPairs, setChunkPairs] = useState({});
 
     const [anchorEl, setAnchorEl] = useState(null);
@@ -130,18 +131,18 @@ export default function VisArea({ trajectories, runs, properties }) {
     };
 
     const findSimilar = (chunkSimilarityFunc, formatFunc) => {
-        if (chunkSelectionMode === NO_SELECT) {
+        if (selectionMode === NO_SELECT) {
             /* const charts = document.querySelectorAll('.embeddedChart');
             for (const chart of charts) {
                 chart.style.opacity = `${1.0}`;
             } */
-            setChunkSelectionMode(FIND_SIMILAR_SELECT);
+            setSelectionMode(FIND_SIMILAR_SELECT);
         }
 
-        if (chunkSelectionMode === FIND_SIMILAR_SELECT) {
-            if (selectedChunks.length === SELECTION_LENGTH[FIND_SIMILAR_SELECT]) {
+        if (selectionMode === FIND_SIMILAR_SELECT) {
+            if (selectedObjects.length === SELECTION_LENGTH[FIND_SIMILAR_SELECT]) {
                 // compare all chunks to the one that was selected
-                const selected = selectedChunks[0];
+                const selected = selectedObjects[0];
                 focusChart(selected.id);
 
                 const visible = getAllVisibleChunks().filter((c) => c.id !== selected.id);
@@ -168,7 +169,7 @@ export default function VisArea({ trajectories, runs, properties }) {
 
                 setToolTipList(ttList);
             }
-            setChunkSelectionMode(NO_SELECT);
+            setSelectionMode(NO_SELECT);
         }
     };
 
@@ -187,21 +188,21 @@ export default function VisArea({ trajectories, runs, properties }) {
 
     useEffect(() => {
         setChunkPairs([]);
-        setChunkSelectionMode(NO_SELECT);
+        setSelectionMode(NO_SELECT);
     }, [trajectories]);
 
     useEffect(() => {
-        if (chunkSelectionMode === NO_SELECT) {
-            setSelectedChunks([]);
+        if (selectionMode === NO_SELECT) {
+            setSelectedObjects([]);
         } else {
             unFocusCharts();
             setToolTipList([]);
 
-            if (chunkSelectionMode === CLEAR_SELECTION) {
-                setChunkSelectionMode(NO_SELECT);
+            if (selectionMode === CLEAR_SELECTION) {
+                setSelectionMode(NO_SELECT);
             }
         }
-    }, [chunkSelectionMode]);
+    }, [selectionMode]);
     // essentially the same as useCallback
     /* setStateClickedProp = this.setStateClicked.bind(this);
 
@@ -225,18 +226,23 @@ export default function VisArea({ trajectories, runs, properties }) {
         console.log(extent);
     };
 
+    const swapPositions = (a, b) => {
+        // swap the position variables of the two trajectories
+        console.log(a, b);
+    };
+
     // perhaps these should be states instead of directly modifying the javascript like this
-    const selectChunk = (chunk) => {
+    const selectObject = (o) => {
         // add chunk if it is not already in the array, otherwise remove it from the array
-        if (!selectedChunks.map((d) => d.id).includes(chunk.id)) {
+        if (!selectedObjects.map((d) => d.id).includes(o.id)) {
             // check if the selected length is acceptable for the current mode
-            if (selectedChunks.length === SELECTION_LENGTH[chunkSelectionMode]) {
-                setSelectedChunks([...selectedChunks.slice(1), chunk]);
+            if (selectedObjects.length === SELECTION_LENGTH[selectionMode]) {
+                setSelectedObjects([...selectedObjects.slice(1), o]);
             } else {
-                setSelectedChunks([...selectedChunks, chunk]);
+                setSelectedObjects([...selectedObjects, o]);
             }
         } else {
-            setSelectedChunks(selectedChunks.filter((oChunk) => oChunk.id !== chunk.id));
+            setSelectedObjects(selectedObjects.filter((oo) => oo.id !== o.id));
         }
     };
 
@@ -247,15 +253,28 @@ export default function VisArea({ trajectories, runs, properties }) {
     };
 
     const selectionButtonClick = () => {
-        if (chunkSelectionMode === NO_SELECT) {
-            setChunkSelectionMode(CHUNK_COMPARISON_SELECT);
+        if (selectionMode === NO_SELECT) {
+            setSelectionMode(CHUNK_COMPARISON_SELECT);
         }
-        if (chunkSelectionMode === CHUNK_COMPARISON_SELECT) {
+        if (selectionMode === CHUNK_COMPARISON_SELECT) {
             // check contents of selectedChunks, and then clear them
-            if (selectedChunks.length === SELECTION_LENGTH[CHUNK_COMPARISON_SELECT]) {
-                setChunkPairs({ ...chunkPairs, [createUUID()]: selectedChunks });
+            if (selectedObjects.length === SELECTION_LENGTH[CHUNK_COMPARISON_SELECT]) {
+                setChunkPairs({ ...chunkPairs, [createUUID()]: selectedObjects });
             }
-            setChunkSelectionMode(NO_SELECT);
+            setSelectionMode(NO_SELECT);
+        }
+    };
+
+    const swapButtonClick = () => {
+        if (selectionMode === NO_SELECT) {
+            setSelectionMode(SWAP_SELECTIONS);
+        }
+
+        if (selectionMode === SWAP_SELECTIONS) {
+            if (selectedObjects.length === SELECTION_LENGTH[SWAP_SELECTIONS]) {
+                swapPositions(selectedObjects[0], selectedObjects[1]);
+            }
+            setSelectionMode(NO_SELECT);
         }
     };
 
@@ -299,7 +318,7 @@ export default function VisArea({ trajectories, runs, properties }) {
                                     size="small"
                                     onClick={() => selectionButtonClick()}
                                 >
-                                    {chunkSelectionMode !== CHUNK_COMPARISON_SELECT
+                                    {selectionMode !== CHUNK_COMPARISON_SELECT
                                         ? 'ChunkComparison'
                                         : 'ToggleChunkComparison'}
                                 </Button>
@@ -307,20 +326,30 @@ export default function VisArea({ trajectories, runs, properties }) {
                                     color="secondary"
                                     size="small"
                                     onClick={(e) =>
-                                        chunkSelectionMode !== FIND_SIMILAR_SELECT
+                                        selectionMode !== FIND_SIMILAR_SELECT
                                             ? findSimilar()
                                             : setAnchorEl(e.currentTarget)
                                     }
                                     id="findSimilarButton"
                                 >
-                                    {chunkSelectionMode !== FIND_SIMILAR_SELECT
+                                    {selectionMode !== FIND_SIMILAR_SELECT
                                         ? 'FindSimilar'
                                         : 'ToggleFindSimilar'}
+                                </Button>
+
+                                <Button
+                                    color="secondary"
+                                    size="small"
+                                    onClick={() => swapButtonClick()}
+                                >
+                                    {selectionMode !== SWAP_SELECTIONS
+                                        ? 'SwapSelections'
+                                        : 'CompleteSwap'}
                                 </Button>
                                 <Button
                                     color="secondary"
                                     size="small"
-                                    onClick={() => setChunkSelectionMode(CLEAR_SELECTION)}
+                                    onClick={() => setSelectionMode(CLEAR_SELECTION)}
                                 >
                                     ClearSelection
                                 </Button>
@@ -382,9 +411,10 @@ export default function VisArea({ trajectories, runs, properties }) {
                                         isParentHovered={isHovered}
                                         charts={charts}
                                         property={globalProperty}
-                                        chunkSelectionMode={chunkSelectionMode}
-                                        selectChunk={(chunk) => selectChunk(chunk)}
-                                        selectedChunks={selectedChunks}
+                                        chunkSelectionMode={selectionMode}
+                                        trajectorySelectionMode={selectionMode === SWAP_SELECTIONS}
+                                        selectObject={(o) => selectObject(o)}
+                                        selectedObjects={selectedObjects}
                                         setExtents={setExtents}
                                     />
                                 );
