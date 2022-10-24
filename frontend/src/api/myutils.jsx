@@ -424,3 +424,7 @@ export function stateRatioChunkSimilarity(a, b) {
 
     return 1 - sum / largest.size;
 }
+
+export function percentToString(num) {
+    return `${num.toFixed(3) * 100}%`;
+}

@@ -17,10 +17,16 @@ import GlobalStates from '../api/globalStates';
 import ChunkComparisonView from '../hoc/ChunkComparisonView';
 
 import usePrevious from '../hooks/usePrevious';
-import { chunkSimilarity, stateRatioChunkSimilarity, tooltip } from '../api/myutils';
+import {
+    chunkSimilarity,
+    stateRatioChunkSimilarity,
+    percentToString,
+    tooltip,
+} from '../api/myutils';
 import { createUUID } from '../api/random';
 
 import { structuralAnalysisProps } from '../api/constants';
+import { zTest } from '../api/stats';
 
 const SINGLE_STATE_MODAL = 'single_state';
 
@@ -123,7 +129,7 @@ export default function VisArea({ trajectories, runs, properties }) {
         setClicked(GlobalStates.get(id));
     };
 
-    const findSimilar = (chunkSimilarityFunc) => {
+    const findSimilar = (chunkSimilarityFunc, formatFunc) => {
         if (chunkSelectionMode === NO_SELECT) {
             /* const charts = document.querySelectorAll('.embeddedChart');
             for (const chart of charts) {
@@ -150,7 +156,7 @@ export default function VisArea({ trajectories, runs, properties }) {
                 for (const chart of charts) {
                     if (similarities[chart.id] !== undefined) {
                         // chart.style.opacity = `${similarities[chart.id]}`;
-                        const tt = tooltip(chart, `${similarities[chart.id].toFixed(3) * 100}%`, {
+                        const tt = tooltip(chart, formatFunc(similarities[chart.id]), {
                             allowHTML: true,
                             arrow: true,
                             theme: 'translucent',
@@ -459,7 +465,7 @@ export default function VisArea({ trajectories, runs, properties }) {
                 {/* call with corresponding similarity function */}
                 <MenuItem
                     onClick={() => {
-                        findSimilar(chunkSimilarity);
+                        findSimilar(chunkSimilarity, percentToString);
                         setAnchorEl(null);
                     }}
                     dense
@@ -469,12 +475,30 @@ export default function VisArea({ trajectories, runs, properties }) {
                 </MenuItem>
                 <MenuItem
                     onClick={() => {
-                        findSimilar(stateRatioChunkSimilarity);
+                        findSimilar(stateRatioChunkSimilarity, percentToString);
                         setAnchorEl(null);
                     }}
                     dense
                 >
                     State ratio comparison
+                </MenuItem>
+                <MenuItem
+                    onClick={() => {
+                        findSimilar(
+                            (a, b) => {
+                                const aStates = a.states.map((id) => GlobalStates.get(id));
+                                const bStates = b.states.map((id) => GlobalStates.get(id));
+                                return zTest(
+                                    aStates.map((d) => d[globalProperty]),
+                                    bStates.map((d) => d[globalProperty])
+                                );
+                            },
+                            (a) => `${a.toFixed(3)}`
+                        );
+                        setAnchorEl(null);
+                    }}
+                >
+                    Z-score
                 </MenuItem>
             </Menu>
             <Menu
