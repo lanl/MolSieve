@@ -40,7 +40,7 @@ const SWAP_SELECTIONS = 4;
 // for a valid selection
 const SELECTION_LENGTH = [0, 2, 1, 3, 2];
 
-export default function VisArea({ trajectories, runs, properties }) {
+export default function VisArea({ trajectories, runs, properties, swapPositions }) {
     const [currentModal, setCurrentModal] = useState(null);
     const [stateHovered, setStateHovered] = useState(null);
     const [stateClicked, setClicked] = useState(null);
@@ -226,11 +226,6 @@ export default function VisArea({ trajectories, runs, properties }) {
         console.log(extent);
     };
 
-    const swapPositions = (a, b) => {
-        // swap the position variables of the two trajectories
-        console.log(a, b);
-    };
-
     // perhaps these should be states instead of directly modifying the javascript like this
     const selectObject = (o) => {
         // add chunk if it is not already in the array, otherwise remove it from the array
@@ -355,70 +350,74 @@ export default function VisArea({ trajectories, runs, properties }) {
                                 </Button>
                             </Box>
 
-                            {Object.values(trajectories).map((trajectory) => {
-                                const { uChunks, iChunks, topChunkList } =
-                                    getVisibleChunks(trajectory);
+                            {Object.values(trajectories)
+                                .sort((a, b) => a.position < b.position)
+                                .map((trajectory) => {
+                                    const { uChunks, iChunks, topChunkList } =
+                                        getVisibleChunks(trajectory);
 
-                                // NOTE: we STILL need the topChunkList to be all of the chunks for expansion to work when zoomed in!
+                                    // NOTE: we STILL need the topChunkList to be all of the chunks for expansion to work when zoomed in!
 
-                                const uCharts = uChunks.map((chunk) => {
-                                    return {
-                                        id: chunk.id,
-                                        chunk,
-                                        important: chunk.important,
-                                    };
-                                });
+                                    const uCharts = uChunks.map((chunk) => {
+                                        return {
+                                            id: chunk.id,
+                                            chunk,
+                                            important: chunk.important,
+                                        };
+                                    });
 
-                                const iCharts = iChunks.map((chunk) => {
-                                    const chunkIndex = topChunkList.indexOf(chunk);
-                                    let leftBoundary;
-                                    let rightBoundary;
-                                    if (chunkIndex > 0) {
-                                        // get -1
-                                        if (!topChunkList[chunkIndex - 1].important) {
-                                            leftBoundary = topChunkList[chunkIndex - 1];
+                                    const iCharts = iChunks.map((chunk) => {
+                                        const chunkIndex = topChunkList.indexOf(chunk);
+                                        let leftBoundary;
+                                        let rightBoundary;
+                                        if (chunkIndex > 0) {
+                                            // get -1
+                                            if (!topChunkList[chunkIndex - 1].important) {
+                                                leftBoundary = topChunkList[chunkIndex - 1];
+                                            }
                                         }
-                                    }
 
-                                    if (chunkIndex < topChunkList.length - 1) {
-                                        // get +1
-                                        if (!topChunkList[chunkIndex + 1].important) {
-                                            rightBoundary = topChunkList[chunkIndex + 1];
+                                        if (chunkIndex < topChunkList.length - 1) {
+                                            // get +1
+                                            if (!topChunkList[chunkIndex + 1].important) {
+                                                rightBoundary = topChunkList[chunkIndex + 1];
+                                            }
                                         }
-                                    }
 
-                                    return {
-                                        id: chunk.id,
-                                        leftBoundary,
-                                        chunk,
-                                        rightBoundary,
-                                        important: chunk.important,
-                                    };
-                                });
+                                        return {
+                                            id: chunk.id,
+                                            leftBoundary,
+                                            chunk,
+                                            rightBoundary,
+                                            important: chunk.important,
+                                        };
+                                    });
 
-                                const charts = [...iCharts, ...uCharts];
+                                    const charts = [...iCharts, ...uCharts];
 
-                                return (
-                                    <TrajectoryChart
-                                        width={width || window.innerWidth}
-                                        height={140}
-                                        trajectory={trajectory}
-                                        run={runs[trajectory.name]}
-                                        setStateHovered={setStateHovered}
-                                        setStateClicked={setStateClicked}
-                                        stateHovered={stateHovered}
-                                        properties={properties}
-                                        isParentHovered={isHovered}
-                                        charts={charts}
-                                        property={globalProperty}
-                                        chunkSelectionMode={selectionMode}
-                                        trajectorySelectionMode={selectionMode === SWAP_SELECTIONS}
-                                        selectObject={(o) => selectObject(o)}
-                                        selectedObjects={selectedObjects}
-                                        setExtents={setExtents}
-                                    />
-                                );
-                            })}
+                                    return (
+                                        <TrajectoryChart
+                                            width={width || window.innerWidth}
+                                            height={140}
+                                            trajectory={trajectory}
+                                            run={runs[trajectory.name]}
+                                            setStateHovered={setStateHovered}
+                                            setStateClicked={setStateClicked}
+                                            stateHovered={stateHovered}
+                                            properties={properties}
+                                            isParentHovered={isHovered}
+                                            charts={charts}
+                                            property={globalProperty}
+                                            chunkSelectionMode={selectionMode}
+                                            trajectorySelectionMode={
+                                                selectionMode === SWAP_SELECTIONS
+                                            }
+                                            selectObject={(o) => selectObject(o)}
+                                            selectedObjects={selectedObjects}
+                                            setExtents={setExtents}
+                                        />
+                                    );
+                                })}
                         </>
                     )}
                 </ChartBox>

@@ -179,6 +179,10 @@ class App extends React.Component {
                                 ...this.state.trajectories,
                             };
 
+                            newTrajComplete.position = Object.keys(this.state.trajectories)
+                                ? Object.keys(this.state.trajectories).length
+                                : 0;
+
                             newTrajectories[run] = newTrajComplete;
                             const newColors = [...this.state.colors];
                             newColors.splice(0, removed);
@@ -273,6 +277,17 @@ class App extends React.Component {
 
     toggleDrawer = () => {
         this.setState((prevState) => ({ drawerOpen: !prevState.drawerOpen }));
+    };
+
+    swapPositions = (a, b) => {
+        // swap the position variables of the two trajectories
+        const temp = a.position;
+        a.position = b.position;
+        b.position = temp;
+
+        this.setState((prevState) => ({
+            trajectories: { ...prevState.trajectories, [a.name]: a, [b.name]: b },
+        }));
     };
 
     addFilter = (state) => {
@@ -375,7 +390,12 @@ class App extends React.Component {
                     />
                 )}
 
-                <VisArea trajectories={trajectories} runs={runs} properties={properties} />
+                <VisArea
+                    trajectories={trajectories}
+                    runs={runs}
+                    properties={properties}
+                    swapPositions={this.swapPositions}
+                />
 
                 <AjaxMenu
                     anchorEl={this.runListButton.current}
