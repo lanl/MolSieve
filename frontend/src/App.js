@@ -179,9 +179,7 @@ class App extends React.Component {
                                 ...this.state.trajectories,
                             };
 
-                            newTrajComplete.position = Object.keys(this.state.trajectories)
-                                ? Object.keys(this.state.trajectories).length
-                                : 0;
+                            newTrajComplete.position = Object.keys(this.state.trajectories).length;
 
                             newTrajectories[run] = newTrajComplete;
                             const newColors = [...this.state.colors];

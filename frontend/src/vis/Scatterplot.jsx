@@ -2,7 +2,6 @@ import { React, useEffect, useState } from 'react';
 import * as d3 from 'd3';
 
 import GlobalStates from '../api/globalStates';
-import GlobalChartScale from '../api/GlobalChartScale';
 
 import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
 
@@ -344,16 +343,7 @@ export default function Scatterplot({
                 });
             // applyFilters(trajectories, runs, ref);
         },
-        [
-            yAttributeList,
-            trajectory,
-            run,
-            showSparkLine,
-            property,
-            width,
-            globalScale,
-            GlobalChartScale,
-        ]
+        [yAttributeList, trajectory, run, showSparkLine, property, width, globalScale]
     );
 
     useEffect(() => {

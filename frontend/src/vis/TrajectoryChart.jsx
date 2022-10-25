@@ -34,35 +34,9 @@ function TrajectoryChart({
     selectObject,
     selectedObjects,
     setExtents,
+    updateGlobalScale,
+    globalScale,
 }) {
-    const [isHovered, setIsHovered] = useState(false);
-    const [isSelected, setIsSelected] = useState(false);
-
-    const [globalScale, setGlobalScale] = useState({
-        min: Number.MAX_VALUE,
-        max: Number.MIN_VALUE,
-    });
-
-    const updateGlobalScale = (valMin, valMax) => {
-        const { min, max } = globalScale;
-
-        if (min > valMin || max < valMax) {
-            setGlobalScale({ min: valMin, max: valMax });
-        }
-    };
-
-    // reset globalScale whenever property changes
-    useEffect(() => {
-        setGlobalScale({
-            min: Number.MAX_VALUE,
-            max: Number.MIN_VALUE,
-        });
-    }, [property]);
-
-    useEffect(() => {
-        setIsHovered(isParentHovered);
-    }, [isParentHovered]);
-
     const ref = useTrajectoryChartRender(
         (svg) => {
             if (height === undefined || width === undefined) {

@@ -55,6 +55,26 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
     const oldToolTipList = usePrevious(toolTipList);
 
     const [globalProperty, setGlobalProperty] = useState(structuralAnalysisProps[0]);
+    const [globalScale, setGlobalScale] = useState({
+        min: Number.MAX_VALUE,
+        max: Number.MIN_VALUE,
+    });
+
+    const updateGlobalScale = (valMin, valMax) => {
+        const { min, max } = globalScale;
+
+        if (min > valMin || max < valMax) {
+            setGlobalScale({ min: valMin, max: valMax });
+        }
+    };
+
+    // reset globalScale whenever property changes
+    useEffect(() => {
+        setGlobalScale({
+            min: Number.MAX_VALUE,
+            max: Number.MIN_VALUE,
+        });
+    }, [globalProperty]);
 
     /**
      * [TODO:description]
@@ -415,6 +435,8 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
                                             selectObject={(o) => selectObject(o)}
                                             selectedObjects={selectedObjects}
                                             setExtents={setExtents}
+                                            updateGlobalScale={updateGlobalScale}
+                                            globalScale={globalScale}
                                         />
                                     );
                                 })}
