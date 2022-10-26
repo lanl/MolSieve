@@ -27,6 +27,7 @@ import { createUUID } from '../api/random';
 
 import { structuralAnalysisProps } from '../api/constants';
 import { zTest } from '../api/stats';
+import { getAllImportantChunks } from '../api/trajectories';
 
 const SINGLE_STATE_MODAL = 'single_state';
 
@@ -59,6 +60,19 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
         min: Number.MAX_VALUE,
         max: Number.MIN_VALUE,
     });
+
+    const [completed, setCompleted] = useState([]);
+
+    useEffect(() => {
+        if (completed.length === getAllImportantChunks(trajectories).length) {
+            // run state clustering
+            console.log('all chunks loaded!');
+        }
+    }, [completed]);
+
+    const setComplete = (id) => {
+        setCompleted([...completed, id]);
+    };
 
     const updateGlobalScale = (valMin, valMax) => {
         const { min, max } = globalScale;
@@ -209,6 +223,7 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
     useEffect(() => {
         setChunkPairs([]);
         setSelectionMode(NO_SELECT);
+        setCompleted([]);
     }, [trajectories]);
 
     useEffect(() => {
@@ -371,7 +386,7 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
                             </Box>
 
                             {Object.values(trajectories)
-                                .sort((a, b) => a.position < b.position)
+                                .sort((a, b) => a.position > b.position)
                                 .map((trajectory) => {
                                     const { uChunks, iChunks, topChunkList } =
                                         getVisibleChunks(trajectory);
@@ -437,6 +452,7 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
                                             setExtents={setExtents}
                                             updateGlobalScale={updateGlobalScale}
                                             globalScale={globalScale}
+                                            onComplete={setComplete}
                                         />
                                     );
                                 })}

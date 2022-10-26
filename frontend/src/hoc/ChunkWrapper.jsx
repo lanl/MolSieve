@@ -30,6 +30,7 @@ export default function ChunkWrapper({
     updateGlobalScale,
     disableControls,
     setExtents,
+    onComplete,
 }) {
     const [isLoaded, setIsLoaded] = useState(false);
 
@@ -38,15 +39,6 @@ export default function ChunkWrapper({
     const [isExpanded, setIsExpanded] = useState(false);
     const [showSparkLine, setSparkLine] = useState(true);
     const [selectionMode, setSelectionMode] = useState(false);
-
-    const [scale, setScale] = useState(() =>
-        d3.scaleLinear().domain([Number.MIN_VALUE, Number.MAX_VALUE]).range([height, 5])
-    );
-
-    useEffect(() => {
-        const { min, max } = globalScale;
-        setScale(() => d3.scaleLinear().domain([min, max]).range([height, 5]));
-    }, [globalScale]);
 
     const [sliceBy, setSliceBy] = useState();
     const [seq, setSeq] = useState();
@@ -286,6 +278,11 @@ export default function ChunkWrapper({
         return <div>Loading interrupted</div>;
     }
 
+    useEffect(() => {
+        if (isLoaded) {
+            onComplete(chunk.id);
+        }
+    }, [isLoaded]);
     return isLoaded ? (
         <>
             <Box
@@ -325,7 +322,7 @@ export default function ChunkWrapper({
                 rightBoundary={rightBoundary}
                 stateHovered={stateHovered}
                 sliceBy={sliceBy}
-                globalScale={scale}
+                globalScale={globalScale}
                 showSparkLine={showSparkLine}
                 lineColor={trajectory.colorByCluster(chunk)}
                 setExtents={setExtents}

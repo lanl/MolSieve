@@ -173,6 +173,7 @@ class App extends React.Component {
                             this.setState({ loadingMessage: `Simplifying ${run}...` });
 
                             newTrajComplete.simplifySet(chunkingThreshold);
+
                             // need to wait for states to finish loading before rendering
                             const removed = newTrajComplete.set_colors(this.state.colors);
                             const newTrajectories = {
@@ -268,6 +269,7 @@ class App extends React.Component {
         const { [run]: newTraj } = trajectories;
 
         newTraj.simplifySet(threshold);
+
         this.setState((prevState) => ({
             trajectories: { ...prevState.trajectories, [run]: newTraj },
         }));

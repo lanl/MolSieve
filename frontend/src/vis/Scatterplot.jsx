@@ -126,8 +126,9 @@ export default function Scatterplot({
             const yAttributeListRender = showSparkLine ? yAttributeList : sequence.map((d) => d.id);
             const yAttributeRender = showSparkLine ? property : 'id';
 
+            const { min, max } = globalScale;
             const scaleY = showSparkLine
-                ? globalScale
+                ? d3.scaleLinear().domain([min, max]).range([height, 5])
                 : getScale(yAttributeListRender, yAttributeRender === 'id').range([
                       height - margin.bottom - 5,
                       margin.top,

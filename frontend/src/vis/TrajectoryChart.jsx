@@ -36,6 +36,7 @@ function TrajectoryChart({
     setExtents,
     updateGlobalScale,
     globalScale,
+    onComplete,
 }) {
     const ref = useTrajectoryChartRender(
         (svg) => {
@@ -230,6 +231,7 @@ function TrajectoryChart({
                                         updateGlobalScale={updateGlobalScale}
                                         disableControls={chunkSelectionMode}
                                         setExtents={setExtents}
+                                        onComplete={onComplete}
                                     />
                                 ) : (
                                     <BoxPlotWrapper
