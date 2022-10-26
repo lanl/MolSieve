@@ -1,7 +1,7 @@
 import State from './state';
 import { ensureArray } from './myutils';
 import { loadPropertiesForSubset, apiClusterStates } from './ajax';
-import { structuralAnalysisProps } from './constants';
+import { structuralAnalysisProps, mpn65 } from './constants';
 
 class GlobalStates {
     map = new Map();
@@ -99,8 +99,19 @@ class GlobalStates {
 
     clusterStates = (states) => {
         apiClusterStates(structuralAnalysisProps, states).then((d) => {
-            console.log(d);
+            for (const [id, clusterID] of Object.entries(d)) {
+                const previous = this.map.get(parseInt(id, 10));
+                previous.stateCluster = clusterID;
+                this.map.set(id, Object.assign(previous, previous));
+            }
         });
+    };
+
+    clearClusterStates = () => {
+        for (const [id, state] of this.map.entries()) {
+            state.stateCluster = undefined;
+            this.map.set(id, state);
+        }
     };
 
     get = (id) => {

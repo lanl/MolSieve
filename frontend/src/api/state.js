@@ -7,7 +7,11 @@ export default class State {
         this.id = id;
     }
 
+    // -1 stateCluster is noise / unclustered
     get individualColor() {
+        if (this.stateCluster !== undefined) {
+            return this.stateCluster !== -1 ? mpn65[this.stateCluster % mpn65.length] : 'black';
+        }
         return mpn65[this.id % mpn65.length];
     }
 

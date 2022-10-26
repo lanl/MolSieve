@@ -152,8 +152,7 @@ async def generate_ovito_animation(
 
     attr_atom_dict = converter.query_to_ASE(driver, q, "Pt")
 
-
-    output_path = 'vid.webm'
+    output_path = "vid.webm"
     # https://stackoverflow.com/questions/55873174/how-do-i-return-an-image-in-fastapi/67497103#67497103
     visualizations.render_ASE_list_to_file(
         attr_atom_dict.values(),
@@ -276,6 +275,43 @@ async def ws_load_properties_for_subset(websocket: WebSocket):
             await websocket.send_json(results)
     except WebSocketDisconnect:
         print("Websocket disconnected")
+
+
+from sklearn import preprocessing
+from sklearn.cluster import OPTICS
+
+
+@router.post("/cluster_states", status_code=200)
+def cluster_states(props: List[str] = Body([]), stateIds: List[int] = Body([])):
+    qb = querybuilder.Neo4jQueryBuilder()
+    driver = GraphDriver()
+
+    q = qb.generate_get_node_list(
+        "State", idAttributeList=stateIds, attributeList=props
+    )
+
+    j = {}
+    with driver.session() as session:
+        result = session.run(q.text)
+        j = result.data()
+
+    ids = []
+    states = []
+    for state in j:
+        attrs = []
+        for key in state:
+            if key == "id":
+                ids.append(state[key])
+            else:
+                attrs.append(state[key])
+        states.append(attrs)
+
+    states = preprocessing.MinMaxScaler().fit_transform(states)
+
+    clustering = OPTICS(min_samples=10).fit(states)
+    labels = clustering.labels_.tolist()
+
+    return dict(zip(ids, labels))
 
 
 @router.post("/load_properties_for_subset", status_code=200)
