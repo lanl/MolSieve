@@ -56,29 +56,22 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
     const oldToolTipList = usePrevious(toolTipList);
 
     const [globalProperty, setGlobalProperty] = useState(structuralAnalysisProps[0]);
-    const [globalScale, setGlobalScale] = useState({
-        min: Number.MAX_VALUE,
-        max: Number.MIN_VALUE,
-    });
+    const [globalMin, setGlobalMin] = useState(Number.MAX_VALUE);
+    const [globalMax, setGlobalMax] = useState(Number.MIN_VALUE);
 
     const updateGlobalScale = (valMin, valMax) => {
-        const { min, max } = globalScale;
-
-        if (min > valMin || max < valMax) {
-            // allow for margin
-            const m = (val) => val * 0.1;
-            setGlobalScale({ min: valMin - m(valMin), max: valMax + m(valMax) });
-        }
+        setGlobalMin((min) => (min > valMin ? valMin : min));
+        setGlobalMax((max) => (max < valMax ? valMax : max));
     };
 
-    // reset globalScale whenever property changes
-    useEffect(() => {
-        setGlobalScale({
-            min: Number.MAX_VALUE,
-            max: Number.MIN_VALUE,
-        });
-    }, [globalProperty]);
+    const resetGlobalScale = () => {
+        setGlobalMin(Number.MAX_VALUE);
+        setGlobalMax(Number.MIN_VALUE);
+    };
 
+    useEffect(() => {
+        console.log(globalMin, globalMax);
+    }, [globalMin, globalMax]);
     /**
      * [TODO:description]
      *
@@ -213,6 +206,7 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
         setChunkPairs([]);
         setSelectionMode(NO_SELECT);
         setToolTipList([]);
+        resetGlobalScale();
     }, [trajectories]);
 
     useEffect(() => {
@@ -452,7 +446,8 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
                                             selectedObjects={selectedObjects}
                                             setExtents={setExtents}
                                             updateGlobalScale={updateGlobalScale}
-                                            globalScale={globalScale}
+                                            globalScaleMin={globalMin}
+                                            globalScaleMax={globalMax}
                                         />
                                     );
                                 })}
@@ -577,6 +572,7 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
                     <Select
                         value={globalProperty}
                         onChange={(e) => {
+                            resetGlobalScale();
                             setGlobalProperty(e.target.value);
                         }}
                     >

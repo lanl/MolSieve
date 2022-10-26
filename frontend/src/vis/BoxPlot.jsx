@@ -12,7 +12,8 @@ export default function BoxPlot({
     property,
     width,
     height,
-    globalScale,
+    globalScaleMin,
+    globalScaleMax,
     color,
     showYAxis,
     chunk,
@@ -31,7 +32,10 @@ export default function BoxPlot({
             const adjWidth = width - margin.left - margin.right;
             const center = width / 2;
 
-            const yScale = globalScale;
+            const yScale = d3
+                .scaleLinear()
+                .domain([globalScaleMin, globalScaleMax])
+                .range([height, 5]);
 
             if (showYAxis) {
                 svg.call(d3.axisRight(yScale));
@@ -92,7 +96,7 @@ export default function BoxPlot({
                 )
             );
         },
-        [property, data, color]
+        [property, data, color, globalScaleMin, globalScaleMax]
     );
 
     return (

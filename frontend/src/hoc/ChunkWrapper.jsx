@@ -25,7 +25,8 @@ export default function ChunkWrapper({
     setStateClicked,
     run,
     isParentHovered,
-    globalScale,
+    globalScaleMin,
+    globalScaleMax,
     stateHovered,
     updateGlobalScale,
     disableControls,
@@ -74,7 +75,6 @@ export default function ChunkWrapper({
     };
 
     const render = (states, lSlice, rSlice) => {
-        // breaks because it assumes that both sides are expanding at the same time... need to do seperately
         let s = chunk.timestepSequence;
         let m = chunk.calculateMovingAverage(property, mvaPeriod, simpleMovingAverage);
 
@@ -316,7 +316,8 @@ export default function ChunkWrapper({
                 rightBoundary={rightBoundary}
                 stateHovered={stateHovered}
                 sliceBy={sliceBy}
-                globalScale={globalScale}
+                globalScaleMin={globalScaleMin}
+                globalScaleMax={globalScaleMax}
                 showSparkLine={showSparkLine}
                 lineColor={trajectory.colorByCluster(chunk)}
                 setExtents={setExtents}

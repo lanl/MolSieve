@@ -35,7 +35,8 @@ function TrajectoryChart({
     selectedObjects,
     setExtents,
     updateGlobalScale,
-    globalScale,
+    globalScaleMin,
+    globalScaleMax,
 }) {
     const ref = useTrajectoryChartRender(
         (svg) => {
@@ -226,7 +227,8 @@ function TrajectoryChart({
                                         trajectory={trajectory}
                                         run={run}
                                         isParentHovered={isPHovered}
-                                        globalScale={globalScale}
+                                        globalScaleMin={globalScaleMin}
+                                        globalScaleMax={globalScaleMax}
                                         updateGlobalScale={updateGlobalScale}
                                         disableControls={chunkSelectionMode}
                                         setExtents={setExtents}
@@ -237,7 +239,8 @@ function TrajectoryChart({
                                         width={ww}
                                         height={hh}
                                         property={property}
-                                        globalScale={globalScale}
+                                        globalScaleMin={globalScaleMin}
+                                        globalScaleMax={globalScaleMax}
                                         updateGlobalScale={updateGlobalScale}
                                     />
                                 )

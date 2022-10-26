@@ -39,7 +39,8 @@ export default function Scatterplot({
     includeBoundaries,
     sliceBy,
     showSparkLine,
-    globalScale,
+    globalScaleMin,
+    globalScaleMax,
     lineColor,
     selectionMode,
     onSetExtentsComplete,
@@ -126,9 +127,8 @@ export default function Scatterplot({
             const yAttributeListRender = showSparkLine ? yAttributeList : sequence.map((d) => d.id);
             const yAttributeRender = showSparkLine ? property : 'id';
 
-            const { min, max } = globalScale;
             const scaleY = showSparkLine
-                ? d3.scaleLinear().domain([min, max]).range([height, 5])
+                ? d3.scaleLinear().domain([globalScaleMin, globalScaleMax]).range([height, 5])
                 : getScale(yAttributeListRender, yAttributeRender === 'id').range([
                       height - margin.bottom - 5,
                       margin.top,
@@ -344,7 +344,16 @@ export default function Scatterplot({
                 });
             // applyFilters(trajectories, runs, ref);
         },
-        [yAttributeList, trajectory, run, showSparkLine, property, width, globalScale]
+        [
+            yAttributeList,
+            trajectory,
+            run,
+            showSparkLine,
+            property,
+            width,
+            globalScaleMin,
+            globalScaleMax,
+        ]
     );
 
     useEffect(() => {

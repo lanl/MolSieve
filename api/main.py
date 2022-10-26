@@ -308,7 +308,7 @@ def cluster_states(props: List[str] = Body([]), stateIds: List[int] = Body([])):
 
     states = preprocessing.MinMaxScaler().fit_transform(states)
 
-    clustering = OPTICS(min_samples=10).fit(states)
+    clustering = OPTICS(min_samples=5).fit(states)
     labels = clustering.labels_.tolist()
 
     return dict(zip(ids, labels))
