@@ -1,19 +1,19 @@
-import ColorScheme from './colorschemes';
-/* wrapper around the dictionary of trajectories
-/ that enables the calculation of intra-trajectory values */
-class Trajectories {
-    // dictionary of name: trajectory
-    trajectories = {};
+// functions that you can call on the trajectories dictionary
+// no trajectories object because that would make it harder for react to diff
 
-    // dictionary of name: simplified trajectory; these objects are the only things that the visualizations ever see
-    simplifiedTrajectories = {};
+export function getAllImportantChunks(trajectories) {
+    let iChunks = [];
+    for (const t of Object.values(trajectories)) {
+        iChunks = [...iChunks, ...t.chunkList.filter((c) => c.important && !c.hasParent)];
+    }
+    return iChunks;
+}
 
-    // map of trajectory commonalities; id to list of names; only includes states in common
-    commonalities = new Map();
-
-    // global map of uniqueStates
-    uniqueStates = new Map();
-
-    // colors currently available for use
-    colors = ColorScheme();
+export function getAllImportantStates(trajectories) {
+    const iChunks = getAllImportantChunks(trajectories);
+    let iStates = [];
+    for (const c of Object.values(iChunks)) {
+        iStates = [...iStates, ...c.states];
+    }
+    return iStates;
 }

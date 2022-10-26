@@ -27,7 +27,7 @@ import { createUUID } from '../api/random';
 
 import { structuralAnalysisProps } from '../api/constants';
 import { zTest } from '../api/stats';
-import { getAllImportantChunks } from '../api/trajectories';
+import { getAllImportantStates } from '../api/trajectories';
 
 const SINGLE_STATE_MODAL = 'single_state';
 
@@ -61,24 +61,13 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
         max: Number.MIN_VALUE,
     });
 
-    const [completed, setCompleted] = useState([]);
-
-    useEffect(() => {
-        if (completed.length === getAllImportantChunks(trajectories).length) {
-            // run state clustering
-            console.log('all chunks loaded!');
-        }
-    }, [completed]);
-
-    const setComplete = (id) => {
-        setCompleted([...completed, id]);
-    };
-
     const updateGlobalScale = (valMin, valMax) => {
         const { min, max } = globalScale;
 
         if (min > valMin || max < valMax) {
-            setGlobalScale({ min: valMin, max: valMax });
+            // allow for margin
+            const m = (val) => val * 0.1;
+            setGlobalScale({ min: valMin - m(valMin), max: valMax + m(valMax) });
         }
     };
 
@@ -223,7 +212,7 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
     useEffect(() => {
         setChunkPairs([]);
         setSelectionMode(NO_SELECT);
-        setCompleted([]);
+        setToolTipList([]);
     }, [trajectories]);
 
     useEffect(() => {
@@ -379,6 +368,18 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
                                 <Button
                                     color="secondary"
                                     size="small"
+                                    onClick={() =>
+                                        GlobalStates.clusterStates(
+                                            getAllImportantStates(trajectories)
+                                        )
+                                    }
+                                >
+                                    ClusterStates
+                                </Button>
+
+                                <Button
+                                    color="secondary"
+                                    size="small"
                                     onClick={() => setSelectionMode(CLEAR_SELECTION)}
                                 >
                                     ClearSelection
@@ -452,7 +453,6 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
                                             setExtents={setExtents}
                                             updateGlobalScale={updateGlobalScale}
                                             globalScale={globalScale}
-                                            onComplete={setComplete}
                                         />
                                     );
                                 })}

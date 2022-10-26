@@ -275,3 +275,25 @@ export function loadPropertiesForSubset(properties, subset) {
 export function loadPropertyForSubset(property, subset) {
     return loadPropertiesForSubset([property], subset);
 }
+
+/**
+ * [TODO:description]
+ *
+ * @param {[TODO:type]} properties - [TODO:description]
+ * @param {[TODO:type]} states - [TODO:description]
+ * @returns {[TODO:type]} [TODO:description]
+ */
+export function apiClusterStates(properties, states) {
+    return new Promise(function (resolve, reject) {
+        axios
+            .post('/api/cluster_states', JSON.stringify({ props: properties, stateIds: states }), {
+                headers: { 'Content-Type': 'application/json' },
+            })
+            .then((response) => {
+                resolve(response.data);
+            })
+            .catch((e) => {
+                reject(e);
+            });
+    });
+}

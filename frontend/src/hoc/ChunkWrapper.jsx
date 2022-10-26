@@ -30,7 +30,6 @@ export default function ChunkWrapper({
     updateGlobalScale,
     disableControls,
     setExtents,
-    onComplete,
 }) {
     const [isLoaded, setIsLoaded] = useState(false);
 
@@ -278,11 +277,6 @@ export default function ChunkWrapper({
         return <div>Loading interrupted</div>;
     }
 
-    useEffect(() => {
-        if (isLoaded) {
-            onComplete(chunk.id);
-        }
-    }, [isLoaded]);
     return isLoaded ? (
         <>
             <Box

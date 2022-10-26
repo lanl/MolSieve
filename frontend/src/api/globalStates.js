@@ -1,6 +1,7 @@
 import State from './state';
 import { ensureArray } from './myutils';
-import { loadPropertiesForSubset } from './ajax';
+import { loadPropertiesForSubset, apiClusterStates } from './ajax';
+import { structuralAnalysisProps } from './constants';
 
 class GlobalStates {
     map = new Map();
@@ -93,6 +94,12 @@ class GlobalStates {
             } else {
                 resolve();
             }
+        });
+    };
+
+    clusterStates = (states) => {
+        apiClusterStates(structuralAnalysisProps, states).then((d) => {
+            console.log(d);
         });
     };
 
