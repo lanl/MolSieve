@@ -69,9 +69,11 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
         setGlobalMax(Number.MIN_VALUE);
     };
 
+    /*
     useEffect(() => {
         console.log(globalMin, globalMax);
     }, [globalMin, globalMax]);
+    */
     /**
      * [TODO:description]
      *
@@ -207,6 +209,7 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
         setSelectionMode(NO_SELECT);
         setToolTipList([]);
         resetGlobalScale();
+        GlobalStates.clearClusterStates();
     }, [trajectories]);
 
     useEffect(() => {
@@ -402,16 +405,12 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
                                         let rightBoundary;
                                         if (chunkIndex > 0) {
                                             // get -1
-                                            if (!topChunkList[chunkIndex - 1].important) {
-                                                leftBoundary = topChunkList[chunkIndex - 1];
-                                            }
+                                            leftBoundary = topChunkList[chunkIndex - 1];
                                         }
 
                                         if (chunkIndex < topChunkList.length - 1) {
                                             // get +1
-                                            if (!topChunkList[chunkIndex + 1].important) {
-                                                rightBoundary = topChunkList[chunkIndex + 1];
-                                            }
+                                            rightBoundary = topChunkList[chunkIndex + 1];
                                         }
 
                                         return {
