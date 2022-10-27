@@ -299,7 +299,9 @@ export default function Scatterplot({
                 // clean up memory
                 svg.on('mouseleave', () => {
                     tooltipCircle.attr('visibility', 'hidden');
-                    ttInstance.destroy();
+                    if (ttInstance) {
+                        ttInstance.destroy();
+                    }
                     ttInstance = undefined;
                 });
             }
