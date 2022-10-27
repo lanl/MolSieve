@@ -96,7 +96,7 @@ export default function BoxPlot({
                 )
             );
         },
-        [property, data, color, globalScaleMin, globalScaleMax]
+        [property, data, color, globalScaleMin, globalScaleMax, width, height]
     );
 
     return (
