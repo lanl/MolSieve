@@ -1,4 +1,4 @@
-import { React, useState, useEffect } from 'react';
+import { React, useState, useEffect, useRef } from 'react';
 
 import * as d3 from 'd3';
 import Box from '@mui/material/Box';
@@ -43,6 +43,8 @@ export default function ChunkWrapper({
     const [sliceBy, setSliceBy] = useState();
     const [seq, setSeq] = useState();
     const [mva, setMva] = useState();
+
+    const ws = useRef(null);
 
     const getBoundaryStates = (i, seen, lSequence, rSequence) => {
         let checkStates = [];
@@ -117,19 +119,24 @@ export default function ChunkWrapper({
         setIsLoaded(true);
     };
 
-    useEffect(() => {
-        const socket = WebSocketManager.connect(
-            'ws://localhost:8000/api/load_properties_for_subset'
-        );
+    const runSocket = () => {
+        ws.current = WebSocketManager.connect('ws://localhost:8000/api/load_properties_for_subset');
+
         const seen = new Set();
         let i = 0;
         let lStates = [];
         let rStates = [];
 
-        socket.addEventListener('close', ({ code }) => {
-            if (code === 3001) {
+        // if the connection is abruptly closed, wait a second and then start again
+        ws.current.addEventListener('close', ({ code }) => {
+            if (code === 3001 || code === 1011) {
                 setIsInterrupted(true);
             }
+        });
+
+        ws.current.addEventListener('error', (err) => {
+            console.log(err);
+            // setTimeout(runSocket(), 1000);
         });
 
         if (isExpanded) {
@@ -140,7 +147,8 @@ export default function ChunkWrapper({
 
             // should expansion be allowed if neither are visible?
             if (!lToDo && !rToDo) {
-                socket.close();
+                ws.current.close();
+                ws.current = null;
                 setIsExpanded(false);
                 return;
             }
@@ -151,13 +159,13 @@ export default function ChunkWrapper({
                 simpleMovingAverage
             );
 
-            socket.addEventListener('open', () => {
+            ws.current.addEventListener('open', () => {
                 const boundaryStates = getBoundaryStates(i, seen, lToDo, rToDo);
                 lStates = boundaryStates.leftStates;
                 rStates = boundaryStates.rightStates;
                 i++;
 
-                socket.send(
+                ws.current.send(
                     JSON.stringify({
                         props: [property],
                         stateIds: boundaryStates.sendStates,
@@ -165,7 +173,7 @@ export default function ChunkWrapper({
                 );
             });
 
-            socket.addEventListener('message', (e) => {
+            ws.current.addEventListener('message', (e) => {
                 const parsedData = JSON.parse(e.data);
                 GlobalStates.addPropToStates(parsedData);
 
@@ -198,10 +206,11 @@ export default function ChunkWrapper({
 
                 // send requested states, if not, close connection
                 if (!sendStates.length) {
-                    socket.close(1000);
+                    ws.current.close(1000);
+                    ws.current = null;
                 } else {
                     i++;
-                    socket.send(
+                    ws.current.send(
                         JSON.stringify({
                             props: [property],
                             stateIds: [...new Set(sendStates)],
@@ -214,7 +223,7 @@ export default function ChunkWrapper({
             const rToDo = rightBoundary ? rightBoundary.selected : undefined;
             let cStates = [];
 
-            socket.addEventListener('open', () => {
+            ws.current.addEventListener('open', () => {
                 const boundaryStates = getBoundaryStates(i, seen, lToDo, rToDo);
                 lStates = boundaryStates.leftStates;
                 rStates = boundaryStates.rightStates;
@@ -222,7 +231,7 @@ export default function ChunkWrapper({
 
                 i++;
 
-                socket.send(
+                ws.current.send(
                     JSON.stringify({
                         props: [property],
                         stateIds: [...boundaryStates.sendStates, ...cStates],
@@ -230,7 +239,7 @@ export default function ChunkWrapper({
                 );
             });
 
-            socket.addEventListener('message', (e) => {
+            ws.current.addEventListener('message', (e) => {
                 const parsedData = JSON.parse(e.data);
                 GlobalStates.addPropToStates(parsedData);
 
@@ -259,10 +268,10 @@ export default function ChunkWrapper({
                 }
 
                 if (!sendStates.length) {
-                    socket.close(1000);
+                    ws.current.close(1000);
                 } else {
                     i++;
-                    socket.send(
+                    ws.current.send(
                         JSON.stringify({
                             props: [property],
                             stateIds: [...new Set(sendStates)],
@@ -271,6 +280,20 @@ export default function ChunkWrapper({
                 }
             });
         }
+    };
+
+    useEffect(() => {
+        if (ws.current) {
+            ws.current.close();
+            ws.current = null;
+        }
+
+        runSocket();
+
+        return () => {
+            ws.current.close();
+            ws.current = null;
+        };
     }, [isExpanded, property, width, height]);
 
     if (isInterrupted) {
