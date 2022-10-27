@@ -9,7 +9,6 @@ class WebSocketManager {
 
     /**
      * Closes all of the websocket connections with code 3001 - interrupted.
-     *
      */
     clear() {
         for (const w of this.websockets) {

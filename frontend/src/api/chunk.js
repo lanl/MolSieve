@@ -59,9 +59,9 @@ export default class Chunk {
             selected.push(entries[i][0]);
         }
 
-        for (let j = 0; j < Math.floor(0.1 * entries.length); j++) {
+        for (let j = 0; j < Math.ceil(0.1 * entries.length); j++) {
             // select 10% of the chunk randomly for the distribution; ignore top 20 in selection
-            const random = Math.floor(rand() * (entries.length - 20)) + 20;
+            const random = Math.ceil(rand() * (entries.length - 20)) + 20;
             selected.push(entries[random][0]);
         }
 

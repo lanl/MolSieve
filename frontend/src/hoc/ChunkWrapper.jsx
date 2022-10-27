@@ -134,10 +134,9 @@ export default function ChunkWrapper({
             }
         });
 
-        ws.current.addEventListener('error', (err) => {
-            console.log(err);
+        /* ws.current.addEventListener('error', (err) => {
             // setTimeout(runSocket(), 1000);
-        });
+        }); */
 
         if (isExpanded) {
             const lToDo = leftBoundary ? leftBoundary.timestepSequence.map((d) => d.id) : undefined;
@@ -307,14 +306,14 @@ export default function ChunkWrapper({
                 sx={{ visibility: isParentHovered ? 'visible' : 'hidden' }}
             >
                 <Button color="secondary" size="small" onClick={() => setSparkLine(!showSparkLine)}>
-                    {showSparkLine ? 'ShowScatter' : 'ShowSparkLine'}
+                    V
                 </Button>
                 <Button
                     color="secondary"
                     size="small"
                     onClick={() => setSelectionMode(!selectionMode)}
                 >
-                    {selectionMode ? 'CompleteSelection' : 'StartSelection'}
+                    {selectionMode ? 'CS' : 'SS'}
                 </Button>
             </Box>
 

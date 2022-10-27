@@ -112,7 +112,7 @@ class Trajectory {
         // jank + ugly, need to refactor
         // reset, we're dealing with a new set of chunks
         const chunks = new Map();
-        const sizeThreshold = 50;
+        const sizeThreshold = 250;
         const epsilon = 0.0001;
 
         // returns 0 if unimportant, 1 if important
@@ -131,8 +131,9 @@ class Trajectory {
                     j++;
                 }
                 if (j - i < sizeThreshold) {
-                    for (i; i < j; i++) {
+                    while (i < j) {
                         importance[i] = 0;
+                        i++;
                     }
                 }
                 i = j;
@@ -150,9 +151,10 @@ class Trajectory {
 
             // if the current timestep is not in the same cluster or importance
             if (
-                important !== isCurrImportant ||
-                cluster !== this.idToCluster[id] ||
-                timestep === this.sequence.length - 1
+                last - first > sizeThreshold &&
+                (important !== isCurrImportant ||
+                    cluster !== this.idToCluster[id] ||
+                    timestep === this.sequence.length - 1)
             ) {
                 // save this chunk if its important, and above the cluster size
                 if (important) {
@@ -205,6 +207,7 @@ class Trajectory {
             if (!chunk.important) {
                 chunk.calculateSelected();
             }
+
             // for now, set chunk properties here
             chunk.properties = [...chunk.properties, ...structuralAnalysisProps];
         }
