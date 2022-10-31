@@ -19,8 +19,8 @@ import {
     api_loadSequence,
     api_load_metadata,
     api_load_property,
-    api_calculate_idToTimestep,
     apiLoadTrajectory,
+    apiSimplifySequence,
 } from './api/ajax';
 import ControlDrawer from './components/ControlDrawer';
 import GlobalStates from './api/globalStates';
@@ -155,17 +155,17 @@ class App extends React.Component {
      * @param {Number} chunkingThreshold - Simplification threshold
      */
     loadTrajectory = (run, mMin, mMax, chunkingThreshold) => {
-        console.log('loading trajectory');
         apiLoadTrajectory(run, mMin, mMax, chunkingThreshold)
             .then((data) => {
                 const newTraj = new Trajectory();
-                console.log(data);
                 newTraj.sequence = Uint32Array.from(data.sequence);
                 newTraj.uniqueStates = data.uniqueStates;
                 newTraj.name = run;
                 newTraj.id = createUUID();
                 newTraj.idToCluster = data.idToCluster;
                 newTraj.feasible_clusters = data.feasible_clusters;
+                newTraj.chunkingThreshold = chunkingThreshold;
+                newTraj.current_clustering = data.current_clustering;
 
                 GlobalStates.calculateGlobalUniqueStates(data.uniqueStates, run);
                 newTraj.simplifySet(data.simplified);
@@ -258,11 +258,13 @@ class App extends React.Component {
         const { trajectories } = this.state;
         const { [run]: newTraj } = trajectories;
 
-        newTraj.simplifySet(threshold);
-
-        this.setState((prevState) => ({
-            trajectories: { ...prevState.trajectories, [run]: newTraj },
-        }));
+        apiSimplifySequence(run, newTraj.current_clustering, threshold).then((data) => {
+            newTraj.simplifySet(data);
+            newTraj.chunkingThreshold = threshold;
+            this.setState((prevState) => ({
+                trajectories: { ...prevState.trajectories, [run]: newTraj },
+            }));
+        });
     };
 
     toggleDrawer = () => {

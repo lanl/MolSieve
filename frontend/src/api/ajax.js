@@ -317,3 +317,23 @@ export function apiClusterStates(properties, states) {
             });
     });
 }
+
+export function apiSimplifySequence(run, numClusters, chunkingThreshold) {
+    console.log(numClusters);
+    return new Promise(function (resolve, reject) {
+        axios
+            .get('/api/simplify_sequence', {
+                params: {
+                    run,
+                    numClusters,
+                    chunkingThreshold,
+                },
+            })
+            .then((response) => {
+                resolve(response.data);
+            })
+            .catch((e) => {
+                reject(e);
+            });
+    });
+}

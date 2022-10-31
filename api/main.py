@@ -12,7 +12,6 @@ import neo4j
 
 from neomd import querybuilder, converter, calculator, visualizations, utils
 import os
-import pygpcca as gp
 import numpy as np
 
 from celery.result import AsyncResult
@@ -36,6 +35,8 @@ from .utils import (
     get_atom_type,
     saveTestJson,
     loadTestJson,
+    saveTestPickle,
+    loadTestPickle
 )
 from .connectionmanager import ConnectionManager
 
@@ -280,6 +281,7 @@ async def ws_load_properties_for_subset(websocket: WebSocket):
 from sklearn import preprocessing
 from sklearn.cluster import OPTICS
 
+
 @router.post("/cluster_states", status_code=200)
 def cluster_states(props: List[str] = Body([]), stateIds: List[int] = Body([])):
     qb = querybuilder.Neo4jQueryBuilder()
@@ -450,21 +452,19 @@ def get_potential(run: str) -> str:
         return filename
 
 
-def load_sequence(run: str, properties: str):
+def load_sequence(run: str, properties: List[str]):
     get_potential(run)
     run_md = get_metadata(run)
 
     if config.IMPATIENT:
-        r = loadTestJson(run, "sequence")
+        r = loadTestPickle(run, "sequence")
         if r is not None:
-            return r
+            return Trajectory(run, r["sequence"], r["unique_states"])
 
-    node_attributes = [("id", "first")]
-    uniqueStateAttributes = ["id"]
-    if properties != "":
-        properties = properties.split(",")
+    uniqueStateAttributes = []
+
+    if len(properties) > 0:
         for prop in properties:
-            node_attributes.append((prop, "first"))
             uniqueStateAttributes.append(str(prop))
 
     driver = GraphDriver()
@@ -510,13 +510,11 @@ def load_sequence(run: str, properties: str):
         j["sequence"] = result.value()
 
         res = session.run(uniqueStateQuery.text)
-        j["uniqueStates"] = res.data()
+        j["unique_states"] = res.data()
 
-        saveTestJson(run, "sequence", j)
+        saveTestPickle(run, "sequence", j)
 
-    new_traj = Trajectory()
-    new_traj.sequence = j["sequence"]
-    new_traj.uniqueStates = j["uniqueStates"]
+    new_traj = Trajectory(run, j["sequence"], j["unique_states"])
 
     return new_traj
 
@@ -579,7 +577,6 @@ def get_run_list():
             for r in result.values():
                 for record in r:
                     runs.append(record)
-                    trajectories.update({record: Trajectory()})
             j = runs
         except neo4j.exceptions.ServiceUnavailable as exception:
             raise exception
@@ -618,149 +615,12 @@ def idToTimestep(run: str):
     return j
 
 
-def calculateIDToCluster(sequence: List[int], clusterSet):
-    idToCluster = {}
-    for clusterIdx, cluster in enumerate(clusterSet):
-        for id in cluster:
-            idToCluster[id] = clusterIdx
-    return idToCluster
+@router.get("/simplify_sequence")
+def simplify_sequence_endpoint(run: str, numClusters: int, chunkingThreshold: float):
+    # look for redis object
+    trajectory = load_sequence(run, ["id"])
 
-
-def sequence_importance(
-    sequence: List[int],
-    membershipProbabilities: Dict[str, List[float]],
-    chunkingThreshold: float,
-    sizeThreshold: int,
-    clusterIdx: int,
-):
-    epsilon = 0.0001
-
-    isImportant = (
-        lambda id: 0
-        if max(membershipProbabilities[str(clusterIdx)][str(id)])
-        <= chunkingThreshold + epsilon
-        else 1
-    )
-    importance = list(map(isImportant, sequence))
-
-    i = 0
-    while i != len(importance) - 1:
-        if importance[i] == 1:
-            j = i + 1
-            while j < len(importance) - 1 and importance[j] == 1:
-                j += 1
-            if j - i < sizeThreshold:
-                while i < j:
-                    importance[i] = 0
-                    i += 1
-            i = j
-        else:
-            i += 1
-
-    return importance
-
-
-def simplifySequence(
-    sequence: List[int],
-    membershipProbabilities: Dict[str, List[float]],
-    chunkingThreshold,
-    idToCluster,
-    clusterIdx,
-):
-    chunks = []
-    sizeThreshold = 250
-
-    importance = sequence_importance(
-        sequence, membershipProbabilities, chunkingThreshold, sizeThreshold, clusterIdx
-    )
-    # Split into another function
-    # returns 0 if unimportant, 1 if important
-    first = 0
-    last = 0
-    important = importance[0]
-    cluster = idToCluster[sequence[0]]
-    for timestep, id in enumerate(sequence):
-        isCurrImportant = importance[timestep]
-
-        if last - first > sizeThreshold and (
-            important != isCurrImportant
-            or cluster != idToCluster[id]
-            or timestep == len(sequence) - 1
-        ):
-            chunk = {
-                "timestep": first,
-                "last": last,
-                "firstID": sequence[first],
-                "important": important,
-                "cluster": cluster,
-            }
-            first = timestep
-            last = timestep
-            important = isCurrImportant
-            cluster = idToCluster[id]
-            chunks.append(chunk)
-        else:
-            last = timestep
-
-    return chunks
-
-
-def pcca(run: str, m_min: int, m_max: int):
-    driver = GraphDriver()
-
-    if config.IMPATIENT:
-        r = loadTestJson(run, "optimal_pcca")
-        if r != None:
-            return r
-
-    m, idx_to_id, occurrenceMatrix = calculator.calculate_transition_matrix(
-        driver, run=run, discrete=True, getOccurrenceMatrix=True
-    )
-    print("finished loading transition matrix")
-    gpcca = gp.GPCCA(m.values, z="LM", method="brandts")
-    print("finished calculating optimal pcca values")
-    j = {}
-    sets = {}
-    fuzzy_memberships = {}
-    try:
-        gpcca.optimize({"m_min": m_min, "m_max": m_max})
-        print("finished optimization")
-        j.update({"optimal_value": gpcca.n_m})
-        feasible_clusters = []
-        for cluster_idx, val in enumerate(gpcca.crispness_values):
-            if val != 0:
-                feasible_clusters.append(cluster_idx + m_min)
-                # we still want the clustering...
-                gpcca.optimize(cluster_idx + m_min)
-                print(f"calculating cluster {cluster_idx + m_min}")
-                clusterings = []
-                for s in gpcca.macrostate_sets:
-                    newSet = []
-                    for i in s:
-                        newSet.append(idx_to_id[i])
-                    clusterings.append(newSet)
-                sets.update({cluster_idx + m_min: clusterings})
-                id_to_membership = {}
-                for idx, mem in enumerate(gpcca.memberships.tolist()):
-                    id_to_membership.update({idx_to_id[idx]: mem})
-                fuzzy_memberships.update({cluster_idx + m_min: id_to_membership})
-        j.update({"feasible_clusters": feasible_clusters})
-    except ValueError as exception:
-        raise exception
-
-    j.update({"sets": sets})
-    j.update({"fuzzy_memberships": fuzzy_memberships})
-    # BUG: occurrence_matrix transition probs stored as string - float object instead of int - float
-    j.update({"occurrence_matrix": occurrenceMatrix})
-    # j.update({'currentClustering': currentClustering});
-    # TODO: add as metadata in vis
-    # j.update({'dominant_eigenvalues': gpcca.dominant_eigenvalues.tolist()})
-    # j.update({'minChi': gpcca.minChi(m_min, m_max)})
-    # print(gpcca.n_m)
-    # print(j)
-
-    saveTestJson(run, "optimal_pcca", j)
-    return j
+    return simplified
 
 
 @router.get("/load_trajectory")
@@ -776,33 +636,23 @@ def load_trajectory(run: str, mMin: int, mMax: int, chunkingThreshold: float):
     # load sequence... this might not even be necessary
     trajectory = load_sequence(run, [f"{run}_occurrences", "number", "id"])
     # PCCA
-    clustering = pcca(run, mMin, mMax)
+    trajectory.pcca(mMin, mMax)
+    sequence = trajectory.sequence
 
-    sequence = trajectory["sequence"]
-    sets = clustering["sets"]
-
-    optimalVal = clustering["optimal_value"]
-    idToCluster = calculateIDToCluster(sequence, sets[str(optimalVal)])
-    feasible_clusters = clustering["feasible_clusters"]
-    # simplify
-    simplified = simplifySequence(
-        sequence,
-        clustering["fuzzy_memberships"],
-        chunkingThreshold,
-        idToCluster,
-        optimalVal,
-    )
-
+    trajectory.calculateIDToCluster()
+    trajectory.simplify_sequence(chunkingThreshold)
     id_to_timestep = idToTimestep(run)
+
+    # TODO: reduce state list to only important
+
     return {
         "sequence": sequence,
         "uniqueStates": set(sequence),
         "idToTimestep": id_to_timestep,
-        "simplified": simplified,
-        "idToCluster": idToCluster,
-        "feasible_clusters": feasible_clusters,
+        "simplified": trajectory.chunks,
+        "idToCluster": trajectory.idToCluster,
+        "feasible_clusters": trajectory.feasible_clusters,
+        "current_clustering": trajectory.current_clustering,
     }
-    # return important / unimportant list
-
 
 app.include_router(router)
