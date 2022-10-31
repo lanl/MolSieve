@@ -110,6 +110,7 @@ class Trajectory {
 
     // convert calculated chunks into chunk objects
     simplifySet(simplifiedSet) {
+        this.chunks.clear();
         for (const chunk of simplifiedSet) {
             const newChunk = new Chunk(
                 chunk.timestep,

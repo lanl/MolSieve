@@ -25,6 +25,7 @@ from PIL import Image
 import io
 import base64
 
+from .memcachedclient import MemcachedClient
 from .graphdriver import GraphDriver
 from .config import config
 from .trajectory import Trajectory
@@ -36,7 +37,7 @@ from .utils import (
     saveTestJson,
     loadTestJson,
     saveTestPickle,
-    loadTestPickle
+    loadTestPickle,
 )
 from .connectionmanager import ConnectionManager
 
@@ -590,37 +591,20 @@ def get_metadata(run: str):
     return j
 
 
-def idToTimestep(run: str):
-    driver = GraphDriver()
-
-    if config.IMPATIENT:
-        r = loadTestJson(run, "idToTimestep")
-        if r is not None:
-            return r
-
-    query = """MATCH (n:{run})-[r:{run}]->(:{run})
-               RETURN DISTINCT ID(n) as id, collect(r.timestep) as timesteps;""".format(
-        run=run
-    )
-
-    j = None
-    with driver.session() as session:
-        try:
-            result = session.run(query)
-            j = result.data()
-        except neo4j.exceptions.ServiceUnavailable as exception:
-            raise exception
-
-    saveTestJson(run, "idToTimestep", j)
-    return j
-
-
 @router.get("/simplify_sequence")
-def simplify_sequence_endpoint(run: str, numClusters: int, chunkingThreshold: float):
-    # look for redis object
-    trajectory = load_sequence(run, ["id"])
+def simplify_sequence_endpoint(run: str, chunkingThreshold: float):
+    # if trajectory object exists in cache, run simplification on that
 
-    return simplified
+    mem_client = MemcachedClient()
+    trajectory = mem_client.get(run)
+    print(trajectory)
+
+    if trajectory:
+        trajectory.simplify_sequence(chunkingThreshold)
+    else:
+        print("trajectory not found in cache")
+
+    return trajectory.chunks
 
 
 @router.get("/load_trajectory")
@@ -633,7 +617,7 @@ def load_trajectory(run: str, mMin: int, mMax: int, chunkingThreshold: float):
     :param mMax int: [TODO:description]
     :param chunkingThreshold float: [TODO:description]
     """
-    # load sequence... this might not even be necessary
+
     trajectory = load_sequence(run, [f"{run}_occurrences", "number", "id"])
     # PCCA
     trajectory.pcca(mMin, mMax)
@@ -641,18 +625,22 @@ def load_trajectory(run: str, mMin: int, mMax: int, chunkingThreshold: float):
 
     trajectory.calculateIDToCluster()
     trajectory.simplify_sequence(chunkingThreshold)
-    id_to_timestep = idToTimestep(run)
+    trajectory.calculate_id_to_timestep()
+
+    mem_client = MemcachedClient()
+    mem_client.set(run, trajectory)
 
     # TODO: reduce state list to only important
 
     return {
         "sequence": sequence,
         "uniqueStates": set(sequence),
-        "idToTimestep": id_to_timestep,
+        "idToTimestep": trajectory.id_to_timestep,
         "simplified": trajectory.chunks,
         "idToCluster": trajectory.idToCluster,
         "feasible_clusters": trajectory.feasible_clusters,
         "current_clustering": trajectory.current_clustering,
     }
+
 
 app.include_router(router)

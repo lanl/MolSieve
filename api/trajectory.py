@@ -1,13 +1,9 @@
 from neomd import calculator
 from .graphdriver import GraphDriver
 
-from .utils import (
-    saveTestPickle,
-    loadTestPickle
-)
-
+from .utils import saveTestPickle, loadTestPickle
 import pygpcca as gp
-
+import neo4j
 
 class Trajectory:
     metadata = None
@@ -93,7 +89,7 @@ class Trajectory:
                 "clusterings": self.clusterings,
                 "fuzzy_memberships": self.fuzzy_memberships,
                 "optimal_value": self.optimal_value,
-                "feasible_clusters": self.feasible_clusters
+                "feasible_clusters": self.feasible_clusters,
             },
         )
 
@@ -158,9 +154,9 @@ class Trajectory:
         epsilon = 0.0001
 
         isImportant = (
-            lambda id: 0
+            lambda id: 1
             if max(self.current_fuzzy_membership()[id]) <= chunkingThreshold + epsilon
-            else 1
+            else 0
         )
         importance = list(map(isImportant, self.sequence))
 
@@ -179,3 +175,27 @@ class Trajectory:
                 i += 1
 
         return importance
+
+    def calculate_id_to_timestep(self):
+        driver = GraphDriver()
+
+        r = loadTestPickle(self.name, "idToTimestep")
+        if r is not None:
+            self.id_to_timestep = r
+            return
+
+        query = """MATCH (n:{run})-[r:{run}]->(:{run})
+                   RETURN DISTINCT ID(n) as id, collect(r.timestep) as timesteps;""".format(
+            run=self.name
+        )
+
+        j = None
+        with driver.session() as session:
+            try:
+                result = session.run(query)
+                j = result.data()
+            except neo4j.exceptions.ServiceUnavailable as exception:
+                raise exception
+
+        saveTestPickle(self.name, "idToTimestep", j)
+        self.id_to_timestep = j
