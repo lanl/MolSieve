@@ -276,6 +276,26 @@ export function loadPropertyForSubset(property, subset) {
     return loadPropertiesForSubset([property], subset);
 }
 
+export function apiLoadTrajectory(run, mMin, mMax, chunkingThreshold) {
+    return new Promise(function (resolve, reject) {
+        axios
+            .get('/api/load_trajectory', {
+                params: {
+                    run,
+                    mMin,
+                    mMax,
+                    chunkingThreshold,
+                },
+            })
+            .then((response) => {
+                resolve(response.data);
+            })
+            .catch((e) => {
+                reject(e);
+            });
+    });
+}
+
 /**
  * [TODO:description]
  *

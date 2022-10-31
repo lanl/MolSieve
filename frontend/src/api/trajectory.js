@@ -108,8 +108,26 @@ class Trajectory {
         return { children: splitChunks, childSize: chunkSize };
     }
 
-    simplifySet(chunkingThreshold) {
-        // jank + ugly, need to refactor
+    // convert calculated chunks into chunk objects
+    simplifySet(simplifiedSet) {
+        for (const chunk of simplifiedSet) {
+            const newChunk = new Chunk(
+                chunk.timestep,
+                chunk.last,
+                chunk.firstID,
+                chunk.important,
+                chunk.cluster,
+                this
+            );
+            this.chunks.set(newChunk.id, newChunk);
+            if (!newChunk.important) {
+                newChunk.calculateSelected();
+            }
+            // for now, set chunk properties here
+            newChunk.properties = [...newChunk.properties, ...structuralAnalysisProps];
+        }
+    }
+    /* simplifySet(chunkingThreshold) {
         // reset, we're dealing with a new set of chunks
         const chunks = new Map();
         const sizeThreshold = 250;
@@ -167,7 +185,7 @@ class Trajectory {
                         cluster,
                         this
                     );
-                    /* const { children, childSize } = this.splitChunks(
+                     const { children, childSize } = this.splitChunks(
                             chunk,
                             split,
                             sizeThreshold,
@@ -175,7 +193,7 @@ class Trajectory {
                             chunks
                         );
                         chunk.children = children;
-                        chunk.childSize = childSize; */
+                        chunk.childSize = childSize; 
                     chunks.set(chunk.id, chunk);
                 } else {
                     const chunk = new Chunk(
@@ -211,7 +229,7 @@ class Trajectory {
             // for now, set chunk properties here
             chunk.properties = [...chunk.properties, ...structuralAnalysisProps];
         }
-    }
+    } */
 
     /**
      * Calculates the distribution difference between unimportant chunks for each property.

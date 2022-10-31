@@ -214,7 +214,7 @@ function ControlDrawer({
                             ));
                         }}
                     </ChartBox>
-                    <ZTable trajectories={trajectories} propertyList={structuralAnalysisProps} />
+                    {/* <ZTable trajectories={trajectories} propertyList={structuralAnalysisProps} /> */}
                     {controls}
                 </Container>
             </Drawer>

@@ -20,6 +20,7 @@ import {
     api_load_metadata,
     api_load_property,
     api_calculate_idToTimestep,
+    apiLoadTrajectory,
 } from './api/ajax';
 import ControlDrawer from './components/ControlDrawer';
 import GlobalStates from './api/globalStates';
@@ -145,63 +146,52 @@ class App extends React.Component {
             }
         });
 
-    /** Creates a new trajectory object and populates it with data from the database
-     * @param {string} run - Which run this trajectory object will correspond to
-     * @param {number} clusters - Number of clusters to cluster the trajectory into. Ignored if optimal = 1
-     * @param {number} optimal - Whether or not PCCA should try and find the optimal clustering between m_min and m_max
-     * @param {number} mMin - When running optimal clustering, minimal cluster size to try; ignored if optimal = -1
-     * @param {number} mMax - When running optimal clustering, maximum cluster size to try; ignored if optimal = -1
-     * @param {Array<String>} properties - Properties of the trajectory to retrieve
+    /**
+     *  Creates a new trajectory object and populates it with data from the database
+     *
+     * @param {String} run - Name of the trajectory to load
+     * @param {Number} mMin - Minimum cluster size to try
+     * @param {Number} mMax - Maximum cluster size to try
+     * @param {Number} chunkingThreshold - Simplification threshold
      */
-    load_trajectory = (run, clusters, optimal, mMin, mMax, properties, chunkingThreshold) => {
-        this.load_sequence(run, properties)
+    loadTrajectory = (run, mMin, mMax, chunkingThreshold) => {
+        console.log('loading trajectory');
+        apiLoadTrajectory(run, mMin, mMax, chunkingThreshold)
             .then((data) => {
                 const newTraj = new Trajectory();
+                console.log(data);
                 newTraj.sequence = Uint32Array.from(data.sequence);
-                newTraj.uniqueStates = data.uniqueStates.map((state) => state.id);
+                newTraj.uniqueStates = data.uniqueStates;
                 newTraj.name = run;
                 newTraj.id = createUUID();
+                newTraj.idToCluster = data.idToCluster;
+                newTraj.feasible_clusters = data.feasible_clusters;
 
                 GlobalStates.calculateGlobalUniqueStates(data.uniqueStates, run);
+                newTraj.simplifySet(data.simplified);
+                // stupid, need to change eventually
+                const removed = newTraj.set_colors(this.state.colors);
+                const newTrajectories = {
+                    ...this.state.trajectories,
+                };
 
-                this.load_PCCA(run, clusters, optimal, mMin, mMax, newTraj).then((newTrajPCCA) => {
-                    this.load_metadata(run, newTrajPCCA).then((newTrajMetadata) => {
-                        api_calculate_idToTimestep(run, newTrajMetadata).then((newTrajComplete) => {
-                            newTrajComplete.set_cluster_info();
-                            // could be an option
-                            newTrajComplete.chunkingThreshold = chunkingThreshold;
-                            this.setState({ loadingMessage: `Simplifying ${run}...` });
+                newTraj.position = Object.keys(this.state.trajectories).length;
 
-                            newTrajComplete.simplifySet(chunkingThreshold);
+                newTrajectories[run] = newTraj;
+                const newColors = [...this.state.colors];
+                newColors.splice(0, removed);
 
-                            // need to wait for states to finish loading before rendering
-                            const removed = newTrajComplete.set_colors(this.state.colors);
-                            const newTrajectories = {
-                                ...this.state.trajectories,
-                            };
+                const newRuns = this.initFilters(run, newTraj);
 
-                            newTrajComplete.position = Object.keys(this.state.trajectories).length;
-
-                            newTrajectories[run] = newTrajComplete;
-                            const newColors = [...this.state.colors];
-                            newColors.splice(0, removed);
-
-                            const newRuns = this.initFilters(run, newTrajComplete);
-
-                            this.setState({
-                                isLoading: false,
-                                runs: newRuns,
-                                trajectories: newTrajectories,
-                                colors: newColors,
-                                properties: [...new Set([...this.state.properties, ...properties])],
-                            });
-                        });
-                    });
+                this.setState({
+                    isLoading: false,
+                    runs: newRuns,
+                    trajectories: newTrajectories,
+                    colors: newColors,
+                    // properties: [...new Set([...this.state.properties, ...properties])],
                 });
             })
-            .catch((e) => {
-                alert(e);
-            });
+            .catch((e) => alert(e));
     };
 
     initFilters = (run, newTraj) => {
@@ -421,7 +411,7 @@ class App extends React.Component {
                 {currentModal === RUN_MODAL && (
                     <LoadRunModal
                         run={run}
-                        runFunc={this.load_trajectory}
+                        runFunc={this.loadTrajectory}
                         isOpen={currentModal === RUN_MODAL}
                         closeFunc={() => this.toggleModal(RUN_MODAL)}
                         onRequestClose={() => this.toggleModal(RUN_MODAL)}

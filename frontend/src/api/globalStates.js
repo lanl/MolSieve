@@ -28,12 +28,12 @@ class GlobalStates {
 
     calculateGlobalUniqueStates = (newUniqueStates, run) => {
         for (const s of newUniqueStates) {
-            if (this.map.has(s.id)) {
-                const previous = this.map.get(s.id);
+            if (this.map.has(s)) {
+                const previous = this.map.get(s);
                 previous.seenIn = [...previous.seenIn, run];
                 this.map.set(s.id, Object.assign(previous, s));
             } else {
-                const state = new State(s.id);
+                const state = new State(s);
                 state.seenIn = [run];
                 this.map.set(state.id, Object.assign(state, s));
             }

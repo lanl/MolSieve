@@ -35,7 +35,6 @@ export default class Chunk {
         this.important = important;
         this.cluster = cluster;
         this.id = GlobalChunks.generateID();
-        // seems to be way slower...
         this.trajectory = trajectory;
     }
 

@@ -18,16 +18,7 @@ export default function LoadRunModal({ closeFunc, runFunc, run, isOpen }) {
 
     const startRunFunc = () => {
         closeFunc();
-
-        runFunc(
-            run,
-            -1,
-            1,
-            values[0],
-            values[1],
-            [`${run}_occurrences`, 'number', 'id'],
-            chunkingThreshold
-        );
+        runFunc(run, values[0], values[1], chunkingThreshold);
     };
 
     return (
