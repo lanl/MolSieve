@@ -597,7 +597,6 @@ def simplify_sequence_endpoint(run: str, chunkingThreshold: float):
 
     mem_client = MemcachedClient()
     trajectory = mem_client.get(run)
-    print(trajectory)
 
     if trajectory:
         trajectory.simplify_sequence(chunkingThreshold)
@@ -605,6 +604,27 @@ def simplify_sequence_endpoint(run: str, chunkingThreshold: float):
         print("trajectory not found in cache")
 
     return trajectory.chunks
+
+
+@router.get("/single_pcca")
+def single_pcca(run: str, numClusters: int):
+    driver = GraphDriver()
+    mem_client = MemcachedClient()
+    trajectory = mem_client.get(run)
+
+    if trajectory:
+        if numClusters not in trajectory.clusterings.keys():
+            trajectory.single_pcca(numClusters, driver)
+        trajectory.current_clustering = numClusters
+        trajectory.calculateIDToCluster()
+        trajectory.simplify_sequence(trajectory.chunkingThreshold)
+    else:
+        print("trajectory not found")
+    return {
+        "simplified": trajectory.chunks,
+        "idToCluster": trajectory.idToCluster,
+        "current_clustering": trajectory.current_clustering,
+    }
 
 
 @router.get("/load_trajectory")
@@ -618,20 +638,23 @@ def load_trajectory(run: str, mMin: int, mMax: int, chunkingThreshold: float):
     :param chunkingThreshold float: [TODO:description]
     """
 
+    driver = GraphDriver()
+
     trajectory = load_sequence(run, [f"{run}_occurrences", "number", "id"])
     # PCCA
-    trajectory.pcca(mMin, mMax)
+    trajectory.pcca(mMin, mMax, driver)
     sequence = trajectory.sequence
 
     trajectory.calculateIDToCluster()
     trajectory.simplify_sequence(chunkingThreshold)
-    trajectory.calculate_id_to_timestep()
+    trajectory.calculate_id_to_timestep(driver)
 
     mem_client = MemcachedClient()
     mem_client.set(run, trajectory)
 
     # TODO: reduce state list to only important
 
+    # only return current clustering?
     return {
         "sequence": sequence,
         "uniqueStates": set(sequence),

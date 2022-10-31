@@ -21,6 +21,7 @@ import {
     api_load_property,
     apiLoadTrajectory,
     apiSimplifySequence,
+    apiCalculateSinglePCCA,
 } from './api/ajax';
 import ControlDrawer from './components/ControlDrawer';
 import GlobalStates from './api/globalStates';
@@ -114,9 +115,14 @@ class App extends React.Component {
             const { trajectories, colors } = this.state;
             WebSocketManager.clear();
 
-            const currentTraj = trajectories[run];
-
-            if (currentTraj.feasible_clusters.includes(clusters)) {
+            apiCalculateSinglePCCA(run, clusters).then((data) => {
+                const currentTraj = trajectories[run];
+                currentTraj.current_clustering = clusters;
+                currentTraj.idToCluster = data.idToCluster;
+                currentTraj.simplifySet(data.simplified);
+                this.setState({ trajectories: { ...trajectories, [run]: currentTraj } });
+            });
+            /* if (currentTraj.feasible_clusters.includes(clusters)) {
                 const newTrajectories = { ...trajectories };
                 newTrajectories[run].current_clustering = clusters;
                 newTrajectories[run].set_cluster_info();
@@ -143,7 +149,7 @@ class App extends React.Component {
                         this.setState({ isLoading: false });
                         reject(e);
                     });
-            }
+            } */
         });
 
     /**

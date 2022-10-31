@@ -5,6 +5,9 @@ from .utils import saveTestPickle, loadTestPickle
 import pygpcca as gp
 import neo4j
 
+SIZE_THRESHOLD = 250
+
+
 class Trajectory:
     metadata = None
     cmds = None
@@ -21,7 +24,17 @@ class Trajectory:
         self.sequence = sequence
         self.unique_states = unique_states
 
-    def single_pcca(self, gpcca, idx_to_id, numClusters: int):
+    def single_pcca(self, numClusters: int, driver):
+        driver = GraphDriver()
+
+        m, idx_to_id = calculator.calculate_transition_matrix(
+            driver, run=self.name, discrete=True
+        )
+        gpcca = gp.GPCCA(m.values, z="LM", method="brandts")
+
+        return self._single_pcca(gpcca, idx_to_id, numClusters)
+
+    def _single_pcca(self, gpcca, idx_to_id, numClusters: int):
 
         r = loadTestPickle(self.name, f"{self.name}_pcca_cluster_{numClusters}")
         if r is not None:
@@ -50,9 +63,7 @@ class Trajectory:
         self.clusterings[numClusters] = clusters
         self.fuzzy_memberships[numClusters] = fuzzy_memberships
 
-    def pcca(self, m_min: int, m_max: int):
-        driver = GraphDriver()
-
+    def pcca(self, m_min: int, m_max: int, driver):
         # attempt to re-hydrate from JSON file before running PCCA
         r = loadTestPickle(self.name, f"optimal_pcca_{m_min}_{m_max}")
         if r is not None:
@@ -75,7 +86,7 @@ class Trajectory:
             for cluster_idx, val in enumerate(gpcca.crispness_values):
                 if val != 0:
                     feasible_clusters.append(cluster_idx + m_min)
-                    self.single_pcca(gpcca, idx_to_id, cluster_idx + m_min)
+                    self._single_pcca(gpcca, idx_to_id, cluster_idx + m_min)
             self.feasible_clusters = feasible_clusters
         except ValueError as exception:
             raise exception
@@ -109,11 +120,9 @@ class Trajectory:
         chunkingThreshold: float,
     ):
         chunks = []
-        sizeThreshold = 250
 
         importance = self.calculate_sequence_importance(
             chunkingThreshold,
-            sizeThreshold,
         )
         # Split into another function
         # returns 0 if unimportant, 1 if important
@@ -124,7 +133,7 @@ class Trajectory:
         for timestep, id in enumerate(self.sequence):
             isCurrImportant = importance[timestep]
 
-            if last - first > sizeThreshold and (
+            if last - first > SIZE_THRESHOLD and (
                 important != isCurrImportant
                 or cluster != self.idToCluster[id]
                 or timestep == len(self.sequence) - 1
@@ -144,12 +153,12 @@ class Trajectory:
             else:
                 last = timestep
 
+        self.chunkingThreshold = chunkingThreshold
         self.chunks = chunks
 
     def calculate_sequence_importance(
         self,
         chunkingThreshold: float,
-        sizeThreshold: int,
     ):
         epsilon = 0.0001
 
@@ -166,7 +175,7 @@ class Trajectory:
                 j = i + 1
                 while j < len(importance) - 1 and importance[j] == 1:
                     j += 1
-                if j - i < sizeThreshold:
+                if j - i < SIZE_THRESHOLD:
                     while i < j:
                         importance[i] = 0
                         i += 1
@@ -176,9 +185,7 @@ class Trajectory:
 
         return importance
 
-    def calculate_id_to_timestep(self):
-        driver = GraphDriver()
-
+    def calculate_id_to_timestep(self, driver):
         r = loadTestPickle(self.name, "idToTimestep")
         if r is not None:
             self.id_to_timestep = r

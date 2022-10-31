@@ -319,7 +319,6 @@ export function apiClusterStates(properties, states) {
 }
 
 export function apiSimplifySequence(run, numClusters, chunkingThreshold) {
-    console.log(numClusters);
     return new Promise(function (resolve, reject) {
         axios
             .get('/api/simplify_sequence', {
@@ -327,6 +326,24 @@ export function apiSimplifySequence(run, numClusters, chunkingThreshold) {
                     run,
                     numClusters,
                     chunkingThreshold,
+                },
+            })
+            .then((response) => {
+                resolve(response.data);
+            })
+            .catch((e) => {
+                reject(e);
+            });
+    });
+}
+
+export function apiCalculateSinglePCCA(run, numClusters) {
+    return new Promise(function (resolve, reject) {
+        axios
+            .get('/api/single_pcca', {
+                params: {
+                    run,
+                    numClusters,
                 },
             })
             .then((response) => {
