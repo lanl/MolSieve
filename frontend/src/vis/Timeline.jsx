@@ -23,7 +23,7 @@ export default function Timeline({ trajectory, width, height, run, setExtent }) 
             }
 
             const g = svg.append('g');
-            const { chunkList, sequence, name } = trajectory;
+            const { chunkList, name } = trajectory;
             const { extents } = run;
 
             const topChunkList = chunkList.filter((d) => !d.hasParent);
@@ -32,7 +32,7 @@ export default function Timeline({ trajectory, width, height, run, setExtent }) 
             const scaleX = d3
                 .scaleLinear()
                 .range([margin.left, width - margin.right])
-                .domain([0, sequence.length]);
+                .domain([0, trajectory.length]);
 
             trajG
                 .selectAll('rect')

@@ -273,7 +273,7 @@ export default function Scatterplot({
                     const i = d3.bisectCenter(xAttributeList, scaleX.invert(d3.pointer(event)[0]));
                     const timestep = xAttributeList[i];
                     const value = movingAverage[i];
-                    const stateID = trajectory.sequence[i];
+                    const stateID = sequence[i].id;
 
                     tooltipCircle
                         .attr('cx', scaleX(timestep))

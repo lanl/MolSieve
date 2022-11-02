@@ -2,7 +2,6 @@ import GlobalChunks from './globalChunks';
 import GlobalStates from './globalStates';
 import Timestep from './timestep';
 import { boxPlotStats } from './stats';
-import { cyrb128, mulberry32 } from './random';
 
 const CHUNK = 0;
 
@@ -28,43 +27,21 @@ export default class Chunk {
     // chunk states are guaranteed to have these properties
     properties = ['timestep', 'id'];
 
-    constructor(timestep, last, firstID, important, cluster, trajectory) {
+    sequence = [];
+
+    constructor(timestep, last, firstID, important, cluster, sequence, trajectory) {
         this.timestep = timestep;
         this.last = last;
         this.firstID = firstID;
         this.important = important;
         this.cluster = cluster;
         this.id = GlobalChunks.generateID();
+        if (!important) {
+            this.selected = sequence;
+        } else {
+            this.sequence = sequence;
+        }
         this.trajectory = trajectory;
-    }
-
-    /* Returns array of 20 + 10% of chunk states that are characteristic of it.
-     * Used to select states for display in a box plot.
-     * NOTE: not a getter because otherwise the results would be randomly recalculated
-     */
-    calculateSelected() {
-        const entries = [...this.stateCounts.entries()].sort((a, b) => b[1] - a[1]);
-
-        const seed = cyrb128('molecular dynamics');
-        const rand = mulberry32(seed[0]);
-
-        if (entries.length < 20) {
-            this.selected = this.states;
-            return;
-        }
-        // 0 returns only state ID
-        const selected = [];
-        for (let i = 0; i < 20; i++) {
-            selected.push(entries[i][0]);
-        }
-
-        for (let j = 0; j < Math.ceil(0.1 * entries.length); j++) {
-            // select 10% of the chunk randomly for the distribution; ignore top 20 in selection
-            const random = Math.ceil(rand() * (entries.length - 20)) + 20;
-            selected.push(entries[random][0]);
-        }
-
-        this.selected = selected;
     }
 
     static withParent(timestep, last, firstID, important, parentID, trajectory) {
@@ -119,22 +96,12 @@ export default class Chunk {
         return new Set(this.sequence);
     }
 
-    // gets the ids inside a chunk in order
-    get sequence() {
-        const { timesteps, trajectory } = this;
-        const ids = [];
-        for (let i = 0; i < timesteps.length; i++) {
-            ids.push(trajectory.sequence[timesteps[i]]);
-        }
-        return ids;
-    }
-
     // gets the states within the sequence as Timestep objects, useful for rendering
     get timestepSequence() {
-        const { timesteps, trajectory } = this;
+        const { timesteps } = this;
         const t = [];
         for (let i = 0; i < timesteps.length; i++) {
-            t.push(new Timestep(timesteps[i], trajectory.sequence[timesteps[i]]));
+            t.push(new Timestep(timesteps[i], this.sequence[i]));
         }
         return t;
     }

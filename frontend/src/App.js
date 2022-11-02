@@ -87,15 +87,6 @@ class App extends React.Component {
         return api_loadPCCA(run, clusters, optimal, mMin, mMax, trajectory);
     };
 
-    /** Wrapper for the backend call in api.js */
-    load_sequence = (run, properties, newTraj) => {
-        this.setState({
-            isLoading: true,
-            loadingMessage: `Loading sequence for ${run}...`,
-        });
-        return api_loadSequence(run, properties, newTraj);
-    };
-
     load_metadata = (run, newTraj) => {
         this.setState({
             isLoading: true,
@@ -122,34 +113,6 @@ class App extends React.Component {
                 currentTraj.simplifySet(data.simplified);
                 this.setState({ trajectories: { ...trajectories, [run]: currentTraj } });
             });
-            /* if (currentTraj.feasible_clusters.includes(clusters)) {
-                const newTrajectories = { ...trajectories };
-                newTrajectories[run].current_clustering = clusters;
-                newTrajectories[run].set_cluster_info();
-
-                newTrajectories[run].simplifySet(newTrajectories[run].chunkingThreshold);
-                this.setState({ trajectories: newTrajectories });
-                resolve(true);
-            } else {
-                // if not, recalculate
-                this.load_PCCA(run, clusters, -1, 0, 0, trajectories[run])
-                    .then((traj) => {
-                        const newTrajectories = {
-                            ...trajectories,
-                        };
-                        traj.add_colors(colors, clusters);
-                        traj.simplifySet(newTrajectories[run].chunkingThreshold);
-                        this.setState({
-                            isLoading: false,
-                            trajectories: newTrajectories,
-                        });
-                        resolve(true);
-                    })
-                    .catch((e) => {
-                        this.setState({ isLoading: false });
-                        reject(e);
-                    });
-            } */
         });
 
     /**
@@ -163,8 +126,8 @@ class App extends React.Component {
     loadTrajectory = (run, mMin, mMax, chunkingThreshold) => {
         apiLoadTrajectory(run, mMin, mMax, chunkingThreshold)
             .then((data) => {
+                console.log(data);
                 const newTraj = new Trajectory();
-                newTraj.sequence = Uint32Array.from(data.sequence);
                 newTraj.uniqueStates = data.uniqueStates;
                 newTraj.name = run;
                 newTraj.id = createUUID();
@@ -206,7 +169,7 @@ class App extends React.Component {
         runs[run] = {
             current_clustering: newTraj.current_clustering,
             chunkingThreshold: newTraj.chunkingThreshold,
-            extents: [0, newTraj.sequence.length],
+            extents: [0, newTraj.length],
         };
 
         const filters = {};

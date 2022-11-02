@@ -4,8 +4,14 @@ from .graphdriver import GraphDriver
 from .utils import saveTestPickle, loadTestPickle
 import pygpcca as gp
 import neo4j
+from scipy import sparse
+from collections import Counter
 
 SIZE_THRESHOLD = 250
+
+"""
+TODO: Consider decoupling Neo4j driver from this class completely
+"""
 
 
 class Trajectory:
@@ -77,9 +83,8 @@ class Trajectory:
             driver, run=self.name, discrete=True
         )
         gpcca = gp.GPCCA(m.values, z="LM", method="brandts")
-
         try:
-            gpcca.optimize({"m_min": m_min, "m_max": m_max})
+            gpcca.optimize((m_min, m_max))
             self.optimal_value = gpcca.n_m
             self.current_clustering = gpcca.n_m
             feasible_clusters = []
@@ -90,7 +95,6 @@ class Trajectory:
             self.feasible_clusters = feasible_clusters
         except ValueError as exception:
             raise exception
-
         # j.update({'dominant_eigenvalues': gpcca.dominant_eigenvalues.tolist()})
         # j.update({'minChi': gpcca.minChi(m_min, m_max)})
         saveTestPickle(
@@ -138,12 +142,28 @@ class Trajectory:
                 or cluster != self.idToCluster[id]
                 or timestep == len(self.sequence) - 1
             ):
+
+                sequence = self.sequence[first: last + 1]
+                if not important and len(sequence) > 20:
+                    state_counts = Counter(sequence)
+                    sequence = [
+                        x[0]
+                        for x in state_counts.most_common(
+                            20 + int(len(sequence) * 0.1)
+                        )
+                    ]
+
+                    # remove these from the list, then randomly select 10%
+                    # select = int(len(stateIDs) * 0.1)
+                    # state_ids = [x[0] for x in most_common]
+
                 chunk = {
                     "timestep": first,
                     "last": last,
                     "firstID": self.sequence[first],
                     "important": important,
                     "cluster": cluster,
+                    "sequence": sequence,
                 }
                 first = timestep
                 last = timestep

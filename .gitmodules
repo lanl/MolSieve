@@ -4,3 +4,9 @@
 [submodule "lammps"]
 	path = lammps
 	url = https://github.com/lammps/lammps
+[submodule "petsc"]
+	path = petsc
+	url = https://gitlab.com/petsc/petsc.git
+[submodule "slepc"]
+	path = slepc
+	url = https://github.com/firedrakeproject/slepc
