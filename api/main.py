@@ -44,6 +44,8 @@ from .connectionmanager import ConnectionManager
 import json
 from .worker.celery_app import celery_app
 from .models import AnalysisStep
+import logging
+import time
 
 os.environ["OVITO_THREAD_COUNT"] = "1"
 os.environ["DISPLAY"] = ""
@@ -53,8 +55,9 @@ trajectories = {}
 app = FastAPI()
 router = APIRouter(prefix="/api")
 cm = ConnectionManager()
-
 unprocessed = {}
+
+logging.basicConfig(filename="neomd.log", level=logging.INFO)
 
 
 @router.get("/get_scipy_distributions")
@@ -452,14 +455,13 @@ def get_potential(run: str) -> str:
         return filename
 
 
-def load_sequence(run: str, properties: List[str]):
+def load_sequence(run: str, properties: List[str], driver):
     get_potential(run)
     run_md = get_metadata(run)
 
-    if config.IMPATIENT:
-        r = loadTestPickle(run, "sequence")
-        if r is not None:
-            return Trajectory(run, r["sequence"], r["unique_states"])
+    r = loadTestPickle(run, "sequence")
+    if r is not None:
+        return Trajectory(run, r["sequence"], r["unique_states"])
 
     uniqueStateAttributes = []
 
@@ -467,59 +469,31 @@ def load_sequence(run: str, properties: List[str]):
         for prop in properties:
             uniqueStateAttributes.append(str(prop))
 
-    driver = GraphDriver()
-    qb = querybuilder.Neo4jQueryBuilder(
+    """qb = querybuilder.Neo4jQueryBuilder(
         [
             ("State", run, "State", "ONE-TO-ONE"),
             ("Atom", "PART_OF", "State", "MANY-TO-ONE"),
         ]
-    )
+    )"""
 
-    q = qb.generate_trajectory(
-        run, "ASC", ("relation", "timestep"), node_attributes=[("id", "first")]
-    )
+    # q = qb.generate_trajectory(run, "ASC", ("relation", "timestep"), node_attributes=[("id", "first")])
 
-    """
-    uniqueStateQuery = qb.generate_get_all_nodes(
-        "State", node_attributes=uniqueStateAttributes, relation=run
+    q = """
+    MATCH (n:State:{run})-[r:{run}]->(:State:{run})
+    RETURN n.id as id
+    ORDER BY r.timestep ASC;
+    """.format(
+        run=run
     )
-    """
-
-    # could use this to get the occurrence counts, build the matrix and lots of other stuff
-    # uniqueRelationQuery = "MATCH (a:State)-[r:{run}]->(b:State) RETURN DISTINCT r ORDER BY r.timestep"
-    # for now though, it would mostly just waste more memory than its worth - length is not meaningful
-    # the only thing that could be worth skipping is whether or not states are symmetrical
 
     j = {}
-
     with driver.session() as session:
-        result = session.run(q.text)
+        result = session.run(q)
         j["sequence"] = result.value()
         j["unique_states"] = set(j["sequence"])
 
     new_traj = Trajectory(run, j["sequence"], j["unique_states"])
 
-    """
-    occurrenceString = "{run}_occurrences".format(run=run)
-    with driver.session() as session:
-        if occurrenceString not in run_md.keys():
-            oq = qb.generate_get_occurrences(run, occurrenceString)
-            session.run(oq.text)
-
-        shave off time by calculating this in the database
-        if "AtomCount" not in run_md.keys():
-            oq2 = qb.generate_calculate_many_to_one_count("PART_OF",
-                                                          saveMetadata=True,
-                                                          run=run)
-            session.run(oq2.text)
-
-        result = session.run(q.text)
-        j["sequence"] = result.value()
-
-        res = session.run(uniqueStateQuery.text)
-        j["unique_states"] = res.data()
-
-   """
     saveTestPickle(run, "sequence", j)
     return new_traj
 
@@ -657,13 +631,26 @@ def load_trajectory(run: str, mMin: int, mMax: int, chunkingThreshold: float):
 
     driver = GraphDriver()
 
-    trajectory = load_sequence(run, ["id"])
-    # PCCA
+    logging.info(f"Loading sequence {run}")
+    t0 = time.time()
+    trajectory = load_sequence(run, ["id"], driver)
+    t1 = time.time()
+    logging.info(f"Loading sequence took {t1-t0} seconds total.")
+
+    logging.info("Calculating PCCA")
+    t0 = time.time()
     trajectory.pcca(mMin, mMax, driver)
-    sequence = trajectory.sequence
+    t1 = time.time()
+    logging.info(f"PCCA took {t1-t0} seconds total.")
 
     trajectory.calculateIDToCluster()
+
+    logging.info("Simplifying sequence")
+    t0 = time.time()
     trajectory.simplify_sequence(chunkingThreshold)
+    t1 = time.time()
+    logging.info(f"Simplification took {t1-t0} seconds total.")
+
     trajectory.calculate_id_to_timestep(driver)
 
     mem_client = MemcachedClient()
@@ -672,9 +659,9 @@ def load_trajectory(run: str, mMin: int, mMax: int, chunkingThreshold: float):
     # TODO: reduce state list to only important
 
     # only return current clustering?
-    # feasible and sequence may not be necessary at all
+    # feasible may not be necessary at all
     return {
-        "uniqueStates": set(sequence),
+        "uniqueStates": set(trajectory.sequence),
         "idToTimestep": trajectory.id_to_timestep,
         "simplified": trajectory.chunks,
         "idToCluster": trajectory.idToCluster,

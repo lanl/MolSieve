@@ -6,6 +6,8 @@ import pygpcca as gp
 import neo4j
 from scipy import sparse
 from collections import Counter
+import time
+import logging
 
 SIZE_THRESHOLD = 250
 
@@ -40,34 +42,25 @@ class Trajectory:
 
         return self._single_pcca(gpcca, idx_to_id, numClusters)
 
-    def _single_pcca(self, gpcca, idx_to_id, numClusters: int):
+    def _single_pcca(self, gpcca, idx_to_id, num_clusters: int):
 
-        r = loadTestPickle(self.name, f"{self.name}_pcca_cluster_{numClusters}")
+        r = loadTestPickle(self.name, f"{self.name}_pcca_cluster_{num_clusters}")
         if r is not None:
-            self.clusterings[numClusters] = r["clusters"]
-            self.fuzzy_memberships[numClusters] = r["fuzzy_memberships"]
+            self.clusterings[num_clusters] = r["clusters"]
+            self.fuzzy_memberships[num_clusters] = r["fuzzy_memberships"]
             return
 
-        gpcca.optimize(numClusters)
-
-        clusters = []
-        fuzzy_memberships = {}
-        for set in gpcca.macrostate_sets:
-            idList = []
-            for stateID in set:
-                idList.append(idx_to_id[stateID])
-            clusters.append(idList)
-            for idx, mem in enumerate(gpcca.memberships.tolist()):
-                fuzzy_memberships.update({idx_to_id[idx]: mem})
+        gpcca.optimize(num_clusters)
+        self.save_membership_info(gpcca, idx_to_id, num_clusters)
 
         saveTestPickle(
             self.name,
-            f"{self.name}_pcca_cluster_{numClusters}",
-            {"clusters": clusters, "fuzzy_memberships": fuzzy_memberships},
+            f"{self.name}_pcca_cluster_{num_clusters}",
+            {
+                "clusters": self.clusterings[num_clusters],
+                "fuzzy_memberships": self.fuzzy_memberships[num_clusters],
+            },
         )
-
-        self.clusterings[numClusters] = clusters
-        self.fuzzy_memberships[numClusters] = fuzzy_memberships
 
     def pcca(self, m_min: int, m_max: int, driver):
         # attempt to re-hydrate from JSON file before running PCCA
@@ -79,19 +72,32 @@ class Trajectory:
             self.feasible_clusters = r["feasible_clusters"]
             return
 
+        t0 = time.time()
         m, idx_to_id = calculator.calculate_transition_matrix(
             driver, run=self.name, discrete=True
         )
+        t1 = time.time()
+        logging.info(f"Loading transition matrix took {t1-t0}")
+
         gpcca = gp.GPCCA(m.values, z="LM", method="brandts")
         try:
+            t0 = time.time()
             gpcca.optimize((m_min, m_max))
+            t1 = time.time()
+            logging.info(f"Full optimization took {t1-t0}")
             self.optimal_value = gpcca.n_m
             self.current_clustering = gpcca.n_m
-            feasible_clusters = []
+            # doing optimize this way returns n_m, so we can skip that in the single_pcca calculation
+            self.save_membership_info(gpcca, idx_to_id, self.optimal_value)
+            feasible_clusters = [self.optimal_value]
             for cluster_idx, val in enumerate(gpcca.crispness_values):
-                if val != 0:
+                if val != 0 and val != self.optimal_value:
                     feasible_clusters.append(cluster_idx + m_min)
+                    # unfortunately, optimize only saves the optimal clustering, so we need to recalculate the rest
+                    t0 = time.time()
                     self._single_pcca(gpcca, idx_to_id, cluster_idx + m_min)
+                    t1 = time.time()
+                    logging.info(f"Clustering into {cluster_idx + m_min} clusters took {t1-t0}")
             self.feasible_clusters = feasible_clusters
         except ValueError as exception:
             raise exception
@@ -107,6 +113,19 @@ class Trajectory:
                 "feasible_clusters": self.feasible_clusters,
             },
         )
+
+    def save_membership_info(self, gpcca, idx_to_id, num_clusters):
+        clusters = []
+        fuzzy_memberships = {}
+        for set in gpcca.macrostate_sets:
+            idList = []
+            for stateID in set:
+                idList.append(idx_to_id[stateID])
+            clusters.append(idList)
+            for idx, mem in enumerate(gpcca.memberships.tolist()):
+                fuzzy_memberships.update({idx_to_id[idx]: mem})
+        self.clusterings[num_clusters] = clusters
+        self.fuzzy_memberships[num_clusters] = fuzzy_memberships
 
     def current_cluster(self):
         return self.clusterings[self.current_clustering]
@@ -143,14 +162,12 @@ class Trajectory:
                 or timestep == len(self.sequence) - 1
             ):
 
-                sequence = self.sequence[first: last + 1]
+                sequence = self.sequence[first : last + 1]
                 if not important and len(sequence) > 20:
                     state_counts = Counter(sequence)
                     sequence = [
                         x[0]
-                        for x in state_counts.most_common(
-                            20 + int(len(sequence) * 0.1)
-                        )
+                        for x in state_counts.most_common(20 + int(len(sequence) * 0.1))
                     ]
 
                     # remove these from the list, then randomly select 10%
