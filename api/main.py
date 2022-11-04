@@ -6,13 +6,12 @@ from fastapi import (
     WebSocketDisconnect,
     HTTPException,
 )
-from typing import Optional, List, Dict
+from typing import Optional, List
 
 import neo4j
 
 from neomd import querybuilder, converter, calculator, visualizations, utils
 import os
-import numpy as np
 
 from celery.result import AsyncResult
 
@@ -25,17 +24,13 @@ from PIL import Image
 import io
 import base64
 
-from .memcachedclient import MemcachedClient
 from .graphdriver import GraphDriver
-from .config import config
 from .trajectory import Trajectory
 from .utils import (
     getMetadata,
     getScipyDistributions,
     checkRequiredProperties,
     get_atom_type,
-    saveTestJson,
-    loadTestJson,
     saveTestPickle,
     loadTestPickle,
 )
@@ -46,6 +41,9 @@ from .worker.celery_app import celery_app
 from .models import AnalysisStep
 import logging
 import time
+
+from pymemcache.client.base import PooledClient
+from pymemcache import serde
 
 os.environ["OVITO_THREAD_COUNT"] = "1"
 os.environ["DISPLAY"] = ""
@@ -577,7 +575,7 @@ def simplify_sequence_endpoint(run: str, chunkingThreshold: float):
     :param run str: Trajectory to simplify.
     :param chunkingThreshold float: Cluster membership threshold at which a state is considered important / unimportant.
     """
-    mem_client = MemcachedClient()
+    mem_client = PooledClient("localhost", max_pool_size=4, serde=serde.pickle_serde)
     trajectory = mem_client.get(run)
 
     if trajectory:
@@ -600,7 +598,7 @@ def single_pcca(run: str, numClusters: int):
     :param numClusters int: The number of clusters to cluster the trajectory into.
     """
     driver = GraphDriver()
-    mem_client = MemcachedClient()
+    mem_client = PooledClient("localhost", max_pool_size=4, serde=serde.pickle_serde)
     trajectory = mem_client.get(run)
 
     if trajectory:
@@ -653,7 +651,7 @@ def load_trajectory(run: str, mMin: int, mMax: int, chunkingThreshold: float):
 
     trajectory.calculate_id_to_timestep(driver)
 
-    mem_client = MemcachedClient()
+    mem_client = PooledClient("localhost", max_pool_size=4, serde=serde.pickle_serde)
     mem_client.set(run, trajectory)
 
     # TODO: reduce state list to only important
