@@ -1,4 +1,4 @@
-import { React, useState, useEffect } from 'react';
+import { React, useState, useEffect, useRef } from 'react';
 
 import * as d3 from 'd3';
 import { boxPlotStats } from '../api/stats';
@@ -6,6 +6,9 @@ import { boxPlotStats } from '../api/stats';
 import BoxPlot from '../vis/BoxPlot';
 import GlobalStates from '../api/globalStates';
 import LoadingBox from '../components/LoadingBox';
+import WebSocketManager from '../api/websocketmanager';
+
+const moveBy = 100;
 
 export default function ChunkWrapper({
     chunk,
@@ -19,17 +22,84 @@ export default function ChunkWrapper({
     const [boxStats, setBoxStats] = useState();
     const [isLoaded, setIsLoaded] = useState(false);
 
-    useEffect(() => {
-        GlobalStates.ensureSubsetHasProperty(property, chunk.selected).then(() => {
-            const states = chunk.selected.map((id) => GlobalStates.get(id));
-            const vals = states.map((d) => d[property]);
+    const [isInterrupted, setIsInterrupted] = useState(false);
+    const ws = useRef(null);
 
-            updateGlobalScale(d3.min(vals), d3.max(vals));
+    const render = () => {
+        const states = chunk.selected.map((id) => GlobalStates.get(id));
+        const vals = states.map((d) => d[property]);
 
-            setBoxStats(boxPlotStats(vals));
-            setIsLoaded(true);
+        updateGlobalScale(d3.min(vals), d3.max(vals));
+
+        setBoxStats(boxPlotStats(vals));
+        setIsLoaded(true);
+    };
+
+    const runSocket = () => {
+        ws.current = WebSocketManager.connect('ws://localhost:8000/api/load_properties_for_subset');
+        let i = 0;
+
+        ws.current.addEventListener('close', ({ code }) => {
+            if (code === 3001 || code === 1011) {
+                setIsInterrupted(true);
+            }
         });
+
+        ws.current.addEventListener('open', () => {
+            const states = [...chunk.selected.slice(i * moveBy, (i + 1) * moveBy)];
+            i++;
+            ws.current.send(
+                JSON.stringify({
+                    props: [property],
+                    stateIds: [...states],
+                })
+            );
+        });
+
+        ws.current.addEventListener('message', (e) => {
+            const parsedData = JSON.parse(e.data);
+            GlobalStates.addPropToStates(parsedData);
+
+            render();
+
+            let sendStates = [];
+
+            if (i * moveBy < chunk.selected.length) {
+                const nc = [...chunk.selected.slice(i * moveBy, (i + 1) * moveBy)];
+                sendStates = nc;
+            }
+
+            if (!sendStates.length) {
+                ws.current.close(1000);
+            } else {
+                i++;
+                ws.current.send(
+                    JSON.stringify({
+                        props: [property],
+                        stateIds: [...new Set(sendStates)],
+                    })
+                );
+            }
+        });
+    };
+
+    useEffect(() => {
+        if (ws.current) {
+            ws.current.close();
+            ws.current = null;
+        }
+
+        runSocket();
+
+        return () => {
+            ws.current.close();
+            ws.current = null;
+        };
     }, [chunk, property]);
+
+    if (isInterrupted) {
+        return <div>Loading interrupted</div>;
+    }
 
     return isLoaded ? (
         <BoxPlot
