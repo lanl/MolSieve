@@ -126,7 +126,6 @@ class App extends React.Component {
     loadTrajectory = (run, mMin, mMax, chunkingThreshold) => {
         apiLoadTrajectory(run, mMin, mMax, chunkingThreshold)
             .then((data) => {
-                console.log(data);
                 const newTraj = new Trajectory();
                 newTraj.uniqueStates = data.uniqueStates;
                 newTraj.name = run;

@@ -1,6 +1,8 @@
 import { React, useState, useEffect, useRef } from 'react';
-
+import LinearProgress from '@mui/material/LinearProgress';
+import Box from '@mui/material/Box';
 import * as d3 from 'd3';
+
 import { boxPlotStats } from '../api/stats';
 
 import BoxPlot from '../vis/BoxPlot';
@@ -20,9 +22,9 @@ export default function ChunkWrapper({
     updateGlobalScale,
 }) {
     const [boxStats, setBoxStats] = useState();
-    const [isLoaded, setIsLoaded] = useState(false);
-
+    const [isInitialized, setIsInitialized] = useState(false);
     const [isInterrupted, setIsInterrupted] = useState(false);
+    const [progress, setProgress] = useState(0);
     const ws = useRef(null);
 
     const render = () => {
@@ -32,7 +34,7 @@ export default function ChunkWrapper({
         updateGlobalScale(d3.min(vals), d3.max(vals));
 
         setBoxStats(boxPlotStats(vals));
-        setIsLoaded(true);
+        setIsInitialized(true);
     };
 
     const runSocket = () => {
@@ -60,6 +62,7 @@ export default function ChunkWrapper({
             const parsedData = JSON.parse(e.data);
             GlobalStates.addPropToStates(parsedData);
 
+            setProgress(i * moveBy);
             render();
 
             let sendStates = [];
@@ -101,17 +104,25 @@ export default function ChunkWrapper({
         return <div>Loading interrupted</div>;
     }
 
-    return isLoaded ? (
-        <BoxPlot
-            showYAxis={false}
-            data={boxStats}
-            chunk={chunk}
-            property={property}
-            width={width}
-            height={height}
-            globalScaleMin={globalScaleMin}
-            globalScaleMax={globalScaleMax}
-        />
+    return isInitialized ? (
+        <Box>
+            {progress / chunk.selected.length < 1.0 ? (
+                <LinearProgress
+                    variant="determinate"
+                    value={(progress / chunk.selected.length) * 100}
+                />
+            ) : null}
+            <BoxPlot
+                showYAxis={false}
+                data={boxStats}
+                chunk={chunk}
+                property={property}
+                width={width}
+                height={height}
+                globalScaleMin={globalScaleMin}
+                globalScaleMax={globalScaleMax}
+            />
+        </Box>
     ) : (
         <LoadingBox />
     );
