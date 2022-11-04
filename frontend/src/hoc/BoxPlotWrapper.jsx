@@ -1,7 +1,8 @@
 import { React, useState, useEffect, useRef } from 'react';
+
+import * as d3 from 'd3';
 import LinearProgress from '@mui/material/LinearProgress';
 import Box from '@mui/material/Box';
-import * as d3 from 'd3';
 
 import { boxPlotStats } from '../api/stats';
 
@@ -24,7 +25,7 @@ export default function ChunkWrapper({
     const [boxStats, setBoxStats] = useState();
     const [isInitialized, setIsInitialized] = useState(false);
     const [isInterrupted, setIsInterrupted] = useState(false);
-    const [progress, setProgress] = useState(0);
+    const [progress, setProgress] = useState(0.0);
     const ws = useRef(null);
 
     const render = () => {

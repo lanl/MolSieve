@@ -3,9 +3,11 @@ import { React, useState, useEffect, useRef } from 'react';
 import * as d3 from 'd3';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
-import Scatterplot from '../vis/Scatterplot';
+import LinearProgress from '@mui/material/LinearProgress';
 
 import { simpleMovingAverage, boxPlotStats } from '../api/stats';
+
+import Scatterplot from '../vis/Scatterplot';
 import GlobalStates from '../api/globalStates';
 import WebSocketManager from '../api/websocketmanager';
 import LoadingBox from '../components/LoadingBox';
@@ -32,8 +34,8 @@ export default function ChunkWrapper({
     disableControls,
     setExtents,
 }) {
-    const [isLoaded, setIsLoaded] = useState(false);
-
+    const [isInitialized, setIsInitialized] = useState(false);
+    const [progress, setProgress] = useState(0.0);
     const [isInterrupted, setIsInterrupted] = useState(false);
 
     const [isExpanded, setIsExpanded] = useState(false);
@@ -116,12 +118,13 @@ export default function ChunkWrapper({
         setSliceBy({ lSlice, rSlice });
         setSeq(s);
         setMva(m);
-        setIsLoaded(true);
+        setIsInitialized(true);
     };
 
     const runSocket = () => {
         ws.current = WebSocketManager.connect('ws://localhost:8000/api/load_properties_for_subset');
 
+        setProgress(0.0);
         const seen = new Set();
         let i = 0;
         let lStates = [];
@@ -150,6 +153,15 @@ export default function ChunkWrapper({
                 ws.current = null;
                 setIsExpanded(false);
                 return;
+            }
+            let total = 0;
+
+            if (lToDo) {
+                total += leftBoundary.selected.length;
+            }
+
+            if (rToDo) {
+                total += rightBoundary.selected.length;
             }
 
             const centerMVA = chunk.calculateMovingAverage(
@@ -184,6 +196,17 @@ export default function ChunkWrapper({
 
                 const renderStates = [...new Set(lStates), ...chunk.states, ...new Set(rStates)];
 
+                let currProgress = 0;
+
+                if (lToDo) {
+                    currProgress += i * moveBy;
+                }
+
+                if (rToDo) {
+                    currProgress += i * moveBy;
+                }
+
+                setProgress(currProgress / total);
                 render(renderStates, lStates.length, rStates.length);
 
                 let sendStates = [];
@@ -222,6 +245,16 @@ export default function ChunkWrapper({
             const rToDo = rightBoundary ? rightBoundary.selected : undefined;
             let cStates = [];
 
+            let total = chunk.states.length;
+
+            if (lToDo) {
+                total += leftBoundary.selected.length;
+            }
+
+            if (rToDo) {
+                total += rightBoundary.selected.length;
+            }
+
             ws.current.addEventListener('open', () => {
                 const boundaryStates = getBoundaryStates(i, seen, lToDo, rToDo);
                 lStates = boundaryStates.leftStates;
@@ -242,6 +275,17 @@ export default function ChunkWrapper({
                 const parsedData = JSON.parse(e.data);
                 GlobalStates.addPropToStates(parsedData);
 
+                let currProgress = i * moveBy;
+
+                if (lToDo) {
+                    currProgress += i * moveBy;
+                }
+
+                if (rToDo) {
+                    currProgress += i * moveBy;
+                }
+
+                setProgress(currProgress / total);
                 render(cStates);
 
                 let sendStates = [];
@@ -299,8 +343,12 @@ export default function ChunkWrapper({
         return <div>Loading interrupted</div>;
     }
 
-    return isLoaded ? (
-        <>
+    return isInitialized ? (
+        <Box>
+            {progress < 1.0 ? (
+                <LinearProgress variant="determinate" value={progress * 100} />
+            ) : null}
+
             <Box
                 className="floatingToolBar"
                 sx={{ visibility: isParentHovered ? 'visible' : 'hidden' }}
@@ -346,7 +394,7 @@ export default function ChunkWrapper({
                 onSetExtentsComplete={() => setSelectionMode(false)}
                 selectionMode={selectionMode}
             />
-        </>
+        </Box>
     ) : (
         <LoadingBox />
     );
