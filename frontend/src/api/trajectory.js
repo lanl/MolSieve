@@ -117,8 +117,13 @@ class Trajectory {
 
     set_colors(colorArray) {
         let i = 0;
-        for (i; i < Math.max(...this.feasible_clusters); i += 1) {
-            this.reservedColors.push(colorArray[i]);
+        const used = this.reservedColors.length;
+        // fine for now
+        if (this.current_clustering - used !== 0) {
+            i = used;
+            for (i; i < this.current_clustering; i++) {
+                this.reservedColors.push(colorArray[i]);
+            }
         }
         return i;
     }
