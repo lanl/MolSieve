@@ -567,48 +567,24 @@ def get_metadata(run: str):
     return j
 
 
-@router.get("/simplify_sequence")
-def simplify_sequence_endpoint(run: str, chunkingThreshold: float):
-    """
-    Simplifies the sequence for the given trajectory.
-
-    :param run str: Trajectory to simplify.
-    :param chunkingThreshold float: Cluster membership threshold at which a state is considered important / unimportant.
-    """
+@router.get("/modify_trajectory")
+def modify_trajectory(run: str, chunkingThreshold: float, numClusters: int):
     mem_client = PooledClient("localhost", max_pool_size=4, serde=serde.pickle_serde)
     trajectory = mem_client.get(run)
 
-    if trajectory:
-        trajectory.simplify_sequence(chunkingThreshold)
-    else:
-        print("trajectory not found in cache")
-
-    return trajectory.chunks
-
-
-@router.get("/single_pcca")
-def single_pcca(run: str, numClusters: int):
-    """
-    Runs PCCA with the specified number of clusters.
-
-    TODO: error checking for invalid number of clusters
-    TODO: load trajectory if not exists
-
-    :param run str: The trajectory for which PCCA should be run.
-    :param numClusters int: The number of clusters to cluster the trajectory into.
-    """
     driver = GraphDriver()
-    mem_client = PooledClient("localhost", max_pool_size=4, serde=serde.pickle_serde)
-    trajectory = mem_client.get(run)
+    if trajectory is None:
+        trajectory = load_sequence(run, ["id"], driver)
 
-    if trajectory:
-        if numClusters not in trajectory.clusterings.keys():
-            trajectory.single_pcca(numClusters, driver)
-        trajectory.current_clustering = numClusters
-        trajectory.calculateIDToCluster()
-        trajectory.simplify_sequence(trajectory.chunkingThreshold)
-    else:
-        print("trajectory not found")
+    if numClusters not in trajectory.clusterings.keys():
+        trajectory.single_pcca(numClusters, driver)
+
+    trajectory.current_clustering = numClusters
+    trajectory.calculateIDToCluster()
+    trajectory.simplify_sequence(chunkingThreshold)
+
+    mem_client.set(run, trajectory)
+
     return {
         "simplified": trajectory.chunks,
         "idToCluster": trajectory.idToCluster,
@@ -651,7 +627,7 @@ def load_trajectory(run: str, mMin: int, mMax: int, chunkingThreshold: float):
 
     trajectory.calculate_id_to_timestep(driver)
 
-    mem_client = PooledClient("localhost", max_pool_size=4, serde=serde.pickle_serde)
+    mem_client = PooledClient("localhost", max_pool_size=1, serde=serde.pickle_serde)
     mem_client.set(run, trajectory)
 
     # TODO: reduce state list to only important

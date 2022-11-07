@@ -318,32 +318,14 @@ export function apiClusterStates(properties, states) {
     });
 }
 
-export function apiSimplifySequence(run, numClusters, chunkingThreshold) {
+export function apiModifyTrajectory(run, numClusters, chunkingThreshold) {
     return new Promise(function (resolve, reject) {
         axios
-            .get('/api/simplify_sequence', {
+            .get('/api/modify_trajectory', {
                 params: {
                     run,
                     numClusters,
                     chunkingThreshold,
-                },
-            })
-            .then((response) => {
-                resolve(response.data);
-            })
-            .catch((e) => {
-                reject(e);
-            });
-    });
-}
-
-export function apiCalculateSinglePCCA(run, numClusters) {
-    return new Promise(function (resolve, reject) {
-        axios
-            .get('/api/single_pcca', {
-                params: {
-                    run,
-                    numClusters,
                 },
             })
             .then((response) => {

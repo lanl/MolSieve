@@ -15,13 +15,10 @@ import Trajectory from './api/trajectory';
 import FilterBuilder from './api/FilterBuilder';
 import VisArea from './components/VisArea';
 import {
-    api_loadPCCA,
-    api_loadSequence,
     api_load_metadata,
     api_load_property,
     apiLoadTrajectory,
-    apiSimplifySequence,
-    apiCalculateSinglePCCA,
+    apiModifyTrajectory,
 } from './api/ajax';
 import ControlDrawer from './components/ControlDrawer';
 import GlobalStates from './api/globalStates';
@@ -74,19 +71,6 @@ class App extends React.Component {
         this.setState({ trajectories });
     };
 
-    /** Wrapper for the backend call in api.js */
-    load_PCCA = (run, clusters, optimal, mMin, mMax, trajectory) => {
-        this.setState({
-            isLoading: true,
-            loadingMessage: `Calculating PCCA for ${run}...`,
-        });
-
-        if (mMin === undefined) mMin = 0;
-        if (mMax === undefined) mMax = 0;
-
-        return api_loadPCCA(run, clusters, optimal, mMin, mMax, trajectory);
-    };
-
     load_metadata = (run, newTraj) => {
         this.setState({
             isLoading: true,
@@ -103,16 +87,23 @@ class App extends React.Component {
     recalculate_clustering = (run, clusters) =>
         // first check if the state has that clustering already calculated
         new Promise((resolve, reject) => {
-            const { trajectories, colors } = this.state;
+            const { trajectories } = this.state;
+            const { chunkingThreshold } = trajectories[run];
             WebSocketManager.clear();
 
-            apiCalculateSinglePCCA(run, clusters).then((data) => {
-                const currentTraj = trajectories[run];
-                currentTraj.current_clustering = clusters;
-                currentTraj.idToCluster = data.idToCluster;
-                currentTraj.simplifySet(data.simplified);
-                this.setState({ trajectories: { ...trajectories, [run]: currentTraj } });
-            });
+            apiModifyTrajectory(run, clusters, chunkingThreshold)
+                .then((data) => {
+                    const currentTraj = trajectories[run];
+                    currentTraj.current_clustering = clusters;
+                    currentTraj.idToCluster = data.idToCluster;
+                    currentTraj.simplifySet(data.simplified);
+                    this.setState({ trajectories: { ...trajectories, [run]: currentTraj } }, () =>
+                        resolve()
+                    );
+                })
+                .catch((e) => {
+                    reject(e);
+                });
         });
 
     /**
@@ -226,8 +217,8 @@ class App extends React.Component {
         const { trajectories } = this.state;
         const { [run]: newTraj } = trajectories;
 
-        apiSimplifySequence(run, newTraj.current_clustering, threshold).then((data) => {
-            newTraj.simplifySet(data);
+        apiModifyTrajectory(run, newTraj.current_clustering, threshold).then((data) => {
+            newTraj.simplifySet(data.simplified);
             newTraj.chunkingThreshold = threshold;
             this.setState((prevState) => ({
                 trajectories: { ...prevState.trajectories, [run]: newTraj },
