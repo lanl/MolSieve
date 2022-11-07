@@ -26,6 +26,7 @@ class Trajectory:
     fuzzy_memberships = {}
     idToCluster = {}
     chunks = []
+    min_chi = []
 
     def __init__(self, name, sequence, unique_states):
         self.name = name
@@ -38,7 +39,7 @@ class Trajectory:
         m, idx_to_id = calculator.calculate_transition_matrix(
             driver, run=self.name, discrete=True
         )
-        gpcca = gp.GPCCA(m.values, z="LM", method="brandts")
+        gpcca = gp.GPCCA(sparse.csr_matrix(m.values), z="LM", method="krylov")
 
         return self._single_pcca(gpcca, idx_to_id, numClusters)
 
@@ -49,7 +50,8 @@ class Trajectory:
             self.clusterings[num_clusters] = r["clusters"]
             self.fuzzy_memberships[num_clusters] = r["fuzzy_memberships"]
             return
-
+        # calculate minChi in case it hasn't been to avoid crashing
+        gpcca.minChi(num_clusters + 2)
         gpcca.optimize(num_clusters)
         self.save_membership_info(gpcca, idx_to_id, num_clusters)
 
@@ -64,12 +66,13 @@ class Trajectory:
 
     def pcca(self, m_min: int, m_max: int, driver):
         # attempt to re-hydrate from JSON file before running PCCA
-        r = loadTestPickle(self.name, f"optimal_pcca_{m_min}_{m_max}")
+        r = None # loadTestPickle(self.name, f"optimal_pcca_{m_min}_{m_max}")
         if r is not None:
             self.clusterings = r["clusterings"]
             self.fuzzy_memberships = r["fuzzy_memberships"]
             self.current_clustering = r["optimal_value"]
             self.feasible_clusters = r["feasible_clusters"]
+            self.min_chi = r["min_chi"]
             return
 
         t0 = time.time()
@@ -77,32 +80,24 @@ class Trajectory:
             driver, run=self.name, discrete=True
         )
         t1 = time.time()
-        logging.info(f"Loading transition matrix took {t1-t0}")
+        logging.info(f"Loading transition matrix took {t1-t0} seconds total.")
 
-        gpcca = gp.GPCCA(m.values, z="LM", method="brandts")
+        gpcca = gp.GPCCA(sparse.csr_matrix(m.values), z="LM", method="krylov")
         try:
-            t0 = time.time()
-            gpcca.optimize((m_min, m_max))
-            t1 = time.time()
-            logging.info(f"Full optimization took {t1-t0}")
-            self.optimal_value = gpcca.n_m
-            self.current_clustering = gpcca.n_m
-            # doing optimize this way returns n_m, so we can skip that in the single_pcca calculation
-            self.save_membership_info(gpcca, idx_to_id, self.optimal_value)
+            mc = gpcca.minChi(m_min, m_max)
+            self.optimal_value = mc.index(max(mc)) + m_min
+            self.current_clustering = self.optimal_value
+            gpcca.optimize(self.optimal_value)
             feasible_clusters = [self.optimal_value]
-            for cluster_idx, val in enumerate(gpcca.crispness_values):
-                if val != 0 and val != self.optimal_value:
-                    feasible_clusters.append(cluster_idx + m_min)
-                    # unfortunately, optimize only saves the optimal clustering, so we need to recalculate the rest
-                    t0 = time.time()
-                    self._single_pcca(gpcca, idx_to_id, cluster_idx + m_min)
-                    t1 = time.time()
-                    logging.info(f"Clustering into {cluster_idx + m_min} clusters took {t1-t0}")
+            t0 = time.time()
+            self._single_pcca(gpcca, idx_to_id, self.optimal_value)
+            t1 = time.time()
+            logging.info(f"Clustering into {self.optimal_value} clusters took {t1-t0} seconds total")
             self.feasible_clusters = feasible_clusters
         except ValueError as exception:
             raise exception
-        # j.update({'dominant_eigenvalues': gpcca.dominant_eigenvalues.tolist()})
-        # j.update({'minChi': gpcca.minChi(m_min, m_max)})
+
+        self.min_chi = mc
         saveTestPickle(
             self.name,
             f"optimal_pcca_{m_min}_{m_max}",
@@ -111,6 +106,7 @@ class Trajectory:
                 "fuzzy_memberships": self.fuzzy_memberships,
                 "optimal_value": self.optimal_value,
                 "feasible_clusters": self.feasible_clusters,
+                "min_chi": self.min_chi
             },
         )
 

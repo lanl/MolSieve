@@ -9,8 +9,8 @@ import DialogContent from '@mui/material/DialogContent';
 import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
 
-const domain = [2, 20];
-const defaultValues = [2, 4];
+const domain = [2, 100];
+const defaultValues = [2, 20];
 
 export default function LoadRunModal({ closeFunc, runFunc, run, isOpen }) {
     const [values, setValues] = useState(defaultValues.slice());
