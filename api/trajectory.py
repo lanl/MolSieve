@@ -39,7 +39,7 @@ class Trajectory:
         m, idx_to_id = calculator.calculate_transition_matrix(
             driver, run=self.name, discrete=True
         )
-        gpcca = gp.GPCCA(sparse.csr_matrix(m.values), z="LM", method="krylov")
+        gpcca = gp.GPCCA(m, z="LM", method="krylov")
 
         return self._single_pcca(gpcca, idx_to_id, numClusters)
 
@@ -50,9 +50,12 @@ class Trajectory:
             self.clusterings[num_clusters] = r["clusters"]
             self.fuzzy_memberships[num_clusters] = r["fuzzy_memberships"]
             return
-        # calculate minChi in case it hasn't been to avoid crashing
-        gpcca.minChi(num_clusters + 2)
-        gpcca.optimize(num_clusters)
+        try:
+            # need to run minChi before clustering
+            gpcca.minChi(2, 20)
+            gpcca.optimize(num_clusters)
+        except ValueError as exception:
+            raise exception
         self.save_membership_info(gpcca, idx_to_id, num_clusters)
 
         saveTestPickle(
@@ -66,7 +69,7 @@ class Trajectory:
 
     def pcca(self, m_min: int, m_max: int, driver):
         # attempt to re-hydrate from JSON file before running PCCA
-        r = None # loadTestPickle(self.name, f"optimal_pcca_{m_min}_{m_max}")
+        r = loadTestPickle(self.name, f"optimal_pcca_{m_min}_{m_max}")
         if r is not None:
             self.clusterings = r["clusterings"]
             self.fuzzy_memberships = r["fuzzy_memberships"]
