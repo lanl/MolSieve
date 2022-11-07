@@ -82,7 +82,7 @@ class Trajectory:
         t1 = time.time()
         logging.info(f"Loading transition matrix took {t1-t0} seconds total.")
 
-        gpcca = gp.GPCCA(sparse.csr_matrix(m.values), z="LM", method="krylov")
+        gpcca = gp.GPCCA(m, z="LM", method="krylov")
         try:
             mc = gpcca.minChi(m_min, m_max)
             self.optimal_value = mc.index(max(mc)) + m_min
