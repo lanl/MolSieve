@@ -7,3 +7,6 @@
 [submodule "petsc"]
 	path = petsc
 	url = https://github.com/petsc/petsc
+[submodule "slepc"]
+	path = slepc
+	url = https://gitlab.com/slepc/slepc
