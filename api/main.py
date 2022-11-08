@@ -332,41 +332,16 @@ async def load_properties_for_subset(
         result = session.run(q.text)
         j = result.data()
 
-    # check if property is missing in database
-    # optimize with Neo4j
-    missingProperties = {}
-    for s in j:
-        for key, value in s.items():
-            if value == None:
-                if key not in missingProperties:
-                    missingProperties[key] = []
-                missingProperties[key].append(s["id"])
+    calculator.load_properties_for_subset(driver, j)
 
-    if len(missingProperties.keys()) > 0:
-        runAnalyses = {}
-        for key, values in missingProperties.items():
-            analysis = PROPERTY_TO_ANALYSIS.get(key)
-            # if the dict does not know what analysis to do, throw an error
-            if not analysis:
-                raise HTTPException(status_code=404, detail="Unknown property")
+    q = qb.generate_get_node_list(
+        "State", idAttributeList=stateIds, attributeList=props
+    )
 
-            if analysis not in runAnalyses:
-                runAnalyses[analysis] = values
-            else:
-                runAnalyses[analysis] = runAnalyses[analysis] + values
-
-        for analysisName, states in runAnalyses.items():
-            await run_ovito_analysis(analysisName, states=states)
-
-        # instead of trying to update the list, just get the list again with the updated values
-        q = qb.generate_get_node_list(
-            "State", idAttributeList=stateIds, attributeList=props
-        )
-
-        j = {}
-        with driver.session() as session:
-            result = session.run(q.text)
-            j = result.data()
+    j = {}
+    with driver.session() as session:
+        result = session.run(q.text)
+        j = result.data()
 
     return j
 
