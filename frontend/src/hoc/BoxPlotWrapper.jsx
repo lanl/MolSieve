@@ -109,7 +109,7 @@ export default function ChunkWrapper({
                 ws.current = null;
             }
         };
-    }, [chunk, property]);
+    }, [chunk, property, width, height]);
 
     if (isInterrupted) {
         return <div>Loading interrupted</div>;
@@ -118,10 +118,7 @@ export default function ChunkWrapper({
     return isInitialized ? (
         <Box>
             {progress < 1.0 ? (
-                <LinearProgress
-                    variant="determinate"
-                    value={(progress / chunk.selected.length) * 100}
-                />
+                <LinearProgress variant="determinate" value={progress * 100} />
             ) : null}
             <BoxPlot
                 showYAxis={false}
