@@ -7,6 +7,8 @@ import { tooltip } from '../api/myutils';
 
 const margin = { top: 20, bottom: 20, left: 0, right: 0 };
 
+let ttInstance;
+
 export default function BoxPlot({
     data,
     property,
@@ -89,12 +91,21 @@ export default function BoxPlot({
                 .attr('stroke-dasharray', 4)
                 .attr('stroke', 'red');
 
-            svg.on('mouseover', () =>
-                tooltip(
-                    svg.node(),
-                    `${chunk.toString()}<br/><em>${property}</em><br/> <b>Q1</b>: ${q1} <b>Median</b>: ${median} <b>Q3</b>: ${q3} <b>IQR</b>: ${iqr}`
-                )
-            );
+            svg.on('mouseover', () => {
+                if (!ttInstance) {
+                    ttInstance = tooltip(
+                        svg.node(),
+                        `${chunk.toString()}<br/><em>${property}</em><br/> <b>Q1</b>: ${q1} <b>Median</b>: ${median} <b>Q3</b>: ${q3} <b>IQR</b>: ${iqr}`
+                    );
+                }
+                ttInstance.show();
+            });
+            svg.on('mouseleave', () => {
+                if (ttInstance) {
+                    ttInstance.destroy();
+                }
+                ttInstance = undefined;
+            });
         },
         [property, data, color, globalScaleMin, globalScaleMax, width, height]
     );

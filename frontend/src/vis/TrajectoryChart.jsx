@@ -1,13 +1,11 @@
-import { React, useEffect, useState, useLayoutEffect } from 'react';
+import { React, useEffect, useState } from 'react';
 import * as d3 from 'd3';
 import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
 import ChunkWrapper from '../hoc/ChunkWrapper';
 import BoxPlotWrapper from '../hoc/BoxPlotWrapper';
 import EmbeddedChart from './EmbeddedChart';
-import GlobalStates from '../api/globalStates';
 
 import '../css/vis.css';
-import { onEntityMouseOver, normalizeDict } from '../api/myutils';
 
 const margin = {
     top: 25,
@@ -37,7 +35,7 @@ function TrajectoryChart({
     updateGlobalScale,
     globalScaleMin,
     globalScaleMax,
-    showStateClustering
+    showStateClustering,
 }) {
     const ref = useTrajectoryChartRender(
         (svg) => {
