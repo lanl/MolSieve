@@ -58,6 +58,7 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
     const [globalProperty, setGlobalProperty] = useState(structuralAnalysisProps[0]);
     const [globalMin, setGlobalMin] = useState(Number.MAX_VALUE);
     const [globalMax, setGlobalMax] = useState(Number.MIN_VALUE);
+    const [showStateClustering, setShowStateClustering] = useState(false);
 
     const updateGlobalScale = (valMin, valMax) => {
         setGlobalMin((min) => (min > valMin ? valMin : min));
@@ -361,14 +362,15 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
                                     color="secondary"
                                     size="small"
                                     onClick={() =>
-                                        GlobalStates.clusterStates(
-                                            getAllImportantStates(trajectories)
-                                        )
+                                        !showStateClustering
+                                            ? GlobalStates.clusterStates(
+                                                  getAllImportantStates(trajectories)
+                                              ).then(() => setShowStateClustering(true))
+                                            : setShowStateClustering(false)
                                     }
                                 >
-                                    ClusterStates
+                                    {showStateClustering ? 'ShowStateID' : 'ClusterStates'}
                                 </Button>
-
                                 <Button
                                     color="secondary"
                                     size="small"
@@ -441,6 +443,7 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
                                             setExtents={setExtents}
                                             updateGlobalScale={updateGlobalScale}
                                             globalScaleMin={globalMin}
+                                            showStateClustering={showStateClustering}
                                             globalScaleMax={globalMax}
                                         />
                                     );

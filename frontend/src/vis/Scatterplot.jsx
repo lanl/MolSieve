@@ -44,6 +44,7 @@ export default function Scatterplot({
     lineColor,
     selectionMode,
     onSetExtentsComplete,
+    colorFunc,
 }) {
     const [yAttributeList, setYAttributeList] = useState(yAttributeListProp);
 
@@ -148,8 +149,7 @@ export default function Scatterplot({
                     .attr('width', 5)
                     .attr('height', 5)
                     .attr('fill', (d) => {
-                        const state = GlobalStates.get(d.id);
-                        return state.individualColor;
+                        return colorFunc(d);
                     })
                     .classed('state', true)
                     .classed('clickable', true)
@@ -355,6 +355,7 @@ export default function Scatterplot({
             width,
             globalScaleMin,
             globalScaleMax,
+            colorFunc,
         ]
     );
 

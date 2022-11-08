@@ -7,12 +7,16 @@ export default class State {
         this.id = id;
     }
 
-    // -1 stateCluster is noise / unclustered
     get individualColor() {
-        if (this.stateCluster !== undefined) {
-            return this.stateCluster !== -1 ? mpn65[this.stateCluster % mpn65.length] : 'black';
-        }
         return mpn65[this.id % mpn65.length];
+    }
+
+    // -1 stateCluster is noise / unclustered
+    get stateClusteringColor() {
+        if (this.stateCluster === undefined) {
+            throw new Error('State cluster is not defined!');
+        }
+        return this.stateCluster !== -1 ? mpn65[this.stateCluster % mpn65.length] : 'black';
     }
 
     get clusterIdentifier() {

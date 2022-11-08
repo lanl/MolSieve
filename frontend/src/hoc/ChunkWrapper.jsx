@@ -33,6 +33,7 @@ export default function ChunkWrapper({
     updateGlobalScale,
     disableControls,
     setExtents,
+    showStateClustering,
 }) {
     const [isInitialized, setIsInitialized] = useState(false);
     const [progress, setProgress] = useState(0.0);
@@ -41,6 +42,10 @@ export default function ChunkWrapper({
     const [isExpanded, setIsExpanded] = useState(false);
     const [showSparkLine, setSparkLine] = useState(true);
     const [selectionMode, setSelectionMode] = useState(false);
+    const [colorFunc, setColorFunc] = useState(() => (d) => {
+        const state = GlobalStates.get(d.id);
+        return state.individualColor;
+    });
 
     const [sliceBy, setSliceBy] = useState();
     const [seq, setSeq] = useState();
@@ -345,6 +350,20 @@ export default function ChunkWrapper({
         };
     }, [isExpanded, property, width, height]);
 
+    useEffect(() => {
+        if (showStateClustering) {
+            setColorFunc(() => (d) => {
+                const state = GlobalStates.get(d.id);
+                return state.stateClusteringColor;
+            });
+        } else {
+            setColorFunc(() => (d) => {
+                const state = GlobalStates.get(d.id);
+                return state.individualColor;
+            });
+        }
+    }, [showStateClustering]);
+
     if (isInterrupted) {
         return <div>Loading interrupted</div>;
     }
@@ -396,6 +415,7 @@ export default function ChunkWrapper({
                 globalScaleMax={globalScaleMax}
                 showSparkLine={showSparkLine}
                 lineColor={trajectory.colorByCluster(chunk)}
+                colorFunc={colorFunc}
                 setExtents={setExtents}
                 onSetExtentsComplete={() => setSelectionMode(false)}
                 selectionMode={selectionMode}
