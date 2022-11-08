@@ -39,7 +39,10 @@ export default function ChunkWrapper({
     };
 
     const runSocket = () => {
-        ws.current = WebSocketManager.connect('ws://localhost:8000/api/load_properties_for_subset');
+        ws.current = WebSocketManager.connect(
+            'ws://localhost:8000/api/load_properties_for_subset',
+            chunk.trajectory.name
+        );
         let i = 0;
 
         ws.current.addEventListener('close', ({ code }) => {

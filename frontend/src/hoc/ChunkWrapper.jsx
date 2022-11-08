@@ -122,7 +122,10 @@ export default function ChunkWrapper({
     };
 
     const runSocket = () => {
-        ws.current = WebSocketManager.connect('ws://localhost:8000/api/load_properties_for_subset');
+        ws.current = WebSocketManager.connect(
+            'ws://localhost:8000/api/load_properties_for_subset',
+            chunk.trajectory.name
+        );
 
         setProgress(0.0);
         const seen = new Set();

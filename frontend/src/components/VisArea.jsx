@@ -69,11 +69,6 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
         setGlobalMax(Number.MIN_VALUE);
     };
 
-    /*
-    useEffect(() => {
-        console.log(globalMin, globalMax);
-    }, [globalMin, globalMax]);
-    */
     /**
      * [TODO:description]
      *

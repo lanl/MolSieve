@@ -1,6 +1,5 @@
 import * as d3 from 'd3';
 import Chunk from './chunk';
-import Timestep from './timestep';
 import GlobalStates from './globalStates';
 import { structuralAnalysisProps } from './constants';
 import { chunkSimilarity } from './myutils';

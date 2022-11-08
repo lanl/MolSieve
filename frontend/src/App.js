@@ -6,7 +6,6 @@ import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
 import MenuIcon from '@mui/icons-material/Menu';
 
-import * as d3 from 'd3';
 import { withSnackbar } from 'notistack';
 import AjaxMenu from './components/AjaxMenu';
 import LoadRunModal from './modals/LoadRunModal';
@@ -90,7 +89,7 @@ class App extends React.Component {
         new Promise((resolve, reject) => {
             const { trajectories, colors } = this.state;
             const { chunkingThreshold } = trajectories[run];
-            WebSocketManager.clear();
+            WebSocketManager.clear(run);
 
             apiModifyTrajectory(run, clusters, chunkingThreshold)
                 .then((data) => {
@@ -143,6 +142,7 @@ class App extends React.Component {
 
                 const newRuns = this.initFilters(run, newTraj);
 
+                WebSocketManager.addKey(run);
                 this.setState({
                     isLoading: false,
                     runs: newRuns,
@@ -214,7 +214,7 @@ class App extends React.Component {
     };
 
     simplifySet = (run, threshold) => {
-        WebSocketManager.clear();
+        WebSocketManager.clear(run);
         const { trajectories } = this.state;
         const { [run]: newTraj } = trajectories;
 
