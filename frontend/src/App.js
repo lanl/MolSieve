@@ -25,6 +25,7 @@ import GlobalStates from './api/globalStates';
 import { createUUID } from './api/random';
 
 import WebSocketManager from './api/websocketmanager';
+import ColorManager from './api/colormanager';
 
 const RUN_MODAL = 'run_modal';
 
@@ -41,7 +42,7 @@ class App extends React.Component {
             trajectories: {},
             runs: {},
             loadingMessage: 'Loading...',
-            colors: [...d3.schemeTableau10, ...d3.schemeAccent],
+            colors: new ColorManager(),
             properties: ['timestep', 'id'],
         };
     }
@@ -87,18 +88,23 @@ class App extends React.Component {
     recalculate_clustering = (run, clusters) =>
         // first check if the state has that clustering already calculated
         new Promise((resolve, reject) => {
-            const { trajectories } = this.state;
+            const { trajectories, colors } = this.state;
             const { chunkingThreshold } = trajectories[run];
             WebSocketManager.clear();
 
             apiModifyTrajectory(run, clusters, chunkingThreshold)
                 .then((data) => {
                     const currentTraj = trajectories[run];
+                    const newColors = colors.request_colors(
+                        clusters - currentTraj.current_clustering
+                    );
                     currentTraj.current_clustering = clusters;
                     currentTraj.idToCluster = data.idToCluster;
                     currentTraj.simplifySet(data.simplified);
-                    this.setState({ trajectories: { ...trajectories, [run]: currentTraj } }, () =>
-                        resolve()
+                    currentTraj.add_colors(newColors);
+                    this.setState(
+                        { trajectories: { ...trajectories, [run]: currentTraj }, colors },
+                        () => resolve()
                     );
                 })
                 .catch((e) => {
@@ -128,25 +134,20 @@ class App extends React.Component {
 
                 GlobalStates.calculateGlobalUniqueStates(data.uniqueStates, run);
                 newTraj.simplifySet(data.simplified);
-                // stupid, need to change eventually
-                const removed = newTraj.set_colors(this.state.colors);
-                const newTrajectories = {
-                    ...this.state.trajectories,
-                };
 
-                newTraj.position = Object.keys(this.state.trajectories).length;
+                const { trajectories, colors } = this.state;
 
-                newTrajectories[run] = newTraj;
-                const newColors = [...this.state.colors];
-                newColors.splice(0, removed);
+                const trajColors = colors.request_colors(newTraj.current_clustering);
+                newTraj.add_colors(trajColors);
+                newTraj.position = Object.keys(trajectories).length;
 
                 const newRuns = this.initFilters(run, newTraj);
 
                 this.setState({
                     isLoading: false,
                     runs: newRuns,
-                    trajectories: newTrajectories,
-                    colors: newColors,
+                    trajectories: { ...trajectories, [run]: newTraj },
+                    colors,
                     // properties: [...new Set([...this.state.properties, ...properties])],
                 });
             })

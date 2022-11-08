@@ -474,8 +474,6 @@ def load_sequence(run: str, properties: List[str], driver):
         ]
     )"""
 
-    # q = qb.generate_trajectory(run, "ASC", ("relation", "timestep"), node_attributes=[("id", "first")])
-
     q = """
     MATCH (n:State:{run})-[r:{run}]->(:State:{run})
     RETURN n.id as id

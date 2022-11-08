@@ -22,7 +22,7 @@ class Trajectory {
 
     current_clustering;
 
-    reservedColors = [];
+    colors = [];
 
     raw;
 
@@ -50,13 +50,9 @@ class Trajectory {
         this.LAMMPSBootstrapScript = data.LAMMPSBootstrapScript;
     }
 
-    add_colors(colorArray, newClustering) {
-        const howMany = newClustering - Math.max(...this.feasible_clusters);
-
-        if (newClustering > 0) {
-            for (let i = 0; i < howMany; i++) {
-                this.reservedColors.push(colorArray[i]);
-            }
+    add_colors(colorArray) {
+        for (const c of colorArray) {
+            this.colors.push(c);
         }
     }
 
@@ -113,23 +109,6 @@ class Trajectory {
         }
 
         this.featureImportance = aggregateDifferences;
-    }
-
-    set_colors(colorArray) {
-        let i = 0;
-        const used = this.reservedColors.length;
-        // fine for now
-        if (this.current_clustering - used !== 0) {
-            i = used;
-            for (i; i < this.current_clustering; i++) {
-                this.reservedColors.push(colorArray[i]);
-            }
-        }
-        return i;
-    }
-
-    get colors() {
-        return this.reservedColors.slice(0, this.current_clustering);
     }
 
     /**
