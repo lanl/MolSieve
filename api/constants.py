@@ -9,4 +9,8 @@ PROPERTY_TO_ANALYSIS = {
     "CommonNeighborAnalysis_counts_BCC": "CommonNeighborAnalysisModifier",
     "CommonNeighborAnalysis_counts_ICO": "CommonNeighborAnalysisModifier",
     "CommonNeighborAnalysis_counts_OTHER": "CommonNeighborAnalysisModifier",
+    "PolyhedralTemplateMatching_counts_OTHER": "PolyhedralTemplateMatchingModifier",
+    "PolyhedralTemplateMatching_counts_FCC": "PolyhedralTemplateMatchingModifier",
+    "PolyhedralTemplateMatching_counts_HCP": "PolyhedralTemplateMatchingModifier",
+    "PolyhedralTemplateMatching_counts_BCC": "PolyhedralTemplateMatchingModifier",
 }

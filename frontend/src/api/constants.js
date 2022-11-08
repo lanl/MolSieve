@@ -9,6 +9,10 @@ export const structuralAnalysisProps = [
     'CommonNeighborAnalysis_counts_BCC',
     'CommonNeighborAnalysis_counts_ICO',
     'CommonNeighborAnalysis_counts_OTHER',
+    'PolyhedralTemplateMatching_counts_OTHER',
+    'PolyhedralTemplateMatching_counts_FCC',
+    'PolyhedralTemplateMatching_counts_HCP',
+    'PolyhedralTemplateMatching_counts_BCC',
 ];
 
 // need a mapping from property to callback in case it is missing

@@ -45,6 +45,11 @@ import time
 from pymemcache.client.base import PooledClient
 from pymemcache import serde
 
+from sklearn import preprocessing
+from sklearn.cluster import OPTICS
+
+
+
 os.environ["OVITO_THREAD_COUNT"] = "1"
 os.environ["DISPLAY"] = ""
 
@@ -278,11 +283,6 @@ async def ws_load_properties_for_subset(websocket: WebSocket):
     except WebSocketDisconnect:
         print("Websocket disconnected")
 
-
-from sklearn import preprocessing
-from sklearn.cluster import OPTICS
-
-
 @router.post("/cluster_states", status_code=200)
 def cluster_states(props: List[str] = Body([]), stateIds: List[int] = Body([])):
     qb = querybuilder.Neo4jQueryBuilder()
@@ -332,7 +332,31 @@ async def load_properties_for_subset(
         result = session.run(q.text)
         j = result.data()
 
-    calculator.load_properties_for_subset(driver, j)
+    # check if property is missing in database
+    # optimize with Neo4j
+    missingProperties = {}
+    for s in j:
+        for key, value in s.items():
+            if value is None:
+                if key not in missingProperties:
+                    missingProperties[key] = []
+                missingProperties[key].append(s["id"])
+
+    if len(missingProperties.keys()) > 0:
+        print("props missing")
+        runAnalyses = {}
+        for key, values in missingProperties.items():
+            analysis = PROPERTY_TO_ANALYSIS.get(key)
+            if not analysis:
+                raise HTTPException(status_code=404, detail="Unknown property")
+
+            if analysis not in runAnalyses:
+                runAnalyses[analysis] = values
+            else:
+                runAnalyses[analysis] = runAnalyses[analysis] + values
+
+        for analysisName, states in runAnalyses.items():
+            await run_ovito_analysis(analysisName, states=states)
 
     q = qb.generate_get_node_list(
         "State", idAttributeList=stateIds, attributeList=props
