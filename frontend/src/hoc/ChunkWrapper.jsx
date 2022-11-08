@@ -133,16 +133,11 @@ export default function ChunkWrapper({
         let lStates = [];
         let rStates = [];
 
-        // if the connection is abruptly closed, wait a second and then start again
         ws.current.addEventListener('close', ({ code }) => {
             if (code === 3001 || code === 1011) {
                 setIsInterrupted(true);
             }
         });
-
-        /* ws.current.addEventListener('error', (err) => {
-            // setTimeout(runSocket(), 1000);
-        }); */
 
         if (isExpanded) {
             const lToDo = leftBoundary ? leftBoundary.timestepSequence.map((d) => d.id) : undefined;
@@ -334,11 +329,19 @@ export default function ChunkWrapper({
             ws.current = null;
         }
 
-        runSocket();
+        // check if property already exists first
+        if (isExpanded || !GlobalStates.subsetHasProperty(property, chunk.states)) {
+            runSocket();
+        } else {
+            setProgress(1.0);
+            render(chunk.states);
+        }
 
         return () => {
-            ws.current.close();
-            ws.current = null;
+            if (ws.current) {
+                ws.current.close();
+                ws.current = null;
+            }
         };
     }, [isExpanded, property, width, height]);
 

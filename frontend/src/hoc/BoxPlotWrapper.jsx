@@ -66,7 +66,7 @@ export default function ChunkWrapper({
             const parsedData = JSON.parse(e.data);
             GlobalStates.addPropToStates(parsedData);
 
-            setProgress(i * moveBy);
+            setProgress((i * moveBy) / chunk.selected.length);
             render();
 
             let sendStates = [];
@@ -96,11 +96,18 @@ export default function ChunkWrapper({
             ws.current = null;
         }
 
-        runSocket();
+        if (!GlobalStates.subsetHasProperty(property, chunk.selected)) {
+            runSocket();
+        } else {
+            setProgress(1.0);
+            render();
+        }
 
         return () => {
-            ws.current.close();
-            ws.current = null;
+            if (ws.current) {
+                ws.current.close();
+                ws.current = null;
+            }
         };
     }, [chunk, property]);
 
@@ -110,7 +117,7 @@ export default function ChunkWrapper({
 
     return isInitialized ? (
         <Box>
-            {progress / chunk.selected.length < 1.0 ? (
+            {progress < 1.0 ? (
                 <LinearProgress
                     variant="determinate"
                     value={(progress / chunk.selected.length) * 100}

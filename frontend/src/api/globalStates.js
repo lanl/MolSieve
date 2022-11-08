@@ -98,12 +98,15 @@ class GlobalStates {
     };
 
     clusterStates = (states) => {
-        apiClusterStates(structuralAnalysisProps, states).then((d) => {
-            for (const [id, clusterID] of Object.entries(d)) {
-                const previous = this.map.get(parseInt(id, 10));
-                previous.stateCluster = clusterID;
-                this.map.set(id, Object.assign(previous, previous));
-            }
+        loadPropertiesForSubset(structuralAnalysisProps, states).then((stateData) => {
+            this.addPropToStates(stateData);
+            apiClusterStates(structuralAnalysisProps, states).then((d) => {
+                for (const [id, clusterID] of Object.entries(d)) {
+                    const previous = this.map.get(parseInt(id, 10));
+                    previous.stateCluster = clusterID;
+                    this.map.set(id, Object.assign(previous, previous));
+                }
+            });
         });
     };
 

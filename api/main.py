@@ -343,7 +343,6 @@ async def load_properties_for_subset(
                 missingProperties[key].append(s["id"])
 
     if len(missingProperties.keys()) > 0:
-        print("props missing")
         runAnalyses = {}
         for key, values in missingProperties.items():
             analysis = PROPERTY_TO_ANALYSIS.get(key)
