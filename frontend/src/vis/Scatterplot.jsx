@@ -14,7 +14,6 @@ import { useExtents } from '../hooks/useExtents';
 
 const margin = { top: 5, bottom: 5, left: 0, right: 5 };
 
-let sBrush = null;
 let ttInstance;
 
 export default function Scatterplot({
@@ -27,7 +26,7 @@ export default function Scatterplot({
     setStateHovered,
     setExtents,
     yAttributeListProp = null,
-    visibleExtent,
+    // visibleExtent,
     width,
     height,
     run,
@@ -50,15 +49,7 @@ export default function Scatterplot({
 
     const { setInternalExtents, completeSelection } = useExtents(setExtents, onSetExtentsComplete);
 
-    const selectionBrush = () => {
-        if (sBrush != null) {
-            if (!d3.selectAll('.brush').empty()) {
-                d3.selectAll('.brush').remove();
-            }
-
-            d3.select(ref.current).append('g').attr('class', 'brush').call(sBrush);
-        }
-    };
+    const [sBrush, setSBrush] = useState(null);
 
     const useAttributeList = (setAttributeList, attribute) => {
         useEffect(() => {
@@ -74,17 +65,7 @@ export default function Scatterplot({
         }, [attribute, sequence]);
     };
 
-    useEffect(() => {
-        if (selectionMode) {
-            selectionBrush();
-        }
-    }, [selectionMode]);
-
     useAttributeList(setYAttributeList, property);
-
-    useEffect(() => {
-        ref.current.setAttribute('id', id);
-    }, [id]);
 
     const renderBackgroundColor = (svg, scaleX, data, color) => {
         svg.append('rect')
@@ -312,7 +293,7 @@ export default function Scatterplot({
                 .attr('y', margin.top + margin.bottom)
                 .text(`${id}`);
 
-            sBrush = d3
+            const newBrush = d3
                 .brushX()
                 .keyModifiers(false)
                 .on('start brush', function ({ selection }) {
@@ -331,19 +312,19 @@ export default function Scatterplot({
                     }
                 })
                 .on('end', function ({ selection }) {
-                    const start = Math.round(scaleX.invert(selection[0]));
-                    const end = Math.round(scaleX.invert(selection[1]));
+                    const start = Math.round(selection[0]);
+                    const end = Math.round(selection[1]);
 
                     if (!showSparkLine) {
                         d3.select(ref.current)
                             .selectAll('.currentSelection')
                             .classed('currentSelection', false);
                     }
-                    // just one selection at a time... makes it a LOT easier
-                    const nodes = [start, end];
+                    const nodes = sequence.slice(start, end + 1);
                     setInternalExtents((prev) => [...prev, { states: nodes }]);
                     completeSelection();
                 });
+            setSBrush(() => newBrush);
             // applyFilters(trajectories, runs, ref);
         },
         [
@@ -414,6 +395,26 @@ export default function Scatterplot({
             }
         }
     }, [visibleExtent]); */
+
+    const selectionBrush = () => {
+        if (sBrush != null) {
+            if (!d3.selectAll('.brush').empty()) {
+                d3.selectAll('.brush').remove();
+            }
+
+            d3.select(ref.current).append('g').attr('class', 'brush').call(sBrush);
+        }
+    };
+
+    useEffect(() => {
+        if (selectionMode) {
+            selectionBrush();
+        }
+    }, [selectionMode]);
+
+    useEffect(() => {
+        ref.current.setAttribute('id', id);
+    }, [id]);
 
     return (
         <svg
