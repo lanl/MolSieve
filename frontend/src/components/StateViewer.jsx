@@ -74,14 +74,16 @@ export default function StateViewer({ selection }) {
                 <LinearProgress color="primary" variant="determinate" value={progress * 100} />
             ) : null}
             <ImageViewer img={img} />
-            <Box>
+            <Box sx={{ display: 'flex' }}>
                 <IconButton
+                    sx={{ flexGrow: 1 }}
                     onClick={() => setSequenceIdx((prev) => prev - 1)}
                     disabled={sequenceIdx - 1 < 0}
                 >
                     <ArrowBackIcon />
                 </IconButton>
                 <IconButton
+                    sx={{ flexGrow: 1 }}
                     onClick={() => setSequenceIdx((prev) => prev + 1)}
                     disabled={sequenceIdx + 1 > selection.length - 1}
                 >

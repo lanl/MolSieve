@@ -17,9 +17,9 @@ export default function ImageViewer({ img }) {
     }, [img]);
 
     return (
-        <Box>
+        <>
             {imgUnavailable && <CircularProgress />}
-            <img ref={imgRef} alt="" style={{ objectFit: 'cover' }} />
-        </Box>
+            <img ref={imgRef} alt="" style={{ width: 200, height: 200, objectFit: 'cover' }} />
+        </>
     );
 }

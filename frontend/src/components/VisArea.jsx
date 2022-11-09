@@ -424,6 +424,8 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
                 sx={{
                     overflow: 'scroll',
                     flexBasis: '33%',
+                    marginLeft: 5,
+                    marginRight: 5,
                     background: '#f8f9f9',
                     fontColor: '#394043',
                     boxShadow: '0 1px 2px rgba(0,0,0,0.4)',
