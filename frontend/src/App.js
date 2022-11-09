@@ -13,12 +13,7 @@ import LoadingModal from './modals/LoadingModal';
 import Trajectory from './api/trajectory';
 import FilterBuilder from './api/FilterBuilder';
 import VisArea from './components/VisArea';
-import {
-    api_load_metadata,
-    api_load_property,
-    apiLoadTrajectory,
-    apiModifyTrajectory,
-} from './api/ajax';
+import { apiLoadTrajectory, apiModifyTrajectory } from './api/ajax';
 import ControlDrawer from './components/ControlDrawer';
 import GlobalStates from './api/globalStates';
 import { createUUID } from './api/random';
@@ -31,6 +26,7 @@ const RUN_MODAL = 'run_modal';
 class App extends React.Component {
     constructor() {
         super();
+        WebSocketManager.addKey('selections');
         this.runListButton = React.createRef();
         this.state = {
             isLoading: false,
@@ -71,13 +67,9 @@ class App extends React.Component {
         this.setState({ trajectories });
     };
 
-    load_metadata = (run, newTraj) => {
-        this.setState({
-            isLoading: true,
-            loadingMessage: `Loading metadata for ${run}...`,
-        });
+    /* loadMetadata = (run, newTraj) => {
         return api_load_metadata(run, newTraj);
-    };
+    }; */
 
     /** Function called by the PCCA slider allocated for each run.
      *  Reruns the PCCA for however many clusters the user specifies
@@ -175,36 +167,6 @@ class App extends React.Component {
         runs[run].filters = filters;
 
         return runs;
-    };
-
-    setProperties = (newProperties) => {
-        const { properties } = this.state;
-        // if old has something that new doesn't, there was a removal
-        const removed = properties.filter((x) => !newProperties.includes(x));
-
-        // if new has something that old doesn't, there was an addition
-        const added = newProperties.filter((x) => !properties.includes(x));
-
-        if (added.length > 0) {
-            api_load_property(added[0]).then((data) => {
-                GlobalStates.addPropToStates(data);
-                this.setState((prevState) => ({
-                    properties: [...prevState.properties, added[0]],
-                }));
-                this.props.enqueueSnackbar(`Property ${added[0]} loaded.`);
-            });
-        } else {
-            const propertiesCopy = [...this.state.properties];
-            for (const r of removed) {
-                GlobalStates.removePropFromStates(r);
-                const idx = propertiesCopy.indexOf(r);
-                propertiesCopy.splice(idx, 1);
-            }
-
-            this.setState({
-                properties: propertiesCopy,
-            });
-        }
     };
 
     updateRun = (run, attribute, value) => {
@@ -337,7 +299,6 @@ class App extends React.Component {
                         addFilter={this.addFilter}
                         propagateChange={this.propagateChange}
                         properties={properties}
-                        setProperties={this.setProperties}
                         setExtent={this.setExtent}
                     />
                 )}

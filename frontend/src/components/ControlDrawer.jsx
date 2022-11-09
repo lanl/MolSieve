@@ -35,9 +35,6 @@ import ChartBox from './ChartBox';
 import FilterComponent from './FilterComponent';
 import Timeline from '../vis/Timeline';
 
-import { structuralAnalysisProps } from '../api/constants';
-import ZTable from './ZTable';
-
 const ADD_FILTER_MODAL = 'add-filter-modal';
 const METADATA_MODAL = 'metadata-modal';
 const ANALYSIS_MODAL = 'analysis-modal';
@@ -52,7 +49,6 @@ function ControlDrawer({
     toggleDrawer,
     addFilter,
     propagateChange,
-    setProperties,
     properties,
 }) {
     const [currentModal, setCurrentModal] = useState();
