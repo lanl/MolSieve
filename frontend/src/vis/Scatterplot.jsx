@@ -320,8 +320,8 @@ export default function Scatterplot({
                             .selectAll('.currentSelection')
                             .classed('currentSelection', false);
                     }
-                    const nodes = sequence.slice(start, end + 1);
-                    setInternalExtents((prev) => [...prev, { states: nodes }]);
+                    const nodes = sequence.slice(start, end + 1).map((d) => d.id);
+                    setInternalExtents(nodes);
                     completeSelection();
                 });
             setSBrush(() => newBrush);

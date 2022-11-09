@@ -8,12 +8,24 @@ class GlobalStates {
 
     addPropToStates = (propertyList) => {
         for (const prop of propertyList) {
-            if (this.map.has(prop.id)) {
-                const previous = this.map.get(prop.id);
-                this.map.set(prop.id, Object.assign(previous, prop));
-            } else {
-                this.map.set(prop.id, prop);
-            }
+            this.addPropToState(prop);
+        }
+    };
+
+    /**
+     * Adds a new property to State objects.
+     *
+     * @param {Object} prop - Property to add; needs to be {property: value, id: id} to work.
+     */
+    addPropToState = (prop) => {
+        if (prop.id === undefined) {
+            throw new Error('Property missing id.');
+        }
+        if (this.map.has(prop.id)) {
+            const previous = this.map.get(prop.id);
+            this.map.set(prop.id, Object.assign(previous, prop));
+        } else {
+            this.map.set(prop.id, prop);
         }
     };
 

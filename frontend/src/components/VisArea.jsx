@@ -14,7 +14,7 @@ import SingleStateModal from '../modals/SingleStateModal';
 import '../css/App.css';
 import GlobalStates from '../api/globalStates';
 
-import ChunkComparisonView from '../hoc/ChunkComparisonView';
+import StateViewer from './StateViewer';
 
 import usePrevious from '../hooks/usePrevious';
 import {
@@ -32,14 +32,13 @@ import { getAllImportantStates } from '../api/trajectories';
 const SINGLE_STATE_MODAL = 'single_state';
 
 const NO_SELECT = 0;
-const CHUNK_COMPARISON_SELECT = 1;
-const FIND_SIMILAR_SELECT = 2;
-const CLEAR_SELECTION = 3;
-const SWAP_SELECTIONS = 4;
+const FIND_SIMILAR_SELECT = 1;
+const CLEAR_SELECTION = 2;
+const SWAP_SELECTIONS = 3;
 
 // index with current selection mode to determine how many chunks should be selected
 // for a valid selection
-const SELECTION_LENGTH = [0, 2, 1, 3, 2];
+const SELECTION_LENGTH = [0, 1, 3, 2];
 
 export default function VisArea({ trajectories, runs, properties, swapPositions }) {
     const [currentModal, setCurrentModal] = useState(null);
@@ -48,7 +47,8 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
 
     const [selectionMode, setSelectionMode] = useState(NO_SELECT);
     const [selectedObjects, setSelectedObjects] = useState([]);
-    const [chunkPairs, setChunkPairs] = useState({});
+
+    const [selections, setSelections] = useState({});
 
     const [anchorEl, setAnchorEl] = useState(null);
 
@@ -108,19 +108,10 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
     const getAllVisibleChunks = () => {
         let visible = [];
         for (const trajectory of Object.values(trajectories)) {
-            const { iChunks, uChunks, _ } = getVisibleChunks(trajectory);
+            const { iChunks, uChunks } = getVisibleChunks(trajectory);
             visible = [...visible, ...iChunks, ...uChunks];
         }
         return visible;
-    };
-
-    const focusCharts = (c1, c2) => {
-        const charts = document.querySelectorAll('.embeddedChart');
-        for (const chart of charts) {
-            if (chart.id !== `ec_${c1.id}` && chart.id !== `ec_${c2.id}`) {
-                chart.classList.add('unfocused');
-            }
-        }
     };
 
     const focusChart = (c1) => {
@@ -201,7 +192,6 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
     }, [toolTipList]);
 
     useEffect(() => {
-        setChunkPairs([]);
         setSelectionMode(NO_SELECT);
         setToolTipList([]);
         resetGlobalScale();
@@ -240,10 +230,13 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
     };
 
     const setExtents = (extent) => {
-        console.log(extent);
+        setSelections((prevState) => ({ ...prevState, [createUUID()]: extent }));
     };
 
-    // perhaps these should be states instead of directly modifying the javascript like this
+    const deleteExtents = (id) => {
+        setSelections(({ [id]: toDelete, ...rest }) => rest);
+    };
+
     const selectObject = (o) => {
         // add chunk if it is not already in the array, otherwise remove it from the array
         if (!selectedObjects.map((d) => d.id).includes(o.id)) {
@@ -255,25 +248,6 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
             }
         } else {
             setSelectedObjects(selectedObjects.filter((oo) => oo.id !== o.id));
-        }
-    };
-
-    const removeChunkPair = (key) => {
-        const cp = { ...chunkPairs };
-        delete cp[key];
-        setChunkPairs(cp);
-    };
-
-    const selectionButtonClick = () => {
-        if (selectionMode === NO_SELECT) {
-            setSelectionMode(CHUNK_COMPARISON_SELECT);
-        }
-        if (selectionMode === CHUNK_COMPARISON_SELECT) {
-            // check contents of selectedChunks, and then clear them
-            if (selectedObjects.length === SELECTION_LENGTH[CHUNK_COMPARISON_SELECT]) {
-                setChunkPairs({ ...chunkPairs, [createUUID()]: selectedObjects });
-            }
-            setSelectionMode(NO_SELECT);
         }
     };
 
@@ -324,15 +298,6 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
                                     onClick={(e) => setAnchorEl(e.currentTarget)}
                                 >
                                     AttributeSelection
-                                </Button>
-                                <Button
-                                    color="secondary"
-                                    size="small"
-                                    onClick={() => selectionButtonClick()}
-                                >
-                                    {selectionMode !== CHUNK_COMPARISON_SELECT
-                                        ? 'ChunkComparison'
-                                        : 'ToggleChunkComparison'}
                                 </Button>
                                 <Button
                                     color="secondary"
@@ -464,42 +429,20 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
                     boxShadow: '0 1px 2px rgba(0,0,0,0.4)',
                 }}
             >
-                {Object.keys(chunkPairs).map((key) => {
-                    const pair = chunkPairs[key];
-
-                    const c1 = pair[0];
-                    const c2 = pair[1];
-
-                    // sort so that c1 is always the smaller id number
-                    // could also do by timestep - sorted by temporal order
-                    const first = c1.id < c2.id ? c1 : c2;
-                    const second = c1.id < c2.id ? c2 : c1;
-
-                    // not the best way to do it, but ok for now
+                {Object.keys(selections).map((uuid) => {
+                    const selection = selections[uuid];
                     return (
-                        <Box
-                            sx={{
-                                flex: '0 0 auto',
-                            }}
-                            onMouseEnter={() => focusCharts(c1, c2)}
-                            onMouseLeave={() => unFocusCharts()}
-                        >
-                            <ChunkComparisonView
-                                chunk1={first}
-                                chunk2={second}
-                                property={globalProperty}
+                        <Box>
+                            <Button
+                                color="secondary"
+                                size="small"
+                                onClick={() => {
+                                    deleteExtents(uuid);
+                                }}
                             >
-                                <Button
-                                    color="secondary"
-                                    size="small"
-                                    onClick={() => {
-                                        removeChunkPair(key);
-                                        unFocusCharts();
-                                    }}
-                                >
-                                    X
-                                </Button>
-                            </ChunkComparisonView>
+                                X
+                            </Button>
+                            <StateViewer selection={selection} />
                         </Box>
                     );
                 })}
