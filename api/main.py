@@ -49,7 +49,6 @@ from sklearn import preprocessing
 from sklearn.cluster import OPTICS
 
 
-
 os.environ["OVITO_THREAD_COUNT"] = "1"
 os.environ["DISPLAY"] = ""
 
@@ -114,26 +113,31 @@ async def ws(task_id: str, websocket: WebSocket):
         await cm.disconnect(task_id)
 
 
-# move to celery worker
-@router.get("/generate_ovito_image")
-async def generate_ovito_image(number: str):
-    driver = GraphDriver()
-    # relation agnostic
-    qb = querybuilder.Neo4jQueryBuilder(
-        schema=[
-            ("State", "", "State", "ONE-TO-ONE"),
-            ("Atom", "PART_OF", "State", "MANY-TO-ONE"),
-        ]
-    )
+@router.websocket("/generate_ovito_images")
+async def generate_ovito_images(websocket: WebSocket):
+    await websocket.accept()
+    try:
+        ids = await websocket.receive_json()
+        print(ids)
+        driver = GraphDriver()
+        qb = querybuilder.Neo4jQueryBuilder(
+            [
+                ("Atom", "PART_OF", "State", "MANY-TO-ONE"),
+            ]
+        )
 
-    q = qb.generate_get_node("State", ("number", number), "PART_OF")
+        q = qb.generate_get_node_list("State", ids, "PART_OF")
+        attr_atom_dict = converter.query_to_ASE(driver, q, "Pt")
 
-    state_atom_dict = converter.query_to_ASE(driver, qb, q, "Pt", getRelationList=False)
+        for atoms in attr_atom_dict.values():
+            img = generate_ovito_image(atoms)
+            await websocket.send_json(img)
+    except WebSocketDisconnect:
+        print("Websocket disconnected")
 
-    qimg = None
 
-    for atoms in state_atom_dict.values():
-        qimg = visualizations.render_ASE(atoms)
+def generate_ovito_image(atoms):
+    qimg = visualizations.render_ASE(atoms)
 
     img = Image.fromqimage(qimg)
     rawBytes = io.BytesIO()
@@ -144,7 +148,7 @@ async def generate_ovito_image(number: str):
     image_string = str(img_base64)
     image_string = image_string.removesuffix("'")
     image_string = image_string.removeprefix("b'")
-    return {"image": image_string}
+    return image_string
 
 
 @router.post("/generate_ovito_animation")
@@ -156,7 +160,6 @@ async def generate_ovito_animation(
     qb = querybuilder.Neo4jQueryBuilder([("Atom", "PART_OF", "State", "MANY-TO-ONE")])
 
     q = qb.generate_get_node_list("State", states, "PART_OF")
-
     attr_atom_dict = converter.query_to_ASE(driver, q, "Pt")
 
     output_path = "vid.webm"
@@ -282,6 +285,7 @@ async def ws_load_properties_for_subset(websocket: WebSocket):
             await websocket.send_json(results)
     except WebSocketDisconnect:
         print("Websocket disconnected")
+
 
 @router.post("/cluster_states", status_code=200)
 def cluster_states(props: List[str] = Body([]), stateIds: List[int] = Body([])):
