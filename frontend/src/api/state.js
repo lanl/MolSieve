@@ -1,5 +1,7 @@
 import { structuralAnalysisProps, mpn65 } from './constants';
 
+const IGNORE_PROPS = ['img'];
+
 export default class State {
     id;
 
@@ -57,14 +59,16 @@ export default class State {
         const perLine = 3;
 
         for (const property of Object.keys(this)) {
-            const currentProp = this[property];
-            const capitalized = property.charAt(0).toUpperCase() + property.slice(1);
+            const value = this[property];
+            if (!IGNORE_PROPS.includes(property) && value !== undefined) {
+                const capitalized = property.charAt(0).toUpperCase() + property.slice(1);
 
-            propertyString += `<b>${capitalized}</b>: ${currentProp} `;
+                propertyString += `<b>${capitalized}</b>: ${value} `;
 
-            propCount++;
-            if (propCount % perLine === 0) {
-                propertyString += '<br>';
+                propCount++;
+                if (propCount % perLine === 0) {
+                    propertyString += '<br>';
+                }
             }
         }
         return propertyString;
