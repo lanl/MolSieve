@@ -73,7 +73,7 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
     /**
      * [TODO:description]
      *
-     * @param {[TODO:type]} trajectory - [TODO:description]
+     * @param {[TODO:type]} trajectory - [TODO:descriptin]
      * @returns {[TODO:type]} [TODO:description]
      */
     const getVisibleChunks = (trajectory) => {
@@ -194,9 +194,12 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
     useEffect(() => {
         setSelectionMode(NO_SELECT);
         setToolTipList([]);
-        resetGlobalScale();
         GlobalStates.clearClusterStates();
     }, [trajectories]);
+
+    useEffect(() => {
+        resetGlobalScale();
+    }, [globalProperty]);
 
     useEffect(() => {
         if (selectionMode === NO_SELECT) {
@@ -215,9 +218,7 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
 
     setStateHoveredProp = this.setStateHovered.bind(this);
 
-    setExtentsProp = this.setExtents.bind(this);
-
-    setExtentsUniqueStatesProp = this.setExtentsUniqueStates.bind(this);
+      setExtentsUniqueStatesProp = this.setExtentsUniqueStates.bind(this);
 
     setSequenceExtentProp = this.setSequenceExtent.bind(this); */
 
@@ -230,6 +231,7 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
     };
 
     const setExtents = (extent) => {
+        console.log(extent);
         setSelections((prevState) => ({ ...prevState, [createUUID()]: extent }));
     };
 

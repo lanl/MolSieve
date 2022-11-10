@@ -32,10 +32,7 @@ export default function ChunkWrapper({
         const states = chunk.selected.map((id) => GlobalStates.get(id));
         const vals = states.map((d) => d[property]);
 
-        updateGlobalScale(d3.min(vals), d3.max(vals));
-
         setBoxStats(boxPlotStats(vals));
-        setIsInitialized(true);
     };
 
     const runSocket = () => {
@@ -67,6 +64,11 @@ export default function ChunkWrapper({
             GlobalStates.addPropToStates(parsedData);
 
             setProgress((i * moveBy) / chunk.selected.length);
+            const states = chunk.selected.map((id) => GlobalStates.get(id));
+            const vals = states.map((d) => d[property]);
+
+            updateGlobalScale(d3.min(vals), d3.max(vals));
+            setIsInitialized(true);
             render();
 
             let sendStates = [];
@@ -91,14 +93,20 @@ export default function ChunkWrapper({
     };
 
     useEffect(() => {
+        render();
+    }, [globalScaleMin, globalScaleMax, width, height]);
+
+    useEffect(() => {
         if (ws.current) {
             ws.current.close();
             ws.current = null;
         }
 
         if (!GlobalStates.subsetHasProperty(property, chunk.selected)) {
+            setIsInitialized(false);
             runSocket();
         } else {
+            setIsInitialized(true);
             setProgress(1.0);
             render();
         }
@@ -109,7 +117,7 @@ export default function ChunkWrapper({
                 ws.current = null;
             }
         };
-    }, [chunk, property, width, height]);
+    }, [chunk, property]);
 
     if (isInterrupted) {
         return <div>Loading interrupted</div>;

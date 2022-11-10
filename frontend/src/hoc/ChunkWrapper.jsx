@@ -83,15 +83,15 @@ export default function ChunkWrapper({
         return { sendStates, rightStates, leftStates };
     };
 
-    const render = (states, lSlice, rSlice) => {
+    const updateGS = (states) => {
+        const as = states.map((id) => GlobalStates.get(id));
+        const vals = as.map((d) => d[property]);
+        updateGlobalScale(d3.min(vals), d3.max(vals));
+    };
+
+    const render = (lSlice, rSlice) => {
         let s = chunk.timestepSequence;
         let m = chunk.calculateMovingAverage(property, mvaPeriod, simpleMovingAverage);
-
-        const as = states.map((id) => GlobalStates.get(id));
-
-        const vals = as.map((d) => d[property]);
-
-        updateGlobalScale(d3.min(vals), d3.max(vals));
 
         if (leftBoundary && isExpanded) {
             const left = leftBoundary.timestepSequence.length - lSlice;
@@ -123,7 +123,6 @@ export default function ChunkWrapper({
         setSliceBy({ lSlice, rSlice });
         setSeq(s);
         setMva(m);
-        setIsInitialized(true);
     };
 
     const runSocket = () => {
@@ -210,7 +209,9 @@ export default function ChunkWrapper({
                 }
 
                 setProgress(currProgress / total);
-                render(renderStates, lStates.length, rStates.length);
+                setIsInitialized(true);
+                updateGS(renderStates);
+                render(lStates.length, rStates.length);
 
                 let sendStates = [];
                 const boundaryStates = getBoundaryStates(i, seen, lToDo, rToDo);
@@ -289,7 +290,9 @@ export default function ChunkWrapper({
                 }
 
                 setProgress(currProgress / total);
-                render(cStates);
+                setIsInitialized(true);
+                updateGS(cStates);
+                render();
 
                 let sendStates = [];
 
@@ -329,6 +332,10 @@ export default function ChunkWrapper({
     };
 
     useEffect(() => {
+        render();
+    }, [globalScaleMin, globalScaleMax, width, height]);
+
+    useEffect(() => {
         if (ws.current) {
             ws.current.close();
             ws.current = null;
@@ -336,9 +343,11 @@ export default function ChunkWrapper({
 
         // check if property already exists first
         if (isExpanded || !GlobalStates.subsetHasProperty(property, chunk.states)) {
+            setIsInitialized(false);
             runSocket();
         } else {
             setProgress(1.0);
+            setIsInitialized(true);
             render(chunk.states);
         }
 
@@ -348,7 +357,7 @@ export default function ChunkWrapper({
                 ws.current = null;
             }
         };
-    }, [isExpanded, property, width, height]);
+    }, [isExpanded, property]);
 
     useEffect(() => {
         if (showStateClustering) {
