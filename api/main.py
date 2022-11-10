@@ -118,7 +118,6 @@ async def generate_ovito_images(websocket: WebSocket):
     await websocket.accept()
     try:
         ids = await websocket.receive_json()
-        print(ids)
         driver = GraphDriver()
         qb = querybuilder.Neo4jQueryBuilder(
             [
@@ -129,9 +128,9 @@ async def generate_ovito_images(websocket: WebSocket):
         q = qb.generate_get_node_list("State", ids, "PART_OF")
         attr_atom_dict = converter.query_to_ASE(driver, q, "Pt")
 
-        for atoms in attr_atom_dict.values():
+        for id, atoms in attr_atom_dict.items():
             img = generate_ovito_image(atoms)
-            await websocket.send_json(img)
+            await websocket.send_json({'id': id, 'img': img})
     except WebSocketDisconnect:
         print("Websocket disconnected")
 

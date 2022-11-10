@@ -16,10 +16,5 @@ export default function ImageViewer({ img }) {
         }
     }, [img]);
 
-    return (
-        <>
-            {imgUnavailable && <CircularProgress />}
-            <img ref={imgRef} alt="" style={{ width: 200, height: 200, objectFit: 'cover' }} />
-        </>
-    );
+    return <img ref={imgRef} alt="" style={{ width: 200, height: 200, objectFit: 'cover' }} />;
 }

@@ -14,7 +14,7 @@ import SingleStateModal from '../modals/SingleStateModal';
 import '../css/App.css';
 import GlobalStates from '../api/globalStates';
 
-import StateViewer from './StateViewer';
+import SubSequenceView from './SubSequenceView';
 
 import usePrevious from '../hooks/usePrevious';
 import {
@@ -418,33 +418,29 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
                 </ChartBox>
             </Box>
             <Stack
-                direction="row"
-                alignItems="center"
+                direction="column"
                 spacing={0.5}
                 sx={{
                     overflow: 'scroll',
-                    flexBasis: '33%',
                     marginLeft: 5,
                     marginRight: 5,
-                    background: '#f8f9f9',
-                    fontColor: '#394043',
-                    boxShadow: '0 1px 2px rgba(0,0,0,0.4)',
                 }}
             >
                 {Object.keys(selections).map((uuid) => {
                     const selection = selections[uuid];
                     return (
-                        <Box>
-                            <Button
-                                color="secondary"
-                                size="small"
-                                onClick={() => {
-                                    deleteExtents(uuid);
-                                }}
-                            >
-                                X
-                            </Button>
-                            <StateViewer selection={selection} />
+                        <Box sx={{ width: '100%' }}>
+                            <SubSequenceView selection={selection}>
+                                <Button
+                                    color="secondary"
+                                    size="small"
+                                    onClick={() => {
+                                        deleteExtents(uuid);
+                                    }}
+                                >
+                                    X
+                                </Button>
+                            </SubSequenceView>
                         </Box>
                     );
                 })}
