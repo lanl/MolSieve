@@ -429,19 +429,17 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
                 {Object.keys(selections).map((uuid) => {
                     const selection = selections[uuid];
                     return (
-                        <Box sx={{ width: '100%' }}>
-                            <SubSequenceView selection={selection}>
-                                <Button
-                                    color="secondary"
-                                    size="small"
-                                    onClick={() => {
-                                        deleteExtents(uuid);
-                                    }}
-                                >
-                                    X
-                                </Button>
-                            </SubSequenceView>
-                        </Box>
+                        <SubSequenceView selection={selection}>
+                            <Button
+                                color="secondary"
+                                size="small"
+                                onClick={() => {
+                                    deleteExtents(uuid);
+                                }}
+                            >
+                                X
+                            </Button>
+                        </SubSequenceView>
                     );
                 })}
             </Stack>
