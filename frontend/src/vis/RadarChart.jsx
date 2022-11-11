@@ -3,7 +3,8 @@ import * as d3 from 'd3';
 import '../css/vis.css';
 
 import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
-import { wrap } from '../api/myutils';
+
+import { abbreviate } from '../api/myutils';
 
 const MARGIN = { left: 0, bottom: 5 };
 
@@ -75,11 +76,9 @@ export default function Legend({ data, properties, width, height }) {
             .style('font-size', '9px')
             .attr('text-anchor', 'middle')
             .attr('dy', '0.35em')
-            .attr('x', (_, i) => rScale(absMax * 1.25) * Math.cos(angleSlice * i - Math.PI / 2))
-            .attr('y', (_, i) => rScale(absMax * 1.25) * Math.sin(angleSlice * i - Math.PI / 2))
-            .text((d) => d.property)
-            .call(wrap, 10);
-
+            .attr('x', (_, i) => rScale(absMax * 1) * Math.cos(angleSlice * i - Math.PI / 2))
+            .attr('y', (_, i) => rScale(absMax * 1) * Math.sin(angleSlice * i - Math.PI / 2))
+            .text((d) => abbreviate(d.property));
         // for each state, get its xy position for each property, then draw a line between each point
 
         const angleToCoord = (angle, value) => {
@@ -95,7 +94,7 @@ export default function Legend({ data, properties, width, height }) {
             let i = 0;
             for (const a of axes) {
                 const angle = angleSlice * i - Math.PI / 2;
-                points.push(angleToCoord(angle, d[a.property]));
+                points.push(angleToCoord(angle, a.scale(d[a.property])));
                 i++;
             }
             lines.push({ points, color: d.individualColor });
@@ -113,7 +112,9 @@ export default function Legend({ data, properties, width, height }) {
             .append('path')
             .attr('d', (d) => lineGen(d.points))
             .attr('stroke', (d) => d.color)
-            .attr('fill', 'none');
+            .attr('fill', 'none')
+            .classed('clickable', true)
+            .classed('state', true);
     });
     return <svg ref={ref} viewBox={[0, 0, width, height]} width={width} height={height} />;
 }

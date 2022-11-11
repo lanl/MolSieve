@@ -29,8 +29,9 @@ export function hashStringToColor(str) {
 // https://stackoverflow.com/questions/59065687/how-to-get-most-frequent-occurring-element-in-an-array
 export function mostOccurringElement(arr) {
     const counts = arr.reduce((a, c) => {
-        a[c] = (a[c] || 0) + 1;
-        return a;
+        const d = { ...a };
+        d[c] = (d[c] || 0) + 1;
+        return d;
     }, {});
 
     return Object.keys(counts).reduce((a, b) => (counts[a] > counts[b] ? a : b));
@@ -154,16 +155,9 @@ export function onlyUnique(value, index, self) {
 }
 
 // https://jsfiddle.net/Arg0n/zL0jgspz/2/
-export function intersection() {
+export function intersection(...args) {
     const result = [];
-    let lists;
-
-    if (arguments.length === 1) {
-        lists = arguments[0];
-    } else {
-        lists = arguments;
-    }
-
+    const lists = args;
     for (let i = 0; i < lists.length; i++) {
         const currentList = lists[i];
         for (let y = 0; y < currentList.length; y++) {
@@ -429,35 +423,12 @@ export function percentToString(num) {
     return `${num.toFixed(3) * 100}%`;
 }
 
-// Taken from http://bl.ocks.org/mbostock/7555321
-// Wraps SVG text
-export function wrap(text, width) {
-    text.each(function () {
-        const text = d3.select(this);
-        const words = text.text().split(/\s+/).reverse();
-        let word;
-        let line = [];
-        let lineNumber = 0;
-        const lineHeight = 1.4; // ems
-        const y = text.attr('y');
-        const x = text.attr('x');
-        const dy = parseFloat(text.attr('dy'));
-        let tspan = text.text(null).append('tspan').attr('x', x).attr('y', y).attr('dy', `${dy}em`);
-
-        while ((word = words.pop())) {
-            line.push(word);
-            tspan.text(line.join(' '));
-            if (tspan.node().getComputedTextLength() > width) {
-                line.pop();
-                tspan.text(line.join(' '));
-                line = [word];
-                tspan = text
-                    .append('tspan')
-                    .attr('x', x)
-                    .attr('y', y)
-                    .attr('dy', `${++lineNumber * lineHeight + dy}em`)
-                    .text(word);
-            }
-        }
-    });
-} // wrap
+/**
+ * Forms a new string from all of the capital letters in the supplied string.
+ *
+ * @param {String} string - String to abbreviate
+ * @returns {String} string - Abbreviated string
+ */
+export function abbreviate(string) {
+    return string.replaceAll(/([a-z])/g, '');
+}
