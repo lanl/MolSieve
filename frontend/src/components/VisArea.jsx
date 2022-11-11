@@ -6,6 +6,7 @@ import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
 import Select from '@mui/material/Select';
 import Stack from '@mui/material/Stack';
+import Paper from '@mui/material/Paper';
 import TrajectoryChart from '../vis/TrajectoryChart';
 import ChartBox from './ChartBox';
 
@@ -231,7 +232,6 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
     };
 
     const setExtents = (extent) => {
-        console.log(extent);
         setSelections((prevState) => ({ ...prevState, [createUUID()]: extent }));
     };
 
@@ -420,6 +420,7 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
                 </ChartBox>
             </Box>
             <Stack
+                component={Paper}
                 direction="column"
                 spacing={0.5}
                 sx={{

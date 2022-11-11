@@ -1,7 +1,7 @@
 import { React, useState, useEffect } from 'react';
 import Box from '@mui/material/Box';
-import Stack from '@mui/material/Stack';
 
+import Stack from '@mui/material/Stack';
 import StateViewer from './StateViewer';
 import ChartBox from './ChartBox';
 import RadarChart from '../vis/RadarChart';
@@ -11,7 +11,7 @@ import '../css/vis.css';
 import { structuralAnalysisProps } from '../api/constants';
 import GlobalStates from '../api/globalStates';
 
-export default function SubSequenceView({ selection, children, properties }) {
+export default function SubSequenceView({ selection, children, properties, sx }) {
     const [data, setData] = useState([]);
 
     useEffect(() => {
@@ -22,9 +22,10 @@ export default function SubSequenceView({ selection, children, properties }) {
     }, [selection]);
 
     return (
-        <Box sx={{ width: '100%' }}>
+        <Box sx={sx}>
             {children}
             <Stack direction="row" spacing={2}>
+                <StateViewer selection={selection} sx={{ flexGrow: 1 }} />
                 <ChartBox sx={{ flexGrow: 1 }}>
                     {(width, height) => (
                         <RadarChart
@@ -35,7 +36,6 @@ export default function SubSequenceView({ selection, children, properties }) {
                         />
                     )}
                 </ChartBox>
-                <StateViewer selection={selection} />
             </Stack>
         </Box>
     );

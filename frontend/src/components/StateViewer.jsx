@@ -9,7 +9,7 @@ import GlobalStates from '../api/globalStates';
 import WebSocketManager from '../api/websocketmanager';
 import ImageViewer from './ImageViewer';
 
-export default function StateViewer({ selection }) {
+export default function StateViewer({ selection, sx }) {
     const [progress, setProgress] = useState(0.0);
     const [loaded, setLoaded] = useState({});
     const [sequenceIdx, setSequenceIdx] = useState(0);
@@ -22,7 +22,9 @@ export default function StateViewer({ selection }) {
     };
 
     useEffect(() => {
-        setImg(loaded[selection[sequenceIdx]]);
+        if (progress > 0) {
+            setImg(loaded[selection[sequenceIdx]]);
+        }
     }, [sequenceIdx, loaded, selection]);
 
     const runSocket = () => {
@@ -69,7 +71,7 @@ export default function StateViewer({ selection }) {
     }, [selection]);
 
     return (
-        <Box>
+        <Box sx={sx}>
             {progress < 1.0 ? (
                 <LinearProgress color="primary" variant="determinate" value={progress * 100} />
             ) : null}
