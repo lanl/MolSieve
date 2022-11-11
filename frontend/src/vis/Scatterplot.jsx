@@ -49,7 +49,12 @@ export default function Scatterplot({
 
     const { setInternalExtents, completeSelection } = useExtents(setExtents, onSetExtentsComplete);
 
-    const [sBrush, setSBrush] = useState(null);
+    const xAttributeList = sequence.map((_, i) => {
+        return i;
+    });
+    const [scaleX, setScaleX] = useState(
+        d3.scaleLinear().domain(d3.extent(xAttributeList)).range([margin.left, width])
+    );
 
     const useAttributeList = (setAttributeList, attribute) => {
         useEffect(() => {
@@ -67,7 +72,7 @@ export default function Scatterplot({
 
     useAttributeList(setYAttributeList, property);
 
-    const renderBackgroundColor = (svg, scaleX, data, color) => {
+    const renderBackgroundColor = (svg, data, color) => {
         svg.append('rect')
             .attr('x', scaleX(data[0]))
             .attr('y', 0)
@@ -90,21 +95,12 @@ export default function Scatterplot({
                 svg.on('mousemove', null);
                 svg.on('mouseleave', null);
 
-                svg.selectAll('*').remove();
+                svg.selectAll('*:not(.brush)').remove();
             }
 
             if (yAttributeList === null) {
                 return;
             }
-
-            const xAttributeList = sequence.map((d) => {
-                return d.timestep;
-            });
-
-            const scaleX = d3
-                .scaleLinear()
-                .domain(d3.extent(xAttributeList))
-                .range([margin.left, width]);
 
             const yAttributeListRender = showSparkLine ? yAttributeList : sequence.map((d) => d.id);
             const yAttributeRender = showSparkLine ? property : 'id';
@@ -165,11 +161,11 @@ export default function Scatterplot({
                             leftBoundary.timesteps.length - lSlice,
                             leftBoundary.timesteps.length
                         );
-                        renderBackgroundColor(svg, scaleX, leftTimestep, leftBoundary.color);
+                        renderBackgroundColor(svg, leftTimestep, leftBoundary.color);
                     }
                     if (rightBoundary) {
                         rightTimestep = rightBoundary.timesteps.slice(0, rSlice);
-                        renderBackgroundColor(svg, scaleX, rightTimestep, rightBoundary.color);
+                        renderBackgroundColor(svg, rightTimestep, rightBoundary.color);
                     }
                 }
 
@@ -187,7 +183,7 @@ export default function Scatterplot({
                             colorBackground.length - rightTimestep.length + 1
                         );
                     }
-                    renderBackgroundColor(svg, scaleX, colorBackground, rightBoundary.color);
+                    renderBackgroundColor(svg, colorBackground, rightBoundary.color);
                 }
 
                 const mv = [];
@@ -293,38 +289,6 @@ export default function Scatterplot({
                 .attr('y', margin.top + margin.bottom)
                 .text(`${id}`);
 
-            const newBrush = d3
-                .brushX()
-                .keyModifiers(false)
-                .on('start brush', function ({ selection }) {
-                    const start = Math.round(scaleX.invert(selection[0]));
-                    const end = Math.round(scaleX.invert(selection[1]));
-
-                    if (!showSparkLine) {
-                        d3.select(ref.current)
-                            .selectAll('.currentSelection')
-                            .classed('currentSelection', false);
-
-                        d3.select(ref.current)
-                            .selectAll('rect')
-                            .filter((d) => start <= d.timestep && d.timestep <= end)
-                            .classed('currentSelection', true);
-                    }
-                })
-                .on('end', function ({ selection }) {
-                    const start = Math.round(selection[0]);
-                    const end = Math.round(selection[1]);
-
-                    if (!showSparkLine) {
-                        d3.select(ref.current)
-                            .selectAll('.currentSelection')
-                            .classed('currentSelection', false);
-                    }
-                    const nodes = sequence.slice(start, end + 1).map((d) => d.id);
-                    setInternalExtents(nodes);
-                    completeSelection();
-                });
-            setSBrush(() => newBrush);
             // applyFilters(trajectories, runs, ref);
         },
         [
@@ -333,7 +297,8 @@ export default function Scatterplot({
             run,
             showSparkLine,
             property,
-            width,
+            scaleX,
+            height,
             globalScaleMin,
             globalScaleMax,
             colorFunc,
@@ -370,6 +335,49 @@ export default function Scatterplot({
                 .classed('highlightedState', false); */
         }
     }, [stateHovered]);
+
+    const [sBrush, setSBrush] = useState(null);
+
+    useEffect(() => {
+        setScaleX(() =>
+            d3.scaleLinear().domain(d3.extent(xAttributeList)).range([margin.left, width])
+        );
+    }, [width]);
+
+    useEffect(() => {
+        setSBrush(() =>
+            d3
+                .brushX()
+                .keyModifiers(false)
+                .on('start brush', function ({ selection }) {
+                    const start = Math.round(scaleX.invert(selection[0]));
+                    const end = Math.round(scaleX.invert(selection[1]));
+
+                    if (!showSparkLine) {
+                        d3.select(ref.current)
+                            .selectAll('.currentSelection')
+                            .classed('currentSelection', false);
+
+                        d3.select(ref.current)
+                            .selectAll('rect')
+                            .filter((_, i) => start <= i && i <= end)
+                            .classed('currentSelection', true);
+                    }
+                })
+                .on('end', function ({ selection }) {
+                    const start = Math.round(scaleX.invert(selection[0]));
+                    const end = Math.round(scaleX.invert(selection[1]));
+                    if (!showSparkLine) {
+                        d3.select(ref.current)
+                            .selectAll('.currentSelection')
+                            .classed('currentSelection', false);
+                    }
+                    const nodes = sequence.slice(start, end + 1).map((d) => d.id);
+                    setInternalExtents(nodes);
+                    completeSelection();
+                })
+        );
+    }, [scaleX]);
 
     /* useEffect(() => {
         if (ref && ref.current && trajectoryName !== undefined) {
