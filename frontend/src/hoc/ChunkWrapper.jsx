@@ -342,8 +342,8 @@ export default function ChunkWrapper({
         }
 
         // check if property already exists first
+        setIsInitialized(false);
         if (isExpanded || !GlobalStates.subsetHasProperty(property, chunk.states)) {
-            setIsInitialized(false);
             runSocket();
         } else {
             setProgress(1.0);
@@ -357,7 +357,7 @@ export default function ChunkWrapper({
                 ws.current = null;
             }
         };
-    }, [isExpanded, property]);
+    }, [isExpanded, chunk, property]);
 
     useEffect(() => {
         if (showStateClustering) {

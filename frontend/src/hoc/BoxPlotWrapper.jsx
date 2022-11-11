@@ -102,8 +102,8 @@ export default function ChunkWrapper({
             ws.current = null;
         }
 
+        setIsInitialized(false);
         if (!GlobalStates.subsetHasProperty(property, chunk.selected)) {
-            setIsInitialized(false);
             runSocket();
         } else {
             setIsInitialized(true);
