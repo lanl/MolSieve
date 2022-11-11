@@ -6,7 +6,7 @@ import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
 
 import { abbreviate } from '../api/myutils';
 
-const MARGIN = { left: 0, bottom: 5 };
+const MARGIN = { left: 0, bottom: 15 };
 
 export default function Legend({ data, properties, width, height }) {
     const buildAxis = (property, radius) => {
@@ -43,12 +43,7 @@ export default function Legend({ data, properties, width, height }) {
 
         const rScale = d3.scaleLinear().range([0, radius]).domain([0, absMax]);
 
-        const main = svg
-            .append('g')
-            .attr(
-                'transform',
-                `translate(${width / 2 + MARGIN.left}, ${height / 2 - MARGIN.bottom})`
-            );
+        const main = svg.append('g').attr('transform', `translate(${width / 2}, ${height / 2})`);
 
         const axisGrid = main.append('g');
 
@@ -70,15 +65,6 @@ export default function Legend({ data, properties, width, height }) {
             .style('stroke', 'lightgray')
             .style('stroke-width', '1px');
 
-        // Append the labels at each axis
-        axis.append('text')
-            .attr('class', 'legend')
-            .style('font-size', '9px')
-            .attr('text-anchor', 'middle')
-            .attr('dy', '0.35em')
-            .attr('x', (_, i) => rScale(absMax * 1) * Math.cos(angleSlice * i - Math.PI / 2))
-            .attr('y', (_, i) => rScale(absMax * 1) * Math.sin(angleSlice * i - Math.PI / 2))
-            .text((d) => abbreviate(d.property));
         // for each state, get its xy position for each property, then draw a line between each point
 
         const angleToCoord = (angle, value) => {
@@ -115,6 +101,16 @@ export default function Legend({ data, properties, width, height }) {
             .attr('fill', 'none')
             .classed('clickable', true)
             .classed('state', true);
+
+        // Append the labels at each axis
+        axis.append('text')
+            .attr('class', 'legend')
+            .style('font-size', '9px')
+            .attr('text-anchor', 'middle')
+            .attr('dy', '0.35em')
+            .attr('x', (_, i) => rScale(absMax * 1.1) * Math.cos(angleSlice * i - Math.PI / 2))
+            .attr('y', (_, i) => rScale(absMax * 1.1) * Math.sin(angleSlice * i - Math.PI / 2))
+            .text((d) => abbreviate(d.property));
     });
     return <svg ref={ref} viewBox={[0, 0, width, height]} width={width} height={height} />;
 }
