@@ -21,12 +21,13 @@ import usePrevious from '../hooks/usePrevious';
 import {
     chunkSimilarity,
     stateRatioChunkSimilarity,
+    buildDictFromArray,
     percentToString,
     tooltip,
 } from '../api/myutils';
 import { createUUID } from '../api/random';
 
-import { structuralAnalysisProps } from '../api/constants';
+import { structuralAnalysisProps, SPARKLINE_CHART_HEIGHT } from '../api/constants';
 import { zTest } from '../api/stats';
 import { getAllImportantStates } from '../api/trajectories';
 
@@ -56,19 +57,21 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
     const [toolTipList, setToolTipList] = useState([]);
     const oldToolTipList = usePrevious(toolTipList);
 
-    const [globalProperty, setGlobalProperty] = useState(structuralAnalysisProps[0]);
-    const [globalMin, setGlobalMin] = useState(Number.MAX_VALUE);
-    const [globalMax, setGlobalMax] = useState(Number.MIN_VALUE);
+    const [globalProperties, setGlobalProperties] = useState(properties);
+    const [globalMin, setGlobalMin] = useState(buildDictFromArray(properties, Number.MAX_VALUE));
+    const [globalMax, setGlobalMax] = useState(buildDictFromArray(properties, Number.MIN_VALUE));
     const [showStateClustering, setShowStateClustering] = useState(false);
 
-    const updateGlobalScale = (valMin, valMax) => {
-        setGlobalMin((min) => (min > valMin ? valMin : min));
-        setGlobalMax((max) => (max < valMax ? valMax : max));
-    };
+    const updateGlobalScale = (valMin, valMax, property) => {
+        setGlobalMin((minDict) => ({
+            ...minDict,
+            [property]: minDict[property] > valMin ? valMin : minDict[property],
+        }));
 
-    const resetGlobalScale = () => {
-        setGlobalMin(Number.MAX_VALUE);
-        setGlobalMax(Number.MIN_VALUE);
+        setGlobalMax((maxDict) => ({
+            ...maxDict,
+            [property]: maxDict[property] < valMax ? valMax : maxDict[property],
+        }));
     };
 
     /**
@@ -90,7 +93,7 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
                 return extents[0] <= d.timestep && extents[1] >= d.last;
             });
 
-        // the unimportant chunks we will render
+        // the unimportant chunks we will rende + 2.5r
         const uChunks = topChunkList
             .filter((d) => !d.important)
             .filter((d) => {
@@ -197,10 +200,6 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
         setToolTipList([]);
         GlobalStates.clearClusterStates();
     }, [trajectories]);
-
-    useEffect(() => {
-        resetGlobalScale();
-    }, [globalProperty]);
 
     useEffect(() => {
         if (selectionMode === NO_SELECT) {
@@ -347,74 +346,79 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
                                 </Button>
                             </Box>
 
-                            {Object.values(trajectories)
-                                .sort((a, b) => a.position > b.position)
-                                .map((trajectory) => {
-                                    const { uChunks, iChunks, topChunkList } =
-                                        getVisibleChunks(trajectory);
+                            <Stack direction="column" spacing={2}>
+                                {Object.values(trajectories)
+                                    .sort((a, b) => a.position > b.position)
+                                    .map((trajectory) => {
+                                        const { uChunks, iChunks, topChunkList } =
+                                            getVisibleChunks(trajectory);
 
-                                    // NOTE: we STILL need the topChunkList to be all of the chunks for expansion to work when zoomed in!
+                                        // NOTE: we STILL need the topChunkList to be all of the chunks for expansion to work when zoomed in!
 
-                                    const uCharts = uChunks.map((chunk) => {
-                                        return {
-                                            id: chunk.id,
-                                            chunk,
-                                            important: chunk.important,
-                                        };
-                                    });
+                                        const uCharts = uChunks.map((chunk) => {
+                                            return {
+                                                id: chunk.id,
+                                                chunk,
+                                                important: chunk.important,
+                                            };
+                                        });
 
-                                    const iCharts = iChunks.map((chunk) => {
-                                        const chunkIndex = topChunkList.indexOf(chunk);
-                                        let leftBoundary;
-                                        let rightBoundary;
-                                        if (chunkIndex > 0) {
-                                            // get -1
-                                            leftBoundary = topChunkList[chunkIndex - 1];
-                                        }
-
-                                        if (chunkIndex < topChunkList.length - 1) {
-                                            // get +1
-                                            rightBoundary = topChunkList[chunkIndex + 1];
-                                        }
-
-                                        return {
-                                            id: chunk.id,
-                                            leftBoundary,
-                                            chunk,
-                                            rightBoundary,
-                                            important: chunk.important,
-                                        };
-                                    });
-
-                                    const charts = [...iCharts, ...uCharts];
-
-                                    return (
-                                        <TrajectoryChart
-                                            width={width || window.innerWidth}
-                                            height={140}
-                                            trajectory={trajectory}
-                                            run={runs[trajectory.name]}
-                                            setStateHovered={setStateHovered}
-                                            setStateClicked={setStateClicked}
-                                            stateHovered={stateHovered}
-                                            properties={properties}
-                                            isParentHovered={isHovered}
-                                            charts={charts}
-                                            property={globalProperty}
-                                            chunkSelectionMode={selectionMode}
-                                            trajectorySelectionMode={
-                                                selectionMode === SWAP_SELECTIONS
+                                        const iCharts = iChunks.map((chunk) => {
+                                            const chunkIndex = topChunkList.indexOf(chunk);
+                                            let leftBoundary;
+                                            let rightBoundary;
+                                            if (chunkIndex > 0) {
+                                                // get -1
+                                                leftBoundary = topChunkList[chunkIndex - 1];
                                             }
-                                            selectObject={(o) => selectObject(o)}
-                                            selectedObjects={selectedObjects}
-                                            setExtents={setExtents}
-                                            updateGlobalScale={updateGlobalScale}
-                                            globalScaleMin={globalMin}
-                                            showStateClustering={showStateClustering}
-                                            globalScaleMax={globalMax}
-                                        />
-                                    );
-                                })}
+
+                                            if (chunkIndex < topChunkList.length - 1) {
+                                                // get +1
+                                                rightBoundary = topChunkList[chunkIndex + 1];
+                                            }
+
+                                            return {
+                                                id: chunk.id,
+                                                leftBoundary,
+                                                chunk,
+                                                rightBoundary,
+                                                important: chunk.important,
+                                            };
+                                        });
+
+                                        const charts = [...iCharts, ...uCharts];
+
+                                        return (
+                                            <TrajectoryChart
+                                                width={width || window.innerWidth}
+                                                height={
+                                                    (globalProperties.length + 1) *
+                                                        SPARKLINE_CHART_HEIGHT +
+                                                    25
+                                                }
+                                                trajectory={trajectory}
+                                                run={runs[trajectory.name]}
+                                                setStateHovered={setStateHovered}
+                                                setStateClicked={setStateClicked}
+                                                stateHovered={stateHovered}
+                                                isParentHovered={isHovered}
+                                                charts={charts}
+                                                properties={globalProperties}
+                                                chunkSelectionMode={selectionMode}
+                                                trajectorySelectionMode={
+                                                    selectionMode === SWAP_SELECTIONS
+                                                }
+                                                selectObject={(o) => selectObject(o)}
+                                                selectedObjects={selectedObjects}
+                                                setExtents={setExtents}
+                                                updateGlobalScale={updateGlobalScale}
+                                                globalScaleMin={globalMin}
+                                                showStateClustering={showStateClustering}
+                                                globalScaleMax={globalMax}
+                                            />
+                                        );
+                                    })}
+                            </Stack>
                         </>
                     )}
                 </ChartBox>
@@ -490,8 +494,8 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
                                 const aStates = a.states.map((id) => GlobalStates.get(id));
                                 const bStates = b.states.map((id) => GlobalStates.get(id));
                                 return zTest(
-                                    aStates.map((d) => d[globalProperty]),
-                                    bStates.map((d) => d[globalProperty])
+                                    aStates.map((d) => d[globalProperties]),
+                                    bStates.map((d) => d[globalProperties])
                                 );
                             },
                             (a) => `${a.toFixed(3)}`
@@ -509,10 +513,9 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
             >
                 <MenuItem>
                     <Select
-                        value={globalProperty}
+                        value={globalProperties}
                         onChange={(e) => {
-                            resetGlobalScale();
-                            setGlobalProperty(e.target.value);
+                            setGlobalProperties(e.target.value);
                         }}
                     >
                         {structuralAnalysisProps.map((property) => {
@@ -529,3 +532,7 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
         </Container>
     );
 }
+
+VisArea.defaultProps = {
+    properties: structuralAnalysisProps,
+};

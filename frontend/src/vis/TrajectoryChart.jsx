@@ -1,13 +1,15 @@
 import { React, useEffect, useState } from 'react';
 import * as d3 from 'd3';
+import Box from '@mui/material/Box';
 import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
 import ChunkWrapper from '../hoc/ChunkWrapper';
-import BoxPlotWrapper from '../hoc/BoxPlotWrapper';
+// import BoxPlotWrapper from '../hoc/BoxPlotWrapper';
+
 import EmbeddedChart from './EmbeddedChart';
 
 import '../css/vis.css';
 
-const margin = {
+const MARGIN = {
     top: 25,
     bottom: 20,
     left: 25,
@@ -26,7 +28,7 @@ function TrajectoryChart({
     run,
     isParentHovered,
     charts,
-    property,
+    properties,
     chunkSelectionMode,
     trajectorySelectionMode,
     selectObject,
@@ -133,7 +135,7 @@ function TrajectoryChart({
     const iChunks = topChunkList.filter((d) => d.important);
 
     const unimportantWidthExtent =
-        iChunks.length > 0 ? (width - margin.right) * 0.1 : width - margin.right;
+        iChunks.length > 0 ? (width - MARGIN.right) * 0.1 : width - MARGIN.right;
 
     const unimportantWidthScale = d3
         .scaleLinear()
@@ -142,7 +144,7 @@ function TrajectoryChart({
 
     const importantWidthScale = d3
         .scaleLinear()
-        .range([minimumChartWidth, width - margin.right])
+        .range([minimumChartWidth, width - MARGIN.right])
         .domain([0, d3.max(iChunks, (d) => d.size)]);
 
     const getWidthScale = (data) => {
@@ -157,7 +159,7 @@ function TrajectoryChart({
     const scaleX = (w) => {
         // given a width, scale it down so that it will fit within 1 screen
         const per = w / totalSum;
-        return per * (width - margin.right);
+        return per * (width - MARGIN.right);
     };
 
     const getX = (i, w) => {
@@ -192,12 +194,12 @@ function TrajectoryChart({
                     <foreignObject
                         key={id}
                         x={getX(chunkIndex, 0, topChunkList, scaleX, getWidthScale)}
-                        y={height / 2}
+                        y={MARGIN.top}
                         width={chartW}
-                        height={height / 2}
+                        height={height - MARGIN.top}
                     >
                         <EmbeddedChart
-                            height={height / 2}
+                            height={height - MARGIN.top}
                             width={chartW}
                             color={chunk.color}
                             onChartClick={() => {
@@ -222,7 +224,7 @@ function TrajectoryChart({
                                         height={hh}
                                         setStateHovered={setStateHovered}
                                         stateHovered={stateHovered}
-                                        property={property}
+                                        properties={properties}
                                         trajectory={trajectory}
                                         run={run}
                                         isParentHovered={isPHovered}
@@ -234,15 +236,7 @@ function TrajectoryChart({
                                         showStateClustering={showStateClustering}
                                     />
                                 ) : (
-                                    <BoxPlotWrapper
-                                        chunk={chunk}
-                                        width={ww}
-                                        height={hh}
-                                        property={property}
-                                        globalScaleMin={globalScaleMin}
-                                        globalScaleMax={globalScaleMax}
-                                        updateGlobalScale={updateGlobalScale}
-                                    />
+                                    <Box>Boxplot</Box>
                                 )
                             }
                         </EmbeddedChart>
@@ -267,5 +261,13 @@ function TrajectoryChart({
         </svg>
     );
 }
-
+/* <BoxPlotWrapper
+                                        chunk={chunk}
+                                        width={ww}
+                                        height={hh}
+                                        properties={properties}
+                                        globalScaleMin={globalScaleMin}
+                                        globalScaleMax={globalScaleMax}
+                                        updateGlobalScale={updateGlobalScale}
+                                    /> */
 export default TrajectoryChart;

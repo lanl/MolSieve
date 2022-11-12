@@ -306,7 +306,6 @@ class App extends React.Component {
                 <VisArea
                     trajectories={trajectories}
                     runs={runs}
-                    properties={properties}
                     swapPositions={this.swapPositions}
                 />
 

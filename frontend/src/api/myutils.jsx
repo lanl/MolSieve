@@ -432,3 +432,18 @@ export function percentToString(num) {
 export function abbreviate(string) {
     return string.replaceAll(/([a-z])/g, '');
 }
+
+/**
+ * Builds a dictionary using an array's elements as keys.
+ *
+ * @param {Any} arr - array to use as keys
+ * @param {Any} defaultValue - value for each key
+ * @returns {Dict<Any,Any>} dictionary formed by using an array's elements as keys
+ */
+export function buildDictFromArray(arr, defaultValue) {
+    const d = {};
+    for (const e of arr) {
+        d[e] = defaultValue;
+    }
+    return d;
+}

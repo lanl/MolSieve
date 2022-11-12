@@ -15,6 +15,8 @@ export const structuralAnalysisProps = [
     // 'CommonNeighborAnalysis_counts_ICO',
 ];
 
+export const SPARKLINE_CHART_HEIGHT = 20;
+
 // need a mapping from property to callback in case it is missing
 
 export const mpn65 = [
