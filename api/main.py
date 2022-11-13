@@ -360,14 +360,14 @@ async def load_properties_for_subset(
         for analysisName, states in runAnalyses.items():
             await run_ovito_analysis(analysisName, states=states)
 
-    q = qb.generate_get_node_list(
-        "State", idAttributeList=stateIds, attributeList=props
-    )
+        q = qb.generate_get_node_list(
+            "State", idAttributeList=stateIds, attributeList=props
+        )
 
-    j = {}
-    with driver.session() as session:
-        result = session.run(q.text)
-        j = result.data()
+        j = {}
+        with driver.session() as session:
+            result = session.run(q.text)
+            j = result.data()
 
     return j
 
