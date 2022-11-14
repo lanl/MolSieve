@@ -8,14 +8,13 @@ import LinearProgress from '@mui/material/LinearProgress';
 import Stack from '@mui/material/Stack';
 import SparkLine from '../vis/SparkLine';
 
-import { simpleMovingAverage, boxPlotStats } from '../api/stats';
-import { abbreviate } from '../api/myutils';
+import { simpleMovingAverage } from '../api/stats';
+import { abbreviate, onEntityMouseOver } from '../api/myutils';
 
 import Scatterplot from '../vis/Scatterplot';
 import GlobalStates from '../api/globalStates';
 import WebSocketManager from '../api/websocketmanager';
 import LoadingBox from '../components/LoadingBox';
-import ChartBox from '../components/ChartBox';
 
 const moveBy = 100;
 const mvaPeriod = 100;
@@ -44,7 +43,6 @@ export default function ChunkWrapper({
     const [progress, setProgress] = useState(0.0);
     const [isInterrupted, setIsInterrupted] = useState(false);
 
-    const [showSparkLine, setSparkLine] = useState(true);
     const [selectionMode, setSelectionMode] = useState(false);
     const [colorFunc, setColorFunc] = useState(() => (d) => {
         const state = GlobalStates.get(d.id);
@@ -196,12 +194,12 @@ export default function ChunkWrapper({
     useEffect(() => {
         if (showStateClustering) {
             setColorFunc(() => (d) => {
-                const state = GlobalStates.get(d);
+                const state = GlobalStates.get(d.y);
                 return state.stateClusteringColor;
             });
         } else {
             setColorFunc(() => (d) => {
-                const state = GlobalStates.get(d);
+                const state = GlobalStates.get(d.y);
                 return state.individualColor;
             });
         }
@@ -216,14 +214,10 @@ export default function ChunkWrapper({
             {progress < 1.0 ? (
                 <LinearProgress variant="determinate" value={progress * 100} />
             ) : null}
-
             <Box
                 className="floatingToolBar"
                 sx={{ visibility: isParentHovered ? 'visible' : 'hidden' }}
             >
-                <Button color="secondary" size="small" onClick={() => setSparkLine(!showSparkLine)}>
-                    V
-                </Button>
                 <Button
                     color="secondary"
                     size="small"
@@ -232,26 +226,38 @@ export default function ChunkWrapper({
                     {selectionMode ? 'CS' : 'SS'}
                 </Button>
             </Box>
-
-            {showSparkLine ? (
-                <Stack direction="column">
-                    {properties.map((property) => {
-                        return (
-                            <SparkLine
-                                globalScaleMin={globalScaleMin[property]}
-                                globalScaleMax={globalScaleMax[property]}
-                                width={width}
-                                movingAverage={mva[property]}
-                                xAttributeList={chunk.timesteps}
-                                lineColor={trajectory.colorByCluster(chunk)}
-                                title={abbreviate(property)}
-                            />
-                        );
-                    })}
-                </Stack>
-            ) : (
-                <Box>Scatterplot</Box>
-            )}
+            <Stack direction="column">
+                {properties.map((property) => {
+                    return (
+                        <SparkLine
+                            globalScaleMin={globalScaleMin[property]}
+                            globalScaleMax={globalScaleMax[property]}
+                            width={width}
+                            yAttributeList={mva[property]}
+                            xAttributeList={chunk.timesteps}
+                            lineColor={trajectory.colorByCluster(chunk)}
+                            title={abbreviate(property)}
+                        />
+                    );
+                })}
+            </Stack>
+            <Scatterplot
+                setExtents={(extents) => {
+                    const ids = extents.map((e) => e.y);
+                    setExtents(ids);
+                }}
+                width={width}
+                height={50}
+                selectionMode={selectionMode}
+                onSetExtentsComplete={() => setSelectionMode(false)}
+                colorFunc={colorFunc}
+                xAttributeList={chunk.timesteps}
+                yAttributeList={chunk.sequence}
+                onElementMouseOver={(node, d) => {
+                    const state = GlobalStates.get(d.y);
+                    onEntityMouseOver(node, state);
+                }}
+            />
         </Box>
     ) : (
         <LoadingBox />

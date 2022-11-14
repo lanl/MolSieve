@@ -2,12 +2,13 @@ import { React, useEffect, useState } from 'react';
 import * as d3 from 'd3';
 
 import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
-import { SPARKLINE_CHART_HEIGHT } from '../api/constants';
 
 import { tooltip } from '../api/myutils';
 
 let ttInstance;
 const MARGIN = { top: 5, bottom: 10, left: 0, right: 5 };
+
+export const SPARKLINE_CHART_HEIGHT = 20;
 
 export default function SparkLine({
     globalScaleMin,

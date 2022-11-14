@@ -19,6 +19,9 @@ export default function Scatterplot({
     colorFunc,
     xAttributeList,
     yAttributeList,
+    onElementClick,
+    onElementMouseOver,
+    onElementMouseOut,
 }) {
     const { setInternalExtents, completeSelection } = useExtents(setExtents, onSetExtentsComplete);
 
@@ -31,7 +34,7 @@ export default function Scatterplot({
         }
 
         const dataList = [];
-        for (let i = 0; i < listLength.length; i++) {
+        for (let i = 0; i < listLength; i++) {
             const d = { x: xAttributeList[i], y: yAttributeList[i] };
             dataList.push(d);
         }
@@ -41,17 +44,19 @@ export default function Scatterplot({
     const [data, setData] = useState(buildData());
 
     const buildScaleX = () => {
-        return d3
-            .scaleLinear()
-            .domain(d3.extent(data, (d) => d.x))
-            .range([MARGIN.left, width]);
+        return () =>
+            d3
+                .scaleLinear()
+                .domain(d3.extent(data, (d) => d.x))
+                .range([MARGIN.left, width]);
     };
 
     const buildScaleY = () => {
-        return d3
-            .scaleLinear()
-            .domain(d3.extent(data, (d) => d.y))
-            .range([height - MARGIN.bottom, MARGIN.top]);
+        return () =>
+            d3
+                .scaleLinear()
+                .domain(d3.extent(data, (d) => d.y))
+                .range([height - MARGIN.bottom, MARGIN.top]);
     };
 
     useState(() => {
@@ -106,22 +111,16 @@ export default function Scatterplot({
                     return colorFunc(d);
                 })
                 .classed('state', true)
-                .classed('clickable', true);
-            /* .on('click', function (_, d) {
-                    setStateClicked(d);
-                }); */
-            /* .on('mouseover', function (_, d) {
-                    const state = GlobalStates.get(d.id);
-                    setStateHovered({
-                        caller: this,
-                        stateID: d,
-                        name: trajectoryName,
-                    });
-                    onEntityMouseOver(this, state);
+                .classed('clickable', true)
+                .on('click', function (_, d) {
+                    onElementClick(this, d);
                 })
-                .on('mouseout', function () {
-                    setStateHovered(null);
-                }); */
+                .on('mouseover', function (_, d) {
+                    onElementMouseOver(this, d);
+                })
+                .on('mouseout', function (_, d) {
+                    onElementMouseOut(this, d);
+                });
             // applyFilters(trajectories, runs, ref);
         },
         [scaleX, scaleY, colorFunc]
@@ -135,8 +134,8 @@ export default function Scatterplot({
                 .brushX()
                 .keyModifiers(false)
                 .on('start brush', function ({ selection }) {
-                    const start = Math.round(scaleX.invert(selection[0]));
-                    const end = Math.round(scaleX.invert(selection[1]));
+                    const start = Math.round(selection[0]);
+                    const end = Math.round(selection[1]);
 
                     d3.select(ref.current)
                         .selectAll('.currentSelection')
@@ -148,14 +147,14 @@ export default function Scatterplot({
                         .classed('currentSelection', true);
                 })
                 .on('end', function ({ selection }) {
-                    const start = Math.round(scaleX.invert(selection[0]));
-                    const end = Math.round(scaleX.invert(selection[1]));
+                    const start = Math.round(selection[0]);
+                    const end = Math.round(selection[1]);
 
                     d3.select(ref.current)
                         .selectAll('.currentSelection')
                         .classed('currentSelection', false);
 
-                    const nodes = xAttributeList.slice(start, end + 1);
+                    const nodes = data.slice(start, end + 1);
                     setInternalExtents(nodes);
                     completeSelection();
                 })
@@ -194,3 +193,10 @@ export default function Scatterplot({
         />
     );
 }
+
+Scatterplot.defaultProps = {
+    onElementClick: () => {},
+    onElementMouseOver: () => {},
+    onElementMouseOut: () => {},
+    colorFunc: () => 'black',
+};

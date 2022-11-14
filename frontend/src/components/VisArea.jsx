@@ -57,7 +57,7 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
     const [toolTipList, setToolTipList] = useState([]);
     const oldToolTipList = usePrevious(toolTipList);
 
-    const [globalProperties, setGlobalProperties] = useState(properties);
+    const [globalProperties, setGlobalProperties] = useState(properties.slice(0, 4));
     const [globalMin, setGlobalMin] = useState(buildDictFromArray(properties, Number.MAX_VALUE));
     const [globalMax, setGlobalMax] = useState(buildDictFromArray(properties, Number.MIN_VALUE));
     const [showStateClustering, setShowStateClustering] = useState(false);
@@ -394,7 +394,8 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
                                                 height={
                                                     (globalProperties.length + 1) *
                                                         SPARKLINE_CHART_HEIGHT +
-                                                    25
+                                                    25 +
+                                                    50
                                                 }
                                                 trajectory={trajectory}
                                                 run={runs[trajectory.name]}
