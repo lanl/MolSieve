@@ -86,8 +86,7 @@ export default function ChunkWrapper({
     };
 
     const updateGS = (states, property) => {
-        const as = states.map((id) => GlobalStates.get(id));
-        const vals = as.map((d) => d[property]);
+        const vals = states.map((d) => d[property]);
         updateGlobalScale(d3.min(vals), d3.max(vals), property);
     };
 
@@ -105,8 +104,6 @@ export default function ChunkWrapper({
         setProgress(0.0);
         const seen = new Set();
         let i = 0;
-        let lStates = [];
-        let rStates = [];
 
         ws.current.addEventListener('close', ({ code }) => {
             if (code === 3001 || code === 1011) {
@@ -114,24 +111,10 @@ export default function ChunkWrapper({
             }
         });
 
-        const lToDo = leftBoundary ? leftBoundary.selected : undefined;
-        const rToDo = rightBoundary ? rightBoundary.selected : undefined;
         let cStates = [];
-
-        let total = chunk.states.length;
-
-        if (lToDo) {
-            total += leftBoundary.selected.length;
-        }
-
-        if (rToDo) {
-            total += rightBoundary.selected.length;
-        }
+        const total = chunk.states.length;
 
         ws.current.addEventListener('open', () => {
-            const boundaryStates = getBoundaryStates(i, seen, lToDo, rToDo);
-            lStates = boundaryStates.leftStates;
-            rStates = boundaryStates.rightStates;
             cStates = [...chunk.states.slice(i * moveBy, (i + 1) * moveBy)];
 
             i++;
@@ -139,7 +122,7 @@ export default function ChunkWrapper({
             ws.current.send(
                 JSON.stringify({
                     props: properties,
-                    stateIds: [...boundaryStates.sendStates, ...cStates],
+                    stateIds: [...cStates],
                 })
             );
         });
@@ -148,46 +131,27 @@ export default function ChunkWrapper({
             const parsedData = JSON.parse(e.data);
             GlobalStates.addPropToStates(parsedData);
 
-            let currProgress = i * moveBy;
-            if (lToDo) {
-                currProgress += i * moveBy;
-            }
-
-            if (rToDo) {
-                currProgress += i * moveBy;
-            }
-
+            const currProgress = i * moveBy;
             setProgress(currProgress / total);
 
             setIsInitialized(true);
 
             for (const property of properties) {
-                updateGS(cStates, property);
                 render(property);
             }
+
             let sendStates = [];
-
             // if the chunks have not been fully loaded, continue
-
             if (i * moveBy < chunk.states.length) {
                 const nc = [...chunk.states.slice(i * moveBy, (i + 1) * moveBy)];
                 cStates = [...cStates, ...nc];
                 sendStates = nc;
             }
 
-            const bs = getBoundaryStates(i, seen, lToDo, rToDo);
-
-            if (lToDo && i * moveBy < lToDo.length) {
-                lStates = [...bs.leftStates, ...lStates];
-                sendStates = [...sendStates, ...bs.leftStates];
-            }
-
-            if (rToDo && i * moveBy < rToDo.length) {
-                rStates = [...rStates, ...bs.rightStates];
-                sendStates = [...sendStates, ...bs.rightStates];
-            }
-
             if (!sendStates.length) {
+                for (const property of properties) {
+                    updateGS(chunk.states, property);
+                }
                 ws.current.close(1000);
             } else {
                 i++;
@@ -200,12 +164,6 @@ export default function ChunkWrapper({
             }
         });
     };
-
-    /*useEffect(() => {
-        for (const property of properties) {
-            render(property);
-        }
-    }, [globalScaleMin, globalScaleMax, width, height]);*/
 
     useEffect(() => {
         if (ws.current) {

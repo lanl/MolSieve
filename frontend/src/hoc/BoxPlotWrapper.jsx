@@ -3,6 +3,7 @@ import { React, useState, useEffect, useRef } from 'react';
 import * as d3 from 'd3';
 import LinearProgress from '@mui/material/LinearProgress';
 import Box from '@mui/material/Box';
+import Stack from '@mui/material/Stack';
 
 import { boxPlotStats } from '../api/stats';
 
@@ -17,22 +18,26 @@ export default function ChunkWrapper({
     chunk,
     width,
     height,
-    property,
+    properties,
     globalScaleMin,
     globalScaleMax,
     updateGlobalScale,
 }) {
-    const [boxStats, setBoxStats] = useState();
+    const [boxStats, setBoxStats] = useState({});
     const [isInitialized, setIsInitialized] = useState(false);
     const [isInterrupted, setIsInterrupted] = useState(false);
     const [progress, setProgress] = useState(0.0);
     const ws = useRef(null);
 
-    const render = () => {
-        const states = chunk.selected.map((id) => GlobalStates.get(id));
+    // Start here
+    const render = (states, property) => {
         const vals = states.map((d) => d[property]);
+        setBoxStats((bStats) => ({ ...bStats, [property]: boxPlotStats(vals) }));
+    };
 
-        setBoxStats(boxPlotStats(vals));
+    const updateGS = (states, property) => {
+        const vals = states.map((d) => d[property]);
+        updateGlobalScale(d3.min(vals), d3.max(vals), property);
     };
 
     const runSocket = () => {
@@ -41,6 +46,7 @@ export default function ChunkWrapper({
             chunk.trajectory.name
         );
         let i = 0;
+        const cStates = chunk.selected.map((id) => GlobalStates.get(id));
 
         ws.current.addEventListener('close', ({ code }) => {
             if (code === 3001 || code === 1011) {
@@ -53,7 +59,7 @@ export default function ChunkWrapper({
             i++;
             ws.current.send(
                 JSON.stringify({
-                    props: [property],
+                    props: properties,
                     stateIds: [...states],
                 })
             );
@@ -64,13 +70,11 @@ export default function ChunkWrapper({
             GlobalStates.addPropToStates(parsedData);
 
             setProgress((i * moveBy) / chunk.selected.length);
-            const states = chunk.selected.map((id) => GlobalStates.get(id));
-            const vals = states.map((d) => d[property]);
 
-            updateGlobalScale(d3.min(vals), d3.max(vals));
+            for (const property of properties) {
+                render(cStates, property);
+            }
             setIsInitialized(true);
-            render();
-
             let sendStates = [];
 
             if (i * moveBy < chunk.selected.length) {
@@ -82,9 +86,14 @@ export default function ChunkWrapper({
                 ws.current.close(1000);
             } else {
                 i++;
+
+                for (const property of properties) {
+                    updateGS(cStates, property);
+                }
+
                 ws.current.send(
                     JSON.stringify({
-                        props: [property],
+                        props: properties,
                         stateIds: [...new Set(sendStates)],
                     })
                 );
@@ -92,9 +101,9 @@ export default function ChunkWrapper({
         });
     };
 
-    useEffect(() => {
+    /* useEffect(() => {
         render();
-    }, [globalScaleMin, globalScaleMax, width, height]);
+    }, [globalScaleMin, globalScaleMax, width, height]); */
 
     useEffect(() => {
         if (ws.current) {
@@ -103,7 +112,12 @@ export default function ChunkWrapper({
         }
 
         setIsInitialized(false);
-        if (!GlobalStates.subsetHasProperty(property, chunk.selected)) {
+        const { hasProperties, missingProperties } = GlobalStates.subsetHasProperties(
+            properties,
+            chunk.selected
+        );
+
+        if (!hasProperties) {
             runSocket();
         } else {
             setIsInitialized(true);
@@ -117,7 +131,7 @@ export default function ChunkWrapper({
                 ws.current = null;
             }
         };
-    }, [chunk, property]);
+    }, [chunk, properties]);
 
     if (isInterrupted) {
         return <div>Loading interrupted</div>;
@@ -128,16 +142,22 @@ export default function ChunkWrapper({
             {progress < 1.0 ? (
                 <LinearProgress variant="determinate" value={progress * 100} />
             ) : null}
-            <BoxPlot
-                showYAxis={false}
-                data={boxStats}
-                chunk={chunk}
-                property={property}
-                width={width}
-                height={height}
-                globalScaleMin={globalScaleMin}
-                globalScaleMax={globalScaleMax}
-            />
+            <Stack direction="column">
+                {properties.map((property) => {
+                    return (
+                        <BoxPlot
+                            showYAxis={false}
+                            data={boxStats[property]}
+                            chunk={chunk}
+                            property={property}
+                            width={width}
+                            height={20}
+                            globalScaleMin={globalScaleMin[property]}
+                            globalScaleMax={globalScaleMax[property]}
+                        />
+                    );
+                })}
+            </Stack>
         </Box>
     ) : (
         <LoadingBox />

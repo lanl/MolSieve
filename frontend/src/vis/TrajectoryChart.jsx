@@ -1,9 +1,9 @@
 import { React, useEffect, useState } from 'react';
 import * as d3 from 'd3';
-import Box from '@mui/material/Box';
+
 import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
 import ChunkWrapper from '../hoc/ChunkWrapper';
-// import BoxPlotWrapper from '../hoc/BoxPlotWrapper';
+import BoxPlotWrapper from '../hoc/BoxPlotWrapper';
 
 import EmbeddedChart from './EmbeddedChart';
 
@@ -236,7 +236,15 @@ function TrajectoryChart({
                                         showStateClustering={showStateClustering}
                                     />
                                 ) : (
-                                    <Box>Boxplot</Box>
+                                    <BoxPlotWrapper
+                                        chunk={chunk}
+                                        width={ww}
+                                        height={hh}
+                                        properties={properties}
+                                        globalScaleMin={globalScaleMin}
+                                        globalScaleMax={globalScaleMax}
+                                        updateGlobalScale={updateGlobalScale}
+                                    />
                                 )
                             }
                         </EmbeddedChart>
@@ -261,13 +269,5 @@ function TrajectoryChart({
         </svg>
     );
 }
-/* <BoxPlotWrapper
-                                        chunk={chunk}
-                                        width={ww}
-                                        height={hh}
-                                        properties={properties}
-                                        globalScaleMin={globalScaleMin}
-                                        globalScaleMax={globalScaleMax}
-                                        updateGlobalScale={updateGlobalScale}
-                                    /> */
+/* */
 export default TrajectoryChart;
