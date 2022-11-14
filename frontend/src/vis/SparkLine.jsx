@@ -4,8 +4,9 @@ import * as d3 from 'd3';
 import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
 import { SPARKLINE_CHART_HEIGHT } from '../api/constants';
 
-let ttInstance;
+import { tooltip } from '../api/myutils';
 
+let ttInstance;
 const MARGIN = { top: 5, bottom: 10, left: 0, right: 5 };
 
 export default function SparkLine({
@@ -13,10 +14,11 @@ export default function SparkLine({
     globalScaleMax,
     width,
     height,
-    movingAverage,
     xAttributeList,
+    yAttributeList,
     lineColor,
     title,
+    showMedian,
 }) {
     const buildScaleX = () => {
         return () => d3.scaleLinear().domain(d3.extent(xAttributeList)).range([MARGIN.left, width]);
@@ -39,12 +41,12 @@ export default function SparkLine({
     }, [height, globalScaleMin, globalScaleMax]);
 
     const buildData = () => {
-        if (!movingAverage) {
+        if (!yAttributeList) {
             return undefined;
         }
         const mv = [];
-        for (let i = 0; i < movingAverage.length; i++) {
-            const d = { x: xAttributeList[i], y: movingAverage[i] };
+        for (let i = 0; i < yAttributeList.length; i++) {
+            const d = { x: xAttributeList[i], y: yAttributeList[i] };
             mv.push(d);
         }
         return mv;
@@ -54,7 +56,13 @@ export default function SparkLine({
 
     useEffect(() => {
         setData(buildData());
-    }, [xAttributeList, movingAverage]);
+    }, [xAttributeList, yAttributeList]);
+
+    const line = d3
+        .line()
+        .x((d) => scaleX(d.x))
+        .y((d) => scaleY(d.y))
+        .curve(d3.curveCatmullRom.alpha(0.5));
 
     const ref = useTrajectoryChartRender(
         (svg) => {
@@ -76,12 +84,6 @@ export default function SparkLine({
                 return;
             }
 
-            const line = d3
-                .line()
-                .x((d) => scaleX(d.x))
-                .y((d) => scaleY(d.y))
-                .curve(d3.curveCatmullRom.alpha(0.5));
-
             // moving average line
             svg.append('path')
                 .datum(data)
@@ -97,32 +99,32 @@ export default function SparkLine({
                         .y1((d) => scaleY(d.y))
                 );
 
-            // median line
-            /* const median = d3.median(yAttributeList);
-            svg.selectAll('median')
-                .data([median])
-                .enter()
-                .append('line')
-                .attr('x1', scaleX(0))
-                .attr('x2', width)
-                .attr('y1', (d) => scaleY(d))
-                .attr('y2', (d) => scaleY(d))
-                .attr('stroke-width', 2)
-                .attr('stroke-dasharray', 4)
-                .attr('stroke', 'red'); */
+            if (showMedian) {
+                const median = d3.median(yAttributeList);
+                svg.selectAll('median')
+                    .data([median])
+                    .enter()
+                    .append('line')
+                    .attr('x1', scaleX(0))
+                    .attr('x2', width)
+                    .attr('y1', (d) => scaleY(d))
+                    .attr('y2', (d) => scaleY(d))
+                    .attr('stroke-width', 2)
+                    .attr('stroke-dasharray', 4)
+                    .attr('stroke', 'red');
+            }
 
-            /* const tooltipCircle = svg.selectAll('circle').data([0]).enter().append('circle');
+            const tooltipCircle = svg.selectAll('circle').data([0]).enter().append('circle');
 
             // add value tooltip
             svg.on('mousemove', (event) => {
                 const i = d3.bisectCenter(xAttributeList, scaleX.invert(d3.pointer(event)[0]));
-                const timestep = xAttributeList[i];
-                const value = movingAverage[i];
-                const stateID = sequence[i].id;
+                const xVal = xAttributeList[i];
+                const yVal = yAttributeList[i];
 
                 tooltipCircle
-                    .attr('cx', scaleX(timestep))
-                    .attr('cy', scaleY(value))
+                    .attr('cx', scaleX(xVal))
+                    .attr('cy', scaleY(yVal))
                     .attr('stroke', 'gray')
                     .attr('fill', 'black')
                     .attr('r', 3);
@@ -130,11 +132,7 @@ export default function SparkLine({
                 if (!ttInstance) {
                     ttInstance = tooltip(tooltipCircle.node(), '');
                 }
-                ttInstance.setContent(
-                    `<b>Timestep</b>: ${timestep}<br/><b>${property}</b>: ${value.toFixed(
-                        2
-                    )} <br/><b>ID</b>: ${stateID}<br/>`
-                );
+                ttInstance.setContent(`<b>X</b>: ${xVal}<br/><b>Y</b>:${yVal.toFixed(2)} <br/>`);
                 ttInstance.show();
             });
 
@@ -148,7 +146,7 @@ export default function SparkLine({
                     ttInstance.destroy();
                 }
                 ttInstance = undefined;
-            }); */
+            });
 
             svg.append('text')
                 .attr('x', width / 2)
@@ -172,4 +170,5 @@ export default function SparkLine({
 SparkLine.defaultProps = {
     lineColor: 'black',
     height: SPARKLINE_CHART_HEIGHT,
+    showMedian: false,
 };
