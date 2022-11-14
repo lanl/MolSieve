@@ -85,6 +85,8 @@ export default function Scatterplot({
             .classed('unimportant', true);
     }; */
 
+    const [sBrush, setSBrush] = useState(null);
+
     const ref = useTrajectoryChartRender(
         (svg) => {
             if (!svg.empty()) {
@@ -121,45 +123,42 @@ export default function Scatterplot({
                 .on('mouseout', function (_, d) {
                     onElementMouseOut(this, d);
                 });
+
+            setSBrush(() =>
+                d3
+                    .brushX()
+                    .keyModifiers(false)
+                    .on('start brush', function ({ selection }) {
+                        const start = Math.round(scaleX.invert(selection[0]));
+                        const end = Math.round(scaleX.invert(selection[1]));
+
+                        d3.select(ref.current)
+                            .selectAll('.currentSelection')
+                            .classed('currentSelection', false);
+
+                        d3.select(ref.current)
+                            .selectAll('rect')
+                            .filter((d) => start <= d.x && d.x <= end)
+                            .classed('currentSelection', true);
+                    })
+                    .on('end', function ({ selection }) {
+                        const start = Math.round(selection[0]);
+                        const end = Math.round(selection[1]);
+
+                        d3.select(ref.current)
+                            .selectAll('.currentSelection')
+                            .classed('currentSelection', false);
+
+                        const nodes = data.slice(start, end + 1);
+                        setInternalExtents(nodes);
+                        completeSelection();
+                    })
+            );
+
             // applyFilters(trajectories, runs, ref);
         },
         [scaleX, scaleY, colorFunc]
     );
-
-    const [sBrush, setSBrush] = useState(null);
-
-    useEffect(() => {
-        setSBrush(() =>
-            d3
-                .brushX()
-                .keyModifiers(false)
-                .on('start brush', function ({ selection }) {
-                    const start = Math.round(selection[0]);
-                    const end = Math.round(selection[1]);
-
-                    d3.select(ref.current)
-                        .selectAll('.currentSelection')
-                        .classed('currentSelection', false);
-
-                    d3.select(ref.current)
-                        .selectAll('rect')
-                        .filter((_, i) => start <= i && i <= end)
-                        .classed('currentSelection', true);
-                })
-                .on('end', function ({ selection }) {
-                    const start = Math.round(selection[0]);
-                    const end = Math.round(selection[1]);
-
-                    d3.select(ref.current)
-                        .selectAll('.currentSelection')
-                        .classed('currentSelection', false);
-
-                    const nodes = data.slice(start, end + 1);
-                    setInternalExtents(nodes);
-                    completeSelection();
-                })
-        );
-    }, [scaleX]);
 
     const selectionBrush = () => {
         if (sBrush != null) {
