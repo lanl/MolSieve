@@ -56,11 +56,11 @@ export default function StateViewer({ selection, sx }) {
         }
 
         // check if we haven't already computed the img for the selection
-        if (!GlobalStates.subsetHasProperty('img', selection)) {
-            runSocket();
-        } else {
-            setProgress(1.0);
-        }
+        // if (!GlobalStates.subsetHasProperty('img', selection)) {
+        runSocket();
+        // } else {
+        //    setProgress(1.0);
+        // }
 
         return () => {
             if (ws.current) {

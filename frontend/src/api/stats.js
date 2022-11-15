@@ -71,3 +71,11 @@ export function zTest(s1, s2) {
 
     return (x1 - x2) / Math.sqrt(stderr1 ** 2 + stderr2 ** 2);
 }
+
+export function differentiate(arr) {
+    const diff = [];
+    for (let i = 0; i < arr.length - 1; i++) {
+        diff.push(arr[i + 1] - arr[i]);
+    }
+    return diff;
+}

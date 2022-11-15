@@ -8,7 +8,7 @@ import LinearProgress from '@mui/material/LinearProgress';
 import Stack from '@mui/material/Stack';
 import SparkLine from '../vis/SparkLine';
 
-import { simpleMovingAverage } from '../api/stats';
+import { simpleMovingAverage, differentiate } from '../api/stats';
 import { abbreviate, onEntityMouseOver } from '../api/myutils';
 
 import Scatterplot from '../vis/Scatterplot';
@@ -51,45 +51,39 @@ export default function ChunkWrapper({
 
     const [mva, setMva] = useState({});
 
+    const [ranks, setRanks] = useState(properties);
+    const [rankDict, setRankDict] = useState({});
     const ws = useRef(null);
-
-    const getBoundaryStates = (i, seen, lSequence, rSequence) => {
-        let checkStates = [];
-        let leftStates = [];
-        let rightStates = [];
-
-        if (lSequence) {
-            const left = lSequence.length - moveBy * (i + 1);
-            const right = lSequence.length - moveBy * i;
-            // need boundary checks
-            leftStates = [...lSequence.slice(left, right)];
-            checkStates = [...leftStates];
-        }
-
-        if (rSequence) {
-            const left = moveBy * i;
-            const right = moveBy * (i + 1);
-            rightStates = [...rSequence.slice(left, right)];
-            checkStates = [...checkStates, ...rightStates];
-        }
-
-        const sendStates = [];
-        for (const state of checkStates) {
-            if (!seen.has(state)) {
-                seen.add(state);
-                sendStates.push(state);
-            }
-        }
-        return { sendStates, rightStates, leftStates };
-    };
 
     const updateGS = (states, property) => {
         const vals = states.map((d) => d[property]);
         updateGlobalScale(d3.min(vals), d3.max(vals), property);
     };
 
+    /**
+     * Sets the position of a chart based upon a value.
+     * The highest valued charts will be at the top, and the lowest will be at the bottom.
+     *
+     * @param {Number} val - Value
+     * @param {Any} property - Key for the value
+     */
+    const updateRank = (val, property) => {
+        setRankDict((rd) => ({ ...rd, [property]: val }));
+    };
+
+    useEffect(() => {
+        // sort [key,value] pairs by value, then reduce to only keys and set in ranks array
+        setRanks(
+            Object.entries(rankDict)
+                .sort((a, b) => a[1] < b[1])
+                .map((d) => d[0])
+        );
+    }, [rankDict]);
+
     const render = (property) => {
         const m = chunk.calculateMovingAverage(property, mvaPeriod, simpleMovingAverage);
+        const diffXtent = d3.extent(differentiate(m));
+        updateRank(diffXtent[1] - diffXtent[0], property);
         setMva((mvaDict) => ({ ...mvaDict, [property]: m }));
     };
 
@@ -227,7 +221,7 @@ export default function ChunkWrapper({
                 </Button>
             </Box>
             <Stack direction="column">
-                {properties.map((property) => {
+                {ranks.map((property) => {
                     return (
                         <SparkLine
                             globalScaleMin={globalScaleMin[property]}
