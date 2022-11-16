@@ -19,6 +19,8 @@ export default function SubSequenceView({
     disabled,
     onMouseEnter,
     onMouseLeave,
+    globalScaleMin,
+    globalScaleMax,
 }) {
     const [data, setData] = useState([]);
 
@@ -46,6 +48,8 @@ export default function SubSequenceView({
                             properties={properties}
                             width={width}
                             height={height}
+                            globalScaleMin={globalScaleMin}
+                            globalScaleMax={globalScaleMax}
                         />
                     )}
                 </ChartBox>

@@ -8,15 +8,23 @@ import { abbreviate } from '../api/myutils';
 
 const MARGIN = { left: 0, bottom: 15 };
 
-export default function Legend({ data, properties, width, height }) {
+export default function Legend({
+    data,
+    properties,
+    width,
+    height,
+    globalScaleMin,
+    globalScaleMax,
+}) {
     const buildAxis = (property, radius) => {
-        const x = d3.extent(data, (d) => d[property]);
+        const min = globalScaleMin[property];
+        const max = globalScaleMax[property];
         const median = d3.median(data, (d) => d[property]);
         return {
             property,
-            scale: d3.scaleLinear().range([0, radius]).domain([x[0], x[1]]),
-            min: x[0],
-            max: x[1],
+            scale: d3.scaleLinear().range([0, radius]).domain([min, max]),
+            min,
+            max,
             median,
         };
     };
@@ -117,7 +125,7 @@ export default function Legend({ data, properties, width, height }) {
                 .attr('y', (_, i) => rScale(absMax * 1.1) * Math.sin(angleSlice * i - Math.PI / 2))
                 .text((d) => abbreviate(d.property));
         },
-        [data, properties, width, height]
+        [data, properties, width, height, globalScaleMin, globalScaleMax]
     );
     return <svg ref={ref} viewBox={[0, 0, width, height]} width={width} height={height} />;
 }

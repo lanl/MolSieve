@@ -421,8 +421,8 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
                                                 }
                                                 updateGlobalScale={updateGlobalScale}
                                                 globalScaleMin={globalMin}
-                                                showStateClustering={showStateClustering}
                                                 globalScaleMax={globalMax}
+                                                showStateClustering={showStateClustering}
                                                 showTop={showTop}
                                             />
                                         );
@@ -459,6 +459,8 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
                             onMouseLeave={() => setCurrentSelection(null)}
                             disabled={disabled}
                             stateIDs={ids}
+                            globalScaleMin={globalMin}
+                            globalScaleMax={globalMax}
                         >
                             <Button
                                 color="secondary"
