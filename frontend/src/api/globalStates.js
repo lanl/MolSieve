@@ -56,7 +56,8 @@ class GlobalStates {
     subsetHasProperties = (properties, subset) => {
         const vals = [];
         for (const property of properties) {
-            vals.push({ val: this.subsetHasProperty(property, subset), name: property });
+            const missing = this.findMissingPropertyInSubset(property, subset);
+            vals.push({ name: property, missing, val: !missing.length });
         }
         return {
             hasProperties: vals.every((d) => d.val),
@@ -64,15 +65,26 @@ class GlobalStates {
         };
     };
 
-    /* Check if the states indexed by the ids provided in the subset array have the given property loaded */
     subsetHasProperty = (property, subset) => {
-        const ss = ensureArray(subset);
-        const vals = [];
-        for (const s of ss) {
+        const missing = this.findMissingPropertyInSubset(property, subset);
+        return !missing.length;
+    };
+
+    /**
+     * Given a list of stateIDs, find the states that don't have the property loaded.
+     *
+     * @param {String} property - Name of property to check
+     * @param {Array<Number>} subset - List of stateIDs to check
+     */
+    findMissingPropertyInSubset = (property, subset) => {
+        const missing = [];
+        for (const s of subset) {
             const state = this.map.get(s);
-            vals.push(property in state);
+            if (!(property in state)) {
+                missing.push(s);
+            }
         }
-        return vals.every((d) => d);
+        return missing;
     };
 
     /* Wrapper for hasProperties in case only one property is needed */

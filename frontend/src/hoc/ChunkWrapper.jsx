@@ -100,7 +100,7 @@ export default function ChunkWrapper({
             ws.current.send(
                 JSON.stringify({
                     props: properties,
-                    stateIds: [...cStates],
+                    stateIds: [...new Set(cStates)],
                 })
             );
         });
@@ -121,9 +121,7 @@ export default function ChunkWrapper({
             let sendStates = [];
             // if the chunks have not been fully loaded, continue
             if (i * moveBy < chunk.states.length) {
-                const nc = [...chunk.states.slice(i * moveBy, (i + 1) * moveBy)];
-                cStates = [...cStates, ...nc];
-                sendStates = nc;
+                sendStates = [...chunk.states.slice(i * moveBy, (i + 1) * moveBy)];
             }
 
             if (!sendStates.length) {
