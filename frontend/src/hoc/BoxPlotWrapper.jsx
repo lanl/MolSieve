@@ -154,6 +154,7 @@ export default function BoxPlotWrapper({
                 {ranks.slice(0, showTop).map((property) => {
                     return (
                         <BoxPlot
+                            key={`${chunk.id}-${property}`}
                             showYAxis={false}
                             data={boxStats[property]}
                             chunk={chunk}

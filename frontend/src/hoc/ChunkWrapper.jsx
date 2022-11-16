@@ -213,6 +213,7 @@ export default function ChunkWrapper({
                 {ranks.slice(0, showTop).map((property) => {
                     return (
                         <SparkLine
+                            key={`${chunk.id}-${property}`}
                             globalScaleMin={globalScaleMin[property]}
                             globalScaleMax={globalScaleMax[property]}
                             width={width}
