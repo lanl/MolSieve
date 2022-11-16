@@ -15,6 +15,7 @@ export default function Legend({
     height,
     globalScaleMin,
     globalScaleMax,
+    onElementMouseOver,
 }) {
     const buildAxis = (property, radius) => {
         const min = globalScaleMin[property];
@@ -86,7 +87,8 @@ export default function Legend({
             let i = 0;
             for (const a of axes) {
                 const angle = angleSlice * i - Math.PI / 2;
-                points.push(angleToCoord(angle, a.scale(a.median)));
+                const { x, y } = angleToCoord(angle, a.scale(a.median));
+                points.push({ x, y, property: a.property, value: a.median });
                 i++;
             }
 
@@ -97,7 +99,10 @@ export default function Legend({
                 .append('g')
                 .classed('line', true)
                 .classed('clickable', true)
-                .classed('state', true);
+                .classed('state', true)
+                .on('mouseover', function (_, d) {
+                    onElementMouseOver(this, d);
+                });
 
             gLines
                 .append('circle')

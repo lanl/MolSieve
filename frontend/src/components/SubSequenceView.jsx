@@ -10,6 +10,7 @@ import '../css/App.css';
 
 import { structuralAnalysisProps } from '../api/constants';
 import GlobalStates from '../api/globalStates';
+import { oneShotTooltip, abbreviate } from '../api/myutils';
 
 export default function SubSequenceView({
     stateIDs,
@@ -50,6 +51,12 @@ export default function SubSequenceView({
                             height={height}
                             globalScaleMin={globalScaleMin}
                             globalScaleMax={globalScaleMax}
+                            onElementMouseOver={(node, d) => {
+                                oneShotTooltip(
+                                    node,
+                                    `<b>${abbreviate(d.property)}</b>: ${d.value}`
+                                );
+                            }}
                         />
                     )}
                 </ChartBox>

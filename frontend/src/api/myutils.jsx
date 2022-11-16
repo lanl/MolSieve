@@ -53,7 +53,7 @@ export function tooltip(node, content, settings) {
     return tippy(node, used);
 }
 
-function oneShotTooltip(node, content) {
+export function oneShotTooltip(node, content) {
     const settings = {
         allowHTML: true,
         arrow: true,
@@ -164,7 +164,7 @@ export function intersection(...args) {
             const currentValue = currentList[y];
             if (result.indexOf(currentValue) === -1) {
                 if (
-                    lists.filter(function(obj) {
+                    lists.filter(function (obj) {
                         return obj.indexOf(currentValue) === -1;
                     }).length === 0
                 ) {
