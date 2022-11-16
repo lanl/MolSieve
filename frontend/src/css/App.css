@@ -21,3 +21,7 @@ img {
 .unfocused {
     opacity: 0.3;
 }
+
+.Box:disabled {
+    color: 'gray';
+}

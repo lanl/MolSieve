@@ -7,6 +7,8 @@ import { tooltip } from '../api/myutils';
 
 const margin = { top: 20, bottom: 20, left: 0, right: 0 };
 
+const BOXPLOT_HEIGHT = 20;
+
 let ttInstance;
 
 export default function BoxPlot({
@@ -124,4 +126,5 @@ export default function BoxPlot({
 BoxPlot.defaultProps = {
     color: 'black',
     showYAxis: true,
+    height: BOXPLOT_HEIGHT,
 };

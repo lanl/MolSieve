@@ -9,7 +9,7 @@ import GlobalStates from '../api/globalStates';
 import WebSocketManager from '../api/websocketmanager';
 import ImageViewer from './ImageViewer';
 
-export default function StateViewer({ selection, sx }) {
+export default function StateViewer({ stateIDs, sx }) {
     const [progress, setProgress] = useState(0.0);
     const [loaded, setLoaded] = useState({});
     const [sequenceIdx, setSequenceIdx] = useState(0);
@@ -23,9 +23,9 @@ export default function StateViewer({ selection, sx }) {
 
     useEffect(() => {
         if (progress > 0) {
-            setImg(loaded[selection[sequenceIdx]]);
+            setImg(loaded[stateIDs[sequenceIdx]]);
         }
-    }, [sequenceIdx, loaded, selection]);
+    }, [sequenceIdx, loaded, stateIDs]);
 
     const runSocket = () => {
         ws.current = WebSocketManager.connect(
@@ -34,10 +34,10 @@ export default function StateViewer({ selection, sx }) {
         );
 
         let i = 0;
-        const total = [...new Set(selection)].length;
+        const total = [...new Set(stateIDs)].length;
 
         ws.current.addEventListener('open', () => {
-            ws.current.send(JSON.stringify(selection));
+            ws.current.send(JSON.stringify(stateIDs));
         });
 
         ws.current.addEventListener('message', (e) => {
@@ -56,11 +56,13 @@ export default function StateViewer({ selection, sx }) {
         }
 
         // check if we haven't already computed the img for the selection
-        // if (!GlobalStates.subsetHasProperty('img', selection)) {
-        runSocket();
-        // } else {
-        //    setProgress(1.0);
-        // }
+        if (!GlobalStates.subsetHasProperty('img', stateIDs)) {
+            runSocket();
+        } else {
+            const states = stateIDs.map((id) => GlobalStates.get(id));
+            render(states);
+            setProgress(1.0);
+        }
 
         return () => {
             if (ws.current) {
@@ -68,7 +70,7 @@ export default function StateViewer({ selection, sx }) {
                 ws.current = null;
             }
         };
-    }, [selection]);
+    }, [stateIDs]);
 
     return (
         <Box sx={sx}>
@@ -87,7 +89,7 @@ export default function StateViewer({ selection, sx }) {
                 <IconButton
                     sx={{ flexGrow: 1 }}
                     onClick={() => setSequenceIdx((prev) => prev + 1)}
-                    disabled={sequenceIdx + 1 > selection.length - 1}
+                    disabled={sequenceIdx + 1 > stateIDs.length - 1}
                 >
                     <ArrowForwardIcon />
                 </IconButton>

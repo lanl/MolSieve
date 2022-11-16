@@ -6,26 +6,39 @@ import StateViewer from './StateViewer';
 import ChartBox from './ChartBox';
 import RadarChart from '../vis/RadarChart';
 
-import '../css/vis.css';
+import '../css/App.css';
 
 import { structuralAnalysisProps } from '../api/constants';
 import GlobalStates from '../api/globalStates';
 
-export default function SubSequenceView({ selection, children, properties, sx }) {
+export default function SubSequenceView({
+    stateIDs,
+    children,
+    properties,
+    sx,
+    disabled,
+    onMouseEnter,
+    onMouseLeave,
+}) {
     const [data, setData] = useState([]);
 
     useEffect(() => {
-        GlobalStates.ensureSubsetHasProperties(properties, selection).then(() => {
-            const states = selection.map((id) => GlobalStates.get(id));
+        GlobalStates.ensureSubsetHasProperties(properties, stateIDs).then(() => {
+            const states = stateIDs.map((id) => GlobalStates.get(id));
             setData(states);
         });
-    }, [selection]);
+    }, [stateIDs]);
 
     return (
-        <Box sx={sx}>
+        <Box
+            sx={{ sx }}
+            onMouseEnter={() => onMouseEnter()}
+            onMouseLeave={() => onMouseLeave()}
+            disabled={disabled}
+        >
             {children}
             <Stack direction="row" spacing={2}>
-                <StateViewer selection={selection} sx={{ flexGrow: 1 }} />
+                <StateViewer stateIDs={stateIDs} sx={{ flexGrow: 1 }} />
                 <ChartBox sx={{ flexGrow: 1 }}>
                     {(width, height) => (
                         <RadarChart

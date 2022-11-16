@@ -57,10 +57,12 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
     const [toolTipList, setToolTipList] = useState([]);
     const oldToolTipList = usePrevious(toolTipList);
 
-    const [globalProperties, setGlobalProperties] = useState(properties.slice(0, 4));
+    const [globalProperties, setGlobalProperties] = useState(properties);
+    const [showTop, setShowTop] = useState(4);
     const [globalMin, setGlobalMin] = useState(buildDictFromArray(properties, Number.MAX_VALUE));
     const [globalMax, setGlobalMax] = useState(buildDictFromArray(properties, Number.MIN_VALUE));
     const [showStateClustering, setShowStateClustering] = useState(false);
+    const [currentSelection, setCurrentSelection] = useState(null);
 
     const updateGlobalScale = (valMin, valMax, property) => {
         setGlobalMin((minDict) => ({
@@ -230,8 +232,11 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
         }
     };
 
-    const setExtents = (extent) => {
-        setSelections((prevState) => ({ ...prevState, [createUUID()]: extent }));
+    const setExtents = (extent, trajectoryName) => {
+        setSelections((prevState) => ({
+            ...prevState,
+            [createUUID()]: { extent, trajectoryName },
+        }));
     };
 
     const deleteExtents = (id) => {
@@ -391,12 +396,7 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
                                         return (
                                             <TrajectoryChart
                                                 width={width || window.innerWidth}
-                                                height={
-                                                    (globalProperties.length + 1) *
-                                                        SPARKLINE_CHART_HEIGHT +
-                                                    25 +
-                                                    50
-                                                }
+                                                height={showTop * SPARKLINE_CHART_HEIGHT + 25 + 50}
                                                 trajectory={trajectory}
                                                 run={runs[trajectory.name]}
                                                 setStateHovered={setStateHovered}
@@ -412,10 +412,18 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
                                                 selectObject={(o) => selectObject(o)}
                                                 selectedObjects={selectedObjects}
                                                 setExtents={setExtents}
+                                                currentSelection={
+                                                    currentSelection &&
+                                                    currentSelection.trajectoryName ===
+                                                        trajectory.name
+                                                        ? currentSelection
+                                                        : null
+                                                }
                                                 updateGlobalScale={updateGlobalScale}
                                                 globalScaleMin={globalMin}
                                                 showStateClustering={showStateClustering}
                                                 globalScaleMax={globalMax}
+                                                showTop={showTop}
                                             />
                                         );
                                     })}
@@ -436,8 +444,22 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
             >
                 {Object.keys(selections).map((uuid) => {
                     const selection = selections[uuid];
+                    const { extent, trajectoryName } = selection;
+
+                    const ids = extent.map((d) => d.id);
+                    const timesteps = extent.map((d) => d.timestep);
+
+                    // check if start and end timesteps are at least within some chunk of the trajectory
+                    const t = trajectories[trajectoryName];
+                    const disabled = t.isTimestepsWithinChunks(timesteps);
+
                     return (
-                        <SubSequenceView selection={selection}>
+                        <SubSequenceView
+                            onMouseEnter={() => setCurrentSelection({ timesteps, trajectoryName })}
+                            onMouseLeave={() => setCurrentSelection(null)}
+                            disabled={disabled}
+                            stateIDs={ids}
+                        >
                             <Button
                                 color="secondary"
                                 size="small"

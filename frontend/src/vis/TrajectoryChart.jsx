@@ -22,7 +22,7 @@ function TrajectoryChart({
     trajectory,
     setStateHovered,
     stateHovered,
-    visibleExtent,
+    currentSelection,
     width,
     height,
     run,
@@ -38,6 +38,7 @@ function TrajectoryChart({
     globalScaleMin,
     globalScaleMax,
     showStateClustering,
+    showTop,
 }) {
     const ref = useTrajectoryChartRender(
         (svg) => {
@@ -233,7 +234,9 @@ function TrajectoryChart({
                                         updateGlobalScale={updateGlobalScale}
                                         disableControls={chunkSelectionMode}
                                         setExtents={setExtents}
+                                        currentSelection={currentSelection}
                                         showStateClustering={showStateClustering}
+                                        showTop={showTop}
                                     />
                                 ) : (
                                     <BoxPlotWrapper
@@ -244,6 +247,7 @@ function TrajectoryChart({
                                         globalScaleMin={globalScaleMin}
                                         globalScaleMax={globalScaleMax}
                                         updateGlobalScale={updateGlobalScale}
+                                        showTop={showTop}
                                     />
                                 )
                             }
@@ -261,7 +265,7 @@ function TrajectoryChart({
                 strokeWidth={2}
                 opacity={
                     trajectorySelectionMode &&
-                        selectedObjects.map((d) => d.id).includes(trajectory.id)
+                    selectedObjects.map((d) => d.id).includes(trajectory.id)
                         ? 1.0
                         : 0.0
                 }

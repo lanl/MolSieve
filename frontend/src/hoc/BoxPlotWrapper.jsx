@@ -5,6 +5,7 @@ import LinearProgress from '@mui/material/LinearProgress';
 import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
 
+import useRanks from '../hooks/useRanks';
 import { boxPlotStats } from '../api/stats';
 
 import BoxPlot from '../vis/BoxPlot';
@@ -14,7 +15,7 @@ import WebSocketManager from '../api/websocketmanager';
 
 const moveBy = 100;
 
-export default function ChunkWrapper({
+export default function BoxPlotWrapper({
     chunk,
     width,
     height,
@@ -22,6 +23,7 @@ export default function ChunkWrapper({
     globalScaleMin,
     globalScaleMax,
     updateGlobalScale,
+    showTop,
 }) {
     const [boxStats, setBoxStats] = useState({});
     const [isInitialized, setIsInitialized] = useState(false);
@@ -29,10 +31,13 @@ export default function ChunkWrapper({
     const [progress, setProgress] = useState(0.0);
     const ws = useRef(null);
 
+    const { updateRank, ranks, rankDict } = useRanks(properties);
     // Start here
     const render = (states, property) => {
         const vals = states.map((d) => d[property]);
-        setBoxStats((bStats) => ({ ...bStats, [property]: boxPlotStats(vals) }));
+        const bpStats = boxPlotStats(vals);
+        updateRank(bpStats.iqr, property);
+        setBoxStats((bStats) => ({ ...bStats, [property]: bpStats }));
     };
 
     const updateGS = (states, property) => {
@@ -143,7 +148,7 @@ export default function ChunkWrapper({
                 <LinearProgress variant="determinate" value={progress * 100} />
             ) : null}
             <Stack direction="column">
-                {properties.map((property) => {
+                {ranks.slice(0, showTop).map((property) => {
                     return (
                         <BoxPlot
                             showYAxis={false}
@@ -163,3 +168,7 @@ export default function ChunkWrapper({
         <LoadingBox />
     );
 }
+
+BoxPlot.defaultProps = {
+    showTop: 4,
+};

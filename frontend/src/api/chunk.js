@@ -185,4 +185,11 @@ export default class Chunk {
         const states = data.map((id) => GlobalStates.get(id)[property]);
         return boxPlotStats(states);
     }
+
+    containsSequence(timesteps) {
+        const start = Math.min(...timesteps);
+        const end = Math.max(...timesteps);
+
+        return start >= this.timestep && end <= this.last;
+    }
 }

@@ -16,6 +16,8 @@ import GlobalStates from '../api/globalStates';
 import WebSocketManager from '../api/websocketmanager';
 import LoadingBox from '../components/LoadingBox';
 
+import useRanks from '../hooks/useRanks';
+
 const moveBy = 100;
 const mvaPeriod = 100;
 
@@ -38,6 +40,8 @@ export default function ChunkWrapper({
     disableControls,
     setExtents,
     showStateClustering,
+    currentSelection,
+    showTop,
 }) {
     const [isInitialized, setIsInitialized] = useState(false);
     const [progress, setProgress] = useState(0.0);
@@ -49,36 +53,16 @@ export default function ChunkWrapper({
         return state.individualColor;
     });
 
+    const { updateRank, ranks, rankDict } = useRanks(properties);
+
     const [mva, setMva] = useState({});
 
-    const [ranks, setRanks] = useState(properties);
-    const [rankDict, setRankDict] = useState({});
     const ws = useRef(null);
 
     const updateGS = (states, property) => {
         const vals = states.map((d) => d[property]);
         updateGlobalScale(d3.min(vals), d3.max(vals), property);
     };
-
-    /**
-     * Sets the position of a chart based upon a value.
-     * The highest valued charts will be at the top, and the lowest will be at the bottom.
-     *
-     * @param {Number} val - Value
-     * @param {Any} property - Key for the value
-     */
-    const updateRank = (val, property) => {
-        setRankDict((rd) => ({ ...rd, [property]: val }));
-    };
-
-    useEffect(() => {
-        // sort [key,value] pairs by value, then reduce to only keys and set in ranks array
-        setRanks(
-            Object.entries(rankDict)
-                .sort((a, b) => a[1] < b[1])
-                .map((d) => d[0])
-        );
-    }, [rankDict]);
 
     const render = (property) => {
         const m = chunk.calculateMovingAverage(property, mvaPeriod, simpleMovingAverage);
@@ -221,7 +205,7 @@ export default function ChunkWrapper({
                 </Button>
             </Box>
             <Stack direction="column">
-                {ranks.map((property) => {
+                {ranks.slice(0, showTop).map((property) => {
                     return (
                         <SparkLine
                             globalScaleMin={globalScaleMin[property]}
@@ -230,21 +214,26 @@ export default function ChunkWrapper({
                             yAttributeList={mva[property]}
                             xAttributeList={chunk.timesteps}
                             lineColor={trajectory.colorByCluster(chunk)}
-                            title={abbreviate(property)}
+                            title={`${abbreviate(property)} ${rankDict[property].toFixed(2)}`}
                         />
                     );
                 })}
             </Stack>
             <Scatterplot
                 setExtents={(extents) => {
-                    const ids = extents.map((e) => e.y);
-                    setExtents(ids);
+                    const data = extents.map((d) => ({ timestep: d.x, id: d.y }));
+                    setExtents(data, trajectory.name);
                 }}
                 width={width}
                 height={50}
                 selectionMode={selectionMode}
                 onSetExtentsComplete={() => setSelectionMode(false)}
                 colorFunc={colorFunc}
+                highlight={
+                    currentSelection && chunk.containsSequence(currentSelection.timesteps)
+                        ? currentSelection.timesteps
+                        : null
+                }
                 xAttributeList={chunk.timesteps}
                 yAttributeList={chunk.sequence}
                 onElementMouseOver={(node, d) => {
@@ -257,3 +246,7 @@ export default function ChunkWrapper({
         <LoadingBox />
     );
 }
+
+ChunkWrapper.defaultProps = {
+    showTop: 4,
+};

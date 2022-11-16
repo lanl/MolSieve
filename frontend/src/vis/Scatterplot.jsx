@@ -22,6 +22,7 @@ export default function Scatterplot({
     onElementClick,
     onElementMouseOver,
     onElementMouseOut,
+    highlight,
 }) {
     const { setInternalExtents, completeSelection } = useExtents(setExtents, onSetExtentsComplete);
 
@@ -137,19 +138,19 @@ export default function Scatterplot({
                             .classed('currentSelection', false);
 
                         d3.select(ref.current)
-                            .selectAll('rect')
+                            .selectAll('.state')
                             .filter((d) => start <= d.x && d.x <= end)
                             .classed('currentSelection', true);
                     })
                     .on('end', function ({ selection }) {
-                        const start = Math.round(selection[0]);
-                        const end = Math.round(selection[1]);
+                        const start = Math.round(scaleX.invert(selection[0]));
+                        const end = Math.round(scaleX.invert(selection[1]));
 
                         d3.select(ref.current)
                             .selectAll('.currentSelection')
                             .classed('currentSelection', false);
 
-                        const nodes = data.slice(start, end + 1);
+                        const nodes = data.filter((d) => start <= d.x && d.x <= end);
                         setInternalExtents(nodes);
                         completeSelection();
                     })
@@ -175,6 +176,31 @@ export default function Scatterplot({
             selectionBrush();
         }
     }, [selectionMode]);
+
+    useEffect(() => {
+        d3.select(ref.current).selectAll('.currentSelection').classed('currentSelection', false);
+
+        if (highlight) {
+            const start = Math.min(...highlight);
+            const end = Math.max(...highlight);
+            d3.select(ref.current)
+                .append('rect')
+                .attr('class', 'highlight')
+                .attr('x', scaleX(start))
+                .attr('y', 0)
+                .attr('height', height)
+                .attr('width', scaleX(end) - scaleX(start))
+                .attr('fill', 'none')
+                .attr('stroke', 'red');
+
+            d3.select(ref.current)
+                .selectAll('.state')
+                .filter((d) => start <= d.x && d.x <= end)
+                .classed('currentSelection', true);
+        } else {
+            d3.select(ref.current).selectAll('.highlight').remove();
+        }
+    }, [highlight]);
 
     return (
         <svg

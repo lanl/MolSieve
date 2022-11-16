@@ -153,6 +153,18 @@ class Trajectory {
         return Array.from(this.chunks.values()).map((c) => c);
     }
 
+    get importantChunkList() {
+        return this.chunkList.filter((c) => c.important);
+    }
+
+    // could be more flexible if chunkList gets passed in
+    isTimestepsWithinChunks(timesteps) {
+        const start = Math.min(...timesteps);
+        const end = Math.max(...timesteps);
+
+        return this.importantChunkList.some((c) => c.timestep <= start && c.last >= end);
+    }
+
     /**
      * Gets the length of the trajectory from the last timestep of the last chunk.
      *
