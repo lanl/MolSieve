@@ -200,6 +200,13 @@ export default function Scatterplot({
         } else {
             d3.select(ref.current).selectAll('.highlight').remove();
         }
+
+        return () => {
+            d3.select(ref.current).selectAll('.highlight').remove();
+            d3.select(ref.current)
+                .selectAll('.currentSelection')
+                .classed('currentSelection', false);
+        };
     }, [highlight]);
 
     return (
