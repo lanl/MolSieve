@@ -39,16 +39,8 @@ export default function Legend({ data, properties, width, height }) {
 
             const axes = properties.map((property) => buildAxis(property, radius));
 
-            const absMax = axes.reduce(
-                (previousScale, thisScale) =>
-                    previousScale > thisScale.scale.domain()[1]
-                        ? previousScale
-                        : thisScale.scale.domain()[1],
-                axes[0].scale.domain()
-            );
-
+            const absMax = d3.max(axes, (d) => d.max);
             const angleSlice = (Math.PI * 2) / axes.length;
-
             const rScale = d3.scaleLinear().range([0, radius]).domain([0, absMax]);
 
             const main = svg
@@ -65,7 +57,6 @@ export default function Legend({ data, properties, width, height }) {
                 .append('g')
                 .attr('class', 'axis');
 
-            // Append the lines
             axis.append('line')
                 .attr('x1', 0)
                 .attr('y1', 0)
@@ -75,44 +66,46 @@ export default function Legend({ data, properties, width, height }) {
                 .style('stroke', 'lightgray')
                 .style('stroke-width', '1px');
 
-            // for each state, get its xy position for each property, then draw a line between each point
-
             const angleToCoord = (angle, value) => {
                 const x = Math.cos(angle) * rScale(value);
                 const y = Math.sin(angle) * rScale(value);
                 return { x, y };
             };
 
-            const gLines = main.append('g');
-            const lines = [];
+            const linesG = main.append('g');
 
-            const nums = ['median'];
-            for (const n of nums) {
-                const points = [];
-                let i = 0;
-                for (const a of axes) {
-                    const angle = angleSlice * i - Math.PI / 2;
-                    points.push(angleToCoord(angle, a.scale(a[n])));
-                    i++;
-                }
-                lines.push({ points, color: n === 'median' ? 'red' : 'black' });
+            const points = [];
+            let i = 0;
+            for (const a of axes) {
+                const angle = angleSlice * i - Math.PI / 2;
+                points.push(angleToCoord(angle, a.scale(a.median)));
+                i++;
             }
 
-            const lineGen = d3
-                .line()
-                .x((d) => d.x)
-                .y((d) => d.y);
-
-            gLines
+            const gLines = linesG
                 .selectAll('.line')
-                .data(lines)
+                .data(points)
                 .enter()
-                .append('path')
-                .attr('d', (d) => lineGen(d.points))
-                .attr('stroke', (d) => d.color)
-                .attr('fill', 'none')
+                .append('g')
+                .classed('line', true)
                 .classed('clickable', true)
                 .classed('state', true);
+
+            gLines
+                .append('circle')
+                .attr('cx', (d) => d.x)
+                .attr('cy', (d) => d.y)
+                .attr('r', 5)
+                .attr('fill', 'red');
+
+            gLines
+                .append('line')
+                .attr('x1', 0)
+                .attr('y1', 0)
+                .attr('x2', (d) => d.x)
+                .attr('y2', (d) => d.y)
+                .style('stroke', 'red')
+                .style('stroke-width', '1px');
 
             // Append the labels at each axis
             axis.append('text')
