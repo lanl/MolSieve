@@ -127,7 +127,10 @@ export default function BoxPlotWrapper({
         } else {
             setIsInitialized(true);
             setProgress(1.0);
-            render();
+            const states = chunk.selected.map((id) => GlobalStates.get(id));
+            for (const p of properties) {
+                render(states, p);
+            }
         }
 
         return () => {

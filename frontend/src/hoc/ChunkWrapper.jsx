@@ -158,7 +158,9 @@ export default function ChunkWrapper({
         } else {
             setProgress(1.0);
             setIsInitialized(true);
-            render(chunk.states);
+            for (const p of properties) {
+                render(p);
+            }
         }
 
         return () => {
