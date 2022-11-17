@@ -265,7 +265,7 @@ function TrajectoryChart({
                 strokeWidth={2}
                 opacity={
                     trajectorySelectionMode &&
-                    selectedObjects.map((d) => d.id).includes(trajectory.id)
+                        selectedObjects.map((d) => d.id).includes(trajectory.id)
                         ? 1.0
                         : 0.0
                 }
@@ -273,5 +273,4 @@ function TrajectoryChart({
         </svg>
     );
 }
-/* */
 export default TrajectoryChart;

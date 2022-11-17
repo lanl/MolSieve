@@ -31,13 +31,18 @@ export default function BoxPlotWrapper({
     const [progress, setProgress] = useState(0.0);
     const ws = useRef(null);
 
-    const { updateRank, ranks, rankDict } = useRanks(properties);
-    // Start here
-    const render = (states, property) => {
-        const vals = states.map((d) => d[property]);
-        const bpStats = boxPlotStats(vals);
-        updateRank(bpStats.iqr, property);
-        setBoxStats((bStats) => ({ ...bStats, [property]: bpStats }));
+    const { setRankDict, ranks, rankDict } = useRanks(properties);
+    const render = (states, props) => {
+        const bpStatDict = {};
+        const rd = {};
+        for (const prop of props) {
+            const vals = states.map((d) => d[prop]);
+            const bpStats = boxPlotStats(vals);
+            bpStatDict[prop] = bpStats;
+            rd[prop] = bpStats.iqr;
+        }
+        setBoxStats(bpStatDict);
+        setRankDict(rd);
     };
 
     const updateGS = (states, property) => {
@@ -77,8 +82,10 @@ export default function BoxPlotWrapper({
             setProgress((i * moveBy) / chunk.selected.length);
 
             for (const property of properties) {
-                render(cStates, property);
+                updateGS(parsedData, property);
             }
+            render(cStates, properties);
+
             setIsInitialized(true);
             let sendStates = [];
 
@@ -91,10 +98,6 @@ export default function BoxPlotWrapper({
                 ws.current.close(1000);
             } else {
                 i++;
-
-                for (const property of properties) {
-                    updateGS(cStates, property);
-                }
 
                 ws.current.send(
                     JSON.stringify({
@@ -128,9 +131,7 @@ export default function BoxPlotWrapper({
             setIsInitialized(true);
             setProgress(1.0);
             const states = chunk.selected.map((id) => GlobalStates.get(id));
-            for (const p of properties) {
-                render(states, p);
-            }
+            render(states, properties);
         }
 
         return () => {

@@ -55,7 +55,7 @@ export default function ChunkWrapper({
         return state.individualColor;
     });
 
-    const { updateRank, ranks, rankDict } = useRanks(properties);
+    const { setRankDict, ranks, rankDict } = useRanks(properties);
 
     const [mva, setMva] = useState({});
 
@@ -66,11 +66,17 @@ export default function ChunkWrapper({
         updateGlobalScale(d3.min(vals), d3.max(vals), property);
     };
 
-    const render = (property) => {
-        const m = chunk.calculateMovingAverage(property, mvaPeriod, simpleMovingAverage);
-        const diffXtent = d3.extent(differentiate(m));
-        updateRank(diffXtent[1] - diffXtent[0], property);
-        setMva((mvaDict) => ({ ...mvaDict, [property]: m }));
+    const render = (props) => {
+        const mvaDict = {};
+        const rDict = {};
+        for (const prop of props) {
+            const m = chunk.calculateMovingAverage(prop, mvaPeriod, simpleMovingAverage);
+            const diffXtent = d3.extent(differentiate(m));
+            mvaDict[prop] = m;
+            rDict[prop] = diffXtent[1] - diffXtent[0];
+        }
+        setMva(mvaDict);
+        setRankDict(rDict);
     };
 
     const runSocket = () => {
@@ -109,14 +115,16 @@ export default function ChunkWrapper({
             const parsedData = JSON.parse(e.data);
             GlobalStates.addPropToStates(parsedData);
 
+            for (const property of properties) {
+                updateGS(parsedData, property);
+            }
+
             const currProgress = i * moveBy;
             setProgress(currProgress / total);
 
             setIsInitialized(true);
 
-            for (const property of properties) {
-                render(property);
-            }
+            render(properties);
 
             let sendStates = [];
             // if the chunks have not been fully loaded, continue
@@ -125,9 +133,6 @@ export default function ChunkWrapper({
             }
 
             if (!sendStates.length) {
-                for (const property of properties) {
-                    updateGS(chunk.states, property);
-                }
                 ws.current.close(1000);
             } else {
                 i++;
@@ -158,9 +163,7 @@ export default function ChunkWrapper({
         } else {
             setProgress(1.0);
             setIsInitialized(true);
-            for (const p of properties) {
-                render(p);
-            }
+            render(properties);
         }
 
         return () => {
