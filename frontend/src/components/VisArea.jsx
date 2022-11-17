@@ -1,4 +1,4 @@
-import { React, useState, useEffect } from 'react';
+import { React, useState, useEffect, useReducer } from 'react';
 import Box from '@mui/material/Box';
 import Container from '@mui/material/Container';
 import Button from '@mui/material/Button';
@@ -59,22 +59,17 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
 
     const [globalProperties, setGlobalProperties] = useState(properties);
     const [showTop, setShowTop] = useState(4);
-    const [globalMin, setGlobalMin] = useState(buildDictFromArray(properties, Number.MAX_VALUE));
-    const [globalMax, setGlobalMax] = useState(buildDictFromArray(properties, Number.MIN_VALUE));
+    // make globalScale into a reducer
+    const [globalScale, updateGlobalScale] = useReducer((_, action) => {
+        switch (action.type) {
+            case 'update':
+                return action.payload;
+            default:
+                throw new Error('Unknown action');
+        }
+    }, buildDictFromArray(properties, { min: Number.MIN_VALUE, max: Number.MAX_VALUE }));
     const [showStateClustering, setShowStateClustering] = useState(false);
     const [currentSelection, setCurrentSelection] = useState(null);
-
-    const updateGlobalScale = (valMin, valMax, property) => {
-        setGlobalMin((minDict) => ({
-            ...minDict,
-            [property]: minDict[property] > valMin ? valMin : minDict[property],
-        }));
-
-        setGlobalMax((maxDict) => ({
-            ...maxDict,
-            [property]: maxDict[property] < valMax ? valMax : maxDict[property],
-        }));
-    };
 
     /**
      * [TODO:description]
@@ -276,7 +271,7 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
         }
     }, [stateClicked]);
 
-    useEffect(() => {}, [stateHovered]);
+    useEffect(() => { }, [stateHovered]);
     /* useEffect(() => {
         const ids = getClassIds('filterable');
         ids.forEach((id) => applyFilters(trajectories, runs, id));
@@ -335,8 +330,8 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
                                     onClick={() =>
                                         !showStateClustering
                                             ? GlobalStates.clusterStates(
-                                                  getAllImportantStates(trajectories)
-                                              ).then(() => setShowStateClustering(true))
+                                                getAllImportantStates(trajectories)
+                                            ).then(() => setShowStateClustering(true))
                                             : setShowStateClustering(false)
                                     }
                                 >
@@ -414,14 +409,13 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
                                                 setExtents={setExtents}
                                                 currentSelection={
                                                     currentSelection &&
-                                                    currentSelection.trajectoryName ===
+                                                        currentSelection.trajectoryName ===
                                                         trajectory.name
                                                         ? currentSelection
                                                         : null
                                                 }
                                                 updateGlobalScale={updateGlobalScale}
-                                                globalScaleMin={globalMin}
-                                                globalScaleMax={globalMax}
+                                                globalScale={globalScale}
                                                 showStateClustering={showStateClustering}
                                                 showTop={showTop}
                                             />
@@ -459,8 +453,7 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
                             onMouseLeave={() => setCurrentSelection(null)}
                             disabled={disabled}
                             stateIDs={ids}
-                            globalScaleMin={globalMin}
-                            globalScaleMax={globalMax}
+                            globalScale={globalScale}
                         >
                             <Button
                                 color="secondary"

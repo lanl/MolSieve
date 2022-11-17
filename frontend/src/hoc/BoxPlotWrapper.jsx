@@ -20,8 +20,7 @@ export default function BoxPlotWrapper({
     width,
     height,
     properties,
-    globalScaleMin,
-    globalScaleMax,
+    globalScale,
     updateGlobalScale,
     showTop,
 }) {
@@ -45,9 +44,13 @@ export default function BoxPlotWrapper({
         setRankDict(rd);
     };
 
-    const updateGS = (states, property) => {
-        const vals = states.map((d) => d[property]);
-        updateGlobalScale(d3.min(vals), d3.max(vals), property);
+    const updateGS = (states, props) => {
+        const propDict = {};
+        for (const prop of props) {
+            const vals = states.map((d) => d[prop]);
+            propDict[prop] = { min: d3.min(vals), max: d3.max(vals) };
+        }
+        updateGlobalScale({ type: 'update', payload: propDict });
     };
 
     const runSocket = () => {
@@ -81,9 +84,7 @@ export default function BoxPlotWrapper({
 
             setProgress((i * moveBy) / chunk.selected.length);
 
-            for (const property of properties) {
-                updateGS(parsedData, property);
-            }
+            updateGS(parsedData, properties);
             render(cStates, properties);
 
             setIsInitialized(true);
@@ -153,6 +154,7 @@ export default function BoxPlotWrapper({
             ) : null}
             <Stack direction="column">
                 {ranks.slice(0, showTop).map((property) => {
+                    const { min, max } = globalScale[property];
                     return (
                         <BoxPlot
                             key={`${chunk.id}-${property}`}
@@ -162,8 +164,8 @@ export default function BoxPlotWrapper({
                             property={property}
                             width={width}
                             height={20}
-                            globalScaleMin={globalScaleMin[property]}
-                            globalScaleMax={globalScaleMax[property]}
+                            globalScaleMin={min}
+                            globalScaleMax={max}
                         />
                     );
                 })}

@@ -35,8 +35,7 @@ export default function ChunkWrapper({
     setStateClicked,
     run,
     isParentHovered,
-    globalScaleMin,
-    globalScaleMax,
+    globalScale,
     stateHovered,
     updateGlobalScale,
     disableControls,
@@ -61,9 +60,13 @@ export default function ChunkWrapper({
 
     const ws = useRef(null);
 
-    const updateGS = (states, property) => {
-        const vals = states.map((d) => d[property]);
-        updateGlobalScale(d3.min(vals), d3.max(vals), property);
+    const updateGS = (states, props) => {
+        const propDict = {};
+        for (const prop of props) {
+            const vals = states.map((d) => d[prop]);
+            propDict[prop] = { min: d3.min(vals), max: d3.max(vals) };
+        }
+        updateGlobalScale({ type: 'update', payload: propDict });
     };
 
     const render = (props) => {
@@ -115,9 +118,7 @@ export default function ChunkWrapper({
             const parsedData = JSON.parse(e.data);
             GlobalStates.addPropToStates(parsedData);
 
-            for (const property of properties) {
-                updateGS(parsedData, property);
-            }
+            updateGS(parsedData, properties);
 
             const currProgress = i * moveBy;
             setProgress(currProgress / total);
@@ -212,11 +213,12 @@ export default function ChunkWrapper({
             </Box>
             <Stack direction="column">
                 {ranks.slice(0, showTop).map((property) => {
+                    const { min, max } = globalScale[property];
                     return (
                         <SparkLine
                             key={`${chunk.id}-${property}`}
-                            globalScaleMin={globalScaleMin[property]}
-                            globalScaleMax={globalScaleMax[property]}
+                            globalScaleMin={min}
+                            globalScaleMax={max}
                             width={width}
                             yAttributeList={mva[property]}
                             xAttributeList={chunk.timesteps}

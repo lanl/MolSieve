@@ -35,8 +35,7 @@ function TrajectoryChart({
     selectedObjects,
     setExtents,
     updateGlobalScale,
-    globalScaleMin,
-    globalScaleMax,
+    globalScale,
     showStateClustering,
     showTop,
 }) {
@@ -229,8 +228,7 @@ function TrajectoryChart({
                                         trajectory={trajectory}
                                         run={run}
                                         isParentHovered={isPHovered}
-                                        globalScaleMin={globalScaleMin}
-                                        globalScaleMax={globalScaleMax}
+                                        globalScale={globalScale}
                                         updateGlobalScale={updateGlobalScale}
                                         disableControls={chunkSelectionMode}
                                         setExtents={setExtents}
@@ -244,8 +242,7 @@ function TrajectoryChart({
                                         width={ww}
                                         height={hh}
                                         properties={properties}
-                                        globalScaleMin={globalScaleMin}
-                                        globalScaleMax={globalScaleMax}
+                                        globalScale={globalScale}
                                         updateGlobalScale={updateGlobalScale}
                                         showTop={showTop}
                                     />

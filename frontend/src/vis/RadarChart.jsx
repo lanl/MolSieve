@@ -13,13 +13,12 @@ export default function Legend({
     properties,
     width,
     height,
-    globalScaleMin,
-    globalScaleMax,
+    globalScale,
     onElementMouseOver,
 }) {
     const buildAxis = (property, radius) => {
-        const min = globalScaleMin[property];
-        const max = globalScaleMax[property];
+        const gs = globalScale[property];
+        const { min, max } = gs;
         const median = d3.median(data, (d) => d[property]);
         return {
             property,
@@ -100,7 +99,7 @@ export default function Legend({
                 .classed('line', true)
                 .classed('clickable', true)
                 .classed('state', true)
-                .on('mouseover', function (_, d) {
+                .on('mouseover', function(_, d) {
                     onElementMouseOver(this, d);
                 });
 
@@ -130,7 +129,7 @@ export default function Legend({
                 .attr('y', (_, i) => rScale(absMax * 1.1) * Math.sin(angleSlice * i - Math.PI / 2))
                 .text((d) => abbreviate(d.property));
         },
-        [data, properties, width, height, globalScaleMin, globalScaleMax]
+        [data, properties, width, height, globalScale]
     );
     return <svg ref={ref} viewBox={[0, 0, width, height]} width={width} height={height} />;
 }

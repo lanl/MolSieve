@@ -20,8 +20,7 @@ export default function SubSequenceView({
     disabled,
     onMouseEnter,
     onMouseLeave,
-    globalScaleMin,
-    globalScaleMax,
+    globalScale,
 }) {
     const [data, setData] = useState([]);
 
@@ -49,8 +48,7 @@ export default function SubSequenceView({
                             properties={properties}
                             width={width}
                             height={height}
-                            globalScaleMin={globalScaleMin}
-                            globalScaleMax={globalScaleMax}
+                            globalScale={globalScale}
                             onElementMouseOver={(node, d) => {
                                 oneShotTooltip(
                                     node,
