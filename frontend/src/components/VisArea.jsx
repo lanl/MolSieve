@@ -59,15 +59,30 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
 
     const [globalProperties, setGlobalProperties] = useState(properties);
     const [showTop, setShowTop] = useState(4);
+
+    const updateGS = (oldGS, newGS) => {
+        const updatedGS = {};
+        for (const property of Object.keys(oldGS)) {
+            const oldProp = oldGS[property];
+            const newProp = newGS[property];
+            updatedGS[property] = {
+                min: newProp.min < oldProp.min ? newProp.min : oldProp.min,
+                max: newProp.max > oldProp.max ? newProp.max : oldProp.max,
+            };
+        }
+        return updatedGS;
+    };
+
     // make globalScale into a reducer
-    const [globalScale, updateGlobalScale] = useReducer((_, action) => {
+    const [globalScale, updateGlobalScale] = useReducer((state, action) => {
         switch (action.type) {
             case 'update':
-                return action.payload;
+                return updateGS(state, action.payload);
             default:
                 throw new Error('Unknown action');
         }
-    }, buildDictFromArray(properties, { min: Number.MIN_VALUE, max: Number.MAX_VALUE }));
+    }, buildDictFromArray(properties, { min: Number.MAX_VALUE, max: Number.MIN_VALUE }));
+
     const [showStateClustering, setShowStateClustering] = useState(false);
     const [currentSelection, setCurrentSelection] = useState(null);
 
