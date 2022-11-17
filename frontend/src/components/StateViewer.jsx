@@ -37,7 +37,7 @@ export default function StateViewer({ stateIDs, sx }) {
         const total = [...new Set(stateIDs)].length;
 
         ws.current.addEventListener('open', () => {
-            ws.current.send(JSON.stringify(stateIDs));
+            ws.current.send(JSON.stringify([...new Set(stateIDs)]));
         });
 
         ws.current.addEventListener('message', (e) => {
@@ -46,6 +46,10 @@ export default function StateViewer({ stateIDs, sx }) {
             render(d);
             i++;
             setProgress(i / total);
+            if (i === total) {
+                ws.current.close();
+                ws.current = null;
+            }
         });
     };
 
@@ -59,8 +63,7 @@ export default function StateViewer({ stateIDs, sx }) {
         if (!GlobalStates.subsetHasProperty('img', stateIDs)) {
             runSocket();
         } else {
-            const states = stateIDs.map((id) => GlobalStates.get(id));
-            render(states);
+            render(stateIDs);
             setProgress(1.0);
         }
 
@@ -70,7 +73,7 @@ export default function StateViewer({ stateIDs, sx }) {
                 ws.current = null;
             }
         };
-    }, [stateIDs]);
+    }, []);
 
     return (
         <Box sx={sx}>

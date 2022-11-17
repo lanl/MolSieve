@@ -50,7 +50,44 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
     const [selectionMode, setSelectionMode] = useState(NO_SELECT);
     const [selectedObjects, setSelectedObjects] = useState([]);
 
-    const [selections, setSelections] = useState({});
+    const [selections, setSelections] = useReducer(
+        (state, action) => {
+            switch (action.type) {
+                case 'create':
+                    return {
+                        selections: { ...state.selections, [createUUID()]: action.payload },
+                        current: state.current,
+                    };
+                case 'delete': {
+                    const { [action.payload]: _, ...rest } = state.selections;
+                    return {
+                        selections: rest,
+                        current: state.current,
+                    };
+                }
+                case 'setCurrent':
+                    return { selections: state.selections, current: action.payload };
+                default:
+                    throw new Error('Unknown action');
+            }
+        },
+        {
+            selections: {},
+            current: null,
+        }
+    );
+
+    const setExtents = (extent, trajectoryName) => {
+        setSelections({ type: 'create', payload: { extent, trajectoryName } });
+    };
+
+    const deleteExtents = (id) => {
+        setSelections({ type: 'delete', payload: id });
+    };
+
+    const setCurrentSelection = (selection) => {
+        setSelections({ type: 'setCurrent', payload: selection });
+    };
 
     const [anchorEl, setAnchorEl] = useState(null);
 
@@ -84,7 +121,6 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
     }, buildDictFromArray(properties, { min: Number.MAX_VALUE, max: Number.MIN_VALUE }));
 
     const [showStateClustering, setShowStateClustering] = useState(false);
-    const [currentSelection, setCurrentSelection] = useState(null);
 
     /**
      * [TODO:description]
@@ -154,9 +190,9 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
     const findSimilar = (chunkSimilarityFunc, formatFunc) => {
         if (selectionMode === NO_SELECT) {
             /* const charts = document.querySelectorAll('.embeddedChart');
-            for (const chart of charts) {
-                chart.style.opacity = `${1.0}`;
-            } */
+        for (const chart of charts) {
+            chart.style.opacity = `${1.0}`;
+        } */
             setSelectionMode(FIND_SIMILAR_SELECT);
         }
 
@@ -227,11 +263,11 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
     }, [selectionMode]);
     // essentially the same as useCallback
     /* setStateClickedProp = this.setStateClicked.bind(this);
-
+    
     setStateHoveredProp = this.setStateHovered.bind(this);
-
-      setExtentsUniqueStatesProp = this.setExtentsUniqueStates.bind(this);
-
+    
+    setExtentsUniqueStatesProp = this.setExtentsUniqueStates.bind(this);
+    
     setSequenceExtentProp = this.setSequenceExtent.bind(this); */
 
     const toggleModal = (key) => {
@@ -240,17 +276,6 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
         } else {
             setCurrentModal(key);
         }
-    };
-
-    const setExtents = (extent, trajectoryName) => {
-        setSelections((prevState) => ({
-            ...prevState,
-            [createUUID()]: { extent, trajectoryName },
-        }));
-    };
-
-    const deleteExtents = (id) => {
-        setSelections(({ [id]: toDelete, ...rest }) => rest);
     };
 
     const selectObject = (o) => {
@@ -286,10 +311,10 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
         }
     }, [stateClicked]);
 
-    useEffect(() => { }, [stateHovered]);
+    useEffect(() => { }, [stateHovered, selections.current]);
     /* useEffect(() => {
-        const ids = getClassIds('filterable');
-        ids.forEach((id) => applyFilters(trajectories, runs, id));
+    const ids = getClassIds('filterable');
+    ids.forEach((id) => applyFilters(trajectories, runs, id));
     }, [runs]); */
 
     // only clear websockets when charts change!
@@ -423,10 +448,10 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
                                                 selectedObjects={selectedObjects}
                                                 setExtents={setExtents}
                                                 currentSelection={
-                                                    currentSelection &&
-                                                        currentSelection.trajectoryName ===
+                                                    selections.current &&
+                                                        selections.current.trajectoryName ===
                                                         trajectory.name
-                                                        ? currentSelection
+                                                        ? selections.current
                                                         : null
                                                 }
                                                 updateGlobalScale={updateGlobalScale}
@@ -451,8 +476,8 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
                     marginRight: 5,
                 }}
             >
-                {Object.keys(selections).map((uuid) => {
-                    const selection = selections[uuid];
+                {Object.keys(selections.selections).map((uuid) => {
+                    const selection = selections.selections[uuid];
                     const { extent, trajectoryName } = selection;
 
                     const ids = extent.map((d) => d.id);

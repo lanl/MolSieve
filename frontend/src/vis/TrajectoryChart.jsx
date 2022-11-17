@@ -47,7 +47,7 @@ function TrajectoryChart({
             // clear so we don't draw over-top and cause insane lag
             if (!svg.empty()) {
                 // NOTE: deletes all g elements, even ones inside foreignObjects!
-                svg.selectAll('g').remove();
+                svg.selectAll('g:not(.brush)').remove();
             }
         },
         [trajectory, run, width, height, charts]
