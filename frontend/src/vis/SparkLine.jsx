@@ -4,6 +4,7 @@ import * as d3 from 'd3';
 import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
 
 import { tooltip } from '../api/myutils';
+import { differentiate } from '../api/stats';
 
 let ttInstance;
 const MARGIN = { top: 5, bottom: 10, left: 0, right: 5 };
@@ -17,8 +18,7 @@ export default function SparkLine({
     height,
     xAttributeList,
     yAttributeList,
-    lineColor,
-    title,
+    colors,
     showMedian,
 }) {
     const buildScaleX = () => {
@@ -47,8 +47,9 @@ export default function SparkLine({
             return undefined;
         }
         const mv = [];
+        const diff = differentiate(yAttributeList);
         for (let i = 0; i < yAttributeList.length; i++) {
-            const d = { x: xAttributeList[i], y: yAttributeList[i] };
+            const d = { x: xAttributeList[i], y: yAttributeList[i], d: diff[i] };
             mv.push(d);
         }
         return mv;
@@ -78,7 +79,6 @@ export default function SparkLine({
                 svg.on('mouseenter', null);
                 svg.on('mousemove', null);
                 svg.on('mouseleave', null);
-
                 svg.selectAll('*:not(.brush)').remove();
             }
 
@@ -86,12 +86,14 @@ export default function SparkLine({
                 return;
             }
 
+            const { posDiff, negDiff, noDiff } = colors;
+
             // moving average line
             svg.append('path')
                 .datum(data)
                 .attr('d', line)
-                .attr('stroke', '#8b8b8b')
-                .attr('fill', lineColor)
+                .attr('stroke', posDiff)
+                .attr('fill', posDiff)
                 .attr(
                     'd',
                     d3
@@ -99,6 +101,37 @@ export default function SparkLine({
                         .x((d) => scaleX(d.x))
                         .y0(scaleY(0))
                         .y1((d) => scaleY(d.y))
+                        .defined((d) => d.d >= 0.01 && d.d > 0)
+                );
+
+            svg.append('path')
+                .datum(data)
+                .attr('d', line)
+                .attr('stroke', negDiff)
+                .attr('fill', negDiff)
+                .attr(
+                    'd',
+                    d3
+                        .area()
+                        .x((d) => scaleX(d.x))
+                        .y0(scaleY(0))
+                        .y1((d) => scaleY(d.y))
+                        .defined((d) => d.d <= -0.01 && d.d < 0)
+                );
+
+            svg.append('path')
+                .datum(data)
+                .attr('d', line)
+                .attr('stroke', noDiff)
+                .attr('fill', noDiff)
+                .attr(
+                    'd',
+                    d3
+                        .area()
+                        .x((d) => scaleX(d.x))
+                        .y0(scaleY(0))
+                        .y1((d) => scaleY(d.y))
+                        .defined((d) => d.d < 0.01 && d.d > -0.01)
                 );
 
             if (showMedian) {
@@ -168,4 +201,9 @@ SparkLine.defaultProps = {
     lineColor: 'black',
     height: SPARKLINE_CHART_HEIGHT,
     showMedian: false,
+    colors: {
+        posDiff: '#34A853',
+        negDiff: '#EA4335',
+        noDiff: '#C2C2C2',
+    },
 };
