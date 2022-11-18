@@ -2,10 +2,12 @@ import { React, useState, useEffect, useReducer } from 'react';
 import Box from '@mui/material/Box';
 import Container from '@mui/material/Container';
 import Button from '@mui/material/Button';
+import IconButton from '@mui/material/IconButton';
+import ViewListIcon from '@mui/icons-material/ViewList';
+import Stack from '@mui/material/Stack';
+import TextField from '@mui/material/TextField';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
-import Select from '@mui/material/Select';
-import Stack from '@mui/material/Stack';
 import Paper from '@mui/material/Paper';
 import TrajectoryChart from '../vis/TrajectoryChart';
 import ChartBox from './ChartBox';
@@ -311,7 +313,7 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
         }
     }, [stateClicked]);
 
-    useEffect(() => { }, [stateHovered, selections.current]);
+    useEffect(() => {}, [stateHovered, selections.current]);
     /* useEffect(() => {
     const ids = getClassIds('filterable');
     ids.forEach((id) => applyFilters(trajectories, runs, id));
@@ -332,14 +334,14 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
                                 className="floatingToolBar"
                                 sx={{ visibility: isHovered ? 'visible' : 'hidden' }}
                             >
-                                <Button
+                                <IconButton
                                     color="secondary"
                                     size="small"
-                                    id="setAttributeButton"
+                                    id="showTopButton"
                                     onClick={(e) => setAnchorEl(e.currentTarget)}
                                 >
-                                    AttributeSelection
-                                </Button>
+                                    <ViewListIcon />
+                                </IconButton>
                                 <Button
                                     color="secondary"
                                     size="small"
@@ -370,8 +372,8 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
                                     onClick={() =>
                                         !showStateClustering
                                             ? GlobalStates.clusterStates(
-                                                getAllImportantStates(trajectories)
-                                            ).then(() => setShowStateClustering(true))
+                                                  getAllImportantStates(trajectories)
+                                              ).then(() => setShowStateClustering(true))
                                             : setShowStateClustering(false)
                                     }
                                 >
@@ -449,7 +451,7 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
                                                 setExtents={setExtents}
                                                 currentSelection={
                                                     selections.current &&
-                                                        selections.current.trajectoryName ===
+                                                    selections.current.trajectoryName ===
                                                         trajectory.name
                                                         ? selections.current
                                                         : null
@@ -565,26 +567,28 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
                 </MenuItem>
             </Menu>
             <Menu
-                open={!!(anchorEl && anchorEl.id === 'setAttributeButton')}
+                open={!!(anchorEl && anchorEl.id === 'showTopButton')}
                 anchorEl={anchorEl}
                 onClose={() => setAnchorEl(null)}
             >
                 <MenuItem>
-                    <Select
-                        value={globalProperties}
-                        onChange={(e) => {
-                            setGlobalProperties(e.target.value);
+                    <TextField
+                        type="number"
+                        inputProps={{
+                            inputProps: {
+                                min: 1,
+                                max: properties.length,
+                            },
+                            inputMode: 'numeric',
+                            pattern: '[0-9]*',
                         }}
-                    >
-                        {structuralAnalysisProps.map((property) => {
-                            // move z-score into menuitem
-                            return (
-                                <MenuItem dense divider key={property} value={property}>
-                                    {property}
-                                </MenuItem>
-                            );
-                        })}
-                    </Select>
+                        focused
+                        value={showTop}
+                        onChange={(e) => {
+                            setShowTop(parseInt(e.target.value, 10));
+                        }}
+                        label={`Show top ${showTop} properties`}
+                    />
                 </MenuItem>
             </Menu>
         </Container>

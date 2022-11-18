@@ -130,7 +130,7 @@ async def generate_ovito_images(websocket: WebSocket):
 
         for id, atoms in attr_atom_dict.items():
             img = generate_ovito_image(atoms)
-            await websocket.send_json({'id': id, 'img': img})
+            await websocket.send_json({"id": id, "img": img})
     except WebSocketDisconnect:
         print("Websocket disconnected")
 

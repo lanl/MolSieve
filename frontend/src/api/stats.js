@@ -72,6 +72,12 @@ export function zTest(s1, s2) {
     return (x1 - x2) / Math.sqrt(stderr1 ** 2 + stderr2 ** 2);
 }
 
+/**
+ * Calculates the differences between each successive point in a sequence.
+ *
+ * @param {Array<Number>} arr - values to differentiate
+ * @returns {Array<Number>} differentiated values
+ */
 export function differentiate(arr) {
     const diff = [];
     for (let i = 0; i < arr.length - 1; i++) {
