@@ -4,6 +4,7 @@ import Container from '@mui/material/Container';
 import Button from '@mui/material/Button';
 import IconButton from '@mui/material/IconButton';
 import ViewListIcon from '@mui/icons-material/ViewList';
+import DifferenceIcon from '@mui/icons-material/Difference';
 import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
 import Menu from '@mui/material/Menu';
@@ -39,10 +40,11 @@ const NO_SELECT = 0;
 const FIND_SIMILAR_SELECT = 1;
 const CLEAR_SELECTION = 2;
 const SWAP_SELECTIONS = 3;
+const CHUNK_SELECT = 4;
 
 // index with current selection mode to determine how many chunks should be selected
 // for a valid selection
-const SELECTION_LENGTH = [0, 1, 3, 2];
+const SELECTION_LENGTH = [0, 1, 3, 2, 2];
 
 export default function VisArea({ trajectories, runs, properties, swapPositions }) {
     const [currentModal, setCurrentModal] = useState(null);
@@ -96,7 +98,6 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
     const [toolTipList, setToolTipList] = useState([]);
     const oldToolTipList = usePrevious(toolTipList);
 
-    const [globalProperties, setGlobalProperties] = useState(properties);
     const [showTop, setShowTop] = useState(4);
 
     const updateGS = (oldGS, newGS) => {
@@ -143,7 +144,7 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
                 return extents[0] <= d.timestep && extents[1] >= d.last;
             });
 
-        // the unimportant chunks we will rende + 2.5r
+        // the unimportant chunks we will render
         const uChunks = topChunkList
             .filter((d) => !d.important)
             .filter((d) => {
@@ -187,49 +188,6 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
     /* Sets the currently clicked state to the supplied ID */
     const setStateClicked = (id) => {
         setClicked(GlobalStates.get(id));
-    };
-
-    const findSimilar = (chunkSimilarityFunc, formatFunc) => {
-        if (selectionMode === NO_SELECT) {
-            /* const charts = document.querySelectorAll('.embeddedChart');
-        for (const chart of charts) {
-            chart.style.opacity = `${1.0}`;
-        } */
-            setSelectionMode(FIND_SIMILAR_SELECT);
-        }
-
-        if (selectionMode === FIND_SIMILAR_SELECT) {
-            if (selectedObjects.length === SELECTION_LENGTH[FIND_SIMILAR_SELECT]) {
-                // compare all chunks to the one that was selected
-                const selected = selectedObjects[0];
-                focusChart(selected.id);
-
-                const visible = getAllVisibleChunks().filter((c) => c.id !== selected.id);
-                const similarities = {};
-                for (const vc of visible) {
-                    const sim = chunkSimilarityFunc(selected, vc);
-                    similarities[`ec_${vc.id}`] = sim;
-                }
-
-                const charts = document.querySelectorAll('.embeddedChart');
-                const ttList = [];
-                for (const chart of charts) {
-                    if (similarities[chart.id] !== undefined) {
-                        // chart.style.opacity = `${similarities[chart.id]}`;
-                        const tt = tooltip(chart, formatFunc(similarities[chart.id]), {
-                            allowHTML: true,
-                            arrow: true,
-                            theme: 'translucent',
-                            placement: 'top',
-                        });
-                        ttList.push(tt);
-                    }
-                }
-
-                setToolTipList(ttList);
-            }
-            setSelectionMode(NO_SELECT);
-        }
     };
 
     useEffect(() => {
@@ -294,17 +252,51 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
         }
     };
 
-    const swapButtonClick = () => {
+    const startSelection = (selectedMode, action) => {
         if (selectionMode === NO_SELECT) {
-            setSelectionMode(SWAP_SELECTIONS);
+            setSelectionMode(selectedMode);
         }
 
-        if (selectionMode === SWAP_SELECTIONS) {
-            if (selectedObjects.length === SELECTION_LENGTH[SWAP_SELECTIONS]) {
-                swapPositions(selectedObjects[0], selectedObjects[1]);
+        // the button was clicked again, finish the selection
+        if (selectionMode === selectedMode) {
+            // if we have the correct amount of objects selected, perform the action
+            if (selectedObjects.length === SELECTION_LENGTH[selectedMode]) {
+                // calls action with selectedObjects as a parameter
+                action(selectedObjects);
             }
+            // add notification if selection was incorrect length
             setSelectionMode(NO_SELECT);
         }
+    };
+
+    const findSimilar = (chunkSimilarityFunc, formatFunc, selection) => {
+        // compare all chunks to the one that was selected
+        const selected = selection[0];
+        focusChart(selected.id);
+
+        const visible = getAllVisibleChunks().filter((c) => c.id !== selected.id);
+        const similarities = {};
+        for (const vc of visible) {
+            const sim = chunkSimilarityFunc(selected, vc);
+            similarities[`ec_${vc.id}`] = sim;
+        }
+
+        const charts = document.querySelectorAll('.embeddedChart');
+        const ttList = [];
+        for (const chart of charts) {
+            if (similarities[chart.id] !== undefined) {
+                // chart.style.opacity = `${similarities[chart.id]}`;
+                const tt = tooltip(chart, formatFunc(similarities[chart.id]), {
+                    allowHTML: true,
+                    arrow: true,
+                    theme: 'translucent',
+                    placement: 'top',
+                });
+                ttList.push(tt);
+            }
+        }
+
+        setToolTipList(ttList);
     };
 
     useEffect(() => {
@@ -314,10 +306,6 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
     }, [stateClicked]);
 
     useEffect(() => {}, [stateHovered, selections.current]);
-    /* useEffect(() => {
-    const ids = getClassIds('filterable');
-    ids.forEach((id) => applyFilters(trajectories, runs, id));
-    }, [runs]); */
 
     // only clear websockets when charts change!
     return (
@@ -342,12 +330,23 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
                                 >
                                     <ViewListIcon />
                                 </IconButton>
+                                <IconButton
+                                    size="small"
+                                    color={selectionMode !== CHUNK_SELECT ? 'secondary' : 'default'}
+                                    onClick={() =>
+                                        startSelection(CHUNK_SELECT, (selection) => {
+                                            console.log(selection);
+                                        })
+                                    }
+                                >
+                                    <DifferenceIcon />
+                                </IconButton>
                                 <Button
                                     color="secondary"
                                     size="small"
                                     onClick={(e) =>
                                         selectionMode !== FIND_SIMILAR_SELECT
-                                            ? findSimilar()
+                                            ? startSelection(FIND_SIMILAR_SELECT, () => {})
                                             : setAnchorEl(e.currentTarget)
                                     }
                                     id="findSimilarButton"
@@ -360,7 +359,11 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
                                 <Button
                                     color="secondary"
                                     size="small"
-                                    onClick={() => swapButtonClick()}
+                                    onClick={() =>
+                                        startSelection(SWAP_SELECTIONS, (selection) =>
+                                            swapPositions(selection[0], selection[1])
+                                        )
+                                    }
                                 >
                                     {selectionMode !== SWAP_SELECTIONS
                                         ? 'SwapSelections'
@@ -441,7 +444,7 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
                                                 stateHovered={stateHovered}
                                                 isParentHovered={isHovered}
                                                 charts={charts}
-                                                properties={globalProperties}
+                                                properties={properties}
                                                 chunkSelectionMode={selectionMode}
                                                 trajectorySelectionMode={
                                                     selectionMode === SWAP_SELECTIONS
@@ -530,7 +533,9 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
                 {/* call with corresponding similarity function */}
                 <MenuItem
                     onClick={() => {
-                        findSimilar(chunkSimilarity, percentToString);
+                        startSelection(FIND_SIMILAR_SELECT, (selection) =>
+                            findSimilar(chunkSimilarity, percentToString, selection)
+                        );
                         setAnchorEl(null);
                     }}
                     dense
@@ -540,7 +545,9 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
                 </MenuItem>
                 <MenuItem
                     onClick={() => {
-                        findSimilar(stateRatioChunkSimilarity, percentToString);
+                        startSelection(FIND_SIMILAR_SELECT, (selection) =>
+                            findSimilar(stateRatioChunkSimilarity, percentToString, selection)
+                        );
                         setAnchorEl(null);
                     }}
                     dense
@@ -549,16 +556,19 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
                 </MenuItem>
                 <MenuItem
                     onClick={() => {
-                        findSimilar(
-                            (a, b) => {
-                                const aStates = a.states.map((id) => GlobalStates.get(id));
-                                const bStates = b.states.map((id) => GlobalStates.get(id));
-                                return zTest(
-                                    aStates.map((d) => d[globalProperties]),
-                                    bStates.map((d) => d[globalProperties])
-                                );
-                            },
-                            (a) => `${a.toFixed(3)}`
+                        startSelection(FIND_SIMILAR_SELECT, (selection) =>
+                            findSimilar(
+                                (a, b) => {
+                                    const aStates = a.states.map((id) => GlobalStates.get(id));
+                                    const bStates = b.states.map((id) => GlobalStates.get(id));
+                                    return zTest(
+                                        aStates.map((d) => d[properties]),
+                                        bStates.map((d) => d[properties])
+                                    );
+                                },
+                                (a) => `${a.toFixed(3)}`,
+                                selection
+                            )
                         );
                         setAnchorEl(null);
                     }}
