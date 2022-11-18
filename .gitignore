@@ -10,6 +10,7 @@ venv/
 env*
 dist/
 build/
+testing/
 *.egg
 *.egg-info/
 _mailinglist
@@ -19,7 +20,11 @@ _mailinglist
 .idea/
 docs/_build/
 .vscode
+*.pickle
+*.log
+*.eam
 
+package-lock.json
 # Coverage reports
 htmlcov/
 .coverage
