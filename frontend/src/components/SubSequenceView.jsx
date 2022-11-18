@@ -23,13 +23,12 @@ export default function SubSequenceView({
     globalScale,
 }) {
     const [data, setData] = useState([]);
-
     useEffect(() => {
         GlobalStates.ensureSubsetHasProperties(properties, stateIDs).then(() => {
             const states = stateIDs.map((id) => GlobalStates.get(id));
             setData(states);
         });
-    }, [stateIDs]);
+    }, []);
 
     return (
         <Box
