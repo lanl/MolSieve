@@ -5,7 +5,7 @@ import * as d3 from 'd3';
 import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
 import { tooltip } from '../api/myutils';
 
-const margin = { top: 20, bottom: 20, left: 0, right: 0 };
+const MARGIN = { top: 5, bottom: 10, left: 0, right: 0 };
 
 const BOXPLOT_HEIGHT = 20;
 
@@ -33,13 +33,13 @@ export default function BoxPlot({
             }
 
             const { q1, median, q3, iqr, minThreshold, maxThreshold } = data;
-            const adjWidth = width - margin.left - margin.right;
+            const adjWidth = width - MARGIN.left - MARGIN.right;
             const center = width / 2;
 
             const yScale = d3
                 .scaleLinear()
                 .domain([globalScaleMin, globalScaleMax])
-                .range([height, 5]);
+                .range([height, MARGIN.top]);
 
             if (showYAxis) {
                 svg.call(d3.axisRight(yScale));

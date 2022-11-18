@@ -8,13 +8,13 @@ import BoxPlotWrapper from '../hoc/BoxPlotWrapper';
 import EmbeddedChart from './EmbeddedChart';
 
 import useRanks from '../hooks/useRanks';
-
+import { abbreviate } from '../api/myutils';
 import '../css/vis.css';
 
 const MARGIN = {
     top: 25,
     bottom: 20,
-    left: 25,
+    left: 5,
     right: 0,
 };
 
@@ -49,7 +49,7 @@ function TrajectoryChart({
             // clear so we don't draw over-top and cause insane lag
             if (!svg.empty()) {
                 // NOTE: deletes all g elements, even ones inside foreignObjects!
-                svg.selectAll('g:not(.brush)').remove();
+                svg.selectAll('g:not(.brush, .rankList)').remove();
             }
         },
         [trajectory, run, width, height, charts]
@@ -60,6 +60,25 @@ function TrajectoryChart({
     const updateRanks = (rd) => {
         reduceRanks({ type: 'updateValues', payload: rd });
     };
+
+    useEffect(() => {
+        if (ref) {
+            d3.select(ref.current).select('.rankList').remove();
+
+            const rankList = d3.select(ref.current).append('g').classed('rankList', true);
+            const textRanks = rankList.selectAll('text').data(ranks.ordered.slice(0, showTop));
+
+            textRanks
+                .enter()
+                .append('text')
+                .attr('x', MARGIN.left)
+                .attr('y', (_, i) => MARGIN.top + (i + 1) * 20 - 5)
+                .attr('font-size', '10px')
+                .text((d) => abbreviate(d));
+
+            textRanks.exit().remove();
+        }
+    }, [ranks.ordered, ref]);
 
     useEffect(() => {
         /* if (stateHovered) {
@@ -274,7 +293,7 @@ function TrajectoryChart({
                 strokeWidth={2}
                 opacity={
                     trajectorySelectionMode &&
-                        selectedObjects.map((d) => d.id).includes(trajectory.id)
+                    selectedObjects.map((d) => d.id).includes(trajectory.id)
                         ? 1.0
                         : 0.0
                 }

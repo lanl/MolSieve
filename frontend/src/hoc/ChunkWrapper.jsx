@@ -63,9 +63,9 @@ export default function ChunkWrapper({
         const rDict = {};
         for (const prop of props) {
             const m = chunk.calculateMovingAverage(prop, mvaPeriod, simpleMovingAverage);
-            const diffXtent = d3.extent(differentiate(m));
+            // const diffXtent = d3.extent(differentiate(m));
             mvaDict[prop] = m;
-            rDict[prop] = diffXtent[1] - diffXtent[0];
+            rDict[prop] = Math.abs(m.slice(-1)[0] - m[0]);
         }
         setMva(mvaDict);
         updateRanks(rDict);

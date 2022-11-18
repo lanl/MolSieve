@@ -26,7 +26,8 @@ export default function SparkLine({
     };
 
     const buildScaleY = () => {
-        return () => d3.scaleLinear().domain([globalScaleMin, globalScaleMax]).range([height, 5]);
+        return () =>
+            d3.scaleLinear().domain([globalScaleMin, globalScaleMax]).range([height, MARGIN.top]);
     };
 
     const [scaleX, setScaleX] = useState(buildScaleX());
@@ -148,11 +149,6 @@ export default function SparkLine({
                 }
                 ttInstance = undefined;
             });
-
-            svg.append('text')
-                .attr('x', width / 2)
-                .attr('y', MARGIN.top + MARGIN.bottom)
-                .text(`${title}`);
         },
         [scaleX, scaleY, data]
     );
