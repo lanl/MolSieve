@@ -57,6 +57,23 @@ export default function SparkLine({
 
     const [data, setData] = useState(buildData());
 
+    const colorPath = (svg, line, color, filterFunc) => {
+        svg.append('path')
+            .datum(data)
+            .attr('d', line)
+            .attr('stroke', color)
+            .attr('fill', color)
+            .attr(
+                'd',
+                d3
+                    .area()
+                    .x((d) => scaleX(d.x))
+                    .y0(scaleY(0))
+                    .y1((d) => scaleY(d.y))
+                    .defined((d) => filterFunc(d))
+            );
+    };
+
     useEffect(() => {
         setData(buildData());
     }, [xAttributeList, yAttributeList]);
@@ -88,51 +105,10 @@ export default function SparkLine({
 
             const { posDiff, negDiff, noDiff } = colors;
 
-            // moving average line
-            svg.append('path')
-                .datum(data)
-                .attr('d', line)
-                .attr('stroke', posDiff)
-                .attr('fill', posDiff)
-                .attr(
-                    'd',
-                    d3
-                        .area()
-                        .x((d) => scaleX(d.x))
-                        .y0(scaleY(0))
-                        .y1((d) => scaleY(d.y))
-                        .defined((d) => d.d >= 0.01 && d.d > 0)
-                );
-
-            svg.append('path')
-                .datum(data)
-                .attr('d', line)
-                .attr('stroke', negDiff)
-                .attr('fill', negDiff)
-                .attr(
-                    'd',
-                    d3
-                        .area()
-                        .x((d) => scaleX(d.x))
-                        .y0(scaleY(0))
-                        .y1((d) => scaleY(d.y))
-                        .defined((d) => d.d <= -0.01 && d.d < 0)
-                );
-
-            svg.append('path')
-                .datum(data)
-                .attr('d', line)
-                .attr('stroke', noDiff)
-                .attr('fill', noDiff)
-                .attr(
-                    'd',
-                    d3
-                        .area()
-                        .x((d) => scaleX(d.x))
-                        .y0(scaleY(0))
-                        .y1((d) => scaleY(d.y))
-                        .defined((d) => d.d < 0.01 && d.d > -0.01)
-                );
+            // draw path and color the line according to the differential
+            colorPath(svg, line, posDiff, (d) => d.d >= 0.01);
+            colorPath(svg, line, negDiff, (d) => d.d <= -0.01);
+            colorPath(svg, line, noDiff, (d) => d.d < 0.01 && d.d > -0.01);
 
             if (showMedian) {
                 const median = d3.median(yAttributeList);
@@ -202,8 +178,8 @@ SparkLine.defaultProps = {
     height: SPARKLINE_CHART_HEIGHT,
     showMedian: false,
     colors: {
-        posDiff: '#34A853',
-        negDiff: '#EA4335',
-        noDiff: '#C2C2C2',
+        posDiff: '#277C3E',
+        negDiff: '#A61E11',
+        noDiff: '#A3A3A3',
     },
 };
