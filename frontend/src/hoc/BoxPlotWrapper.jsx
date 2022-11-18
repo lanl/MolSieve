@@ -40,7 +40,7 @@ export default function BoxPlotWrapper({
             rd[prop] = bpStats.iqr;
         }
         setBoxStats(bpStatDict);
-        updateRanks(rd);
+        updateRanks(rd, 0.25);
     };
 
     const updateGS = (states, props) => {

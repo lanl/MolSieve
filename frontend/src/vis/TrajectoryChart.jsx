@@ -57,8 +57,8 @@ function TrajectoryChart({
 
     const { ranks, reduceRanks } = useRanks(properties);
 
-    const updateRanks = (rd) => {
-        reduceRanks({ type: 'updateValues', payload: rd });
+    const updateRanks = (values, weight) => {
+        reduceRanks({ type: 'updateValues', payload: { values, weight } });
     };
 
     useEffect(() => {
@@ -78,7 +78,7 @@ function TrajectoryChart({
 
             textRanks.exit().remove();
         }
-    }, [ranks.ordered, ref]);
+    }, [ranks.ordered, ref, showTop]);
 
     useEffect(() => {
         /* if (stateHovered) {
