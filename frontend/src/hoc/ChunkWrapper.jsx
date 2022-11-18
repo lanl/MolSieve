@@ -18,31 +18,22 @@ import GlobalStates from '../api/globalStates';
 import WebSocketManager from '../api/websocketmanager';
 import LoadingBox from '../components/LoadingBox';
 
-import useRanks from '../hooks/useRanks';
-
 const moveBy = 100;
 const mvaPeriod = 100;
 
 export default function ChunkWrapper({
-    leftBoundary,
     chunk,
-    rightBoundary,
     properties,
     width,
-    height,
     trajectory,
-    setStateHovered,
-    setStateClicked,
-    run,
     isParentHovered,
     globalScale,
-    stateHovered,
     updateGlobalScale,
-    disableControls,
+    updateRanks,
+    ranks,
     setExtents,
     showStateClustering,
     currentSelection,
-    showTop,
 }) {
     const [isInitialized, setIsInitialized] = useState(false);
     const [progress, setProgress] = useState(0.0);
@@ -53,8 +44,6 @@ export default function ChunkWrapper({
         const state = GlobalStates.get(d.id);
         return state.individualColor;
     });
-
-    const { setRankDict, ranks, rankDict } = useRanks(properties);
 
     const [mva, setMva] = useState({});
 
@@ -79,7 +68,7 @@ export default function ChunkWrapper({
             rDict[prop] = diffXtent[1] - diffXtent[0];
         }
         setMva(mvaDict);
-        setRankDict(rDict);
+        updateRanks(rDict);
     };
 
     const runSocket = () => {
@@ -212,7 +201,7 @@ export default function ChunkWrapper({
                 </IconButton>
             </Box>
             <Stack direction="column">
-                {ranks.slice(0, showTop).map((property) => {
+                {ranks.map((property) => {
                     const { min, max } = globalScale[property];
                     return (
                         <SparkLine
@@ -223,7 +212,7 @@ export default function ChunkWrapper({
                             yAttributeList={mva[property]}
                             xAttributeList={chunk.timesteps}
                             lineColor={trajectory.colorByCluster(chunk)}
-                            title={`${abbreviate(property)} ${rankDict[property].toFixed(2)}`}
+                            title={`${abbreviate(property)}`}
                         />
                     );
                 })}

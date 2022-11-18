@@ -7,6 +7,8 @@ import BoxPlotWrapper from '../hoc/BoxPlotWrapper';
 
 import EmbeddedChart from './EmbeddedChart';
 
+import useRanks from '../hooks/useRanks';
+
 import '../css/vis.css';
 
 const MARGIN = {
@@ -52,6 +54,12 @@ function TrajectoryChart({
         },
         [trajectory, run, width, height, charts]
     );
+
+    const { ranks, reduceRanks } = useRanks(properties);
+
+    const updateRanks = (rd) => {
+        reduceRanks({ type: 'updateValues', payload: rd });
+    };
 
     useEffect(() => {
         /* if (stateHovered) {
@@ -230,6 +238,8 @@ function TrajectoryChart({
                                         isParentHovered={isPHovered}
                                         globalScale={globalScale}
                                         updateGlobalScale={updateGlobalScale}
+                                        updateRanks={updateRanks}
+                                        ranks={ranks.ordered.slice(0, showTop)}
                                         disableControls={chunkSelectionMode}
                                         setExtents={setExtents}
                                         currentSelection={currentSelection}
@@ -241,6 +251,8 @@ function TrajectoryChart({
                                         chunk={chunk}
                                         width={ww}
                                         height={hh}
+                                        updateRanks={updateRanks}
+                                        ranks={ranks.ordered.slice(0, showTop)}
                                         properties={properties}
                                         globalScale={globalScale}
                                         updateGlobalScale={updateGlobalScale}

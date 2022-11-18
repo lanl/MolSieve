@@ -5,7 +5,6 @@ import LinearProgress from '@mui/material/LinearProgress';
 import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
 
-import useRanks from '../hooks/useRanks';
 import { boxPlotStats } from '../api/stats';
 
 import BoxPlot from '../vis/BoxPlot';
@@ -20,9 +19,10 @@ export default function BoxPlotWrapper({
     width,
     height,
     properties,
+    updateRanks,
+    ranks,
     globalScale,
     updateGlobalScale,
-    showTop,
 }) {
     const [boxStats, setBoxStats] = useState({});
     const [isInitialized, setIsInitialized] = useState(false);
@@ -30,7 +30,6 @@ export default function BoxPlotWrapper({
     const [progress, setProgress] = useState(0.0);
     const ws = useRef(null);
 
-    const { setRankDict, ranks, rankDict } = useRanks(properties);
     const render = (states, props) => {
         const bpStatDict = {};
         const rd = {};
@@ -41,7 +40,7 @@ export default function BoxPlotWrapper({
             rd[prop] = bpStats.iqr;
         }
         setBoxStats(bpStatDict);
-        setRankDict(rd);
+        updateRanks(rd);
     };
 
     const updateGS = (states, props) => {
@@ -153,7 +152,7 @@ export default function BoxPlotWrapper({
                 <LinearProgress variant="determinate" value={progress * 100} />
             ) : null}
             <Stack direction="column">
-                {ranks.slice(0, showTop).map((property) => {
+                {ranks.map((property) => {
                     const { min, max } = globalScale[property];
                     return (
                         <BoxPlot
