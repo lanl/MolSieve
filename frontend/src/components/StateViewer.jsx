@@ -9,10 +9,9 @@ import GlobalStates from '../api/globalStates';
 import WebSocketManager from '../api/websocketmanager';
 import ImageViewer from './ImageViewer';
 
-export default function StateViewer({ stateIDs, sx }) {
+export default function StateViewer({ stateIDs, sx, activeState, setActiveState }) {
     const [progress, setProgress] = useState(0.0);
     const [loaded, setLoaded] = useState({});
-    const [sequenceIdx, setSequenceIdx] = useState(0);
     const [img, setImg] = useState(undefined);
 
     const ws = useRef(null);
@@ -23,9 +22,9 @@ export default function StateViewer({ stateIDs, sx }) {
 
     useEffect(() => {
         if (progress > 0) {
-            setImg(loaded[stateIDs[sequenceIdx]]);
+            setImg(loaded[stateIDs[activeState.idx]]);
         }
-    }, [sequenceIdx, loaded, stateIDs]);
+    }, [activeState.idx, loaded, stateIDs]);
 
     const runSocket = () => {
         ws.current = WebSocketManager.connect(
@@ -84,15 +83,27 @@ export default function StateViewer({ stateIDs, sx }) {
             <Box sx={{ display: 'flex' }}>
                 <IconButton
                     sx={{ flexGrow: 1 }}
-                    onClick={() => setSequenceIdx((prev) => prev - 1)}
-                    disabled={sequenceIdx - 1 < 0}
+                    onClick={() =>
+                        setActiveState((prev) => {
+                            const newIdx = prev.idx - 1;
+                            const newID = stateIDs[newIdx];
+                            return { id: newID, idx: newIdx };
+                        })
+                    }
+                    disabled={activeState.idx - 1 < 0}
                 >
                     <ArrowBackIcon />
                 </IconButton>
                 <IconButton
                     sx={{ flexGrow: 1 }}
-                    onClick={() => setSequenceIdx((prev) => prev + 1)}
-                    disabled={sequenceIdx + 1 > stateIDs.length - 1}
+                    onClick={() =>
+                        setActiveState((prev) => {
+                            const newIdx = prev.idx + 1;
+                            const newID = stateIDs[newIdx];
+                            return { id: newID, idx: newIdx };
+                        })
+                    }
+                    disabled={activeState.idx + 1 > stateIDs.length - 1}
                 >
                     <ArrowForwardIcon />
                 </IconButton>

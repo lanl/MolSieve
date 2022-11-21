@@ -24,6 +24,8 @@ export default function SubSequenceView({
     globalScale,
 }) {
     const [data, setData] = useState([]);
+    const [activeState, setActiveState] = useState({ id: stateIDs[0], idx: 0 });
+
     useEffect(() => {
         GlobalStates.ensureSubsetHasProperties(properties, stateIDs).then(() => {
             const states = stateIDs.map((id) => GlobalStates.get(id));
@@ -50,7 +52,11 @@ export default function SubSequenceView({
             </Button>
             <Divider />
             <Stack direction="row" spacing={0.5}>
-                <StateViewer stateIDs={stateIDs} />
+                <StateViewer
+                    stateIDs={stateIDs}
+                    activeState={activeState}
+                    setActiveState={setActiveState}
+                />
                 <RadarChart
                     data={data}
                     properties={properties}
@@ -60,9 +66,27 @@ export default function SubSequenceView({
                     onElementMouseOver={(node, d) => {
                         oneShotTooltip(node, `<b>${abbreviate(d.property)}</b>: ${d.value}`);
                     }}
+                    renderSingle={activeState}
                 />
             </Stack>
-            <Box sx={{ maxWidth: '400px', overflow: 'scroll' }}>{stateIDs.map((id) => id)}</Box>
+            <Stack
+                direction="row"
+                spacing={0.5}
+                sx={{ maxWidth: '400px', overflow: 'scroll', minHeight: '40px', maxHeight: '40px' }}
+            >
+                {stateIDs.map((id, idx) => {
+                    const state = GlobalStates.get(id);
+                    return (
+                        <span
+                            className="state"
+                            style={{ color: state.individualColor }}
+                            onMouseEnter={() => setActiveState({ id, idx })}
+                        >
+                            {id}
+                        </span>
+                    );
+                })}
+            </Stack>
         </Box>
     );
 }
