@@ -1,7 +1,7 @@
-import React from "react";
-import CircularProgress from "@mui/material/CircularProgress";
-import Select from "@mui/material/Select";
-import MenuItem from "@mui/material/MenuItem";
+import React from 'react';
+import CircularProgress from '@mui/material/CircularProgress';
+import Select from '@mui/material/Select';
+import MenuItem from '@mui/material/MenuItem';
 import axios from 'axios';
 
 class AjaxSelect extends React.Component {
@@ -10,58 +10,76 @@ class AjaxSelect extends React.Component {
 
         let value = null;
 
-        if(this.props.defaultValue !== undefined) {
+        if (this.props.defaultValue !== undefined) {
             value = this.props.defaultValue;
         }
 
         this.state = {
             isLoaded: false,
-            value: value,
+            value,
             data: [],
-        }
+        };
     }
 
     componentDidMount() {
-        if(!this.state.isLoaded) {
-
+        if (!this.state.isLoaded) {
             let params = null;
 
-            if(this.props.params !== undefined) {
+            if (this.props.params !== undefined) {
                 params = this.props.params;
             }
-            
-            axios.get(this.props.api_call, {params: params}).then((response)=> {                
-                this.setState({data: response.data.map((r) => {
-                    return r;
-                }), isLoaded: true}, () => {
-                    if(this.state.value === null) {
-                        this.setValue(response.data[0]);
-                    }
+
+            axios
+                .get(this.props.api_call, { params })
+                .then((response) => {
+                    this.setState(
+                        {
+                            data: response.data.map((r) => {
+                                return r;
+                            }),
+                            isLoaded: true,
+                        },
+                        () => {
+                            if (this.state.value === null) {
+                                this.setValue(response.data[0]);
+                            }
+                        }
+                    );
+                })
+                .catch((e) => {
+                    alert(e);
                 });
-            }).catch((e) => { alert(e);})
         }
     }
 
     setValue = (v, obj) => {
-        this.setState({value: v}, this.props.change(v, obj));
-    }
+        this.setState({ value: v }, this.props.change(v, obj));
+    };
 
     render() {
-
-        if(!this.state.isLoaded) {
-            return (<CircularProgress color="grey" />);
-        } else {
-            var options = this.state.data.map((d)=> {
-                return (<MenuItem key={d} name={d}value={d}>{d}</MenuItem>)
-            });
-            
-            return (<Select value={this.state.value}
-                            onChange={(e, obj)=>{
-                                this.setValue(e.target.value, obj);
-                            }}>{this.props.children}{options}</Select>);
+        if (!this.state.isLoaded) {
+            return <CircularProgress color="grey" />;
         }
-    }
+        const options = this.state.data.map((d) => {
+            return (
+                <MenuItem key={d} name={d} value={d}>
+                    {d}
+                </MenuItem>
+            );
+        });
 
+        return (
+            <Select
+                value={this.state.value}
+                onChange={(e, obj) => {
+                    this.setValue(e.target.value, obj);
+                }}
+            >
+                {this.props.children}
+                {options}
+            </Select>
+        );
+    }
 }
 
 export default AjaxSelect;
