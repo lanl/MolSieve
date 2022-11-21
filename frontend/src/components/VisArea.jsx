@@ -475,7 +475,7 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
                 gap={0.5}
                 sx={{
                     overflow: 'auto',
-                    flexBasis: '33%',
+                    flexBasis: '35%',
                     gridTemplateColumns: 'repeat(4, 1fr)',
                     justifyItems: 'center',
                 }}
@@ -499,7 +499,7 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
                             stateIDs={ids}
                             globalScale={globalScale}
                             deleteFunc={() => deleteExtents(uuid)}
-                            sx={{ gridColumn: 'span 1', alignSelf: 'center', maxHeight: '90%' }}
+                            sx={{ gridColumn: 'span 1', alignSelf: 'center' }}
                         />
                     );
                 })}

@@ -15,7 +15,7 @@ const MARGIN = {
     top: 25,
     bottom: 20,
     left: 5,
-    right: 0,
+    right: 5,
 };
 
 const minimumChartWidth = 200;
