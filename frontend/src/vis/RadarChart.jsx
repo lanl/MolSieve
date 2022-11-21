@@ -15,6 +15,7 @@ export default function Legend({
     height,
     globalScale,
     onElementMouseOver,
+    renderSingle,
 }) {
     const buildAxis = (property, radius) => {
         const gs = globalScale[property];
@@ -119,6 +120,45 @@ export default function Legend({
                 .style('stroke', 'red')
                 .style('stroke-width', '1px');
 
+            if (renderSingle) {
+                const singlePoints = [];
+                let j = 0;
+                for (const a of axes) {
+                    const angle = angleSlice * j - Math.PI / 2;
+                    const { x, y } = angleToCoord(angle, a.scale(renderSingle[a.property]));
+                    singlePoints.push({ x, y, property: a.property, value: a.median });
+                    j++;
+                }
+
+                const singleLine = linesG
+                    .selectAll('.singleLine')
+                    .data(singlePoints)
+                    .enter()
+                    .append('g')
+                    .classed('singleLine', true)
+                    .classed('clickable', true)
+                    .classed('state', true)
+                    .on('mouseover', function (_, d) {
+                        onElementMouseOver(this, d);
+                    });
+
+                singleLine
+                    .append('circle')
+                    .attr('cx', (d) => d.x)
+                    .attr('cy', (d) => d.y)
+                    .attr('r', 5)
+                    .attr('fill', renderSingle.color);
+
+                singleLine
+                    .append('line')
+                    .attr('x1', 0)
+                    .attr('y1', 0)
+                    .attr('x2', (d) => d.x)
+                    .attr('y2', (d) => d.y)
+                    .style('stroke', renderSingle.color)
+                    .style('stroke-width', '1px');
+            }
+
             // Append the labels at each axis
             axis.append('text')
                 .attr('class', 'legend')
@@ -129,7 +169,7 @@ export default function Legend({
                 .attr('y', (_, i) => rScale(absMax * 0.95) * Math.sin(angleSlice * i - Math.PI / 2))
                 .text((d) => abbreviate(d.property));
         },
-        [data, properties, width, height, globalScale]
+        [data, properties, width, height, globalScale, renderSingle]
     );
     return <svg ref={ref} viewBox={[0, 0, width, height]} width={width} height={height} />;
 }

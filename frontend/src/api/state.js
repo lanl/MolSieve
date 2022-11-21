@@ -9,6 +9,10 @@ export default class State {
         this.id = id;
     }
 
+    get color() {
+        return this.individualColor;
+    }
+
     get individualColor() {
         return mpn65[this.id % mpn65.length];
     }
