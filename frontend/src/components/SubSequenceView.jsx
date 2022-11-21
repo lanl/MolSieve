@@ -1,9 +1,10 @@
 import { React, useState, useEffect } from 'react';
 import Box from '@mui/material/Box';
-
+import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
+import Button from '@mui/material/Button';
+import Divider from '@mui/material/Divider';
 import StateViewer from './StateViewer';
-import ChartBox from './ChartBox';
 import RadarChart from '../vis/RadarChart';
 
 import '../css/App.css';
@@ -14,7 +15,7 @@ import { oneShotTooltip, abbreviate } from '../api/myutils';
 
 export default function SubSequenceView({
     stateIDs,
-    children,
+    deleteFunc,
     properties,
     sx,
     disabled,
@@ -32,36 +33,40 @@ export default function SubSequenceView({
 
     return (
         <Box
+            component={Paper}
             sx={{ sx }}
             onMouseEnter={() => onMouseEnter()}
             onMouseLeave={() => onMouseLeave()}
             disabled={disabled}
         >
-            {children}
-            <Stack direction="row" spacing={2}>
-                <StateViewer stateIDs={stateIDs} sx={{ flexGrow: 1 }} />
-                <ChartBox sx={{ flexGrow: 1 }}>
-                    {(width, height) => (
-                        <RadarChart
-                            data={data}
-                            properties={properties}
-                            width={width}
-                            height={height}
-                            globalScale={globalScale}
-                            onElementMouseOver={(node, d) => {
-                                oneShotTooltip(
-                                    node,
-                                    `<b>${abbreviate(d.property)}</b>: ${d.value}`
-                                );
-                            }}
-                        />
-                    )}
-                </ChartBox>
+            <Button
+                color="secondary"
+                size="small"
+                onClick={() => {
+                    deleteFunc();
+                }}
+            >
+                X
+            </Button>
+            <Divider />
+            <Stack direction="row" spacing={0.5}>
+                <StateViewer stateIDs={stateIDs} />
+                <RadarChart
+                    data={data}
+                    properties={properties}
+                    width={200}
+                    height={200}
+                    globalScale={globalScale}
+                    onElementMouseOver={(node, d) => {
+                        oneShotTooltip(node, `<b>${abbreviate(d.property)}</b>: ${d.value}`);
+                    }}
+                />
             </Stack>
+            <Box sx={{ maxWidth: '400px', overflow: 'scroll' }}>{stateIDs.map((id) => id)}</Box>
         </Box>
     );
 }
-
+//
 SubSequenceView.defaultProps = {
     properties: structuralAnalysisProps,
 };

@@ -314,171 +314,170 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
             maxWidth={false}
             sx={{ display: 'flex', flexDirection: 'column', flex: 1 }}
         >
-            <Box sx={{ display: 'flex', flexDirection: 'row', gap: '10px', flexBasis: '66%' }}>
-                <ChartBox sx={{ flexGrow: 1 }}>
-                    {(width, height, isHovered) => (
-                        <>
-                            <Box
-                                className="floatingToolBar"
-                                sx={{ visibility: isHovered ? 'visible' : 'hidden' }}
+            {/* Chartbox is used here to take up all of the available room and provide onHover for the trajectory toolbar */}
+            <ChartBox sx={{ flexBasis: '65%' }}>
+                {(width, height, isHovered) => (
+                    <>
+                        <Box
+                            className="floatingToolBar"
+                            sx={{ visibility: isHovered ? 'visible' : 'hidden' }}
+                        >
+                            <IconButton
+                                color="secondary"
+                                size="small"
+                                id="showTopButton"
+                                onClick={(e) => setAnchorEl(e.currentTarget)}
                             >
-                                <IconButton
-                                    color="secondary"
-                                    size="small"
-                                    id="showTopButton"
-                                    onClick={(e) => setAnchorEl(e.currentTarget)}
-                                >
-                                    <ViewListIcon />
-                                </IconButton>
-                                <IconButton
-                                    size="small"
-                                    color={selectionMode !== CHUNK_SELECT ? 'secondary' : 'default'}
-                                    onClick={() =>
-                                        startSelection(CHUNK_SELECT, (selection) => {
-                                            console.log(selection);
-                                        })
-                                    }
-                                >
-                                    <DifferenceIcon />
-                                </IconButton>
-                                <Button
-                                    color="secondary"
-                                    size="small"
-                                    onClick={(e) =>
-                                        selectionMode !== FIND_SIMILAR_SELECT
-                                            ? startSelection(FIND_SIMILAR_SELECT, () => {})
-                                            : setAnchorEl(e.currentTarget)
-                                    }
-                                    id="findSimilarButton"
-                                >
-                                    {selectionMode !== FIND_SIMILAR_SELECT
-                                        ? 'FindSimilar'
-                                        : 'ToggleFindSimilar'}
-                                </Button>
+                                <ViewListIcon />
+                            </IconButton>
+                            <IconButton
+                                size="small"
+                                color={selectionMode !== CHUNK_SELECT ? 'secondary' : 'default'}
+                                onClick={() =>
+                                    startSelection(CHUNK_SELECT, (selection) => {
+                                        console.log(selection);
+                                    })
+                                }
+                            >
+                                <DifferenceIcon />
+                            </IconButton>
+                            <Button
+                                color="secondary"
+                                size="small"
+                                onClick={(e) =>
+                                    selectionMode !== FIND_SIMILAR_SELECT
+                                        ? startSelection(FIND_SIMILAR_SELECT, () => {})
+                                        : setAnchorEl(e.currentTarget)
+                                }
+                                id="findSimilarButton"
+                            >
+                                {selectionMode !== FIND_SIMILAR_SELECT
+                                    ? 'FindSimilar'
+                                    : 'ToggleFindSimilar'}
+                            </Button>
 
-                                <Button
-                                    color="secondary"
-                                    size="small"
-                                    onClick={() =>
-                                        startSelection(SWAP_SELECTIONS, (selection) =>
-                                            swapPositions(selection[0], selection[1])
-                                        )
-                                    }
-                                >
-                                    {selectionMode !== SWAP_SELECTIONS
-                                        ? 'SwapSelections'
-                                        : 'CompleteSwap'}
-                                </Button>
-                                <Button
-                                    color="secondary"
-                                    size="small"
-                                    onClick={() =>
-                                        !showStateClustering
-                                            ? GlobalStates.clusterStates(
-                                                  getAllImportantStates(trajectories)
-                                              ).then(() => setShowStateClustering(true))
-                                            : setShowStateClustering(false)
-                                    }
-                                >
-                                    {showStateClustering ? 'ShowStateID' : 'ClusterStates'}
-                                </Button>
-                                <Button
-                                    color="secondary"
-                                    size="small"
-                                    onClick={() => setSelectionMode(CLEAR_SELECTION)}
-                                >
-                                    ClearSelection
-                                </Button>
-                            </Box>
+                            <Button
+                                color="secondary"
+                                size="small"
+                                onClick={() =>
+                                    startSelection(SWAP_SELECTIONS, (selection) =>
+                                        swapPositions(selection[0], selection[1])
+                                    )
+                                }
+                            >
+                                {selectionMode !== SWAP_SELECTIONS
+                                    ? 'SwapSelections'
+                                    : 'CompleteSwap'}
+                            </Button>
+                            <Button
+                                color="secondary"
+                                size="small"
+                                onClick={() =>
+                                    !showStateClustering
+                                        ? GlobalStates.clusterStates(
+                                              getAllImportantStates(trajectories)
+                                          ).then(() => setShowStateClustering(true))
+                                        : setShowStateClustering(false)
+                                }
+                            >
+                                {showStateClustering ? 'ShowStateID' : 'ClusterStates'}
+                            </Button>
+                            <Button
+                                color="secondary"
+                                size="small"
+                                onClick={() => setSelectionMode(CLEAR_SELECTION)}
+                            >
+                                ClearSelection
+                            </Button>
+                        </Box>
 
-                            <Stack direction="column" spacing={2}>
-                                {Object.values(trajectories)
-                                    .sort((a, b) => a.position > b.position)
-                                    .map((trajectory) => {
-                                        const { uChunks, iChunks, topChunkList } =
-                                            getVisibleChunks(trajectory);
+                        <Stack direction="column" spacing={2}>
+                            {Object.values(trajectories)
+                                .sort((a, b) => a.position > b.position)
+                                .map((trajectory) => {
+                                    const { uChunks, iChunks, topChunkList } =
+                                        getVisibleChunks(trajectory);
 
-                                        // NOTE: we STILL need the topChunkList to be all of the chunks for expansion to work when zoomed in!
+                                    // NOTE: we STILL need the topChunkList to be all of the chunks for expansion to work when zoomed in!
 
-                                        const uCharts = uChunks.map((chunk) => {
-                                            return {
-                                                id: chunk.id,
-                                                chunk,
-                                                important: chunk.important,
-                                            };
-                                        });
+                                    const uCharts = uChunks.map((chunk) => {
+                                        return {
+                                            id: chunk.id,
+                                            chunk,
+                                            important: chunk.important,
+                                        };
+                                    });
 
-                                        const iCharts = iChunks.map((chunk) => {
-                                            const chunkIndex = topChunkList.indexOf(chunk);
-                                            let leftBoundary;
-                                            let rightBoundary;
-                                            if (chunkIndex > 0) {
-                                                // get -1
-                                                leftBoundary = topChunkList[chunkIndex - 1];
+                                    const iCharts = iChunks.map((chunk) => {
+                                        const chunkIndex = topChunkList.indexOf(chunk);
+                                        let leftBoundary;
+                                        let rightBoundary;
+                                        if (chunkIndex > 0) {
+                                            // get -1
+                                            leftBoundary = topChunkList[chunkIndex - 1];
+                                        }
+
+                                        if (chunkIndex < topChunkList.length - 1) {
+                                            // get +1
+                                            rightBoundary = topChunkList[chunkIndex + 1];
+                                        }
+
+                                        return {
+                                            id: chunk.id,
+                                            leftBoundary,
+                                            chunk,
+                                            rightBoundary,
+                                            important: chunk.important,
+                                        };
+                                    });
+
+                                    const charts = [...iCharts, ...uCharts];
+
+                                    return (
+                                        <TrajectoryChart
+                                            width={width}
+                                            height={showTop * SPARKLINE_CHART_HEIGHT + 25 + 50}
+                                            trajectory={trajectory}
+                                            run={runs[trajectory.name]}
+                                            setStateHovered={setStateHovered}
+                                            setStateClicked={setStateClicked}
+                                            stateHovered={stateHovered}
+                                            isParentHovered={isHovered}
+                                            charts={charts}
+                                            properties={properties}
+                                            chunkSelectionMode={selectionMode}
+                                            trajectorySelectionMode={
+                                                selectionMode === SWAP_SELECTIONS
                                             }
-
-                                            if (chunkIndex < topChunkList.length - 1) {
-                                                // get +1
-                                                rightBoundary = topChunkList[chunkIndex + 1];
+                                            selectObject={(o) => selectObject(o)}
+                                            selectedObjects={selectedObjects}
+                                            setExtents={setExtents}
+                                            currentSelection={
+                                                selections.current &&
+                                                selections.current.trajectoryName ===
+                                                    trajectory.name
+                                                    ? selections.current
+                                                    : null
                                             }
-
-                                            return {
-                                                id: chunk.id,
-                                                leftBoundary,
-                                                chunk,
-                                                rightBoundary,
-                                                important: chunk.important,
-                                            };
-                                        });
-
-                                        const charts = [...iCharts, ...uCharts];
-
-                                        return (
-                                            <TrajectoryChart
-                                                width={width || window.innerWidth}
-                                                height={showTop * SPARKLINE_CHART_HEIGHT + 25 + 50}
-                                                trajectory={trajectory}
-                                                run={runs[trajectory.name]}
-                                                setStateHovered={setStateHovered}
-                                                setStateClicked={setStateClicked}
-                                                stateHovered={stateHovered}
-                                                isParentHovered={isHovered}
-                                                charts={charts}
-                                                properties={properties}
-                                                chunkSelectionMode={selectionMode}
-                                                trajectorySelectionMode={
-                                                    selectionMode === SWAP_SELECTIONS
-                                                }
-                                                selectObject={(o) => selectObject(o)}
-                                                selectedObjects={selectedObjects}
-                                                setExtents={setExtents}
-                                                currentSelection={
-                                                    selections.current &&
-                                                    selections.current.trajectoryName ===
-                                                        trajectory.name
-                                                        ? selections.current
-                                                        : null
-                                                }
-                                                updateGlobalScale={updateGlobalScale}
-                                                globalScale={globalScale}
-                                                showStateClustering={showStateClustering}
-                                                showTop={showTop}
-                                            />
-                                        );
-                                    })}
-                            </Stack>
-                        </>
-                    )}
-                </ChartBox>
-            </Box>
-            <Stack
-                component={Paper}
-                direction="column"
-                spacing={0.5}
+                                            updateGlobalScale={updateGlobalScale}
+                                            globalScale={globalScale}
+                                            showStateClustering={showStateClustering}
+                                            showTop={showTop}
+                                        />
+                                    );
+                                })}
+                        </Stack>
+                    </>
+                )}
+            </ChartBox>
+            <Box
+                display="grid"
+                gap={0.5}
                 sx={{
-                    overflow: 'scroll',
-                    marginLeft: 5,
-                    marginRight: 5,
+                    overflow: 'auto',
+                    flexBasis: '33%',
+                    gridTemplateColumns: 'repeat(4, 1fr)',
+                    justifyItems: 'center',
                 }}
             >
                 {Object.keys(selections.selections).map((uuid) => {
@@ -499,20 +498,12 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
                             disabled={disabled}
                             stateIDs={ids}
                             globalScale={globalScale}
-                        >
-                            <Button
-                                color="secondary"
-                                size="small"
-                                onClick={() => {
-                                    deleteExtents(uuid);
-                                }}
-                            >
-                                X
-                            </Button>
-                        </SubSequenceView>
+                            deleteFunc={() => deleteExtents(uuid)}
+                            sx={{ gridColumn: 'span 1', alignSelf: 'center', maxHeight: '90%' }}
+                        />
                     );
                 })}
-            </Stack>
+            </Box>
 
             {/* works for now, not the cleanest solution */}
             {currentModal === SINGLE_STATE_MODAL && stateClicked && (
