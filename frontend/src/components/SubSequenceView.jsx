@@ -66,7 +66,7 @@ export default function SubSequenceView({
                     onElementMouseOver={(node, d) => {
                         oneShotTooltip(node, `<b>${abbreviate(d.property)}</b>: ${d.value}`);
                     }}
-                    renderSingle={activeState}
+                    renderSingle={GlobalStates.get(activeState.id)}
                 />
             </Stack>
             <Stack
@@ -74,8 +74,9 @@ export default function SubSequenceView({
                 spacing={0.5}
                 sx={{ maxWidth: '400px', overflow: 'scroll', minHeight: '40px', maxHeight: '40px' }}
             >
-                {stateIDs.map((id, idx) => {
+                {[...new Set(stateIDs)].map((id) => {
                     const state = GlobalStates.get(id);
+                    const idx = stateIDs.indexOf(id);
                     return (
                         <span
                             className="state"
