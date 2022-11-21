@@ -6,7 +6,7 @@ import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
 
 import { abbreviate } from '../api/myutils';
 
-const MARGIN = { left: 0, bottom: 15 };
+const MARGIN = { left: 10, bottom: 15 };
 
 export default function Legend({
     data,
@@ -68,8 +68,8 @@ export default function Legend({
             axis.append('line')
                 .attr('x1', 0)
                 .attr('y1', 0)
-                .attr('x2', (_, i) => rScale(absMax * 1.1) * Math.cos(angleSlice * i - Math.PI / 2))
-                .attr('y2', (_, i) => rScale(absMax * 1.1) * Math.sin(angleSlice * i - Math.PI / 2))
+                .attr('x2', (_, i) => rScale(absMax) * Math.cos(angleSlice * i - Math.PI / 2))
+                .attr('y2', (_, i) => rScale(absMax) * Math.sin(angleSlice * i - Math.PI / 2))
                 .attr('class', 'line')
                 .style('stroke', 'lightgray')
                 .style('stroke-width', '1px');
@@ -99,7 +99,7 @@ export default function Legend({
                 .classed('line', true)
                 .classed('clickable', true)
                 .classed('state', true)
-                .on('mouseover', function(_, d) {
+                .on('mouseover', function (_, d) {
                     onElementMouseOver(this, d);
                 });
 
@@ -125,8 +125,8 @@ export default function Legend({
                 .style('font-size', '9px')
                 .attr('text-anchor', 'middle')
                 .attr('dy', '0.35em')
-                .attr('x', (_, i) => rScale(absMax * 1.1) * Math.cos(angleSlice * i - Math.PI / 2))
-                .attr('y', (_, i) => rScale(absMax * 1.1) * Math.sin(angleSlice * i - Math.PI / 2))
+                .attr('x', (_, i) => rScale(absMax * 0.95) * Math.cos(angleSlice * i - Math.PI / 2))
+                .attr('y', (_, i) => rScale(absMax * 0.95) * Math.sin(angleSlice * i - Math.PI / 2))
                 .text((d) => abbreviate(d.property));
         },
         [data, properties, width, height, globalScale]
