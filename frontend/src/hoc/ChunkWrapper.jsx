@@ -89,7 +89,7 @@ export default function ChunkWrapper({
         );
 
         setProgress(0.0);
-        const seen = new Set();
+        // const seen = new Set();
         let i = 0;
 
         ws.current.addEventListener('close', ({ code }) => {
@@ -154,10 +154,7 @@ export default function ChunkWrapper({
         }
 
         setIsInitialized(false);
-        const { hasProperties, missingProperties } = GlobalStates.subsetHasProperties(
-            properties,
-            chunk.states
-        );
+        const { hasProperties } = GlobalStates.subsetHasProperties(properties, chunk.states);
 
         if (!hasProperties) {
             runSocket();

@@ -3,7 +3,12 @@ import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
+import IconButton from '@mui/material/IconButton';
 import Divider from '@mui/material/Divider';
+import SortIcon from '@mui/icons-material/Sort';
+import Menu from '@mui/material/Menu';
+import MenuItem from '@mui/material/MenuItem';
+
 import StateViewer from './StateViewer';
 import RadarChart from '../vis/RadarChart';
 
@@ -11,7 +16,7 @@ import '../css/App.css';
 
 import { structuralAnalysisProps } from '../api/constants';
 import GlobalStates from '../api/globalStates';
-import { oneShotTooltip, abbreviate } from '../api/myutils';
+import { oneShotTooltip, abbreviate, occurrenceDict } from '../api/myutils';
 
 export default function SubSequenceView({
     stateIDs,
@@ -25,6 +30,30 @@ export default function SubSequenceView({
 }) {
     const [data, setData] = useState([]);
     const [activeState, setActiveState] = useState({ id: stateIDs[0], idx: 0 });
+    const [anchorEl, setAnchorEl] = useState(null);
+    /**
+     * Returns the stateIDs without any sorting.
+     *
+     * @returns {Array<Number>} The sorted stateIDs.
+     */
+    const sortInOrder = () => {
+        return [...new Set(stateIDs)];
+    };
+
+    /**
+     * Sorts state counts by occurrences from greatest to least left to right
+     *
+     * @returns {Array<Number>} The sorted stateIDs.
+     */
+    const sortByCount = () => {
+        const oc = occurrenceDict(stateIDs);
+
+        return Object.entries(oc)
+            .sort((a, b) => a[1] < b[1])
+            .map((e) => parseInt(e[0], 10));
+    };
+
+    const [stateOrder, setStateOrder] = useState(sortByCount());
 
     useEffect(() => {
         GlobalStates.ensureSubsetHasProperties(properties, stateIDs).then(() => {
@@ -41,15 +70,26 @@ export default function SubSequenceView({
             onMouseLeave={() => onMouseLeave()}
             disabled={disabled}
         >
-            <Button
-                color="secondary"
-                size="small"
-                onClick={() => {
-                    deleteFunc();
-                }}
-            >
-                X
-            </Button>
+            <Box display="flex" direction="row">
+                <Button
+                    color="secondary"
+                    size="small"
+                    onClick={() => {
+                        deleteFunc();
+                    }}
+                >
+                    X
+                </Button>
+                <IconButton
+                    color="secondary"
+                    size="small"
+                    onClick={(e) => {
+                        setAnchorEl(e.currentTarget);
+                    }}
+                >
+                    <SortIcon />
+                </IconButton>
+            </Box>
             <Divider />
             <Stack direction="row" spacing={0.5}>
                 <StateViewer
@@ -69,16 +109,18 @@ export default function SubSequenceView({
                     renderSingle={GlobalStates.get(activeState.id)}
                 />
             </Stack>
+            <Divider />
             <Stack
                 direction="row"
                 spacing={0.5}
                 sx={{ maxWidth: '400px', overflow: 'scroll', minHeight: '40px', maxHeight: '40px' }}
             >
-                {[...new Set(stateIDs)].map((id) => {
+                {stateOrder.map((id) => {
                     const state = GlobalStates.get(id);
                     const idx = stateIDs.indexOf(id);
                     return (
                         <span
+                            key={id}
                             className="state"
                             style={{ color: state.individualColor }}
                             onMouseEnter={() => setActiveState({ id, idx })}
@@ -88,6 +130,14 @@ export default function SubSequenceView({
                     );
                 })}
             </Stack>
+            <Menu open={anchorEl !== null} anchorEl={anchorEl} onClose={() => setAnchorEl(null)}>
+                <MenuItem onClick={() => setStateOrder(sortInOrder())}>
+                    Sort by temporal order
+                </MenuItem>
+                <MenuItem onClick={() => setStateOrder(sortByCount())}>
+                    Sort by occurrence count
+                </MenuItem>
+            </Menu>
         </Box>
     );
 }
