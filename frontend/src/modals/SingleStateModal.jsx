@@ -13,7 +13,7 @@ import TableRow from '@mui/material/TableRow';
 import Paper from '@mui/material/Paper';
 import CircularProgress from '@mui/material/CircularProgress';
 import Box from '@mui/material/Box';
-import { api_generate_ovito_image } from '../api/ajax';
+import { apiGenerateOvitoImage } from '../api/ajax';
 
 class SingleStateModal extends React.Component {
     constructor(props) {
@@ -23,7 +23,7 @@ class SingleStateModal extends React.Component {
     }
 
     componentDidMount() {
-        api_generate_ovito_image(this.state.trajectoryState.number)
+        apiGenerateOvitoImage(this.state.trajectoryState.number)
             .then((response) => {
                 const imageData = `data:image/png;base64,${response.image}`;
                 this.setState({ isLoaded: true }, () => {
