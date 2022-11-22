@@ -11,7 +11,7 @@ import DeselectIcon from '@mui/icons-material/Deselect';
 import SparkLine from '../vis/SparkLine';
 
 import { simpleMovingAverage, differentiate } from '../api/stats';
-import { abbreviate, onEntityMouseOver } from '../api/myutils';
+import { abbreviate, onEntityMouseOver, buildDictFromArray } from '../api/myutils';
 
 import Scatterplot from '../vis/Scatterplot';
 import GlobalStates from '../api/globalStates';
@@ -46,6 +46,9 @@ export default function ChunkWrapper({
     });
 
     const [mva, setMva] = useState({});
+    const [stats, setStats] = useState(
+        buildDictFromArray(properties, { std: undefined, mean: undefined })
+    );
 
     const ws = useRef(null);
 
@@ -61,14 +64,22 @@ export default function ChunkWrapper({
     const render = (props) => {
         const mvaDict = {};
         const rDict = {};
+        const statDict = {};
         for (const prop of props) {
-            const m = chunk.calculateMovingAverage(prop, mvaPeriod, simpleMovingAverage);
+            const propList = chunk.getPropList(prop);
+
+            const std = d3.deviation(propList);
+            const mean = d3.mean(propList);
+            const m = simpleMovingAverage(propList, mvaPeriod);
             const diffXtent = d3.extent(differentiate(m));
+
             mvaDict[prop] = m;
             rDict[prop] = diffXtent.reduce((acc, cv) => acc + cv, 0);
+            statDict[prop] = { std, mean };
         }
         setMva(mvaDict);
         updateRanks(rDict, 1.0);
+        setStats(statDict);
     };
 
     const runSocket = () => {
@@ -203,11 +214,14 @@ export default function ChunkWrapper({
             <Stack direction="column">
                 {ranks.map((property) => {
                     const { min, max } = globalScale[property];
+                    const { std, mean } = stats[property];
                     return (
                         <SparkLine
                             key={`${chunk.id}-${property}`}
                             globalScaleMin={min}
                             globalScaleMax={max}
+                            std={std}
+                            mean={mean}
                             width={width}
                             yAttributeList={mva[property]}
                             xAttributeList={chunk.timesteps}

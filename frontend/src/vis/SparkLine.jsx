@@ -18,6 +18,8 @@ export default function SparkLine({
     height,
     xAttributeList,
     yAttributeList,
+    std,
+    mean,
     colors,
     showMedian,
 }) {
@@ -99,16 +101,18 @@ export default function SparkLine({
                 svg.selectAll('*:not(.brush)').remove();
             }
 
-            if (!data) {
+            if (!data || !std || !mean) {
                 return;
             }
 
             const { posDiff, negDiff, noDiff } = colors;
 
-            // draw path and color the line according to the differential
-            colorPath(svg, line, posDiff, (d) => d.d >= 0.01);
-            colorPath(svg, line, negDiff, (d) => d.d <= -0.01);
-            colorPath(svg, line, noDiff, (d) => d.d < 0.01 && d.d > -0.01);
+            const ucl = mean + std;
+            const lcl = mean - std;
+            // draw path and color the line according to the UCL & LCL
+            colorPath(svg, line, posDiff, (d) => ucl <= d.y);
+            colorPath(svg, line, negDiff, (d) => lcl >= d.y);
+            colorPath(svg, line, noDiff, (d) => lcl < d.y && ucl > d.y);
 
             if (showMedian) {
                 const median = d3.median(yAttributeList);
