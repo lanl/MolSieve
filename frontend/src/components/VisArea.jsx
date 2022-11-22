@@ -9,7 +9,6 @@ import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
-import Paper from '@mui/material/Paper';
 import TrajectoryChart from '../vis/TrajectoryChart';
 import ChartBox from './ChartBox';
 
@@ -315,7 +314,7 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
             sx={{ display: 'flex', flexDirection: 'column', flex: 1 }}
         >
             {/* Chartbox is used here to take up all of the available room and provide onHover for the trajectory toolbar */}
-            <ChartBox sx={{ flexBasis: '65%' }}>
+            <ChartBox sx={{ marginBottom: 5 }}>
                 {(width, height, isHovered) => (
                     <>
                         <Box
@@ -475,7 +474,6 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
                 gap={0.5}
                 sx={{
                     overflow: 'auto',
-                    flexBasis: '35%',
                     gridTemplateColumns: 'repeat(4, 1fr)',
                     justifyItems: 'center',
                 }}

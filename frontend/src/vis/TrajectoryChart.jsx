@@ -1,4 +1,4 @@
-import { React, useEffect, useState } from 'react';
+import { React, useEffect } from 'react';
 import * as d3 from 'd3';
 
 import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
@@ -12,7 +12,7 @@ import { abbreviate } from '../api/myutils';
 import '../css/vis.css';
 
 const MARGIN = {
-    top: 25,
+    top: 30,
     bottom: 20,
     left: 5,
     right: 5,
@@ -28,7 +28,6 @@ function TrajectoryChart({
     width,
     height,
     run,
-    isParentHovered,
     charts,
     properties,
     chunkSelectionMode,
@@ -285,9 +284,9 @@ function TrajectoryChart({
             })}
             <rect
                 x={0}
-                y={height / 2}
+                y={MARGIN.top}
                 width={width}
-                height={height / 2}
+                height={height - MARGIN.top}
                 stroke="gray"
                 fill="none"
                 strokeWidth={2}
