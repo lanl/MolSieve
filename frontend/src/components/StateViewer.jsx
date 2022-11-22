@@ -21,9 +21,7 @@ export default function StateViewer({ stateIDs, sx, activeState, setActiveState 
     };
 
     useEffect(() => {
-        if (progress > 0) {
-            setImg(loaded[stateIDs[activeState.idx]]);
-        }
+        setImg(loaded[stateIDs[activeState.idx]]);
     }, [activeState.idx, loaded, stateIDs]);
 
     const runSocket = () => {
@@ -62,7 +60,6 @@ export default function StateViewer({ stateIDs, sx, activeState, setActiveState 
         if (!GlobalStates.subsetHasProperty('img', stateIDs)) {
             runSocket();
         } else {
-            render(stateIDs);
             setProgress(1.0);
         }
 
@@ -72,7 +69,18 @@ export default function StateViewer({ stateIDs, sx, activeState, setActiveState 
                 ws.current = null;
             }
         };
-    }, []);
+    }, [JSON.stringify(stateIDs)]);
+
+    useEffect(() => {
+        if (progress === 1.0 && (!img || Object.keys(loaded).length === 0)) {
+            const states = stateIDs.map((id) => GlobalStates.get(id));
+            const imgDict = {};
+            for (const state of states) {
+                imgDict[state.id] = state.img;
+            }
+            setLoaded(imgDict);
+        }
+    }, [progress]);
 
     return (
         <Box sx={sx}>
