@@ -1,5 +1,4 @@
 import axios from 'axios';
-import Trajectory from './trajectory';
 
 // TODO: decouple trajectory from api calls
 
@@ -9,7 +8,7 @@ import Trajectory from './trajectory';
  * @param {string} run - Name of the run to retrieve the sequence for
  * @param {Array<string>} properties - Properties of the trajectory to retrieve
  */
-export function api_loadSequence(run, properties) {
+export function apiLoadSequence(run, properties) {
     return new Promise((resolve, reject) => {
         axios
             .get('/api/load_sequence', {
@@ -30,11 +29,11 @@ export function api_loadSequence(run, properties) {
 /** Ajax call to calculate the similarity between two paths
  * @param {object} extents1 - Javascript object with name, the sequence object the path starts with, and the sequence object the path ends with
  * @param {object} extents2 - Same as above
- * @param {array} atom_attributes - Array of strings with atom attributes to be compared in similarity calculation
- * @param {array} state_attributes - Array of string with state attributes to be compared in similarity calculation
+ * @param {array} atomAttributes - Array of strings with atom attributes to be compared in similarity calculation
+ * @param {array} stateAttributes - Array of string with state attributes to be compared in similarity calculation
  * @return {number} similarity score
  */
-export function api_calculate_path_similarity(e1, e2, state_attributes, atom_attributes) {
+export function apiCalculatePathSimilarity(e1, e2, stateAttributes, atomAttributes) {
     return new Promise(function (resolve, reject) {
         axios
             .post(
@@ -42,8 +41,8 @@ export function api_calculate_path_similarity(e1, e2, state_attributes, atom_att
                 JSON.stringify({
                     p1: JSON.parse(e1),
                     p2: JSON.parse(e2),
-                    atom_attributes,
-                    state_attributes,
+                    atom_attributes: atomAttributes,
+                    state_attributes: stateAttributes,
                 }),
                 { headers: { 'Content-Type': 'application/json' } }
             )
@@ -57,7 +56,7 @@ export function api_calculate_path_similarity(e1, e2, state_attributes, atom_att
 }
 
 // TODO: add comment
-export function api_performKSTest(rvs, cdf, property) {
+export function apiPerformKSTest(rvs, cdf, property) {
     return new Promise(function (resolve, reject) {
         let processedCdf = null;
         try {
@@ -86,7 +85,7 @@ export function api_performKSTest(rvs, cdf, property) {
 }
 
 // TODO: add comment
-export function api_load_metadata(run, trajectory) {
+export function apiLoadMetadata(run, trajectory) {
     return new Promise(function (resolve, reject) {
         axios
             .get('/api/get_metadata', { params: { run } })
@@ -117,7 +116,7 @@ export function onMessageHandler(onStart, onProgress, onComplete) {
     };
 }
 
-export function api_load_property(property) {
+export function apiLoadProperty(property) {
     return new Promise(function (resolve, reject) {
         axios
             .get('/api/load_property', { params: { prop: property } })
@@ -131,7 +130,7 @@ export function api_load_property(property) {
 }
 
 // TODO: add comment
-export function api_calculate_NEB(run, start, end, interpolate, maxSteps, fmax, saveResults) {
+export function apiCalculateNEB(run, start, end, interpolate, maxSteps, fmax, saveResults) {
     return new Promise(function (resolve, reject) {
         axios
             .get('/api/calculate_neb_on_path', {
@@ -155,7 +154,7 @@ export function api_calculate_NEB(run, start, end, interpolate, maxSteps, fmax, 
     });
 }
 
-export function api_calculate_idToTimestep(run, trajectory) {
+export function apiCalculateIDToTimestep(run, trajectory) {
     return new Promise(function (resolve, reject) {
         axios
             .get('/api/idToTimestep', { params: { run } })
@@ -174,7 +173,7 @@ export function api_calculate_idToTimestep(run, trajectory) {
     });
 }
 
-export function api_generate_ovito_image(number) {
+export function apiGenerateOvitoImage(number) {
     return new Promise(function (resolve, reject) {
         axios
             .get('/api/generate_ovito_image', { params: { number } })

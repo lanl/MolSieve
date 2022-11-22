@@ -26,14 +26,17 @@ export function hashStringToColor(str) {
     )}`.substr(-2)}`;
 }
 
-// https://stackoverflow.com/questions/59065687/how-to-get-most-frequent-occurring-element-in-an-array
-export function mostOccurringElement(arr) {
-    const counts = arr.reduce((a, c) => {
+export function occurrenceDict(arr) {
+    return arr.reduce((a, c) => {
         const d = { ...a };
         d[c] = (d[c] || 0) + 1;
         return d;
     }, {});
+}
 
+// https://stackoverflow.com/questions/59065687/how-to-get-most-frequent-occurring-element-in-an-array
+export function mostOccurringElement(arr) {
+    const counts = occurrenceDict(arr);
     return Object.keys(counts).reduce((a, b) => (counts[a] > counts[b] ? a : b));
 }
 
