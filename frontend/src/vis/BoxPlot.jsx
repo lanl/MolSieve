@@ -32,7 +32,7 @@ export default function BoxPlot({
                 return;
             }
 
-            const { q1, median, q3, iqr, minThreshold, maxThreshold } = data;
+            const { q1, median, q3, iqr } = data;
             const adjWidth = width - MARGIN.left - MARGIN.right;
             const center = width / 2;
 
@@ -109,7 +109,7 @@ export default function BoxPlot({
                 ttInstance = undefined;
             });
         },
-        [property, data, color, globalScaleMin, globalScaleMax, width, height]
+        [property, JSON.stringify(data), color, globalScaleMin, globalScaleMax, width, height]
     );
 
     return (

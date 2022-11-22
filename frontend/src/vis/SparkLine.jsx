@@ -36,7 +36,7 @@ export default function SparkLine({
 
     useEffect(() => {
         setScaleX(buildScaleX());
-    }, [xAttributeList, width]);
+    }, [width]);
 
     const [scaleY, setScaleY] = useState(buildScaleY());
 
@@ -163,7 +163,8 @@ export default function SparkLine({
                 ttInstance = undefined;
             });
         },
-        [scaleX, scaleY, data]
+        // inefficient, but still faster than re-drawing every single datapoint
+        [JSON.stringify(data)]
     );
 
     return (

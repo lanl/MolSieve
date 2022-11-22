@@ -74,7 +74,7 @@ export default function Scatterplot({
 
     useEffect(() => {
         setScaleY(buildScaleY());
-    }, [data, height]);
+    }, [JSON.stringify(data), height]);
 
     /* const renderBackgroundColor = (svg, data, color) => {
         svg.append('rect')
@@ -181,8 +181,10 @@ export default function Scatterplot({
         d3.select(ref.current).selectAll('.currentSelection').classed('currentSelection', false);
 
         if (highlight) {
-            const start = Math.min(...highlight);
-            const end = Math.max(...highlight);
+            const { set, specificElement } = highlight;
+            const start = Math.min(...set);
+            const end = Math.max(...set);
+
             d3.select(ref.current)
                 .append('rect')
                 .attr('class', 'highlight')
@@ -195,7 +197,8 @@ export default function Scatterplot({
 
             d3.select(ref.current)
                 .selectAll('.state')
-                .filter((d) => start <= d.x && d.x <= end)
+                .filter((d) => d.x >= start && d.x <= end)
+                .filter((d) => d.y === specificElement)
                 .classed('currentSelection', true);
         } else {
             d3.select(ref.current).selectAll('.highlight').remove();

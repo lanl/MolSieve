@@ -7,7 +7,6 @@ export default function useRanks(keys) {
             switch (action.type) {
                 case 'updateValues': {
                     const { values, weight } = action.payload;
-                    // console.log('new values, before normalize:', values);
                     const newRanks = normalizeDict(values, [0, 1]);
 
                     const avgRanks = {};
