@@ -496,7 +496,10 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
                             disabled={disabled}
                             stateIDs={ids}
                             globalScale={globalScale}
-                            deleteFunc={() => deleteExtents(uuid)}
+                            deleteFunc={() => {
+                                setCurrentSelection(null);
+                                deleteExtents(uuid);
+                            }}
                             sx={{ gridColumn: 'span 1', alignSelf: 'center' }}
                         />
                     );
