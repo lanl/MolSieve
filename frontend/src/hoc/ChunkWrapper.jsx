@@ -69,12 +69,12 @@ export default function ChunkWrapper({
             const propList = chunk.getPropList(prop);
 
             const std = d3.deviation(propList);
-            const mean = d3.mean(propList);
             const m = simpleMovingAverage(propList, mvaPeriod);
+            const mean = d3.mean(m);
             const diffXtent = d3.extent(differentiate(m));
 
             mvaDict[prop] = m;
-            rDict[prop] = diffXtent.reduce((acc, cv) => acc + cv, 0);
+            rDict[prop] = diffXtent.reduce((acc, cv) => acc + Math.abs(cv), 0);
             statDict[prop] = { std, mean };
         }
         setMva(mvaDict);
@@ -240,7 +240,10 @@ export default function ChunkWrapper({
                 colorFunc={colorFunc}
                 highlight={
                     currentSelection && chunk.containsSequence(currentSelection.timesteps)
-                        ? currentSelection.timesteps
+                        ? {
+                              set: currentSelection.timesteps,
+                              specificElement: currentSelection.activeState,
+                          }
                         : null
                 }
                 xAttributeList={chunk.timesteps}
