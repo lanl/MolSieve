@@ -152,13 +152,19 @@ export default class Chunk {
      * @returns {Array} Array of moving averages.
      */
     calculateMovingAverage(property, n, mf, range) {
+        const propertyList = this.getPropList(property, range);
+        return mf(propertyList, n);
+    }
+
+    getPropList(property, range) {
         let { sequence } = this;
+
         if (range) {
             sequence = sequence.slice(range[0], range[1]);
         }
+
         const stateSequence = sequence.map((id) => GlobalStates.get(id));
-        const propertyList = stateSequence.map((d) => d[property]);
-        return mf(propertyList, n);
+        return stateSequence.map((d) => d[property]);
     }
 
     /**
