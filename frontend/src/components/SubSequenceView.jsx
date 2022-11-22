@@ -62,11 +62,15 @@ export default function SubSequenceView({
         });
     }, []);
 
+    useEffect(() => {
+        onMouseEnter(activeState.id);
+    }, [activeState]);
+
     return (
         <Box
             component={Paper}
             sx={{ sx }}
-            onMouseEnter={() => onMouseEnter()}
+            onMouseEnter={() => onMouseEnter(activeState.id)}
             onMouseLeave={() => onMouseLeave()}
             disabled={disabled}
         >

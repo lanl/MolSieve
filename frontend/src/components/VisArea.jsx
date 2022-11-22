@@ -491,7 +491,9 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
 
                     return (
                         <SubSequenceView
-                            onMouseEnter={() => setCurrentSelection({ timesteps, trajectoryName })}
+                            onMouseEnter={(activeState) =>
+                                setCurrentSelection({ timesteps, trajectoryName, activeState })
+                            }
                             onMouseLeave={() => setCurrentSelection(null)}
                             disabled={disabled}
                             stateIDs={ids}
