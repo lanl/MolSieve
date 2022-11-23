@@ -58,24 +58,24 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
             switch (action.type) {
                 case 'create':
                     return {
-                        selections: { ...state.selections, [createUUID()]: action.payload },
+                        values: { ...state.values, [createUUID()]: action.payload },
                         current: state.current,
                     };
                 case 'delete': {
-                    const { [action.payload]: _, ...rest } = state.selections;
+                    const { [action.payload]: _, ...rest } = state.values;
                     return {
-                        selections: rest,
+                        values: rest,
                         current: state.current,
                     };
                 }
                 case 'setCurrent':
-                    return { selections: state.selections, current: action.payload };
+                    return { values: state.values, current: action.payload };
                 default:
                     throw new Error('Unknown action');
             }
         },
         {
-            selections: {},
+            values: {},
             current: null,
         }
     );
@@ -451,13 +451,7 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
                                             selectObject={(o) => selectObject(o)}
                                             selectedObjects={selectedObjects}
                                             setExtents={setExtents}
-                                            currentSelection={
-                                                selections.current &&
-                                                selections.current.trajectoryName ===
-                                                    trajectory.name
-                                                    ? selections.current
-                                                    : null
-                                            }
+                                            selections={selections}
                                             updateGlobalScale={updateGlobalScale}
                                             globalScale={globalScale}
                                             showStateClustering={showStateClustering}
@@ -478,8 +472,8 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
                     justifyItems: 'center',
                 }}
             >
-                {Object.keys(selections.selections).map((uuid) => {
-                    const selection = selections.selections[uuid];
+                {Object.keys(selections.values).map((uuid) => {
+                    const selection = selections.values[uuid];
                     const { extent, trajectoryName } = selection;
 
                     const ids = extent.map((d) => d.id);
@@ -492,7 +486,7 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
                     return (
                         <SubSequenceView
                             onMouseEnter={(activeState) =>
-                                setCurrentSelection({ timesteps, trajectoryName, activeState })
+                                setCurrentSelection({ id: uuid, activeState })
                             }
                             onMouseLeave={() => setCurrentSelection(null)}
                             disabled={disabled}
@@ -579,10 +573,8 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
                     <TextField
                         type="number"
                         inputProps={{
-                            inputProps: {
-                                min: 1,
-                                max: properties.length,
-                            },
+                            min: 1,
+                            max: properties.length,
                             inputMode: 'numeric',
                             pattern: '[0-9]*',
                         }}

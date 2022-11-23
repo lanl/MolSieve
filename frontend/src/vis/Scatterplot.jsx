@@ -22,7 +22,7 @@ export default function Scatterplot({
     onElementClick,
     onElementMouseOver,
     onElementMouseOut,
-    highlight,
+    selected,
 }) {
     const { setInternalExtents, completeSelection } = useExtents(setExtents, onSetExtentsComplete);
 
@@ -180,37 +180,41 @@ export default function Scatterplot({
     useEffect(() => {
         d3.select(ref.current).selectAll('.currentSelection').classed('currentSelection', false);
 
-        if (highlight) {
-            const { set, specificElement } = highlight;
-            const start = Math.min(...set);
-            const end = Math.max(...set);
+        if (selected) {
+            for (const s of selected) {
+                const { set, active, highlightValue } = s;
+                const start = Math.min(...set);
+                const end = Math.max(...set);
 
-            d3.select(ref.current)
-                .append('rect')
-                .attr('class', 'highlight')
-                .attr('x', scaleX(start))
-                .attr('y', 0)
-                .attr('height', height)
-                .attr('width', scaleX(end) - scaleX(start))
-                .attr('fill', 'none')
-                .attr('stroke', 'red');
+                d3.select(ref.current)
+                    .append('rect')
+                    .attr('x', scaleX(start))
+                    .attr('y', 0)
+                    .attr('height', height)
+                    .attr('width', scaleX(end) - scaleX(start))
+                    .attr('fill', 'none')
+                    .attr('stroke', () => (active ? 'blue' : 'red'))
+                    .attr('class', 'selection');
 
-            d3.select(ref.current)
-                .selectAll('.state')
-                .filter((d) => d.x >= start && d.x <= end)
-                .filter((d) => d.y === specificElement)
-                .classed('currentSelection', true);
+                if (active) {
+                    d3.select(ref.current)
+                        .selectAll('.state')
+                        .filter((d) => d.x >= start && d.x <= end)
+                        .filter((d) => d.y === highlightValue)
+                        .classed('currentSelection', true);
+                }
+            }
         } else {
-            d3.select(ref.current).selectAll('.highlight').remove();
+            d3.select(ref.current).selectAll('.selection').remove();
         }
 
         return () => {
-            d3.select(ref.current).selectAll('.highlight').remove();
+            d3.select(ref.current).selectAll('.selection').remove();
             d3.select(ref.current)
                 .selectAll('.currentSelection')
                 .classed('currentSelection', false);
         };
-    }, [highlight]);
+    }, [JSON.stringify(selected)]);
 
     return (
         <svg

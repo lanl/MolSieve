@@ -33,7 +33,7 @@ export default function ChunkWrapper({
     ranks,
     setExtents,
     showStateClustering,
-    currentSelection,
+    selections,
 }) {
     const [isInitialized, setIsInitialized] = useState(false);
     const [progress, setProgress] = useState(0.0);
@@ -238,14 +238,7 @@ export default function ChunkWrapper({
                 selectionMode={selectionMode}
                 onSetExtentsComplete={() => setSelectionMode(false)}
                 colorFunc={colorFunc}
-                highlight={
-                    currentSelection && chunk.containsSequence(currentSelection.timesteps)
-                        ? {
-                              set: currentSelection.timesteps,
-                              specificElement: currentSelection.activeState,
-                          }
-                        : null
-                }
+                selected={selections}
                 xAttributeList={chunk.timesteps}
                 yAttributeList={chunk.sequence}
                 onElementMouseOver={(node, d) => {

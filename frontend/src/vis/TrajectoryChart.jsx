@@ -24,7 +24,7 @@ function TrajectoryChart({
     trajectory,
     setStateHovered,
     stateHovered,
-    currentSelection,
+    selections,
     width,
     height,
     run,
@@ -216,6 +216,27 @@ function TrajectoryChart({
                 const chunkIndex = topChunkList.indexOf(chunk);
 
                 const chartW = scaleX(getWidthScale(chunk));
+
+                const { values, current } = selections;
+                const chartSelections = Object.keys(values)
+                    .filter((selectionID) => {
+                        const selection = values[selectionID];
+                        const timesteps = selection.extent.map((d) => d.timestep);
+                        return (
+                            selection.trajectoryName === trajectory.name &&
+                            chunk.containsSequence(timesteps)
+                        );
+                    })
+                    .map((selectionID) => {
+                        const selection = values[selectionID];
+                        return {
+                            set: selection.extent.map((d) => d.timestep),
+                            active: current ? selectionID === current.id : null,
+                            highlightValue:
+                                current && selectionID === current.id ? current.activeState : null,
+                        };
+                    });
+
                 return (
                     <foreignObject
                         key={id}
@@ -260,7 +281,7 @@ function TrajectoryChart({
                                         ranks={ranks.ordered.slice(0, showTop)}
                                         disableControls={chunkSelectionMode}
                                         setExtents={setExtents}
-                                        currentSelection={currentSelection}
+                                        selections={chartSelections}
                                         showStateClustering={showStateClustering}
                                         showTop={showTop}
                                     />
