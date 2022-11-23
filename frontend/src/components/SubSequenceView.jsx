@@ -53,7 +53,7 @@ export default function SubSequenceView({
             .map((e) => parseInt(e[0], 10));
     };
 
-    const [stateOrder, setStateOrder] = useState(sortByCount());
+    const [stateOrder, setStateOrder] = useState(sortByCount);
 
     useEffect(() => {
         GlobalStates.ensureSubsetHasProperties(properties, stateIDs).then(() => {
@@ -64,7 +64,7 @@ export default function SubSequenceView({
 
     useEffect(() => {
         onMouseEnter(activeState.id);
-    }, [activeState]);
+    }, [activeState.id]);
 
     return (
         <Box
@@ -135,10 +135,10 @@ export default function SubSequenceView({
                 })}
             </Stack>
             <Menu open={anchorEl !== null} anchorEl={anchorEl} onClose={() => setAnchorEl(null)}>
-                <MenuItem onClick={() => setStateOrder(sortInOrder())}>
+                <MenuItem onClick={() => setStateOrder(sortInOrder)}>
                     Sort by temporal order
                 </MenuItem>
-                <MenuItem onClick={() => setStateOrder(sortByCount())}>
+                <MenuItem onClick={() => setStateOrder(sortByCount)}>
                     Sort by occurrence count
                 </MenuItem>
             </Menu>

@@ -194,7 +194,8 @@ export default function Scatterplot({
                     .attr('width', scaleX(end) - scaleX(start))
                     .attr('fill', 'none')
                     .attr('stroke', () => (active ? 'blue' : 'red'))
-                    .attr('class', 'selection');
+                    .attr('stroke-width', 2)
+                    .classed('selection', true);
 
                 if (active) {
                     d3.select(ref.current)

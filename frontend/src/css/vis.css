@@ -93,9 +93,10 @@
 }
 
 .selection {
-    opacity: 0.5
+    opacity: 0.5;
 }
 
 .selection:hovered {
-    opacity: 1.0
+    opacity: 1.0;
+    cursor: pointer;
 }
