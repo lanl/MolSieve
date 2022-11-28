@@ -543,12 +543,14 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
                     State ratio comparison
                 </MenuItem>
                 <MenuItem
+                    disabled
                     onClick={() => {
                         startSelection(FIND_SIMILAR_SELECT, (selection) =>
                             findSimilar(
                                 (a, b) => {
                                     const aStates = a.states.map((id) => GlobalStates.get(id));
                                     const bStates = b.states.map((id) => GlobalStates.get(id));
+                                    // for which property?
                                     return zTest(
                                         aStates.map((d) => d[properties]),
                                         bStates.map((d) => d[properties])

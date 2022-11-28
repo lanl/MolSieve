@@ -4,6 +4,7 @@ import * as d3 from 'd3';
 import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
 import ChunkWrapper from '../hoc/ChunkWrapper';
 import BoxPlotWrapper from '../hoc/BoxPlotWrapper';
+import GlobalStates from '../api/globalStates';
 
 import EmbeddedChart from './EmbeddedChart';
 
@@ -249,6 +250,13 @@ function TrajectoryChart({
                             height={height - MARGIN.top}
                             width={chartW}
                             color={chunk.color}
+                            onSelectionComplete={({ start, end }) => {
+                                console.log('selection complete');
+                                const states = chunk.sequence
+                                    .slice(start, end + 1)
+                                    .map((sID) => GlobalStates.get(sID));
+                                setExtents(states, trajectory.name);
+                            }}
                             onChartClick={() => {
                                 if (chunkSelectionMode && !trajectorySelectionMode) {
                                     selectObject(chunk);
@@ -260,8 +268,9 @@ function TrajectoryChart({
                                 !trajectorySelectionMode &&
                                 selectedObjects.map((d) => d.id).includes(chunk.id)
                             }
+                            withBrush={chunk.important}
                         >
-                            {(ww, hh, isPHovered) =>
+                            {(ww, hh, selection) =>
                                 important ? (
                                     <ChunkWrapper
                                         chunk={chunk}
@@ -274,7 +283,6 @@ function TrajectoryChart({
                                         properties={properties}
                                         trajectory={trajectory}
                                         run={run}
-                                        isParentHovered={isPHovered}
                                         globalScale={globalScale}
                                         updateGlobalScale={updateGlobalScale}
                                         updateRanks={updateRanks}
@@ -284,6 +292,7 @@ function TrajectoryChart({
                                         selections={chartSelections}
                                         showStateClustering={showStateClustering}
                                         showTop={showTop}
+                                        newSelection={selection}
                                     />
                                 ) : (
                                     <BoxPlotWrapper

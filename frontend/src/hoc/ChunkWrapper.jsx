@@ -2,12 +2,9 @@ import { React, useState, useEffect, useRef } from 'react';
 
 import * as d3 from 'd3';
 import Box from '@mui/material/Box';
-import IconButton from '@mui/material/IconButton';
 import LinearProgress from '@mui/material/LinearProgress';
 
 import Stack from '@mui/material/Stack';
-import HighlightAltIcon from '@mui/icons-material/HighlightAlt';
-import DeselectIcon from '@mui/icons-material/Deselect';
 import SparkLine from '../vis/SparkLine';
 
 import { simpleMovingAverage, differentiate } from '../api/stats';
@@ -26,7 +23,6 @@ export default function ChunkWrapper({
     properties,
     width,
     trajectory,
-    isParentHovered,
     globalScale,
     updateGlobalScale,
     updateRanks,
@@ -195,19 +191,6 @@ export default function ChunkWrapper({
             {progress < 1.0 ? (
                 <LinearProgress variant="determinate" value={progress * 100} />
             ) : null}
-            <Box
-                className="floatingToolBar"
-                sx={{ visibility: isParentHovered ? 'visible' : 'hidden' }}
-            >
-                <IconButton
-                    color="secondary"
-                    size="small"
-                    aria-label={selectionMode ? 'Clear Selection' : 'Start Selection'}
-                    onClick={() => setSelectionMode(!selectionMode)}
-                >
-                    {selectionMode ? <DeselectIcon /> : <HighlightAltIcon />}
-                </IconButton>
-            </Box>
             <Stack direction="column">
                 {ranks.map((property) => {
                     const { min, max } = globalScale[property];
