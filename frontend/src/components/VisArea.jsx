@@ -273,7 +273,7 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
         const selected = selection[0];
         focusChart(selected.id);
 
-        const visible = getAllVisibleChunks().filter((c) => c.id !== selected.id);
+        const visible = getAllVisibleChunks().filter((c) => c.id !== selected.id && c.important);
         const similarities = {};
         for (const vc of visible) {
             const sim = chunkSimilarityFunc(selected, vc);

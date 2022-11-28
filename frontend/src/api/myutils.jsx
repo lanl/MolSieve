@@ -374,17 +374,43 @@ export function chunkSimilarity(a, b) {
 export function compareSets(a, b) {
     if (a.size !== b.size) {
         const largest = a.size > b.size ? a : b;
-
-        let smallest;
-        if (a.size === largest) {
-            smallest = b;
-        } else {
-            smallest = a;
-        }
-
+        const smallest = a.size === largest.size ? b : a;
         return { smallest, largest };
     }
     return { a, b };
+}
+export function magnitude(a) {
+    if (a.length === 0) {
+        return 0;
+    }
+
+    const sum = a.reduce((acc, e) => acc + e * e, 0);
+    return Math.sqrt(sum);
+}
+
+export function dot(a, b) {
+    if (a.length !== b.length) {
+        throw new Error('Arrays A & B must be the same length.');
+    }
+
+    let val = 0;
+    for (let i = 0; i < a.length; i++) {
+        val += a[i] * b[i];
+    }
+    return val;
+}
+
+export function cosineSimilarity(a, b) {
+    if (a.length !== b.length) {
+        throw new Error('Arrays A & B must be the same length.');
+    }
+
+    if (a.length === 0 || b.length === 0) {
+        return 0;
+    }
+
+    const dotp = dot(a, b);
+    return dotp / magnitude(a) + magnitude(b);
 }
 
 /**
@@ -398,28 +424,24 @@ export function stateRatioChunkSimilarity(a, b) {
     const aRatios = a.stateRatios;
     const bRatios = b.stateRatios;
 
+    console.log(aRatios, bRatios);
+
     const { smallest, largest } = compareSets(aRatios, bRatios);
 
-    const sim = [];
-    for (const [stateID, ratio] of largest) {
-        const sVal = smallest.get(stateID);
-        if (sVal) {
-            sim.push(ratio - sVal);
+    // cosine similarity
+    const smallVec = [];
+    const largeVec = [];
+    for (const [stateID, sVal] of smallest.entries()) {
+        const lVal = largest.get(stateID);
+        if (lVal) {
+            largeVec.push(lVal);
         } else {
-            sim.push(0);
+            largeVec.push(0);
         }
+        smallVec.push(sVal);
     }
 
-    // scale each difference between 1 and 0
-    const diffScale = d3.scaleLinear().range([0, 1]).domain(d3.extent(sim));
-    let sum = 0;
-    for (const s of sim) {
-        sum += diffScale(s);
-    }
-
-    // return the complement of this total sum
-
-    return 1 - sum / largest.size;
+    return cosineSimilarity(smallVec, largeVec);
 }
 
 export function percentToString(num) {

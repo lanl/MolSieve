@@ -231,7 +231,7 @@ function TrajectoryChart({
                         const selection = values[selectionID];
                         return {
                             set: selection.extent.map((d) => d.timestep),
-                            active: current ? selectionID === current.id : null,
+                            active: current && selectionID === current.id,
                             highlightValue:
                                 current && selectionID === current.id ? current.activeState : null,
                         };
