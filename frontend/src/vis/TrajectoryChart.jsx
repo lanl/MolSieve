@@ -198,6 +198,19 @@ function TrajectoryChart({
         return w;
     };
 
+    const finishBrush = (chunk, { selection }) => {
+        const [start, end] = selection;
+        // convert start, end to proper values
+        const states = chunk.sequence
+            .slice(start, end + 1)
+            .map((sID) => GlobalStates.get(sID))
+            .map((s, i) => ({
+                timestep: chunk.timestep + start + i,
+                id: s.id,
+            }));
+        setExtents(states, trajectory.name);
+    };
+
     return (
         <svg
             className="vis"
@@ -250,13 +263,7 @@ function TrajectoryChart({
                             height={height - MARGIN.top}
                             width={chartW}
                             color={chunk.color}
-                            onSelectionComplete={({ start, end }) => {
-                                console.log('selection complete');
-                                const states = chunk.sequence
-                                    .slice(start, end + 1)
-                                    .map((sID) => GlobalStates.get(sID));
-                                setExtents(states, trajectory.name);
-                            }}
+                            brush={d3.brushX().on('end', (e) => finishBrush(chunk, e))}
                             onChartClick={() => {
                                 if (chunkSelectionMode && !trajectorySelectionMode) {
                                     selectObject(chunk);
