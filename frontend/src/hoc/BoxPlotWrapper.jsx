@@ -6,18 +6,17 @@ import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
 
 import { boxPlotStats } from '../api/stats';
+import loadChart from '../api/websocketmethods';
 
 import BoxPlot from '../vis/BoxPlot';
 import GlobalStates from '../api/globalStates';
 import LoadingBox from '../components/LoadingBox';
-import WebSocketManager from '../api/websocketmanager';
 
 const moveBy = 100;
 
 export default function BoxPlotWrapper({
     chunk,
     width,
-    height,
     properties,
     updateRanks,
     ranks,
@@ -30,11 +29,11 @@ export default function BoxPlotWrapper({
     const [progress, setProgress] = useState(0.0);
     const ws = useRef(null);
 
-    const render = (states, props) => {
+    const render = () => {
         const bpStatDict = {};
         const rd = {};
-        for (const prop of props) {
-            const vals = states.map((d) => d[prop]);
+        for (const prop of properties) {
+            const vals = chunk.getPropList(prop);
             const bpStats = boxPlotStats(vals);
             bpStatDict[prop] = bpStats;
             rd[prop] = bpStats.iqr;
@@ -43,70 +42,13 @@ export default function BoxPlotWrapper({
         updateRanks(rd, 0.25);
     };
 
-    const updateGS = (states, props) => {
+    const updateGS = (states) => {
         const propDict = {};
-        for (const prop of props) {
+        for (const prop of properties) {
             const vals = states.map((d) => d[prop]);
             propDict[prop] = { min: d3.min(vals), max: d3.max(vals) };
         }
         updateGlobalScale({ type: 'update', payload: propDict });
-    };
-
-    const runSocket = () => {
-        ws.current = WebSocketManager.connect(
-            'ws://localhost:8000/api/load_properties_for_subset',
-            chunk.trajectory.name
-        );
-        let i = 0;
-        const cStates = chunk.selected.map((id) => GlobalStates.get(id));
-
-        ws.current.addEventListener('close', ({ code }) => {
-            if (code === 3001 || code === 1011) {
-                setIsInterrupted(true);
-            }
-        });
-
-        ws.current.addEventListener('open', () => {
-            const states = [...chunk.selected.slice(i * moveBy, (i + 1) * moveBy)];
-            i++;
-            ws.current.send(
-                JSON.stringify({
-                    props: properties,
-                    stateIds: [...states],
-                })
-            );
-        });
-
-        ws.current.addEventListener('message', (e) => {
-            const parsedData = JSON.parse(e.data);
-            GlobalStates.addPropToStates(parsedData);
-
-            setProgress((i * moveBy) / chunk.selected.length);
-
-            updateGS(parsedData, properties);
-            render(cStates, properties);
-
-            setIsInitialized(true);
-            let sendStates = [];
-
-            if (i * moveBy < chunk.selected.length) {
-                const nc = [...chunk.selected.slice(i * moveBy, (i + 1) * moveBy)];
-                sendStates = nc;
-            }
-
-            if (!sendStates.length) {
-                ws.current.close(1000);
-            } else {
-                i++;
-
-                ws.current.send(
-                    JSON.stringify({
-                        props: properties,
-                        stateIds: [...new Set(sendStates)],
-                    })
-                );
-            }
-        });
     };
 
     /* useEffect(() => {
@@ -120,18 +62,25 @@ export default function BoxPlotWrapper({
         }
 
         setIsInitialized(false);
-        const { hasProperties, missingProperties } = GlobalStates.subsetHasProperties(
-            properties,
-            chunk.selected
-        );
+        const { hasProperties } = GlobalStates.subsetHasProperties(properties, chunk.selected);
 
         if (!hasProperties) {
-            runSocket();
+            loadChart(
+                chunk.selected,
+                moveBy,
+                ws,
+                chunk.trajectory.name,
+                properties,
+                setProgress,
+                setIsInterrupted,
+                updateGS,
+                render,
+                setIsInitialized
+            );
         } else {
             setIsInitialized(true);
             setProgress(1.0);
-            const states = chunk.selected.map((id) => GlobalStates.get(id));
-            render(states, properties);
+            render();
         }
 
         return () => {

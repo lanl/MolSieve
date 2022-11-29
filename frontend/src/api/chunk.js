@@ -156,14 +156,23 @@ export default class Chunk {
         return mf(propertyList, n);
     }
 
+    /**
+     * Depending on if the chunk is important or not, returns either this.sequence or this.selected.
+     *
+     * @returns {Array<Number>} Array of IDs to use for whatever calculation you need them for.
+     */
+    getMainValues() {
+        return this.important ? this.sequence : this.selected;
+    }
+
     getPropList(property, range) {
-        let { sequence } = this;
+        let states = this.getMainValues();
 
         if (range) {
-            sequence = sequence.slice(range[0], range[1]);
+            states = states.slice(range[0], range[1]);
         }
 
-        const stateSequence = sequence.map((id) => GlobalStates.get(id));
+        const stateSequence = states.map((id) => GlobalStates.get(id));
         return stateSequence.map((d) => d[property]);
     }
 

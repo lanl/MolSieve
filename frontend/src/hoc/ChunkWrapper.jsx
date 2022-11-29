@@ -8,12 +8,13 @@ import Stack from '@mui/material/Stack';
 import SparkLine from '../vis/SparkLine';
 
 import { simpleMovingAverage, differentiate } from '../api/stats';
-import { abbreviate, onEntityMouseOver, buildDictFromArray, setDifference } from '../api/myutils';
+import { abbreviate, onEntityMouseOver, buildDictFromArray } from '../api/myutils';
 
 import Scatterplot from '../vis/Scatterplot';
 import GlobalStates from '../api/globalStates';
-import WebSocketManager from '../api/websocketmanager';
 import LoadingBox from '../components/LoadingBox';
+
+import loadChart from '../api/websocketmethods';
 
 const moveBy = 100;
 const mvaPeriod = 100;
@@ -47,20 +48,20 @@ export default function ChunkWrapper({
 
     const ws = useRef(null);
 
-    const updateGS = (states, props) => {
+    const updateGS = (states) => {
         const propDict = {};
-        for (const prop of props) {
+        for (const prop of properties) {
             const vals = states.map((d) => d[prop]);
             propDict[prop] = { min: d3.min(vals), max: d3.max(vals) };
         }
         updateGlobalScale({ type: 'update', payload: propDict });
     };
 
-    const render = (props) => {
+    const render = () => {
         const mvaDict = {};
         const rDict = {};
         const statDict = {};
-        for (const prop of props) {
+        for (const prop of properties) {
             const propList = chunk.getPropList(prop);
 
             const std = d3.deviation(propList);
@@ -77,77 +78,6 @@ export default function ChunkWrapper({
         setStats(statDict);
     };
 
-    const runSocket = (statesToLoad) => {
-        ws.current = WebSocketManager.connect(
-            'ws://localhost:8000/api/load_properties_for_subset',
-            chunk.trajectory.name
-        );
-
-        setProgress(0.0);
-        let seen;
-        let i = 0;
-
-        ws.current.addEventListener('close', ({ code }) => {
-            if (code === 3001 || code === 1011) {
-                setIsInterrupted(true);
-            }
-        });
-
-        let currentStates = [];
-        const total = statesToLoad.length;
-
-        ws.current.addEventListener('open', () => {
-            currentStates = [...statesToLoad.slice(i * moveBy, (i + 1) * moveBy)];
-            i++;
-
-            seen = new Set(currentStates);
-            const currentStateSet = [...seen];
-
-            ws.current.send(
-                JSON.stringify({
-                    props: properties,
-                    stateIds: currentStateSet,
-                })
-            );
-        });
-
-        ws.current.addEventListener('message', (e) => {
-            const parsedData = JSON.parse(e.data);
-            GlobalStates.addPropToStates(parsedData);
-
-            updateGS(parsedData, properties);
-
-            const currProgress = i * moveBy;
-            setProgress(currProgress / total);
-
-            setIsInitialized(true);
-
-            render(properties);
-
-            let sendStates = [];
-            // if the chunks have not been fully loaded, continue
-            if (i * moveBy < statesToLoad.length) {
-                const newStateSet = new Set(statesToLoad.slice(i * moveBy, (i + 1) * moveBy));
-                // only send states that exist in newStateSet and not seen
-                const diffSet = setDifference(newStateSet, seen);
-                sendStates = [...diffSet];
-                seen = new Set([...diffSet, ...seen]);
-            }
-
-            if (!sendStates.length) {
-                ws.current.close(1000);
-            } else {
-                i++;
-                ws.current.send(
-                    JSON.stringify({
-                        props: properties,
-                        stateIds: sendStates,
-                    })
-                );
-            }
-        });
-    };
-
     useEffect(() => {
         if (ws.current) {
             ws.current.close();
@@ -158,11 +88,22 @@ export default function ChunkWrapper({
         const { hasProperties } = GlobalStates.subsetHasProperties(properties, chunk.states);
 
         if (!hasProperties) {
-            runSocket(chunk.states);
+            loadChart(
+                chunk.states,
+                moveBy,
+                ws,
+                chunk.trajectory.name,
+                properties,
+                setProgress,
+                setIsInterrupted,
+                updateGS,
+                render,
+                setIsInitialized
+            );
         } else {
             setProgress(1.0);
             setIsInitialized(true);
-            render(properties);
+            render();
         }
 
         return () => {
