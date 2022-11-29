@@ -16,7 +16,7 @@ const MARGIN = {
     top: 30,
     bottom: 20,
     left: 5,
-    right: 5,
+    right: 75,
 };
 
 const minimumChartWidth = 200;
@@ -260,7 +260,7 @@ function TrajectoryChart({
                 return (
                     <foreignObject
                         key={id}
-                        x={getX(chunkIndex, 0, topChunkList, scaleX, getWidthScale)}
+                        x={getX(chunkIndex, 0, topChunkList, scaleX, getWidthScale) + MARGIN.right}
                         y={0}
                         width={chartW}
                         height={h}
