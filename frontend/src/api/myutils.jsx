@@ -455,7 +455,7 @@ export function percentToString(num) {
  * @returns {String} string - Abbreviated string
  */
 export function abbreviate(string) {
-    return string.replaceAll(/([a-z])/g, '');
+    return string.replaceAll(/([a-z])/g, '').replaceAll(/__/g, '_');
 }
 
 /**
