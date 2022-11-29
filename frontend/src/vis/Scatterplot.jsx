@@ -186,17 +186,6 @@ export default function Scatterplot({
                 const start = Math.min(...set);
                 const end = Math.max(...set);
 
-                d3.select(ref.current)
-                    .append('rect')
-                    .attr('x', scaleX(start))
-                    .attr('y', 0)
-                    .attr('height', height)
-                    .attr('width', scaleX(end) - scaleX(start))
-                    .attr('fill', 'none')
-                    .attr('stroke', () => (active ? 'blue' : 'red'))
-                    .attr('stroke-width', 2)
-                    .classed('selection', true);
-
                 if (active) {
                     d3.select(ref.current)
                         .selectAll('.state')

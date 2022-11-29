@@ -212,7 +212,7 @@ function TrajectoryChart({
                 id: s.id,
             }))
             .filter((d) => d.timestep >= start && d.timestep <= end);
-        setExtents(states, trajectory.name);
+        setExtents(states, trajectory.name, { start: selection[0], end: selection[1] });
     };
 
     return (
@@ -252,6 +252,7 @@ function TrajectoryChart({
                             active: current && selectionID === current.id,
                             highlightValue:
                                 current && selectionID === current.id ? current.activeState : null,
+                            originalExtent: selection.originalExtent,
                         };
                     });
 
@@ -279,6 +280,7 @@ function TrajectoryChart({
                                 !trajectorySelectionMode &&
                                 selectedObjects.map((d) => d.id).includes(chunk.id)
                             }
+                            selections={chartSelections}
                         >
                             {(ww, hh, selection) =>
                                 important ? (
