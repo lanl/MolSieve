@@ -11,11 +11,11 @@ import { useExtents } from '../hooks/useExtents';
 const MARGIN = { top: 5, bottom: 10, left: 0, right: 5 };
 
 export default function Scatterplot({
-    setExtents,
+    addSelection,
     width,
     height,
     selectionMode,
-    onSetExtentsComplete,
+    onSelectionComplete,
     colorFunc,
     xAttributeList,
     yAttributeList,
@@ -24,7 +24,7 @@ export default function Scatterplot({
     onElementMouseOut,
     selected,
 }) {
-    const { setInternalExtents, completeSelection } = useExtents(setExtents, onSetExtentsComplete);
+    const { setInternalExtents, completeSelection } = useExtents(addSelection, onSelectionComplete);
 
     const buildData = () => {
         let listLength;

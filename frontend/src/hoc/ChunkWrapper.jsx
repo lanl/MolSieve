@@ -27,7 +27,6 @@ export default function ChunkWrapper({
     updateGlobalScale,
     updateRanks,
     ranks,
-    setExtents,
     showStateClustering,
     selections,
 }) {
@@ -212,10 +211,6 @@ export default function ChunkWrapper({
                 })}
             </Stack>
             <Scatterplot
-                setExtents={(extents) => {
-                    const data = extents.map((d) => ({ timestep: d.x, id: d.y }));
-                    setExtents(data, trajectory.name);
-                }}
                 width={width}
                 height={50}
                 selectionMode={selectionMode}
