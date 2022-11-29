@@ -68,7 +68,7 @@ export default function Scatterplot({
 
     useEffect(() => {
         setScaleX(buildScaleX());
-    }, [data, width]);
+    }, [width]);
 
     const [scaleY, setScaleY] = useState(buildScaleY());
 

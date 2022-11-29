@@ -164,7 +164,7 @@ export default function SparkLine({
             });
         },
         // inefficient, but still faster than re-drawing every single datapoint
-        [JSON.stringify(data)]
+        [JSON.stringify(data), scaleX, scaleY]
     );
 
     return (
