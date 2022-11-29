@@ -317,10 +317,7 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
             <ChartBox sx={{ marginBottom: 5 }}>
                 {(width, height, isHovered) => (
                     <>
-                        <Box
-                            className="floatingToolBar"
-                            sx={{ visibility: isHovered ? 'visible' : 'hidden' }}
-                        >
+                        <Box display="flex" sx={{ visibility: isHovered ? 'visible' : 'hidden' }}>
                             <IconButton
                                 color="secondary"
                                 size="small"
@@ -435,7 +432,7 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
                                     return (
                                         <TrajectoryChart
                                             width={width}
-                                            height={showTop * SPARKLINE_CHART_HEIGHT + 25 + 50}
+                                            height={showTop * SPARKLINE_CHART_HEIGHT + 50}
                                             trajectory={trajectory}
                                             run={runs[trajectory.name]}
                                             setStateHovered={setStateHovered}

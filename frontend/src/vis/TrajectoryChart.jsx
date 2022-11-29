@@ -72,7 +72,7 @@ function TrajectoryChart({
                 .enter()
                 .append('text')
                 .attr('x', MARGIN.left)
-                .attr('y', (_, i) => MARGIN.top + (i + 1) * 20 - 5)
+                .attr('y', (_, i) => (i + 1) * 20 - 5)
                 .attr('font-size', '10px')
                 .text((d) => abbreviate(d));
 
@@ -220,7 +220,6 @@ function TrajectoryChart({
             className="vis"
             id={`${trajectory.name}_sequence`}
             ref={ref}
-            preserveAspectRatio="none"
             viewBox={[0, 0, width, height]}
             onClick={() => {
                 if (trajectorySelectionMode) {
@@ -256,19 +255,25 @@ function TrajectoryChart({
                         };
                     });
 
+                const h = chunk.important ? height : height - 50;
+
                 return (
                     <foreignObject
                         key={id}
                         x={getX(chunkIndex, 0, topChunkList, scaleX, getWidthScale)}
-                        y={MARGIN.top}
+                        y={0}
                         width={chartW}
-                        height={height - MARGIN.top}
+                        height={h}
                     >
                         <EmbeddedChart
-                            height={height - MARGIN.top}
+                            height={h}
                             width={chartW}
                             color={chunk.color}
-                            brush={d3.brushX().on('end', (e) => finishBrush(chunk, e, chartW))}
+                            brush={
+                                chunk.important
+                                    ? d3.brushX().on('end', (e) => finishBrush(chunk, e, chartW))
+                                    : undefined
+                            }
                             onChartClick={() => {
                                 if (chunkSelectionMode && !trajectorySelectionMode) {
                                     selectObject(chunk);
@@ -282,7 +287,7 @@ function TrajectoryChart({
                             }
                             selections={chartSelections}
                         >
-                            {(ww, hh, selection) =>
+                            {(ww, hh) =>
                                 important ? (
                                     <ChunkWrapper
                                         chunk={chunk}
@@ -299,12 +304,9 @@ function TrajectoryChart({
                                         updateGlobalScale={updateGlobalScale}
                                         updateRanks={updateRanks}
                                         ranks={ranks.ordered.slice(0, showTop)}
-                                        disableControls={chunkSelectionMode}
-                                        setExtents={setExtents}
                                         selections={chartSelections}
                                         showStateClustering={showStateClustering}
                                         showTop={showTop}
-                                        newSelection={selection}
                                     />
                                 ) : (
                                     <BoxPlotWrapper
@@ -326,9 +328,9 @@ function TrajectoryChart({
             })}
             <rect
                 x={0}
-                y={MARGIN.top}
+                y={0}
                 width={width}
-                height={height - MARGIN.top}
+                height={height}
                 stroke="gray"
                 fill="none"
                 strokeWidth={2}
