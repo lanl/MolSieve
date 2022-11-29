@@ -198,16 +198,20 @@ function TrajectoryChart({
         return w;
     };
 
-    const finishBrush = (chunk, { selection }) => {
-        const [start, end] = selection;
+    const finishBrush = (chunk, { selection }, chartWidth) => {
+        // build temp scale for that chunk
+        const x = d3.scaleLinear().domain(d3.extent(chunk.timesteps)).range([0, chartWidth]);
         // convert start, end to proper values
+        const start = Math.round(x.invert(selection[0]));
+        const end = Math.round(x.invert(selection[1]));
+
         const states = chunk.sequence
-            .slice(start, end + 1)
             .map((sID) => GlobalStates.get(sID))
             .map((s, i) => ({
-                timestep: chunk.timestep + start + i,
+                timestep: chunk.timestep + i,
                 id: s.id,
-            }));
+            }))
+            .filter((d) => d.timestep >= start && d.timestep <= end);
         setExtents(states, trajectory.name);
     };
 
@@ -263,7 +267,7 @@ function TrajectoryChart({
                             height={height - MARGIN.top}
                             width={chartW}
                             color={chunk.color}
-                            brush={d3.brushX().on('end', (e) => finishBrush(chunk, e))}
+                            brush={d3.brushX().on('end', (e) => finishBrush(chunk, e, chartW))}
                             onChartClick={() => {
                                 if (chunkSelectionMode && !trajectorySelectionMode) {
                                     selectObject(chunk);
@@ -275,7 +279,6 @@ function TrajectoryChart({
                                 !trajectorySelectionMode &&
                                 selectedObjects.map((d) => d.id).includes(chunk.id)
                             }
-                            withBrush={chunk.important}
                         >
                             {(ww, hh, selection) =>
                                 important ? (
