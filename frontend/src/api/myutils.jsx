@@ -240,6 +240,24 @@ export function getChildren(chunk) {
     return [chunk.timestep, chunk.last];
 }
 
+/**
+ * Returns the difference between two sets as a set; i.e
+ * only the items that are present in A alone without B.
+ *
+ * @param {Set<Any>} setA - Set A to differentiate.
+ * @param {Set<Any>} setB - Set B to differentiate.
+ * @returns {Set<Any>} Difference of both sets
+ */
+export function setDifference(setA, setB) {
+    const diff = new Set();
+    for (const elem of setA) {
+        if (!setB.has(elem)) {
+            diff.add(elem);
+        }
+    }
+    return diff;
+}
+
 export function setIntersection(setA, setB) {
     const inter = new Set();
     for (const elem of setB) {

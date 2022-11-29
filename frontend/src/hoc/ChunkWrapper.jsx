@@ -8,7 +8,7 @@ import Stack from '@mui/material/Stack';
 import SparkLine from '../vis/SparkLine';
 
 import { simpleMovingAverage, differentiate } from '../api/stats';
-import { abbreviate, onEntityMouseOver, buildDictFromArray } from '../api/myutils';
+import { abbreviate, onEntityMouseOver, buildDictFromArray, setDifference } from '../api/myutils';
 
 import Scatterplot from '../vis/Scatterplot';
 import GlobalStates from '../api/globalStates';
@@ -30,11 +30,11 @@ export default function ChunkWrapper({
     showStateClustering,
     selections,
 }) {
+    // set as useReducer
     const [isInitialized, setIsInitialized] = useState(false);
     const [progress, setProgress] = useState(0.0);
     const [isInterrupted, setIsInterrupted] = useState(false);
 
-    const [selectionMode, setSelectionMode] = useState(false);
     const [colorFunc, setColorFunc] = useState(() => (d) => {
         const state = GlobalStates.get(d.id);
         return state.individualColor;
@@ -77,14 +77,14 @@ export default function ChunkWrapper({
         setStats(statDict);
     };
 
-    const runSocket = () => {
+    const runSocket = (statesToLoad) => {
         ws.current = WebSocketManager.connect(
             'ws://localhost:8000/api/load_properties_for_subset',
             chunk.trajectory.name
         );
 
         setProgress(0.0);
-        // const seen = new Set();
+        let seen;
         let i = 0;
 
         ws.current.addEventListener('close', ({ code }) => {
@@ -93,18 +93,20 @@ export default function ChunkWrapper({
             }
         });
 
-        let cStates = [];
-        const total = chunk.states.length;
+        let currentStates = [];
+        const total = statesToLoad.length;
 
         ws.current.addEventListener('open', () => {
-            cStates = [...chunk.states.slice(i * moveBy, (i + 1) * moveBy)];
-
+            currentStates = [...statesToLoad.slice(i * moveBy, (i + 1) * moveBy)];
             i++;
+
+            seen = new Set(currentStates);
+            const currentStateSet = [...seen];
 
             ws.current.send(
                 JSON.stringify({
                     props: properties,
-                    stateIds: [...new Set(cStates)],
+                    stateIds: currentStateSet,
                 })
             );
         });
@@ -124,8 +126,12 @@ export default function ChunkWrapper({
 
             let sendStates = [];
             // if the chunks have not been fully loaded, continue
-            if (i * moveBy < chunk.states.length) {
-                sendStates = [...chunk.states.slice(i * moveBy, (i + 1) * moveBy)];
+            if (i * moveBy < statesToLoad.length) {
+                const newStateSet = new Set(statesToLoad.slice(i * moveBy, (i + 1) * moveBy));
+                // only send states that exist in newStateSet and not seen
+                const diffSet = setDifference(newStateSet, seen);
+                sendStates = [...diffSet];
+                seen = new Set([...diffSet, ...seen]);
             }
 
             if (!sendStates.length) {
@@ -135,7 +141,7 @@ export default function ChunkWrapper({
                 ws.current.send(
                     JSON.stringify({
                         props: properties,
-                        stateIds: [...new Set(sendStates)],
+                        stateIds: sendStates,
                     })
                 );
             }
@@ -152,7 +158,7 @@ export default function ChunkWrapper({
         const { hasProperties } = GlobalStates.subsetHasProperties(properties, chunk.states);
 
         if (!hasProperties) {
-            runSocket();
+            runSocket(chunk.states);
         } else {
             setProgress(1.0);
             setIsInitialized(true);
@@ -186,7 +192,13 @@ export default function ChunkWrapper({
     }
 
     return isInitialized ? (
-        <Box>
+        <Box
+            onClick={(e) => {
+                if (e.detail === 2) {
+                    console.log(e.detail, 'clicked');
+                }
+            }}
+        >
             {progress < 1.0 ? (
                 <LinearProgress variant="determinate" value={progress * 100} />
             ) : null}
@@ -213,8 +225,6 @@ export default function ChunkWrapper({
             <Scatterplot
                 width={width}
                 height={50}
-                selectionMode={selectionMode}
-                onSetExtentsComplete={() => setSelectionMode(false)}
                 colorFunc={colorFunc}
                 selected={selections}
                 xAttributeList={chunk.timesteps}
