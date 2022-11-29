@@ -83,6 +83,9 @@ class App extends React.Component {
             const { chunkingThreshold } = trajectories[run];
             WebSocketManager.clear(run);
 
+            const { enqueueSnackbar } = this.props;
+            enqueueSnackbar(`Recalculating clustering for trajectory ${run}...`);
+
             apiModifyTrajectory(run, clusters, chunkingThreshold)
                 .then((data) => {
                     const currentTraj = trajectories[run];
@@ -95,7 +98,10 @@ class App extends React.Component {
                     currentTraj.add_colors(newColors);
                     this.setState(
                         { trajectories: { ...trajectories, [run]: currentTraj }, colors },
-                        () => resolve()
+                        () => {
+                            enqueueSnackbar(`Clustering recalculated for trajectory ${run}...`);
+                            resolve();
+                        }
                     );
                 })
                 .catch((e) => {
@@ -112,6 +118,9 @@ class App extends React.Component {
      * @param {Number} chunkingThreshold - Simplification threshold
      */
     loadTrajectory = (run, mMin, mMax, chunkingThreshold) => {
+        const { enqueueSnackbar } = this.props;
+        enqueueSnackbar(`Loading trajectory ${run}...`);
+
         apiLoadTrajectory(run, mMin, mMax, chunkingThreshold)
             .then((data) => {
                 const newTraj = new Trajectory();
@@ -135,13 +144,16 @@ class App extends React.Component {
                 const newRuns = this.initFilters(run, newTraj);
 
                 WebSocketManager.addKey(run);
-                this.setState({
-                    isLoading: false,
-                    runs: newRuns,
-                    trajectories: { ...trajectories, [run]: newTraj },
-                    colors,
-                    // properties: [...new Set([...this.state.properties, ...properties])],
-                });
+                this.setState(
+                    {
+                        isLoading: false,
+                        runs: newRuns,
+                        trajectories: { ...trajectories, [run]: newTraj },
+                        colors,
+                        // properties: [...new Set([...this.state.properties, ...properties])],
+                    },
+                    () => enqueueSnackbar(`Trajectory ${run} successfully loaded.`)
+                );
             })
             .catch((e) => alert(e));
     };
@@ -180,12 +192,18 @@ class App extends React.Component {
         const { trajectories } = this.state;
         const { [run]: newTraj } = trajectories;
 
+        const { enqueueSnackbar } = this.props;
+
+        enqueueSnackbar(`Re-simplifying trajectory ${run}...`);
         apiModifyTrajectory(run, newTraj.current_clustering, threshold).then((data) => {
             newTraj.simplifySet(data.simplified);
             newTraj.chunkingThreshold = threshold;
-            this.setState((prevState) => ({
-                trajectories: { ...prevState.trajectories, [run]: newTraj },
-            }));
+            this.setState(
+                (prevState) => ({
+                    trajectories: { ...prevState.trajectories, [run]: newTraj },
+                }),
+                () => enqueueSnackbar(`Sequence re-simplified for trajectory ${run}.`)
+            );
         });
     };
 

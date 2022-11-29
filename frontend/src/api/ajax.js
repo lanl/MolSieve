@@ -1,7 +1,5 @@
 import axios from 'axios';
 
-// TODO: decouple trajectory from api calls
-
 /**
  * Ajax query to the backend to retrieve the sequence for a trajectory, given
  * its name and properties.
@@ -34,7 +32,7 @@ export function apiLoadSequence(run, properties) {
  * @return {number} similarity score
  */
 export function apiCalculatePathSimilarity(e1, e2, stateAttributes, atomAttributes) {
-    return new Promise(function (resolve, reject) {
+    return new Promise((resolve, reject) => {
         axios
             .post(
                 '/api/calculate_path_similarity',
@@ -57,7 +55,7 @@ export function apiCalculatePathSimilarity(e1, e2, stateAttributes, atomAttribut
 
 // TODO: add comment
 export function apiPerformKSTest(rvs, cdf, property) {
-    return new Promise(function (resolve, reject) {
+    return new Promise((resolve, reject) => {
         let processedCdf = null;
         try {
             processedCdf = JSON.parse(cdf);
@@ -85,17 +83,12 @@ export function apiPerformKSTest(rvs, cdf, property) {
 }
 
 // TODO: add comment
-export function apiLoadMetadata(run, trajectory) {
-    return new Promise(function (resolve, reject) {
+export function apiLoadMetadata(run) {
+    return new Promise((resolve, reject) => {
         axios
             .get('/api/get_metadata', { params: { run } })
             .then((response) => {
-                if (trajectory === undefined) {
-                    resolve(response.data);
-                }
-                trajectory.raw = response.data.raw;
-                trajectory.LAMMPSBootstrapScript = response.data.LAMMPSBootstrapScript;
-                return resolve(trajectory);
+                resolve(response.data);
             })
             .catch((e) => {
                 reject(e);
@@ -117,7 +110,7 @@ export function onMessageHandler(onStart, onProgress, onComplete) {
 }
 
 export function apiLoadProperty(property) {
-    return new Promise(function (resolve, reject) {
+    return new Promise((resolve, reject) => {
         axios
             .get('/api/load_property', { params: { prop: property } })
             .then((response) => {
@@ -131,7 +124,7 @@ export function apiLoadProperty(property) {
 
 // TODO: add comment
 export function apiCalculateNEB(run, start, end, interpolate, maxSteps, fmax, saveResults) {
-    return new Promise(function (resolve, reject) {
+    return new Promise((resolve, reject) => {
         axios
             .get('/api/calculate_neb_on_path', {
                 params: {
@@ -154,8 +147,8 @@ export function apiCalculateNEB(run, start, end, interpolate, maxSteps, fmax, sa
     });
 }
 
-export function apiCalculateIDToTimestep(run, trajectory) {
-    return new Promise(function (resolve, reject) {
+export function apiCalculateIDToTimestep(run) {
+    return new Promise((resolve, reject) => {
         axios
             .get('/api/idToTimestep', { params: { run } })
             .then((response) => {
@@ -164,8 +157,7 @@ export function apiCalculateIDToTimestep(run, trajectory) {
                         return [state.id, state.timesteps];
                     })
                 );
-                trajectory.idToTimestep = idToTimestep;
-                resolve(trajectory);
+                resolve(idToTimestep);
             })
             .catch((e) => {
                 reject(e);
@@ -174,7 +166,7 @@ export function apiCalculateIDToTimestep(run, trajectory) {
 }
 
 export function apiGenerateOvitoImage(number) {
-    return new Promise(function (resolve, reject) {
+    return new Promise((resolve, reject) => {
         axios
             .get('/api/generate_ovito_image', { params: { number } })
             .then((response) => {
@@ -187,7 +179,7 @@ export function apiGenerateOvitoImage(number) {
 }
 
 export function loadPropertiesForSubset(properties, subset) {
-    return new Promise(function (resolve, reject) {
+    return new Promise((resolve, reject) => {
         axios
             .post(
                 '/api/load_properties_for_subset',
@@ -208,7 +200,7 @@ export function loadPropertyForSubset(property, subset) {
 }
 
 export function apiLoadTrajectory(run, mMin, mMax, chunkingThreshold) {
-    return new Promise(function (resolve, reject) {
+    return new Promise((resolve, reject) => {
         axios
             .get('/api/load_trajectory', {
                 params: {
@@ -235,7 +227,7 @@ export function apiLoadTrajectory(run, mMin, mMax, chunkingThreshold) {
  * @returns {[TODO:type]} [TODO:description]
  */
 export function apiClusterStates(properties, states) {
-    return new Promise(function (resolve, reject) {
+    return new Promise((resolve, reject) => {
         axios
             .post('/api/cluster_states', JSON.stringify({ props: properties, stateIds: states }), {
                 headers: { 'Content-Type': 'application/json' },
@@ -250,7 +242,7 @@ export function apiClusterStates(properties, states) {
 }
 
 export function apiModifyTrajectory(run, numClusters, chunkingThreshold) {
-    return new Promise(function (resolve, reject) {
+    return new Promise((resolve, reject) => {
         axios
             .get('/api/modify_trajectory', {
                 params: {

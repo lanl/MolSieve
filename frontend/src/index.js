@@ -6,7 +6,7 @@ import '@fontsource/roboto/400.css';
 import '@fontsource/roboto/500.css';
 import '@fontsource/roboto/700.css';
 import { SnackbarProvider } from 'notistack';
-import { ThemeProvider, createTheme, experimental_sx as sx } from '@mui/material/styles';
+import { ThemeProvider, createTheme } from '@mui/material/styles';
 
 import App from './App';
 
@@ -22,6 +22,7 @@ const theme = createTheme({
     },
 });
 
+/* eslint-disable react/jsx-filename-extension */
 ReactDOM.render(
     <React.StrictMode>
         <ThemeProvider theme={theme}>
