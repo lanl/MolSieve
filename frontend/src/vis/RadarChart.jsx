@@ -126,7 +126,12 @@ export default function Legend({
                 for (const a of axes) {
                     const angle = angleSlice * j - Math.PI / 2;
                     const { x, y } = angleToCoord(angle, a.scale(renderSingle[a.property]));
-                    singlePoints.push({ x, y, property: a.property, value: a.median });
+                    singlePoints.push({
+                        x,
+                        y,
+                        property: a.property,
+                        value: renderSingle[a.property],
+                    });
                     j++;
                 }
 
@@ -165,8 +170,8 @@ export default function Legend({
                 .style('font-size', '9px')
                 .attr('text-anchor', 'middle')
                 .attr('dy', '0.35em')
-                .attr('x', (_, i) => rScale(absMax * 0.95) * Math.cos(angleSlice * i - Math.PI / 2))
-                .attr('y', (_, i) => rScale(absMax * 0.95) * Math.sin(angleSlice * i - Math.PI / 2))
+                .attr('x', (_, k) => rScale(absMax * 0.95) * Math.cos(angleSlice * k - Math.PI / 2))
+                .attr('y', (_, k) => rScale(absMax * 0.95) * Math.sin(angleSlice * k - Math.PI / 2))
                 .text((d) => abbreviate(d.property));
         },
         [data, properties, width, height, globalScale, renderSingle]
