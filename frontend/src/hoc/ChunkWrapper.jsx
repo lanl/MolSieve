@@ -9,6 +9,7 @@ import SparkLine from '../vis/SparkLine';
 
 import { simpleMovingAverage, differentiate } from '../api/stats';
 import { abbreviate, onEntityMouseOver, buildDictFromArray } from '../api/myutils';
+import { apiGetSequence } from '../api/ajax';
 
 import Scatterplot from '../vis/Scatterplot';
 import GlobalStates from '../api/globalStates';
@@ -30,11 +31,15 @@ export default function ChunkWrapper({
     ranks,
     showStateClustering,
     selections,
+    leftBoundary,
+    rightBoundary,
 }) {
     // set as useReducer
     const [isInitialized, setIsInitialized] = useState(false);
     const [progress, setProgress] = useState(0.0);
     const [isInterrupted, setIsInterrupted] = useState(false);
+
+    const [isExpanded, setIsExpanded] = useState(false);
 
     const [colorFunc, setColorFunc] = useState(() => (d) => {
         const state = GlobalStates.get(d.id);
@@ -84,29 +89,37 @@ export default function ChunkWrapper({
             ws.current = null;
         }
 
-        setIsInitialized(false);
-        const { hasProperties, missingProperties } = GlobalStates.subsetHasProperties(
-            properties,
-            chunk.states
-        );
-
-        if (!hasProperties) {
-            loadChart(
-                missingProperties,
-                moveBy,
-                ws,
-                chunk.trajectory.name,
+        if (!isExpanded) {
+            setIsInitialized(false);
+            const { hasProperties, missingProperties } = GlobalStates.subsetHasProperties(
                 properties,
-                setProgress,
-                setIsInterrupted,
-                updateGS,
-                render,
-                setIsInitialized
+                chunk.states
             );
+
+            if (!hasProperties) {
+                loadChart(
+                    missingProperties,
+                    moveBy,
+                    ws,
+                    chunk.trajectory.name,
+                    properties,
+                    setProgress,
+                    setIsInterrupted,
+                    updateGS,
+                    render,
+                    setIsInitialized
+                );
+            } else {
+                setProgress(1.0);
+                setIsInitialized(true);
+                render();
+            }
         } else {
-            setProgress(1.0);
-            setIsInitialized(true);
-            render();
+            // grab all of the states for left & right...
+            console.log(leftBoundary, rightBoundary);
+            apiGetSequence(chunk.trajectory.name, [leftBoundary.timestep, leftBoundary.last]).then(
+                (d) => console.log(d)
+            );
         }
 
         return () => {
@@ -115,7 +128,7 @@ export default function ChunkWrapper({
                 ws.current = null;
             }
         };
-    }, [chunk, properties]);
+    }, [chunk, properties, isExpanded]);
 
     useEffect(() => {
         if (showStateClustering) {
@@ -139,7 +152,7 @@ export default function ChunkWrapper({
         <Box
             onClick={(e) => {
                 if (e.detail === 2) {
-                    console.log(e.detail, 'clicked');
+                    setIsExpanded(!isExpanded);
                 }
             }}
         >

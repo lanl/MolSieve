@@ -267,3 +267,16 @@ export function apiModifyTrajectory(run, numClusters, chunkingThreshold) {
             });
     });
 }
+
+export function apiGetSequence(run, range) {
+    return new Promise((resolve, reject) => {
+        axios
+            .get(`/api/get_sequence`, { params: { run, start: range[0], end: range[1] } })
+            .then((response) => {
+                resolve(response.data);
+            })
+            .catch((e) => {
+                reject(e);
+            });
+    });
+}

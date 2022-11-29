@@ -455,6 +455,13 @@ def get_potential(run: str) -> str:
 
 
 def load_sequence(run: str, properties: List[str], driver):
+    """
+    Creates a Trajectory object for later use.
+
+    :param run str: The name of the run to load.
+    :param properties List[str]: Which properties to load, if any.
+    :param driver: Neo4j driver to use.
+    """
     get_potential(run)
     run_md = get_metadata(run)
 
@@ -491,9 +498,24 @@ def load_sequence(run: str, properties: List[str], driver):
 
     new_traj = Trajectory(run, j["sequence"], j["unique_states"])
 
+    # needs to be more descriptive, with properties saved as well!
     saveTestPickle(run, "sequence", j)
     return new_traj
 
+@router.get("/get_sequence")
+def get_sequence(run: str, start:Optional[int], end:Optional[int] = None):
+    mem_client = PooledClient("localhost", max_pool_size=4, serde=serde.pickle_serde)
+    trajectory = mem_client.get(run)
+
+    driver = GraphDriver()
+    if trajectory is None:
+        trajectory = load_sequence(run, ["id"], driver)
+
+    if start is None or end is None:
+        return trajectory.sequence
+    else:
+        return trajectory.sequence[start: end + 1]
+                
 
 @router.get("/get_property_list")
 def get_property_list():
