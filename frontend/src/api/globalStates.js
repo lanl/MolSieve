@@ -1,7 +1,6 @@
 import State from './state';
-import { ensureArray } from './myutils';
 import { loadPropertiesForSubset, apiClusterStates } from './ajax';
-import { structuralAnalysisProps, mpn65 } from './constants';
+import { structuralAnalysisProps } from './constants';
 
 class GlobalStates {
     map = new Map();
@@ -52,7 +51,13 @@ class GlobalStates {
         }
     };
 
-    /* Check if the states indexed by the ids provided in the subset array have the given properties loaded. */
+    /**
+     * Check if the states indexed by the ids provided in the subset array have the given properties loaded.
+     *
+     * @param {[TODO:type]} properties - [TODO:description]
+     * @param {[TODO:type]} subset - [TODO:description]
+     * @returns {[TODO:type]} [TODO:description]
+     */
     subsetHasProperties = (properties, subset) => {
         const vals = [];
         for (const property of properties) {
@@ -61,7 +66,14 @@ class GlobalStates {
         }
         return {
             hasProperties: vals.every((d) => d.val),
-            missingProperties: vals.filter((d) => !d.val),
+            missingProperties: [
+                ...new Set(
+                    vals
+                        .filter((d) => !d.val)
+                        .map((d) => d.missing)
+                        .reduce((acc, missing) => [...acc, ...missing], [])
+                ),
+            ],
         };
     };
 

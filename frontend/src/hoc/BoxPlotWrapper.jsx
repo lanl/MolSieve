@@ -62,11 +62,14 @@ export default function BoxPlotWrapper({
         }
 
         setIsInitialized(false);
-        const { hasProperties } = GlobalStates.subsetHasProperties(properties, chunk.selected);
+        const { hasProperties, missingProperties } = GlobalStates.subsetHasProperties(
+            properties,
+            chunk.selected
+        );
 
         if (!hasProperties) {
             loadChart(
-                chunk.selected,
+                missingProperties,
                 moveBy,
                 ws,
                 chunk.trajectory.name,

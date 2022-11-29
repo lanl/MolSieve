@@ -85,11 +85,14 @@ export default function ChunkWrapper({
         }
 
         setIsInitialized(false);
-        const { hasProperties } = GlobalStates.subsetHasProperties(properties, chunk.states);
+        const { hasProperties, missingProperties } = GlobalStates.subsetHasProperties(
+            properties,
+            chunk.states
+        );
 
         if (!hasProperties) {
             loadChart(
-                chunk.states,
+                missingProperties,
                 moveBy,
                 ws,
                 chunk.trajectory.name,
