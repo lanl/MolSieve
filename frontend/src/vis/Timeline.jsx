@@ -1,7 +1,6 @@
 import { React } from 'react';
 import * as d3 from 'd3';
 import '../css/vis.css';
-
 import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
 
 const margin = {
@@ -15,7 +14,7 @@ export default function Timeline({ trajectory, width, height, run, setExtent }) 
     const ref = useTrajectoryChartRender(
         (svg) => {
             if (!svg.empty()) {
-                svg.selectAll('*').remove();
+                svg.selectAll('*:not(.brush, .brushG)').remove();
             }
 
             if (width === undefined || height === undefined) {
@@ -57,7 +56,7 @@ export default function Timeline({ trajectory, width, height, run, setExtent }) 
 
             const defaultSelection = [scaleX(extents[0]), scaleX(extents[1])];
 
-            const brushG = svg.append('g');
+            const brushG = svg.append('g').classed('brushG', true);
             // https://observablehq.com/@d3/click-to-recenter-brush
             const brush = d3
                 .brushX()
@@ -65,17 +64,13 @@ export default function Timeline({ trajectory, width, height, run, setExtent }) 
                     [margin.left, 0],
                     [width - margin.right, height],
                 ])
-                .on('brush', function ({ selection }) {
-                    const start = Math.round(scaleX.invert(selection[0]));
-                    const end = Math.round(scaleX.invert(selection[1]));
-                    // this gets called one time before the start, which is why websockets get cleared on initial render
-                    // also why the chunk selection view gets cleared
-                    setExtent(name, [start, end]);
-                })
                 .on('end', function ({ selection }) {
                     if (!selection) {
                         brushG.call(brush.move, defaultSelection);
                     }
+                    const start = Math.round(scaleX.invert(selection[0]));
+                    const end = Math.round(scaleX.invert(selection[1]));
+                    setExtent(name, [start, end]);
                 });
 
             brushG.call(brush).call(brush.move, defaultSelection);

@@ -91,12 +91,3 @@
 .arrowed {    
     marker-end: url(#arrow);
 }
-
-.selection {
-    opacity: 0.5;
-}
-
-.selection:hovered {
-    opacity: 1.0;
-    cursor: pointer;
-}

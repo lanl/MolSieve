@@ -39,7 +39,7 @@ export default function EmbeddedChart({
     }, [selectionMode]);
 
     useEffect(() => {
-        d3.select(ref.current).selectAll('.selection').remove();
+        d3.select(ref.current).selectAll('.chartSelection').remove();
 
         if (selections) {
             for (const s of selections) {
@@ -54,17 +54,17 @@ export default function EmbeddedChart({
                     .attr('width', ogEnd - ogStart)
                     .attr('fill', 'none')
                     .attr('stroke', () => (active ? 'blue' : 'red'))
-                    .attr('stroke-width', 2)
-                    .classed('selection', true);
+                    .attr('stroke-width', 1)
+                    .classed('chartSelection', true);
             }
         }
 
         return () => {
-            d3.select(ref.current).selectAll('.selection').remove();
+            d3.select(ref.current).selectAll('.chartSelection').remove();
         };
     }, [JSON.stringify(selections)]);
 
-    const borderStyle = selected ? 3 : 1;
+    const borderStyle = selected ? 3 : 2;
     return (
         <Box
             id={id}
@@ -103,8 +103,8 @@ export default function EmbeddedChart({
 }
 EmbeddedChart.defaultProps = {
     margin: {
-        top: 2.5,
-        left: 2,
+        top: 3,
+        left: 3,
     },
     color: 'black',
     showBrush: true,
