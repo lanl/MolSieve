@@ -1,4 +1,4 @@
-import { React, useState, useEffect, useRef, useReducer } from 'react';
+import { React, useState, useEffect, useRef } from 'react';
 
 import * as d3 from 'd3';
 import Box from '@mui/material/Box';
@@ -29,7 +29,7 @@ export default function ChunkWrapper({
     ranks,
     showStateClustering,
     selections,
-    neighbors,
+    doubleClickAction,
 }) {
     // set as useReducer
     const [isInitialized, setIsInitialized] = useState(false);
@@ -79,24 +79,6 @@ export default function ChunkWrapper({
         setStats(statDict);
     };
 
-    const loadNeighbors = (left, right) => {
-        return new Promise((resolve, reject) => {
-            if (left) {
-                left.loadSequence().then(() => {
-                    if (right) {
-                        right.loadSequence().then(() => resolve());
-                    } else {
-                        resolve();
-                    }
-                });
-            } else if (right) {
-                right.loadSequence().then(() => resolve());
-            } else {
-                reject();
-            }
-        });
-    };
-
     useEffect(() => {
         if (ws.current) {
             ws.current.close();
@@ -135,18 +117,6 @@ export default function ChunkWrapper({
         };
     }, [JSON.stringify(chunk)]);
 
-    const expand = () => {
-        // set sequence, timesteps correctly
-        const { left, right } = neighbors;
-        loadNeighbors(left, right).then(() => {
-            const leftVals = left.takeFromSequence(moveBy, 'back');
-            chunk.addToSequence(leftVals, 'front');
-
-            const rightVals = right.takeFromSequence(moveBy, 'front');
-            chunk.addToSequence(rightVals, 'back');
-        });
-    };
-
     useEffect(() => {
         if (showStateClustering) {
             setColorFunc(() => (d) => {
@@ -169,7 +139,7 @@ export default function ChunkWrapper({
         <Box
             onClick={(e) => {
                 if (e.detail === 2) {
-                    expand();
+                    doubleClickAction();
                 }
             }}
         >

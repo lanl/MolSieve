@@ -40,6 +40,7 @@ function TrajectoryChart({
     globalScale,
     showStateClustering,
     showTop,
+    expand,
 }) {
     const ref = useTrajectoryChartRender(
         (svg) => {
@@ -150,7 +151,6 @@ function TrajectoryChart({
     }, [visibleExtent]); */
 
     const { chunkList } = trajectory;
-
     // here we can filter out the un-rendered charts right away since we only care about rendering here
     const topChunkList = chunkList
         .filter((d) => !d.hasParent)
@@ -228,7 +228,7 @@ function TrajectoryChart({
             }}
         >
             {charts.map((child) => {
-                const { chunk, id, neighbors, important } = child;
+                const { chunk, id, important } = child;
 
                 const chunkIndex = topChunkList.indexOf(chunk);
 
@@ -291,7 +291,6 @@ function TrajectoryChart({
                                 important ? (
                                     <ChunkWrapper
                                         chunk={chunk}
-                                        neighbors={neighbors}
                                         width={ww}
                                         height={hh}
                                         setStateHovered={setStateHovered}
@@ -306,6 +305,7 @@ function TrajectoryChart({
                                         selections={chartSelections}
                                         showStateClustering={showStateClustering}
                                         showTop={showTop}
+                                        doubleClickAction={() => expand(chunk.id, 100, trajectory)}
                                     />
                                 ) : (
                                     <BoxPlotWrapper

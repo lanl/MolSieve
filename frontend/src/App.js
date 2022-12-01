@@ -17,6 +17,7 @@ import { apiLoadTrajectory, apiModifyTrajectory } from './api/ajax';
 import ControlDrawer from './components/ControlDrawer';
 import GlobalStates from './api/globalStates';
 import { createUUID } from './api/random';
+import { getNeighbors } from './api/myutils';
 
 import WebSocketManager from './api/websocketmanager';
 import ColorManager from './api/colormanager';
@@ -207,6 +208,54 @@ class App extends React.Component {
         });
     };
 
+    /**
+     * Expands the given chunk by the sliceSize provided. The left / right neighbors of the chunk are shortened.
+     *
+     */
+    expand = (id, sliceSize, trajectory) => {
+        const { chunkList, chunks } = trajectory;
+        const chunk = chunks.get(id);
+        const chunkIndex = chunkList.indexOf(chunk);
+
+        const neighbors = getNeighbors(chunkList, chunkIndex);
+        const [left, right] = neighbors;
+
+        const loadNeighbors = (l, r) => {
+            return new Promise((resolve, reject) => {
+                if (l) {
+                    left.loadSequence().then(() => {
+                        if (r) {
+                            r.loadSequence().then(() => resolve());
+                        } else {
+                            resolve();
+                        }
+                    });
+                } else if (r) {
+                    r.loadSequence().then(() => resolve());
+                } else {
+                    reject();
+                }
+            });
+        };
+
+        loadNeighbors(left, right).then(() => {
+            const leftVals = left.takeFromSequence(sliceSize, 'back');
+            chunk.addToSequence(leftVals, 'front');
+
+            const rightVals = right.takeFromSequence(sliceSize, 'front');
+            chunk.addToSequence(rightVals, 'back');
+
+            // update chunks map
+            chunks.set(left.id, left);
+            chunks.set(right.id, right);
+            chunks.set(chunk.id, chunk);
+
+            this.setState((prevState) => ({
+                trajectories: { ...prevState.trajectories, [trajectory.name]: trajectory },
+            }));
+        });
+    };
+
     toggleDrawer = () => {
         this.setState((prevState) => ({ drawerOpen: !prevState.drawerOpen }));
     };
@@ -326,6 +375,7 @@ class App extends React.Component {
                     trajectories={trajectories}
                     runs={runs}
                     swapPositions={this.swapPositions}
+                    expand={this.expand}
                 />
 
                 <AjaxMenu

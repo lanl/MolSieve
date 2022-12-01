@@ -26,7 +26,6 @@ import {
     buildDictFromArray,
     percentToString,
     tooltip,
-    getNeighbors,
 } from '../api/myutils';
 import { createUUID } from '../api/random';
 
@@ -46,7 +45,7 @@ const CHUNK_SELECT = 4;
 // for a valid selection
 const SELECTION_LENGTH = [0, 1, 3, 2, 2];
 
-export default function VisArea({ trajectories, runs, properties, swapPositions }) {
+export default function VisArea({ trajectories, runs, properties, swapPositions, expand }) {
     const [currentModal, setCurrentModal] = useState(null);
     const [stateHovered, setStateHovered] = useState(null);
     const [stateClicked, setClicked] = useState(null);
@@ -392,8 +391,7 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
                             {Object.values(trajectories)
                                 .sort((a, b) => a.position > b.position)
                                 .map((trajectory) => {
-                                    const { uChunks, iChunks, topChunkList } =
-                                        getVisibleChunks(trajectory);
+                                    const { uChunks, iChunks } = getVisibleChunks(trajectory);
 
                                     // NOTE: we STILL need the topChunkList to be all of the chunks for expansion to work when zoomed in!
 
@@ -406,13 +404,9 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
                                     });
 
                                     const iCharts = iChunks.map((chunk) => {
-                                        const chunkIndex = topChunkList.indexOf(chunk);
-                                        const neighbors = getNeighbors(topChunkList, chunkIndex);
-
                                         return {
                                             id: chunk.id,
                                             chunk,
-                                            neighbors: { left: neighbors[0], right: neighbors[1] },
                                             important: chunk.important,
                                         };
                                     });
@@ -443,6 +437,7 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
                                             globalScale={globalScale}
                                             showStateClustering={showStateClustering}
                                             showTop={showTop}
+                                            expand={expand}
                                         />
                                     );
                                 })}
