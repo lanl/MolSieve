@@ -222,4 +222,38 @@ export default class Chunk {
 
         return start >= this.timestep && end <= this.last;
     }
+
+    /**
+     * Removes sliceSize of the sequence in the given direction
+     *
+     * @param {[TODO:type]} sliceSize - [TODO:description]
+     * @param {[TODO:type]} direction - [TODO:description]
+     */
+    takeFromSequence(sliceSize, direction) {
+        const where = direction === 'front' ? 0 : this.sequence.length - sliceSize;
+        if (this.sequence.length > sliceSize && this.sequence.length > 0) {
+            const deleted = this.sequence.splice(where, sliceSize);
+
+            // update timestep, last, firstID
+
+            if (direction === 'front') {
+                this.timestep += deleted.length;
+            } else {
+                this.last -= deleted.length;
+            }
+
+            return deleted;
+        }
+        return [];
+    }
+
+    addToSequence(values, direction) {
+        if (direction === 'front') {
+            this.timestep -= values.length;
+            this.sequence = [...values, ...this.sequence];
+        } else {
+            this.last += values.length;
+            this.sequence = [...this.sequence, ...values];
+        }
+    }
 }

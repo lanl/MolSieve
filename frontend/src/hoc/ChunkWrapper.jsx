@@ -36,8 +36,6 @@ export default function ChunkWrapper({
     const [progress, setProgress] = useState(0.0);
     const [isInterrupted, setIsInterrupted] = useState(false);
 
-    const [isExpanded, setIsExpanded] = useState(false);
-
     const [colorFunc, setColorFunc] = useState(() => (d) => {
         const state = GlobalStates.get(d.id);
         return state.individualColor;
@@ -46,22 +44,6 @@ export default function ChunkWrapper({
     const [mva, setMva] = useState({});
     const [stats, setStats] = useState(
         buildDictFromArray(properties, { std: undefined, mean: undefined })
-    );
-
-    const [data, reduceData] = useReducer(
-        (state, action) => {
-            switch (action.type) {
-                case 'changeIsExpanded':
-                    return action.payload;
-                default:
-                    throw new Error();
-            }
-        },
-        {
-            sequence: chunk.sequence,
-            timesteps: chunk.timesteps,
-            states: chunk.states,
-        }
     );
 
     const ws = useRef(null);
@@ -79,7 +61,7 @@ export default function ChunkWrapper({
         const mvaDict = {};
         const rDict = {};
         const statDict = {};
-        const states = data.sequence.map((id) => GlobalStates.get(id));
+        const states = chunk.sequence.map((id) => GlobalStates.get(id));
         for (const prop of properties) {
             const propList = states.map((d) => d[prop]);
 
@@ -121,10 +103,9 @@ export default function ChunkWrapper({
             ws.current = null;
         }
 
-        setIsInitialized(false);
         const { hasProperties, missingProperties } = GlobalStates.subsetHasProperties(
             properties,
-            data.states
+            chunk.states
         );
 
         if (!hasProperties) {
@@ -152,37 +133,19 @@ export default function ChunkWrapper({
                 ws.current = null;
             }
         };
-    }, [chunk, properties, JSON.stringify(data)]);
+    }, [JSON.stringify(chunk)]);
 
-    useEffect(() => {
+    const expand = () => {
         // set sequence, timesteps correctly
-        if (!isExpanded) {
-            reduceData({
-                type: 'changeIsExpanded',
-                payload: {
-                    sequence: chunk.sequence,
-                    timesteps: chunk.timesteps,
-                    states: chunk.states,
-                },
-            });
-        } else {
-            const { left, right } = neighbors;
-            loadNeighbors(left, right)
-                .then(() => {
-                    reduceData({
-                        type: 'changeIsExpanded',
-                        payload: {
-                            sequence: [...left.sequence, ...chunk.sequence, ...right.sequence],
-                            timesteps: [...left.timesteps, ...chunk.timesteps, ...right.timesteps],
-                            states: [
-                                ...new Set([...left.states, ...chunk.states, ...right.states]),
-                            ],
-                        },
-                    });
-                })
-                .catch(() => setIsExpanded(false));
-        }
-    }, [isExpanded]);
+        const { left, right } = neighbors;
+        loadNeighbors(left, right).then(() => {
+            const leftVals = left.takeFromSequence(moveBy, 'back');
+            chunk.addToSequence(leftVals, 'front');
+
+            const rightVals = right.takeFromSequence(moveBy, 'front');
+            chunk.addToSequence(rightVals, 'back');
+        });
+    };
 
     useEffect(() => {
         if (showStateClustering) {
@@ -206,7 +169,7 @@ export default function ChunkWrapper({
         <Box
             onClick={(e) => {
                 if (e.detail === 2) {
-                    setIsExpanded(!isExpanded);
+                    expand();
                 }
             }}
         >
@@ -226,7 +189,7 @@ export default function ChunkWrapper({
                             mean={mean}
                             width={width}
                             yAttributeList={mva[property]}
-                            xAttributeList={data.timesteps}
+                            xAttributeList={chunk.timesteps}
                             lineColor={trajectory.colorByCluster(chunk)}
                             title={`${abbreviate(property)}`}
                         />
@@ -239,8 +202,8 @@ export default function ChunkWrapper({
                 colorFunc={colorFunc}
                 selected={selections}
                 // this will change if isExpanded
-                xAttributeList={data.timesteps}
-                yAttributeList={data.sequence}
+                xAttributeList={chunk.timesteps}
+                yAttributeList={chunk.sequence}
                 onElementMouseOver={(node, d) => {
                     const state = GlobalStates.get(d.y);
                     onEntityMouseOver(node, state);
