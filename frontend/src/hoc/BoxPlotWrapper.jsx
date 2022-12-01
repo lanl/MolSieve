@@ -36,10 +36,10 @@ export default function BoxPlotWrapper({
             const vals = chunk.getPropList(prop);
             const bpStats = boxPlotStats(vals);
             bpStatDict[prop] = bpStats;
-            rd[prop] = bpStats.iqr;
+            rd[prop] = vals;
         }
         setBoxStats(bpStatDict);
-        updateRanks(rd, 0.25);
+        updateRanks(rd, chunk.id);
     };
 
     const updateGS = (states) => {

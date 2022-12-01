@@ -27,7 +27,6 @@ export default function ChunkWrapper({
     trajectory,
     globalScale,
     updateGlobalScale,
-    updateRanks,
     ranks,
     showStateClustering,
     selections,
@@ -79,7 +78,7 @@ export default function ChunkWrapper({
             statDict[prop] = { std, mean };
         }
         setMva(mvaDict);
-        updateRanks(rDict, 1.0);
+        // updateRanks(rDict, 1);
         setStats(statDict);
     };
 

@@ -44,6 +44,7 @@ export default function EmbeddedChart({
         if (selections) {
             for (const s of selections) {
                 const { active, originalExtent } = s;
+                // doesn't work on width resize
                 const { start: ogStart, end: ogEnd } = originalExtent;
 
                 d3.select(ref.current)
@@ -62,7 +63,7 @@ export default function EmbeddedChart({
         return () => {
             d3.select(ref.current).selectAll('.chartSelection').remove();
         };
-    }, [JSON.stringify(selections)]);
+    }, [JSON.stringify(selections), width, height]);
 
     const borderStyle = selected ? 3 : 2;
     return (

@@ -490,3 +490,17 @@ export function buildDictFromArray(arr, defaultValue) {
     }
     return d;
 }
+
+export function getNeighbors(arr, idx) {
+    const neighbors = [];
+
+    if (idx !== 0) {
+        neighbors.push(arr[idx + 1]);
+    }
+
+    if (idx !== arr.length - 1) {
+        neighbors.push(arr[idx - 1]);
+    }
+
+    return neighbors;
+}

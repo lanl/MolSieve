@@ -55,7 +55,7 @@ function TrajectoryChart({
         [trajectory, run, width, height, charts]
     );
 
-    const { ranks, reduceRanks } = useRanks(properties);
+    const { ranks, reduceRanks } = useRanks(properties, trajectory.chunkOrder());
 
     const updateRanks = (values, weight) => {
         reduceRanks({ type: 'updateValues', payload: { values, weight } });

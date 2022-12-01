@@ -118,6 +118,28 @@ class Trajectory {
         return this.colors[this.idToCluster[entity.clusterIdentifier]];
     }
 
+    /**
+     * Gets the chunk ids in the trajectory in temporal order
+     *
+     * @param {Number} type - which function to use
+     * @returns {Array<Chunk>} The chunks in order.
+     */
+    chunkOrder(type) {
+        let filterFunc;
+        switch (type) {
+            case 0: // not important
+                filterFunc = (d) => !d.hasParent && !d.important;
+                break;
+            case 1: // important
+                filterFunc = (d) => !d.hasParent && d.important;
+                break;
+            default: // both
+                filterFunc = (d) => !d.hasParent;
+        }
+
+        return this.chunkList.filter(filterFunc).map((d) => d.id);
+    }
+
     /* Calculates the similarities between chunks and returns a 2D matrix of similarity scores
      * idList - list of chunk ids to perform a pair-wise comparison on
      */
