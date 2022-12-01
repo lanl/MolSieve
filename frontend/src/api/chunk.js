@@ -2,6 +2,7 @@ import GlobalChunks from './globalChunks';
 import GlobalStates from './globalStates';
 import Timestep from './timestep';
 import { boxPlotStats } from './stats';
+import { apiGetSequence } from './ajax';
 
 const CHUNK = 0;
 
@@ -94,6 +95,20 @@ export default class Chunk {
     // returns a Set of unique states id within a chunk
     get statesSet() {
         return new Set(this.sequence);
+    }
+
+    loadSequence() {
+        return new Promise((resolve, reject) => {
+            if (this.sequence.length !== 0) {
+                resolve(this.sequence);
+            }
+            apiGetSequence(this.trajectory.name, [this.timestep, this.last])
+                .then((data) => {
+                    this.sequence = data;
+                    resolve(this.sequence);
+                })
+                .catch((e) => reject(e));
+        });
     }
 
     // gets the states within the sequence as Timestep objects, useful for rendering

@@ -26,6 +26,7 @@ import {
     buildDictFromArray,
     percentToString,
     tooltip,
+    getNeighbors,
 } from '../api/myutils';
 import { createUUID } from '../api/random';
 
@@ -406,23 +407,12 @@ export default function VisArea({ trajectories, runs, properties, swapPositions 
 
                                     const iCharts = iChunks.map((chunk) => {
                                         const chunkIndex = topChunkList.indexOf(chunk);
-                                        let leftBoundary;
-                                        let rightBoundary;
-                                        if (chunkIndex > 0) {
-                                            // get -1
-                                            leftBoundary = topChunkList[chunkIndex - 1];
-                                        }
-
-                                        if (chunkIndex < topChunkList.length - 1) {
-                                            // get +1
-                                            rightBoundary = topChunkList[chunkIndex + 1];
-                                        }
+                                        const neighbors = getNeighbors(topChunkList, chunkIndex);
 
                                         return {
                                             id: chunk.id,
-                                            leftBoundary,
                                             chunk,
-                                            rightBoundary,
+                                            neighbors: { left: neighbors[0], right: neighbors[1] },
                                             important: chunk.important,
                                         };
                                     });

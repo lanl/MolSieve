@@ -14,16 +14,18 @@ export default function useRanks(keys, chunkOrder) {
 
                     const zScores = buildDictFromArray(Object.keys(values), []);
                     for (const neighbor of neighbors) {
-                        const neighborValues = state.chunkValues[neighbor];
+                        if (neighbor) {
+                            const neighborValues = state.chunkValues[neighbor];
 
-                        for (const prop of Object.keys(values)) {
-                            if (neighborValues) {
-                                zScores[prop] = [
-                                    ...zScores[prop],
-                                    Math.abs(zTest(values[prop], neighborValues[prop])),
-                                ];
-                            } else {
-                                zScores[prop] = [...zScores[prop], 0];
+                            for (const prop of Object.keys(values)) {
+                                if (neighborValues) {
+                                    zScores[prop] = [
+                                        ...zScores[prop],
+                                        Math.abs(zTest(values[prop], neighborValues[prop])),
+                                    ];
+                                } else {
+                                    zScores[prop] = [...zScores[prop], 0];
+                                }
                             }
                         }
                     }

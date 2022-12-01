@@ -228,7 +228,7 @@ function TrajectoryChart({
             }}
         >
             {charts.map((child) => {
-                const { chunk, id, leftBoundary, rightBoundary, important } = child;
+                const { chunk, id, neighbors, important } = child;
 
                 const chunkIndex = topChunkList.indexOf(chunk);
 
@@ -291,8 +291,7 @@ function TrajectoryChart({
                                 important ? (
                                     <ChunkWrapper
                                         chunk={chunk}
-                                        leftBoundary={leftBoundary}
-                                        rightBoundary={rightBoundary}
+                                        neighbors={neighbors}
                                         width={ww}
                                         height={hh}
                                         setStateHovered={setStateHovered}

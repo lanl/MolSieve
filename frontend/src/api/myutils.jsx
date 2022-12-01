@@ -492,14 +492,14 @@ export function buildDictFromArray(arr, defaultValue) {
 }
 
 export function getNeighbors(arr, idx) {
-    const neighbors = [];
-
-    if (idx !== 0) {
-        neighbors.push(arr[idx + 1]);
-    }
+    const neighbors = [undefined, undefined];
 
     if (idx !== arr.length - 1) {
-        neighbors.push(arr[idx - 1]);
+        neighbors[0] = arr[idx - 1];
+    }
+
+    if (idx !== 0) {
+        neighbors[1] = arr[idx + 1];
     }
 
     return neighbors;
