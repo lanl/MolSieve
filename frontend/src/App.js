@@ -213,12 +213,13 @@ class App extends React.Component {
 
     swapPositions = (a, b) => {
         // swap the position variables of the two trajectories
-        const temp = a.position;
-        a.position = b.position;
-        b.position = temp;
 
         this.setState((prevState) => ({
-            trajectories: { ...prevState.trajectories, [a.name]: a, [b.name]: b },
+            trajectories: {
+                ...prevState.trajectories,
+                [a.name]: { ...a, position: b.position },
+                [b.name]: { ...b, position: a.position },
+            },
         }));
     };
 
