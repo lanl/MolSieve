@@ -29,6 +29,17 @@ export function simpleMovingAverage(values, n) {
     return means;
 }
 
+export function exponentialMovingAverage(values, n) {
+    const k = 2 / (n + 1);
+    const d = [];
+    d.push(values[0]);
+    for (let i = 1; i < values.length; i++) {
+        d.push(values[i] * k + d[i - 1] * (1 - k));
+    }
+
+    return d;
+}
+
 /**
  * Calculates the box plot statistics for the given dataset.
  *

@@ -7,7 +7,7 @@ import LinearProgress from '@mui/material/LinearProgress';
 import Stack from '@mui/material/Stack';
 import SparkLine from '../vis/SparkLine';
 
-import { simpleMovingAverage, differentiate } from '../api/stats';
+import { exponentialMovingAverage, differentiate } from '../api/stats';
 import { abbreviate, onEntityMouseOver, buildDictFromArray } from '../api/myutils';
 
 import Scatterplot from '../vis/Scatterplot';
@@ -17,7 +17,7 @@ import LoadingBox from '../components/LoadingBox';
 import loadChart from '../api/websocketmethods';
 
 const moveBy = 100;
-const mvaPeriod = 100;
+const mvaPeriod = 200;
 
 export default function ChunkWrapper({
     chunk,
@@ -66,7 +66,7 @@ export default function ChunkWrapper({
             const propList = states.map((d) => d[prop]);
 
             const std = d3.deviation(propList);
-            const m = simpleMovingAverage(propList, mvaPeriod);
+            const m = exponentialMovingAverage(propList, mvaPeriod);
             const mean = d3.mean(m);
             const diffXtent = d3.extent(differentiate(m));
 
