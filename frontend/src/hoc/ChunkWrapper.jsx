@@ -17,7 +17,7 @@ import LoadingBox from '../components/LoadingBox';
 import loadChart from '../api/websocketmethods';
 
 const moveBy = 100;
-const mvaPeriod = 200;
+const mvaPeriod = 100;
 
 export default function ChunkWrapper({
     chunk,
@@ -171,7 +171,6 @@ export default function ChunkWrapper({
                 height={50}
                 colorFunc={colorFunc}
                 selected={selections}
-                // this will change if isExpanded
                 xAttributeList={chunk.timesteps}
                 yAttributeList={chunk.sequence}
                 onElementMouseOver={(node, d) => {

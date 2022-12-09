@@ -21,6 +21,7 @@ export default function EmbeddedChart({
     id,
     brush,
     selections,
+    buttons,
 }) {
     const ref = createRef();
     const [isHovered, setIsHovered] = useState(false);
@@ -92,6 +93,7 @@ export default function EmbeddedChart({
                     >
                         {selectionMode ? <DeselectIcon /> : <HighlightAltIcon />}
                     </IconButton>
+                    {buttons}
                 </Box>
             ) : null}
             <svg ref={ref} width={width} height={height}>

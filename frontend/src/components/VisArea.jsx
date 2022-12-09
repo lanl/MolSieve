@@ -13,6 +13,7 @@ import TrajectoryChart from '../vis/TrajectoryChart';
 import ChartBox from './ChartBox';
 
 import SingleStateModal from '../modals/SingleStateModal';
+import TransferListModal from '../modals/TransferListModal';
 
 import '../css/App.css';
 import GlobalStates from '../api/globalStates';
@@ -34,6 +35,7 @@ import { zTest } from '../api/stats';
 import { getAllImportantStates } from '../api/trajectories';
 
 const SINGLE_STATE_MODAL = 'single_state';
+const MULTIVARIATE_CHART_MODAL = 'multivariate_chart';
 
 const NO_SELECT = 0;
 const FIND_SIMILAR_SELECT = 1;
@@ -52,6 +54,8 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
 
     const [selectionMode, setSelectionMode] = useState(NO_SELECT);
     const [selectedObjects, setSelectedObjects] = useState([]);
+
+    const [propertyCombo, setPropertyCombo] = useState([]);
 
     const [selections, setSelections] = useReducer(
         (state, action) => {
@@ -112,7 +116,6 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
         return updatedGS;
     };
 
-    // make globalScale into a reducer
     const [globalScale, updateGlobalScale] = useReducer((state, action) => {
         switch (action.type) {
             case 'update':
@@ -385,6 +388,13 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
                             >
                                 ClearSelection
                             </Button>
+                            <Button
+                                color="secondary"
+                                size="small"
+                                onClick={() => setCurrentModal(MULTIVARIATE_CHART_MODAL)}
+                            >
+                                AddMultichart
+                            </Button>
                         </Box>
 
                         <Stack direction="column" spacing={2}>
@@ -491,9 +501,22 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
                     state={stateClicked}
                     closeFunc={() => {
                         setClicked(null);
+                        setCurrentModal(null);
                     }}
                 />
             )}
+
+            <TransferListModal
+                open={currentModal === MULTIVARIATE_CHART_MODAL}
+                options={properties}
+                onSubmit={(chosen) => {
+                    console.log(chosen);
+                    setPropertyCombo(chosen);
+                    setCurrentModal(null);
+                }}
+                handleClose={() => setCurrentModal(null)}
+            />
+
             {/* equivalent to (condition) ? true : false; do this to get rid of annoying open prop is null error */}
             <Menu
                 open={!!(anchorEl && anchorEl.id === 'findSimilarButton')}
