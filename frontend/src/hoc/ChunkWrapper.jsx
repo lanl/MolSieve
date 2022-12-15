@@ -144,6 +144,8 @@ export default function ChunkWrapper({
                     const t = math.multiply(math.transpose(md), math.inv(s), md);
                     if (t !== Infinity) {
                         t2.push(t);
+                    } else {
+                        t2.push(0);
                     }
                 }
                 combos[combo.id] = t2;
@@ -202,8 +204,6 @@ export default function ChunkWrapper({
                 })}
                 {Object.keys(tDict).map((id) => {
                     const t = tDict[id];
-                    console.log(t);
-                    console.log(d3.mean(t), d3.min(t), d3.max(t), d3.deviation(t));
                     return (
                         <SparkLine
                             key={`${chunk.id}-${id}`}
