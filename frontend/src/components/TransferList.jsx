@@ -52,7 +52,6 @@ export default function TransferList({ available, chosen, setChosen, setAvailabl
             <List dense component="div" role="list">
                 {items.map((value) => {
                     const labelId = `transfer-list-item-${value}-label`;
-
                     return (
                         <ListItem key={value} role="listitem" onClick={handleToggle(value)}>
                             <ListItemIcon>

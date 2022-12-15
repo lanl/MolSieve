@@ -41,6 +41,7 @@ function TrajectoryChart({
     showStateClustering,
     showTop,
     expand,
+    propertyCombos,
 }) {
     const ref = useTrajectoryChartRender(
         (svg) => {
@@ -67,7 +68,10 @@ function TrajectoryChart({
             d3.select(ref.current).select('.rankList').remove();
 
             const rankList = d3.select(ref.current).append('g').classed('rankList', true);
-            const textRanks = rankList.selectAll('text').data(ranks.ordered.slice(0, showTop));
+            const propertyComboText = propertyCombos.map((combo) => combo.properties.join('+'));
+            const textRanks = rankList
+                .selectAll('text')
+                .data([...ranks.ordered.slice(0, showTop), ...propertyComboText]);
 
             textRanks
                 .enter()
@@ -79,7 +83,7 @@ function TrajectoryChart({
 
             textRanks.exit().remove();
         }
-    }, [ranks.ordered, ref, showTop]);
+    }, [ranks.ordered, ref, showTop, propertyCombos]);
 
     useEffect(() => {
         /* if (stateHovered) {
@@ -306,6 +310,7 @@ function TrajectoryChart({
                                         showStateClustering={showStateClustering}
                                         showTop={showTop}
                                         doubleClickAction={() => expand(chunk.id, 100, trajectory)}
+                                        propertyCombos={propertyCombos}
                                     />
                                 ) : (
                                     <BoxPlotWrapper

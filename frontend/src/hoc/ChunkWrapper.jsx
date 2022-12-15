@@ -1,6 +1,8 @@
 import { React, useState, useEffect, useRef } from 'react';
 
 import * as d3 from 'd3';
+import { create, all } from 'mathjs';
+
 import Box from '@mui/material/Box';
 import LinearProgress from '@mui/material/LinearProgress';
 
@@ -30,6 +32,7 @@ export default function ChunkWrapper({
     showStateClustering,
     selections,
     doubleClickAction,
+    propertyCombos,
 }) {
     // set as useReducer
     const [isInitialized, setIsInitialized] = useState(false);
@@ -46,6 +49,7 @@ export default function ChunkWrapper({
         buildDictFromArray(properties, { std: undefined, mean: undefined })
     );
 
+    const [tDict, setTDict] = useState({});
     const ws = useRef(null);
 
     const updateGS = (states) => {
@@ -67,7 +71,7 @@ export default function ChunkWrapper({
 
             const std = d3.deviation(propList);
             const m = exponentialMovingAverage(propList, mvaPeriod);
-            const mean = d3.mean(m);
+            const mean = d3.mean(propList);
             const diffXtent = d3.extent(differentiate(m));
 
             mvaDict[prop] = m;
@@ -118,6 +122,37 @@ export default function ChunkWrapper({
     }, [JSON.stringify(chunk)]);
 
     useEffect(() => {
+        if (propertyCombos) {
+            const states = chunk.sequence.map((id) => GlobalStates.get(id));
+
+            const math = create(all, {});
+
+            const combos = {};
+            for (const combo of propertyCombos) {
+                const t2 = [];
+                for (let i = 0; i < states.length - 1; i++) {
+                    const md = [];
+                    const ma = [];
+                    for (const prop of combo.properties) {
+                        const { mean } = stats[prop];
+                        md.push(states[i][prop] - mean);
+                        ma.push(states[i + 1][prop] - states[i][prop]);
+                    }
+                    // calculate S
+                    const vv = math.multiply(math.transpose(ma), ma);
+                    const s = math.divide(vv, 2 * (states.length - 1));
+                    const t = math.multiply(math.transpose(md), math.inv(s), md);
+                    if (t !== Infinity) {
+                        t2.push(t);
+                    }
+                }
+                combos[combo.id] = t2;
+            }
+            setTDict(combos);
+        }
+    }, [JSON.stringify(propertyCombos)]);
+
+    useEffect(() => {
         if (showStateClustering) {
             setColorFunc(() => (d) => {
                 const state = GlobalStates.get(d.y);
@@ -162,6 +197,24 @@ export default function ChunkWrapper({
                             xAttributeList={chunk.timesteps}
                             lineColor={trajectory.colorByCluster(chunk)}
                             title={`${abbreviate(property)}`}
+                        />
+                    );
+                })}
+                {Object.keys(tDict).map((id) => {
+                    const t = tDict[id];
+                    console.log(t);
+                    console.log(d3.mean(t), d3.min(t), d3.max(t), d3.deviation(t));
+                    return (
+                        <SparkLine
+                            key={`${chunk.id}-${id}`}
+                            globalScaleMin={d3.min(t)}
+                            globalScaleMax={d3.max(t)}
+                            std={d3.deviation(t)}
+                            mean={d3.mean(t)}
+                            width={width}
+                            yAttributeList={t}
+                            xAttributeList={chunk.timesteps}
+                            lineColor={trajectory.colorByCluster(chunk)}
                         />
                     );
                 })}
