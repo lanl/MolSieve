@@ -55,8 +55,6 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
     const [selectionMode, setSelectionMode] = useState(NO_SELECT);
     const [selectedObjects, setSelectedObjects] = useState([]);
 
-    const [propertyCombo, setPropertyCombo] = useState([]);
-
     const [selections, setSelections] = useReducer(
         (state, action) => {
             switch (action.type) {
@@ -118,12 +116,29 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
 
     const [globalScale, updateGlobalScale] = useReducer((state, action) => {
         switch (action.type) {
+            case 'create':
+                return {
+                    ...state,
+                    [action.payload]: { min: Number.MAX_VALUE, max: Number.MIN_VALUE },
+                };
             case 'update':
                 return updateGS(state, action.payload);
             default:
                 throw new Error('Unknown action');
         }
     }, buildDictFromArray(properties, { min: Number.MAX_VALUE, max: Number.MIN_VALUE }));
+
+    const [propertyCombos, reducePropertyCombos] = useReducer((state, action) => {
+        switch (action.type) {
+            case 'create': {
+                const id = createUUID();
+                updateGlobalScale({ type: 'create', payload: id });
+                return [...state, { id, properties: action.payload }];
+            }
+            default:
+                throw new Error('Unknown action');
+        }
+    }, []);
 
     const [showStateClustering, setShowStateClustering] = useState(false);
 
@@ -426,7 +441,11 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
                                     return (
                                         <TrajectoryChart
                                             width={width}
-                                            height={showTop * SPARKLINE_CHART_HEIGHT + 50}
+                                            height={
+                                                (showTop + propertyCombos.length) *
+                                                    SPARKLINE_CHART_HEIGHT +
+                                                50
+                                            }
                                             trajectory={trajectory}
                                             run={runs[trajectory.name]}
                                             setStateHovered={setStateHovered}
@@ -435,6 +454,7 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
                                             isParentHovered={isHovered}
                                             charts={charts}
                                             properties={properties}
+                                            propertyCombos={propertyCombos}
                                             chunkSelectionMode={selectionMode}
                                             trajectorySelectionMode={
                                                 selectionMode === SWAP_SELECTIONS
@@ -510,8 +530,7 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
                 open={currentModal === MULTIVARIATE_CHART_MODAL}
                 options={properties}
                 onSubmit={(chosen) => {
-                    console.log(chosen);
-                    setPropertyCombo(chosen);
+                    reducePropertyCombos({ type: 'create', payload: chosen });
                     setCurrentModal(null);
                 }}
                 handleClose={() => setCurrentModal(null)}
