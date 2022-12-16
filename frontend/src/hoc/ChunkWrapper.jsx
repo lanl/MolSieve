@@ -152,7 +152,7 @@ export default function ChunkWrapper({
             }
             setTDict(combos);
         }
-    }, [JSON.stringify(propertyCombos)]);
+    }, [JSON.stringify(propertyCombos), JSON.stringify(chunk), JSON.stringify(stats)]);
 
     useEffect(() => {
         if (showStateClustering) {
@@ -192,8 +192,8 @@ export default function ChunkWrapper({
                             key={`${chunk.id}-${property}`}
                             globalScaleMin={min}
                             globalScaleMax={max}
-                            std={std}
-                            mean={mean}
+                            ucl={mean + std}
+                            lcl={mean - std}
                             width={width}
                             yAttributeList={mva[property]}
                             xAttributeList={chunk.timesteps}
@@ -209,8 +209,7 @@ export default function ChunkWrapper({
                             key={`${chunk.id}-${id}`}
                             globalScaleMin={d3.min(t)}
                             globalScaleMax={d3.max(t)}
-                            std={d3.deviation(t)}
-                            mean={d3.mean(t)}
+                            ucl={d3.mean(t) + d3.deviation(t)}
                             width={width}
                             yAttributeList={t}
                             xAttributeList={chunk.timesteps}
