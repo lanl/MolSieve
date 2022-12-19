@@ -9,7 +9,7 @@ import LinearProgress from '@mui/material/LinearProgress';
 import Stack from '@mui/material/Stack';
 import SparkLine from '../vis/SparkLine';
 
-import { exponentialMovingAverage, differentiate } from '../api/stats';
+import { exponentialMovingAverage, differentiate, betaPDF } from '../api/stats';
 import { abbreviate, onEntityMouseOver, buildDictFromArray } from '../api/myutils';
 
 import Scatterplot from '../vis/Scatterplot';
@@ -148,7 +148,16 @@ export default function ChunkWrapper({
                         t2.push(0);
                     }
                 }
-                combos[combo.id] = t2;
+
+                // calculate UCL
+                const m = states.length;
+                const p = combo.properties.length;
+                const q = (2 * (m - 1) ** 2) / (3 * m - 4);
+
+                // determine best value for alpha
+                const ucl = ((m - 1) ** 2 / m) * betaPDF(0.005, p / 2, (q - p - 1) / 2);
+
+                combos[combo.id] = { ucl, values: t2 };
             }
             setTDict(combos);
         }
@@ -204,14 +213,15 @@ export default function ChunkWrapper({
                 })}
                 {Object.keys(tDict).map((id) => {
                     const t = tDict[id];
+                    const { values, ucl } = t;
                     return (
                         <SparkLine
                             key={`${chunk.id}-${id}`}
-                            globalScaleMin={d3.min(t)}
-                            globalScaleMax={d3.max(t)}
-                            ucl={d3.mean(t) + d3.deviation(t)}
+                            globalScaleMin={d3.min(values)}
+                            globalScaleMax={d3.max(values)}
+                            ucl={ucl}
                             width={width}
-                            yAttributeList={t}
+                            yAttributeList={values}
                             xAttributeList={chunk.timesteps}
                             lineColor={trajectory.colorByCluster(chunk)}
                         />

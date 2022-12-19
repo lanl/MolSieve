@@ -96,3 +96,33 @@ export function differentiate(arr) {
     }
     return diff;
 }
+
+// https://github.com/royhzq/betajs/blob/master/beta.js
+function lnBetaFunc(a, b) {
+    // Log Beta Function
+    // ln(Beta(x,y))
+    let acc = 0.0;
+
+    for (let i = 0; i < a - 2; i++) {
+        acc += Math.log(a - 1 - i);
+    }
+    for (let i = 0; i < b - 2; i++) {
+        acc += Math.log(b - 1 - i);
+    }
+    for (let i = 0; i < a + b - 2; i++) {
+        acc -= Math.log(a + b - 1 - i);
+    }
+    return acc;
+}
+
+function lnBetaPDF(x, a, b) {
+    // Log of the Beta Probability Density Function
+    return (a - 1) * Math.log(x) + (b - 1) * Math.log(1 - x) - lnBetaFunc(a, b);
+}
+
+export function betaPDF(x, a, b) {
+    // Beta probability density function impementation
+    // using logarithms, no factorials involved.
+    // Overcomes the problem with large integers
+    return Math.exp(lnBetaPDF(x, a, b));
+}
