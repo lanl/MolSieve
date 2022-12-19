@@ -106,10 +106,12 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
         for (const property of Object.keys(oldGS)) {
             const oldProp = oldGS[property];
             const newProp = newGS[property];
-            updatedGS[property] = {
-                min: newProp.min < oldProp.min ? newProp.min : oldProp.min,
-                max: newProp.max > oldProp.max ? newProp.max : oldProp.max,
-            };
+            if (newProp) {
+                updatedGS[property] = {
+                    min: newProp.min < oldProp.min ? newProp.min : oldProp.min,
+                    max: newProp.max > oldProp.max ? newProp.max : oldProp.max,
+                };
+            }
         }
         return updatedGS;
     };
@@ -528,6 +530,7 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
 
             <TransferListModal
                 open={currentModal === MULTIVARIATE_CHART_MODAL}
+                title="Create Multivariate Chart"
                 options={properties}
                 onSubmit={(chosen) => {
                     reducePropertyCombos({ type: 'create', payload: chosen });

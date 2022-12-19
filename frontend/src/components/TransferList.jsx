@@ -7,6 +7,7 @@ import ListItemText from '@mui/material/ListItemText';
 import Checkbox from '@mui/material/Checkbox';
 import Button from '@mui/material/Button';
 import Paper from '@mui/material/Paper';
+import { abbreviate } from '../api/myutils';
 
 function not(a, b) {
     return a.filter((value) => b.indexOf(value) === -1);
@@ -64,7 +65,7 @@ export default function TransferList({ available, chosen, setChosen, setAvailabl
                                     }}
                                 />
                             </ListItemIcon>
-                            <ListItemText id={labelId} primary={`${value}`} />
+                            <ListItemText id={labelId} primary={`${abbreviate(value)}`} />
                         </ListItem>
                     );
                 })}
@@ -75,7 +76,10 @@ export default function TransferList({ available, chosen, setChosen, setAvailabl
 
     return (
         <Grid container spacing={2} justifyContent="center" alignItems="center">
-            <Grid item>{customList(available)}</Grid>
+            <Grid item>
+                <h2>Available</h2>
+                {customList(available)}
+            </Grid>
             <Grid item>
                 <Grid container direction="column" alignItems="center">
                     <Button
@@ -100,7 +104,10 @@ export default function TransferList({ available, chosen, setChosen, setAvailabl
                     </Button>
                 </Grid>
             </Grid>
-            <Grid item>{customList(chosen)}</Grid>
+            <Grid item>
+                <h2>Chosen</h2>
+                {customList(chosen)}
+            </Grid>
         </Grid>
     );
 }
