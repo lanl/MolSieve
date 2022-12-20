@@ -45,9 +45,7 @@ export default function EmbeddedChart({
         if (selections) {
             for (const s of selections) {
                 const { active, originalExtent } = s;
-                // doesn't work on width resize
                 const { start: ogStart, end: ogEnd } = originalExtent;
-
                 d3.select(ref.current)
                     .append('rect')
                     .attr('x', ogStart)

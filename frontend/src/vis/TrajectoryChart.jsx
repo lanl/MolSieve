@@ -145,7 +145,7 @@ function TrajectoryChart({
                 id: s.id,
             }))
             .filter((d) => d.timestep >= start && d.timestep <= end);
-        setExtents(states, trajectory.name, { start: selection[0], end: selection[1] });
+        setExtents(states, trajectory.name, { start, end });
     };
 
     return (
@@ -177,12 +177,23 @@ function TrajectoryChart({
                     })
                     .map((selectionID) => {
                         const selection = values[selectionID];
+                        const x = d3
+                            .scaleLinear()
+                            .domain(
+                                d3.extent(
+                                    chunk.timesteps.filter((d) => d > extents[0] && d < extents[1])
+                                )
+                            )
+                            .range([0, chartW]);
+
+                        const { start, end } = selection.originalExtent;
+
                         return {
                             set: selection.extent.map((d) => d.timestep),
                             active: current && selectionID === current.id,
                             highlightValue:
                                 current && selectionID === current.id ? current.activeState : null,
-                            originalExtent: selection.originalExtent,
+                            originalExtent: { start: x(start), end: x(end) },
                         };
                     });
 
