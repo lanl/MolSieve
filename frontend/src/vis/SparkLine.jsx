@@ -4,7 +4,7 @@ import * as d3 from 'd3';
 import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
 
 import { tooltip } from '../api/myutils';
-import { differentiate } from '../api/stats';
+import { differentiate } from '../api/math/stats';
 
 let ttInstance;
 const MARGIN = { top: 5, bottom: 10, left: 0, right: 5 };

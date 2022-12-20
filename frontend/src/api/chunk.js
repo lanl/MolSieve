@@ -1,7 +1,7 @@
 import GlobalChunks from './globalChunks';
 import GlobalStates from './globalStates';
 import Timestep from './timestep';
-import { boxPlotStats } from './stats';
+import { boxPlotStats } from './math/stats';
 import { apiGetSequence } from './ajax';
 
 const CHUNK = 0;

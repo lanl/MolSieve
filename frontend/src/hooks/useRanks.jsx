@@ -1,6 +1,6 @@
 import { useReducer } from 'react';
 import { normalizeDict, getNeighbors, buildDictFromArray } from '../api/myutils';
-import { zTest } from '../api/stats';
+import { zTest } from '../api/math/stats';
 
 export default function useRanks(keys, chunkOrder) {
     const [ranks, reduceRanks] = useReducer(

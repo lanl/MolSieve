@@ -5,7 +5,7 @@ import LinearProgress from '@mui/material/LinearProgress';
 import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
 
-import { boxPlotStats } from '../api/stats';
+import { boxPlotStats } from '../api/math/stats';
 import loadChart from '../api/websocketmethods';
 
 import BoxPlot from '../vis/BoxPlot';

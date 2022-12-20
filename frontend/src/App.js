@@ -16,7 +16,7 @@ import VisArea from './components/VisArea';
 import { apiLoadTrajectory, apiModifyTrajectory } from './api/ajax';
 import ControlDrawer from './components/ControlDrawer';
 import GlobalStates from './api/globalStates';
-import { createUUID } from './api/random';
+import { createUUID } from './api/math/random';
 import { getNeighbors } from './api/myutils';
 
 import WebSocketManager from './api/websocketmanager';

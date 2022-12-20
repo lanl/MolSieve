@@ -3,7 +3,7 @@ import Chunk from './chunk';
 import GlobalStates from './globalStates';
 import { structuralAnalysisProps } from './constants';
 import { chunkSimilarity } from './myutils';
-import { zTest } from './stats';
+import { zTest } from './math/stats';
 
 class Trajectory {
     // dict of id to cluster id

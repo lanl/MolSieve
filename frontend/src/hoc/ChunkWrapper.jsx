@@ -9,7 +9,7 @@ import LinearProgress from '@mui/material/LinearProgress';
 import Stack from '@mui/material/Stack';
 import SparkLine from '../vis/SparkLine';
 
-import { exponentialMovingAverage, differentiate, betaPDF } from '../api/stats';
+import { exponentialMovingAverage, differentiate, betaPDF } from '../api/math/stats';
 import { abbreviate, onEntityMouseOver, buildDictFromArray } from '../api/myutils';
 
 import Scatterplot from '../vis/Scatterplot';
