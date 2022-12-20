@@ -54,7 +54,7 @@ function TrajectoryChart({
                 svg.selectAll('g:not(.brush, .rankList)').remove();
             }
         },
-        [trajectory, run, width, height, charts]
+        [JSON.stringify(trajectory), JSON.stringify(run), width, height, JSON.stringify(charts)]
     );
 
     const { ranks, reduceRanks } = useRanks(properties, trajectory.chunkOrder());
@@ -85,85 +85,11 @@ function TrajectoryChart({
         }
     }, [ranks.ordered, ref, showTop, propertyCombos]);
 
-    useEffect(() => {
-        /* if (stateHovered) {
-            if (stateHighlight) {
-                d3.select(ref.current)
-                    .selectAll('rect:not(.invisible)')
-                    .filter(function (dp) {
-                        return dp.id !== stateHovered.id;
-                    })
-                    .classed('highlightedInvisible', true);
-
-                d3.select('#sequence_important')
-                    .selectAll('rect:not(.highlightedInvisible)')
-                    .classed('highlightedStates', true);
-            }
-
-            if (stateHovered.timestep !== null && stateHovered.timestep !== undefined) {
-                d3.select(ref.current)
-                    .selectAll('rect:not(.invisible)')
-                    .filter((d) => d.timestep === stateHovered.timestep)
-                    .classed('highlightedState', true);
-            }
-
-            if (stateHovered.timesteps) {
-                d3.select(ref.current)
-                    .selectAll('rect:not(.invisible)')
-                    .filter((d) => stateHovered.timesteps.includes(d.timestep))
-                    .classed('highlightedState', true);
-            }
-        } else {
-            d3.select(ref.current)
-                .selectAll('.highlightedInvisible')
-                .classed('highlightedInvisible', false);
-            d3.select(ref.current)
-                .selectAll('.highlightedStates')
-                .classed('highlightedStates', false);
-            d3.select(ref.current)
-                .selectAll('.highlightedState')
-                .classed('highlightedState', false);
-        } */
-    }, [stateHovered]);
-
-    /* useEffect(() => {
-        d3.select(ref.current).selectAll('.currentSelection').classed('currentSelection', false);
-
-        if (visibleExtent) {
-            for (const e of visibleExtent) {
-                let filterFunc = null;
-
-                if (e.begin && e.end) {
-                    filterFunc = function (d) {
-                        return d.timestep >= e.begin && d.timestep <= e.end;
-                    };
-                } else {
-                    filterFunc = function (d) {
-                        const ids = e.states.map((s) => s.id);
-                        return ids.includes(d.id);
-                    };
-                }
-                d3.select(ref.current)
-                    .select('#sequence_important')
-                    .selectAll('rect')
-                    .filter((d) => {
-                        return filterFunc(d);
-                    })
-                    .classed('currentSelection', true);
-            }
-        }
-    }, [visibleExtent]); */
-
-    const { chunkList } = trajectory;
+    const { extents } = run;
     // here we can filter out the un-rendered charts right away since we only care about rendering here
-    const topChunkList = chunkList
-        .filter((d) => !d.hasParent)
-        .filter((d) => {
-            const { extents } = run;
-            return extents[0] <= d.timestep && extents[1] >= d.last;
-        });
-    const uChunks = topChunkList.filter((d) => !d.important);
-    const iChunks = topChunkList.filter((d) => d.important);
+    const { iChunks, uChunks } = charts;
+
+    const topChunkList = [...iChunks, ...uChunks].sort((a, b) => a.timestep > b.timestep);
 
     const unimportantWidthExtent =
         iChunks.length > 0 ? (width - MARGIN.right) * 0.1 : width - MARGIN.right;
@@ -176,11 +102,11 @@ function TrajectoryChart({
     const importantWidthScale = d3
         .scaleLinear()
         .range([minimumChartWidth, width - MARGIN.right])
-        .domain([0, d3.max(iChunks, (d) => d.size)]);
+        .domain([0, d3.max(iChunks, (d) => d.slice(extents[0], extents[1]).size)]);
 
     const getWidthScale = (data) => {
         if (data.important) {
-            return importantWidthScale(data.size);
+            return importantWidthScale(data.slice(extents[0], extents[1]).size);
         }
         return unimportantWidthScale(data.size);
     };
@@ -204,7 +130,10 @@ function TrajectoryChart({
 
     const finishBrush = (chunk, { selection }, chartWidth) => {
         // build temp scale for that chunk
-        const x = d3.scaleLinear().domain(d3.extent(chunk.timesteps)).range([0, chartWidth]);
+        const x = d3
+            .scaleLinear()
+            .domain(d3.extent(chunk.timesteps.filter((d) => d > extents[0] && d < extents[1])))
+            .range([0, chartWidth]);
         // convert start, end to proper values
         const start = Math.round(x.invert(selection[0]));
         const end = Math.round(x.invert(selection[1]));
@@ -231,13 +160,11 @@ function TrajectoryChart({
                 }
             }}
         >
-            {charts.map((child) => {
-                const { chunk, id, important } = child;
-
+            {topChunkList.map((chunk) => {
                 const chunkIndex = topChunkList.indexOf(chunk);
+                const slicedChunk = chunk.slice(extents[0], extents[1]);
 
-                const chartW = scaleX(getWidthScale(chunk));
-
+                const chartW = scaleX(getWidthScale(slicedChunk));
                 const { values, current } = selections;
                 const chartSelections = Object.keys(values)
                     .filter((selectionID) => {
@@ -245,7 +172,7 @@ function TrajectoryChart({
                         const timesteps = selection.extent.map((d) => d.timestep);
                         return (
                             selection.trajectoryName === trajectory.name &&
-                            chunk.containsSequence(timesteps)
+                            slicedChunk.containsSequence(timesteps)
                         );
                     })
                     .map((selectionID) => {
@@ -263,7 +190,7 @@ function TrajectoryChart({
 
                 return (
                     <foreignObject
-                        key={id}
+                        key={chunk.id}
                         x={getX(chunkIndex, 0, topChunkList, scaleX, getWidthScale) + MARGIN.right}
                         y={0}
                         width={chartW}
@@ -292,7 +219,7 @@ function TrajectoryChart({
                             selections={chartSelections}
                         >
                             {(ww, hh) =>
-                                important ? (
+                                chunk.important ? (
                                     <ChunkWrapper
                                         chunk={chunk}
                                         width={ww}
@@ -311,6 +238,7 @@ function TrajectoryChart({
                                         showTop={showTop}
                                         doubleClickAction={() => expand(chunk.id, 100, trajectory)}
                                         propertyCombos={propertyCombos}
+                                        extents={extents}
                                     />
                                 ) : (
                                     <BoxPlotWrapper

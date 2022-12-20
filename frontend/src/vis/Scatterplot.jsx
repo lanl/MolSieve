@@ -6,16 +6,11 @@ import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
 import '../css/vis.css';
 import '../css/App.css';
 
-import { useExtents } from '../hooks/useExtents';
-
 const MARGIN = { top: 5, bottom: 10, left: 0, right: 5 };
 
 export default function Scatterplot({
-    addSelection,
     width,
     height,
-    selectionMode,
-    onSelectionComplete,
     colorFunc,
     xAttributeList,
     yAttributeList,
@@ -24,69 +19,43 @@ export default function Scatterplot({
     onElementMouseOut,
     selected,
 }) {
-    const { setInternalExtents, completeSelection } = useExtents(addSelection, onSelectionComplete);
-
-    const buildData = () => {
-        let listLength;
-        if (xAttributeList.length === yAttributeList.length) {
-            listLength = xAttributeList.length;
-        } else {
-            return undefined;
-        }
-
-        const dataList = [];
-        for (let i = 0; i < listLength; i++) {
-            const d = { x: xAttributeList[i], y: yAttributeList[i] };
-            dataList.push(d);
-        }
-
-        return dataList;
-    };
-    const [data, setData] = useState(buildData());
-
     const buildScaleX = () => {
-        return () =>
-            d3
-                .scaleLinear()
-                .domain(d3.extent(data, (d) => d.x))
-                .range([MARGIN.left, width]);
+        return () => d3.scaleLinear().domain(d3.extent(xAttributeList)).range([MARGIN.left, width]);
     };
 
     const buildScaleY = () => {
-        return () =>
-            d3
-                .scaleLinear()
-                .domain(d3.extent(data, (d) => d.y))
-                .range([height - MARGIN.bottom, MARGIN.top]);
+        return () => d3.scaleLinear().domain(d3.extent(yAttributeList)).range([height, MARGIN.top]);
     };
 
-    useState(() => {
+    const buildData = () => {
+        if (!yAttributeList) {
+            return undefined;
+        }
+        const mv = [];
+        for (let i = 0; i < yAttributeList.length; i++) {
+            const d = { x: xAttributeList[i], y: yAttributeList[i] };
+            mv.push(d);
+        }
+        return mv;
+    };
+
+    const [data, setData] = useState(buildData());
+
+    useEffect(() => {
         setData(buildData());
-    }, [xAttributeList, yAttributeList]);
+    }, [JSON.stringify(xAttributeList), JSON.stringify(yAttributeList)]);
 
     const [scaleX, setScaleX] = useState(buildScaleX());
 
     useEffect(() => {
         setScaleX(buildScaleX());
-    }, [width]);
+    }, [JSON.stringify(data), width]);
 
     const [scaleY, setScaleY] = useState(buildScaleY());
 
     useEffect(() => {
         setScaleY(buildScaleY());
-    }, [JSON.stringify(data), height]);
-
-    /* const renderBackgroundColor = (svg, data, color) => {
-        svg.append('rect')
-            .attr('x', scaleX(data[0]))
-            .attr('y', 0)
-            .attr('height', height)
-            .attr('width', scaleX(data[data.length - 1]) - scaleX(data[0]))
-            .attr('fill', color)
-            .classed('unimportant', true);
-    }; */
-
-    const [sBrush, setSBrush] = useState(null);
+    }, [height]);
 
     const ref = useTrajectoryChartRender(
         (svg) => {
@@ -125,57 +94,10 @@ export default function Scatterplot({
                     onElementMouseOut(this, d);
                 });
 
-            setSBrush(() =>
-                d3
-                    .brushX()
-                    .keyModifiers(false)
-                    .on('start brush', function ({ selection }) {
-                        const start = Math.round(scaleX.invert(selection[0]));
-                        const end = Math.round(scaleX.invert(selection[1]));
-
-                        d3.select(ref.current)
-                            .selectAll('.currentSelection')
-                            .classed('currentSelection', false);
-
-                        d3.select(ref.current)
-                            .selectAll('.state')
-                            .filter((d) => start <= d.x && d.x <= end)
-                            .classed('currentSelection', true);
-                    })
-                    .on('end', function ({ selection }) {
-                        const start = Math.round(scaleX.invert(selection[0]));
-                        const end = Math.round(scaleX.invert(selection[1]));
-
-                        d3.select(ref.current)
-                            .selectAll('.currentSelection')
-                            .classed('currentSelection', false);
-
-                        const nodes = data.filter((d) => start <= d.x && d.x <= end);
-                        setInternalExtents(nodes);
-                        completeSelection();
-                    })
-            );
-
             // applyFilters(trajectories, runs, ref);
         },
-        [scaleX, scaleY, colorFunc]
+        [JSON.stringify(data), scaleX, scaleY, colorFunc]
     );
-
-    const selectionBrush = () => {
-        if (sBrush != null) {
-            if (!d3.selectAll('.brush').empty()) {
-                d3.selectAll('.brush').remove();
-            }
-
-            d3.select(ref.current).append('g').attr('class', 'brush').call(sBrush);
-        }
-    };
-
-    useEffect(() => {
-        if (selectionMode) {
-            selectionBrush();
-        }
-    }, [selectionMode]);
 
     useEffect(() => {
         d3.select(ref.current).selectAll('.currentSelection').classed('currentSelection', false);

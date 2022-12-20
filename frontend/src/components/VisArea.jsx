@@ -145,39 +145,34 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
     const [showStateClustering, setShowStateClustering] = useState(false);
 
     /**
-     * [TODO:description]
+     * Gets all of the currently rendered chunks for a trajectory.
      *
-     * @param {[TODO:type]} trajectory - [TODO:descriptin]
-     * @returns {[TODO:type]} [TODO:description]
+     * @param {Trajectory} trajectory - The trajectory to retrieve the chunks from.
+     * @returns {Array<Chunk>} Array of visible chunks.
      */
     const getVisibleChunks = (trajectory) => {
         const { chunkList, name } = trajectory;
+        const { extents } = runs[name];
+        const [start, end] = extents;
         // this is all of the chunks we need for data
-        const topChunkList = chunkList.filter((d) => !d.hasParent);
+        const topChunkList = chunkList
+            .filter((d) => !d.hasParent)
+            .filter((d) => {
+                return !(start > d.last || end < d.timestep);
+            });
 
         // the important chunks we will render
-        const iChunks = topChunkList
-            .filter((d) => d.important)
-            .filter((d) => {
-                const { extents } = runs[name];
-                return extents[0] <= d.timestep && extents[1] >= d.last;
-            });
-
+        const iChunks = topChunkList.filter((d) => d.important);
         // the unimportant chunks we will render
-        const uChunks = topChunkList
-            .filter((d) => !d.important)
-            .filter((d) => {
-                const { extents } = runs[name];
-                return extents[0] <= d.timestep && extents[1] >= d.last;
-            });
+        const uChunks = topChunkList.filter((d) => !d.important);
 
         return { iChunks, uChunks, topChunkList };
     };
 
     /**
-     * [TODO:description]
+     * Gets all visible chunks across all trajectories.
      *
-     * @returns {[TODO:type]} [TODO:description]
+     * @returns {Array<Chunk>} All chunks visible on the screen
      */
     const getAllVisibleChunks = () => {
         let visible = [];
@@ -242,11 +237,11 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
     }, [selectionMode]);
     // essentially the same as useCallback
     /* setStateClickedProp = this.setStateClicked.bind(this);
-    
+     
     setStateHoveredProp = this.setStateHovered.bind(this);
-    
+     
     setExtentsUniqueStatesProp = this.setExtentsUniqueStates.bind(this);
-    
+     
     setSequenceExtentProp = this.setSequenceExtent.bind(this); */
 
     const toggleModal = (key) => {
@@ -421,24 +416,7 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
                                     const { uChunks, iChunks } = getVisibleChunks(trajectory);
 
                                     // NOTE: we STILL need the topChunkList to be all of the chunks for expansion to work when zoomed in!
-
-                                    const uCharts = uChunks.map((chunk) => {
-                                        return {
-                                            id: chunk.id,
-                                            chunk,
-                                            important: chunk.important,
-                                        };
-                                    });
-
-                                    const iCharts = iChunks.map((chunk) => {
-                                        return {
-                                            id: chunk.id,
-                                            chunk,
-                                            important: chunk.important,
-                                        };
-                                    });
-
-                                    const charts = [...iCharts, ...uCharts];
+                                    const charts = { uChunks, iChunks };
 
                                     return (
                                         <TrajectoryChart

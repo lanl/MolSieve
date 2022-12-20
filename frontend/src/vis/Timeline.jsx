@@ -75,7 +75,7 @@ export default function Timeline({ trajectory, width, height, run, setExtent }) 
 
             brushG.call(brush).call(brush.move, defaultSelection);
         },
-        [trajectory, width, height, trajectory.chunkingThreshold, trajectory.current_clustering]
+        [JSON.stringify(trajectory), width, height]
     );
 
     return <svg id={`timeline_${trajectory.name}`} ref={ref} viewBox={[0, 0, width, height]} />;

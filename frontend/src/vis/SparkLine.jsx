@@ -32,18 +32,6 @@ export default function SparkLine({
             d3.scaleLinear().domain([globalScaleMin, globalScaleMax]).range([height, MARGIN.top]);
     };
 
-    const [scaleX, setScaleX] = useState(buildScaleX());
-
-    useEffect(() => {
-        setScaleX(buildScaleX());
-    }, [width]);
-
-    const [scaleY, setScaleY] = useState(buildScaleY());
-
-    useEffect(() => {
-        setScaleY(buildScaleY());
-    }, [height, globalScaleMin, globalScaleMax]);
-
     const buildData = () => {
         if (!yAttributeList) {
             return undefined;
@@ -58,6 +46,17 @@ export default function SparkLine({
     };
 
     const [data, setData] = useState(buildData());
+    const [scaleX, setScaleX] = useState(buildScaleX());
+
+    useEffect(() => {
+        setScaleX(buildScaleX());
+    }, [JSON.stringify(data), width]);
+
+    const [scaleY, setScaleY] = useState(buildScaleY());
+
+    useEffect(() => {
+        setScaleY(buildScaleY());
+    }, [height, globalScaleMin, globalScaleMax]);
 
     const colorPath = (svg, line, color, filterFunc) => {
         svg.append('path')
@@ -78,7 +77,7 @@ export default function SparkLine({
 
     useEffect(() => {
         setData(buildData());
-    }, [xAttributeList, yAttributeList]);
+    }, [JSON.stringify(xAttributeList), JSON.stringify(yAttributeList)]);
 
     const line = d3
         .line()

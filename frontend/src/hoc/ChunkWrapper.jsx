@@ -33,6 +33,7 @@ export default function ChunkWrapper({
     selections,
     doubleClickAction,
     propertyCombos,
+    extents,
 }) {
     // set as useReducer
     const [isInitialized, setIsInitialized] = useState(false);
@@ -181,6 +182,13 @@ export default function ChunkWrapper({
         return <div>Loading interrupted</div>;
     }
 
+    const [start, end] = extents;
+    const { timestep, last } = chunk;
+    const sliceStart = start <= timestep ? 0 : start - timestep;
+    const sliceEnd = end >= last ? last : end - last;
+
+    const timesteps = chunk.timesteps.filter((d) => d >= start && d <= end);
+
     return isInitialized ? (
         <Box
             onClick={(e) => {
@@ -204,8 +212,8 @@ export default function ChunkWrapper({
                             ucl={mean + std}
                             lcl={mean - std}
                             width={width}
-                            yAttributeList={mva[property]}
-                            xAttributeList={chunk.timesteps}
+                            yAttributeList={mva[property].slice(sliceStart, sliceEnd)}
+                            xAttributeList={timesteps}
                             lineColor={trajectory.colorByCluster(chunk)}
                             title={`${abbreviate(property)}`}
                         />
@@ -221,20 +229,21 @@ export default function ChunkWrapper({
                             globalScaleMax={d3.max(values)}
                             ucl={ucl}
                             width={width}
-                            yAttributeList={values}
-                            xAttributeList={chunk.timesteps}
+                            yAttributeList={values.slice(sliceStart, sliceEnd)}
+                            xAttributeList={timesteps}
                             lineColor={trajectory.colorByCluster(chunk)}
                         />
                     );
                 })}
             </Stack>
             <Scatterplot
+                key={`${chunk.id}-scatterplot`}
                 width={width}
                 height={50}
                 colorFunc={colorFunc}
                 selected={selections}
-                xAttributeList={chunk.timesteps}
-                yAttributeList={chunk.sequence}
+                xAttributeList={timesteps}
+                yAttributeList={chunk.sequence.slice(sliceStart, sliceEnd)}
                 onElementMouseOver={(node, d) => {
                     const state = GlobalStates.get(d.y);
                     onEntityMouseOver(node, state);

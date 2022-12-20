@@ -45,6 +45,25 @@ export default class Chunk {
         this.trajectory = trajectory;
     }
 
+    slice(start, end) {
+        if (start <= this.timestep && end >= this.last) {
+            return this;
+        }
+
+        const sliceStart = start <= this.timestep ? 0 : start - this.timestep;
+        const sliceEnd = end >= this.last ? this.last : this.last - this.timestep;
+
+        return new Chunk(
+            start > this.timestep ? start : this.timestep,
+            end < this.last ? end : this.last,
+            this.firstID,
+            this.important,
+            this.cluster,
+            this.sequence.slice(sliceStart, sliceEnd),
+            this.trajectory
+        );
+    }
+
     static withParent(timestep, last, firstID, important, parentID, trajectory) {
         const newChunk = new Chunk(timestep, last, firstID, important, undefined, trajectory);
         newChunk.parentID = parentID;
