@@ -11,7 +11,7 @@ const MARGIN = { top: 5, bottom: 10, left: 0, right: 5 };
 
 export const SPARKLINE_CHART_HEIGHT = 20;
 
-export default function SparkLine({
+export default function ControlChart({
     globalScaleMin,
     globalScaleMax,
     width,
@@ -185,7 +185,7 @@ export default function SparkLine({
     );
 }
 
-SparkLine.defaultProps = {
+ControlChart.defaultProps = {
     lineColor: 'black',
     height: SPARKLINE_CHART_HEIGHT,
     showMedian: false,

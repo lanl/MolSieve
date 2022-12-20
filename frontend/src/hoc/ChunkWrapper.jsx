@@ -7,7 +7,7 @@ import Box from '@mui/material/Box';
 import LinearProgress from '@mui/material/LinearProgress';
 
 import Stack from '@mui/material/Stack';
-import SparkLine from '../vis/SparkLine';
+import ControlChart from '../vis/ControlChart';
 
 import { exponentialMovingAverage, differentiate, betaPDF } from '../api/math/stats';
 import { abbreviate, onEntityMouseOver, buildDictFromArray } from '../api/myutils';
@@ -205,7 +205,7 @@ export default function ChunkWrapper({
                     const { min, max } = globalScale[property];
                     const { std, mean } = stats[property];
                     return (
-                        <SparkLine
+                        <ControlChart
                             key={`${chunk.id}-${property}`}
                             globalScaleMin={min}
                             globalScaleMax={max}
@@ -223,7 +223,7 @@ export default function ChunkWrapper({
                     const t = tDict[id];
                     const { values, ucl } = t;
                     return (
-                        <SparkLine
+                        <ControlChart
                             key={`${chunk.id}-${id}`}
                             globalScaleMin={d3.min(values)}
                             globalScaleMax={d3.max(values)}
