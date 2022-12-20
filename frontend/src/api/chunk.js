@@ -250,7 +250,7 @@ export default class Chunk {
      */
     takeFromSequence(sliceSize, direction) {
         const where = direction === 'front' ? 0 : this.sequence.length - sliceSize;
-        if (this.sequence.length > sliceSize && this.sequence.length > 0) {
+        if (this.sequence.length > 0) {
             const deleted = this.sequence.splice(where, sliceSize);
 
             // update timestep, last, firstID
@@ -263,6 +263,7 @@ export default class Chunk {
 
             return deleted;
         }
+
         return [];
     }
 

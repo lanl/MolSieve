@@ -239,15 +239,24 @@ class App extends React.Component {
         };
 
         loadNeighbors(left, right).then(() => {
-            const leftVals = left.takeFromSequence(sliceSize, 'back');
-            chunk.addToSequence(leftVals, 'front');
+            if (left) {
+                const leftVals = left.takeFromSequence(sliceSize, 'back');
+                chunk.addToSequence(leftVals, 'front');
+                chunks.set(left.id, left);
+                if (!left.sequence.length) {
+                    chunks.delete(left.id);
+                }
+            }
 
-            const rightVals = right.takeFromSequence(sliceSize, 'front');
-            chunk.addToSequence(rightVals, 'back');
+            if (right) {
+                const rightVals = right.takeFromSequence(sliceSize, 'front');
+                chunk.addToSequence(rightVals, 'back');
+                chunks.set(right.id, right);
+                if (!right.sequence.length) {
+                    chunks.delete(right.id);
+                }
+            }
 
-            // update chunks map
-            chunks.set(left.id, left);
-            chunks.set(right.id, right);
             chunks.set(chunk.id, chunk);
 
             this.setState((prevState) => ({
