@@ -164,7 +164,7 @@ function TrajectoryChart({
                 const chunkIndex = topChunkList.indexOf(chunk);
                 const slicedChunk = chunk.slice(extents[0], extents[1]);
 
-                const chartW = scaleX(getWidthScale(slicedChunk));
+                const chartW = scaleX(getWidthScale(chunk));
                 const { values, current } = selections;
                 const chartSelections = Object.keys(values)
                     .filter((selectionID) => {
