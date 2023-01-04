@@ -32,7 +32,7 @@ import AnalysisTab from '../modals/AnalysisTab';
 import AddFilterModal from '../modals/AddFilterModal';
 
 import ChartBox from './ChartBox';
-import FilterComponent from './FilterComponent';
+// import FilterComponent from './FilterComponent';
 import Timeline from '../vis/Timeline';
 
 const ADD_FILTER_MODAL = 'add-filter-modal';
@@ -48,7 +48,7 @@ function ControlDrawer({
     drawerOpen,
     toggleDrawer,
     addFilter,
-    propagateChange,
+    //    propagateChange,
     properties,
 }) {
     const [currentModal, setCurrentModal] = useState();
@@ -143,7 +143,7 @@ function ControlDrawer({
                             ]}
                         />
                     </ListItem>
-                    <Divider />
+                    {/* <Divider />
                     {Object.keys(runs[run].filters).length > 0 &&
                         Object.keys(runs[run].filters).map((key) => {
                             const filter = runs[run].filters[key];
@@ -169,7 +169,7 @@ function ControlDrawer({
                         >
                             Add a new filter
                         </Button>
-                    </ListItem>
+                    </ListItem> */}
                 </List>
             </AccordionDetails>
         </Accordion>

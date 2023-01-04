@@ -70,7 +70,7 @@ class Trajectory {
             );
             this.chunks.set(newChunk.id, newChunk);
             // for now, set chunk properties here
-            newChunk.properties = [...newChunk.properties, ...structuralAnalysisProps];
+            // newChunk.properties = [...newChunk.properties, ...structuralAnalysisProps];
         }
     }
 

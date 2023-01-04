@@ -9,11 +9,10 @@ import MenuIcon from '@mui/icons-material/Menu';
 import { withSnackbar } from 'notistack';
 import AjaxMenu from './components/AjaxMenu';
 import LoadRunModal from './modals/LoadRunModal';
-import LoadingModal from './modals/LoadingModal';
 import Trajectory from './api/trajectory';
 import FilterBuilder from './api/FilterBuilder';
 import VisArea from './components/VisArea';
-import { apiLoadTrajectory, apiModifyTrajectory } from './api/ajax';
+import { apiLoadTrajectory, apiModifyTrajectory, apiGetScripts } from './api/ajax';
 import ControlDrawer from './components/ControlDrawer';
 import GlobalStates from './api/globalStates';
 import { createUUID } from './api/math/random';
@@ -21,6 +20,7 @@ import { getNeighbors } from './api/myutils';
 
 import WebSocketManager from './api/websocketmanager';
 import ColorManager from './api/colormanager';
+import { structuralAnalysisProps } from './api/constants';
 
 const RUN_MODAL = 'run_modal';
 
@@ -30,17 +30,31 @@ class App extends React.Component {
         WebSocketManager.addKey('selections');
         this.runListButton = React.createRef();
         this.state = {
-            isLoading: false,
             currentModal: null,
             showRunList: false,
             drawerOpen: false,
             run: null,
             trajectories: {},
             runs: {},
-            loadingMessage: 'Loading...',
             colors: new ColorManager(),
-            properties: ['timestep', 'id'],
+            properties: [...structuralAnalysisProps],
+            scripts: [],
         };
+    }
+
+    componentDidMount() {
+        apiGetScripts()
+            .then((data) => {
+                const properties = data
+                    .map((d) => d.properties)
+                    .reduce((acc, curr) => [...acc, ...curr], []);
+                const scripts = data.map((d) => d.filename);
+                this.setState((prevState) => ({
+                    properties: [...prevState.properties, ...properties],
+                    scripts,
+                }));
+            })
+            .catch((e) => alert(e));
     }
 
     toggleModal = (key) => {
@@ -147,11 +161,9 @@ class App extends React.Component {
                 WebSocketManager.addKey(run);
                 this.setState(
                     {
-                        isLoading: false,
                         runs: newRuns,
                         trajectories: { ...trajectories, [run]: newTraj },
                         colors,
-                        // properties: [...new Set([...this.state.properties, ...properties])],
                     },
                     () => enqueueSnackbar(`Trajectory ${run} successfully loaded.`)
                 );
@@ -317,17 +329,8 @@ class App extends React.Component {
     };
 
     render() {
-        const {
-            trajectories,
-            runs,
-            properties,
-            drawerOpen,
-            showRunList,
-            currentModal,
-            run,
-            isLoading,
-            loadingMessage,
-        } = this.state;
+        const { trajectories, runs, properties, drawerOpen, showRunList, currentModal, run } =
+            this.state;
         return (
             <Box sx={{ display: 'flex', flexDirection: 'column' }}>
                 <Toolbar
@@ -375,7 +378,6 @@ class App extends React.Component {
                         toggleDrawer={this.toggleDrawer}
                         addFilter={this.addFilter}
                         propagateChange={this.propagateChange}
-                        properties={properties}
                         setExtent={this.setExtent}
                     />
                 )}
@@ -385,6 +387,7 @@ class App extends React.Component {
                     runs={runs}
                     swapPositions={this.swapPositions}
                     expand={this.expand}
+                    properties={properties}
                 />
 
                 <AjaxMenu
@@ -417,8 +420,6 @@ class App extends React.Component {
                         onRequestClose={() => this.toggleModal(RUN_MODAL)}
                     />
                 )}
-
-                {isLoading && <LoadingModal open={isLoading} title={loadingMessage} />}
             </Box>
         );
     }

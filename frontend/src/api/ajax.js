@@ -272,3 +272,12 @@ export function apiGetSequence(run, range) {
             });
     });
 }
+
+export function apiGetScripts() {
+    return new Promise((resolve, reject) => {
+        axios
+            .get('/api/scripts')
+            .then((response) => resolve(response.data))
+            .catch((e) => reject(e));
+    });
+}

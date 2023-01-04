@@ -30,7 +30,7 @@ import {
 } from '../api/myutils';
 import { createUUID } from '../api/math/random';
 
-import { structuralAnalysisProps, SPARKLINE_CHART_HEIGHT } from '../api/constants';
+import { SPARKLINE_CHART_HEIGHT } from '../api/constants';
 import { zTest } from '../api/math/stats';
 import { getAllImportantStates } from '../api/trajectories';
 
@@ -319,7 +319,7 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
         }
     }, [stateClicked]);
 
-    useEffect(() => { }, [stateHovered, selections.current]);
+    useEffect(() => {}, [stateHovered, selections.current]);
 
     // only clear websockets when charts change!
     return (
@@ -357,7 +357,7 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
                                 size="small"
                                 onClick={(e) =>
                                     selectionMode !== FIND_SIMILAR_SELECT
-                                        ? startSelection(FIND_SIMILAR_SELECT, () => { })
+                                        ? startSelection(FIND_SIMILAR_SELECT, () => {})
                                         : setAnchorEl(e.currentTarget)
                                 }
                                 id="findSimilarButton"
@@ -386,8 +386,8 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
                                 onClick={() =>
                                     !showStateClustering
                                         ? GlobalStates.clusterStates(
-                                            getAllImportantStates(trajectories)
-                                        ).then(() => setShowStateClustering(true))
+                                              getAllImportantStates(trajectories)
+                                          ).then(() => setShowStateClustering(true))
                                         : setShowStateClustering(false)
                                 }
                             >
@@ -423,7 +423,7 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
                                             width={width}
                                             height={
                                                 (showTop + propertyCombos.length) *
-                                                SPARKLINE_CHART_HEIGHT +
+                                                    SPARKLINE_CHART_HEIGHT +
                                                 50
                                             }
                                             trajectory={trajectory}
@@ -597,7 +597,3 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
         </Container>
     );
 }
-
-VisArea.defaultProps = {
-    properties: structuralAnalysisProps,
-};

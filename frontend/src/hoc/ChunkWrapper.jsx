@@ -90,6 +90,7 @@ export default function ChunkWrapper({
             ws.current = null;
         }
 
+        console.log(properties);
         const { hasProperties, missingProperties } = GlobalStates.subsetHasProperties(
             properties,
             chunk.states

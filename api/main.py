@@ -1,53 +1,46 @@
-from fastapi import (
-    FastAPI,
-    Body,
-    APIRouter,
-    WebSocket,
-    WebSocketDisconnect,
-    HTTPException,
-)
-from typing import Optional, List
+import base64
+import io
+import json
+import logging
+import os
+import time
+from typing import List, Optional
 
 import neo4j
-
-from neomd import querybuilder, converter, calculator, visualizations, utils
-import os
-
 from celery.result import AsyncResult
-
-from .constants import PROPERTY_TO_ANALYSIS
-from .worker.celery_app import TASK_COMPLETE, celery_app, run_analysis_task
 from celery.utils import uuid
+from fastapi import (
+    APIRouter,
+    Body,
+    FastAPI,
+    HTTPException,
+    WebSocket,
+    WebSocketDisconnect,
+)
 
 # image rendering
 from PIL import Image
-import io
-import base64
-
-from .graphdriver import GraphDriver
-from .trajectory import Trajectory
-from .utils import (
-    getMetadata,
-    getScipyDistributions,
-    checkRequiredProperties,
-    get_atom_type,
-    saveTestPickle,
-    loadTestPickle,
-)
-from .connectionmanager import ConnectionManager
-
-import json
-from .worker.celery_app import celery_app
-from .models import AnalysisStep
-import logging
-import time
-
-from pymemcache.client.base import PooledClient
 from pymemcache import serde
-
+from pymemcache.client.base import PooledClient
 from sklearn import preprocessing
 from sklearn.cluster import OPTICS
 
+from neomd import calculator, converter, querybuilder, utils, visualizations
+
+from .connectionmanager import ConnectionManager
+from .constants import PROPERTY_TO_ANALYSIS
+from .graphdriver import GraphDriver
+from .models import AnalysisStep
+from .trajectory import Trajectory
+from .utils import (
+    checkRequiredProperties,
+    get_atom_type,
+    getMetadata,
+    getScipyDistributions,
+    loadTestPickle,
+    saveTestPickle,
+)
+from .worker.celery_app import TASK_COMPLETE, celery_app, run_analysis_task
 
 os.environ["OVITO_THREAD_COUNT"] = "1"
 os.environ["DISPLAY"] = ""
@@ -350,6 +343,10 @@ async def load_properties_for_subset(
         for key, values in missingProperties.items():
             analysis = PROPERTY_TO_ANALYSIS.get(key)
             if not analysis:
+                # check for script with same name - this can be any number of properties
+                # each script should return a dictionary of id : attribute(s)
+                # then we put it in the database
+                # each script should have a function that returns the attributes it produces, so that we can search in the database beforehand
                 raise HTTPException(status_code=404, detail="Unknown property")
 
             if analysis not in runAnalyses:
@@ -502,8 +499,24 @@ def load_sequence(run: str, properties: List[str], driver):
     saveTestPickle(run, "sequence", j)
     return new_traj
 
+
+@router.get("/scripts")
+def scripts():
+    # read scripts folder, enumerate every file and return as array
+    files = []
+    with os.scandir("scripts") as entries:
+        for entry in entries:
+            with open(entry.path, mode="r") as script:
+                code = script.read()
+            # puts properties in global namespace
+            exec(code, globals())
+            files.append({'filename': entry.name, 'properties': properties()})
+    return files
+
+
+# could be sequence/{run}
 @router.get("/get_sequence")
-def get_sequence(run: str, start:Optional[int], end:Optional[int] = None):
+def get_sequence(run: str, start: Optional[int], end: Optional[int] = None):
     mem_client = PooledClient("localhost", max_pool_size=4, serde=serde.pickle_serde)
     trajectory = mem_client.get(run)
 
@@ -515,7 +528,7 @@ def get_sequence(run: str, start:Optional[int], end:Optional[int] = None):
         return trajectory.sequence
     else:
         return trajectory.sequence[start: end + 1]
-                
+
 
 @router.get("/get_property_list")
 def get_property_list():
