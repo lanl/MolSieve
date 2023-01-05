@@ -12,7 +12,7 @@ import LoadRunModal from './modals/LoadRunModal';
 import Trajectory from './api/trajectory';
 import FilterBuilder from './api/FilterBuilder';
 import VisArea from './components/VisArea';
-import { apiLoadTrajectory, apiModifyTrajectory, apiGetScripts } from './api/ajax';
+import { apiLoadTrajectory, apiModifyTrajectory, apiGetScriptProperties } from './api/ajax';
 import ControlDrawer from './components/ControlDrawer';
 import GlobalStates from './api/globalStates';
 import { createUUID } from './api/math/random';
@@ -20,7 +20,6 @@ import { getNeighbors } from './api/myutils';
 
 import WebSocketManager from './api/websocketmanager';
 import ColorManager from './api/colormanager';
-import { structuralAnalysisProps } from './api/constants';
 
 const RUN_MODAL = 'run_modal';
 
@@ -29,6 +28,7 @@ class App extends React.Component {
         super();
         WebSocketManager.addKey('selections');
         this.runListButton = React.createRef();
+
         this.state = {
             currentModal: null,
             showRunList: false,
@@ -37,21 +37,16 @@ class App extends React.Component {
             trajectories: {},
             runs: {},
             colors: new ColorManager(),
-            properties: [...structuralAnalysisProps],
-            scripts: [],
+            properties: [],
         };
     }
 
     componentDidMount() {
-        apiGetScripts()
+        apiGetScriptProperties()
             .then((data) => {
-                const properties = data
-                    .map((d) => d.properties)
-                    .reduce((acc, curr) => [...acc, ...curr], []);
-                const scripts = data.map((d) => d.filename);
+                const properties = data;
                 this.setState((prevState) => ({
                     properties: [...prevState.properties, ...properties],
-                    scripts,
                 }));
             })
             .catch((e) => alert(e));

@@ -273,10 +273,10 @@ export function apiGetSequence(run, range) {
     });
 }
 
-export function apiGetScripts() {
+export function apiGetScriptProperties() {
     return new Promise((resolve, reject) => {
         axios
-            .get('/api/scripts')
+            .get('/api/script_properties')
             .then((response) => resolve(response.data))
             .catch((e) => reject(e));
     });

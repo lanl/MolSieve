@@ -125,10 +125,28 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
                 };
             case 'update':
                 return updateGS(state, action.payload);
+            case 'addProperties':
+                return {
+                    ...state,
+                    ...buildDictFromArray(action.payload, {
+                        min: Number.MAX_VALUE,
+                        max: Number.MIN_VALUE,
+                    }),
+                };
             default:
                 throw new Error('Unknown action');
         }
     }, buildDictFromArray(properties, { min: Number.MAX_VALUE, max: Number.MIN_VALUE }));
+
+    useEffect(() => {
+        if (globalScale) {
+            const currentProperties = Object.keys(globalScale);
+            const newProperties = properties.filter(
+                (property) => !currentProperties.includes(property)
+            );
+            updateGlobalScale({ type: 'addProperties', payload: newProperties });
+        }
+    }, [properties]);
 
     const [propertyCombos, reducePropertyCombos] = useReducer((state, action) => {
         switch (action.type) {

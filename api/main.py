@@ -338,24 +338,26 @@ async def load_properties_for_subset(
                     missingProperties[key] = []
                 missingProperties[key].append(s["id"])
 
+    # build map of properties to script name
+    property_to_script = get_script_properties_map()
     if len(missingProperties.keys()) > 0:
-        runAnalyses = {}
+        runScripts = {}
         for key, values in missingProperties.items():
-            analysis = PROPERTY_TO_ANALYSIS.get(key)
-            if not analysis:
+            script = property_to_script.get(key)
+            if not script:
                 # check for script with same name - this can be any number of properties
                 # each script should return a dictionary of id : attribute(s)
                 # then we put it in the database
                 # each script should have a function that returns the attributes it produces, so that we can search in the database beforehand
                 raise HTTPException(status_code=404, detail="Unknown property")
 
-            if analysis not in runAnalyses:
-                runAnalyses[analysis] = values
+            if script not in runScripts:
+                runScripts[script] = values
             else:
-                runAnalyses[analysis] = runAnalyses[analysis] + values
+                runScripts[script] = runScripts[script] + values
 
-        for analysisName, states in runAnalyses.items():
-            await run_ovito_analysis(analysisName, states=states)
+        for analysisName, states in runScripts.items():
+            await run_script(analysisName, states=states)
 
         q = qb.generate_get_node_list(
             "State", idAttributeList=stateIds, attributeList=props
@@ -370,7 +372,7 @@ async def load_properties_for_subset(
 
 
 # needs to be smarter than this to avoid repetition
-async def run_ovito_analysis(analysisName: str, states: List[int]):
+async def run_script(script: str, states: List[int]):
     driver = GraphDriver()
 
     qb = querybuilder.Neo4jQueryBuilder(
@@ -383,10 +385,10 @@ async def run_ovito_analysis(analysisName: str, states: List[int]):
 
     results = []
 
-    # 504 error?
-    new_attributes = calculator.apply_ovito_pipeline_modifier(
-        state_atom_dict, analysisName
-    )
+    code = get_script_code(script)
+    exec(code, globals())
+
+    new_attributes = run(state_atom_dict)
 
     q = None
     with driver.session() as session:
@@ -500,18 +502,34 @@ def load_sequence(run: str, properties: List[str], driver):
     return new_traj
 
 
-@router.get("/scripts")
-def scripts():
+@router.get("/script_properties")
+def script_properties():
+    properties_to_script = get_script_properties_map()
+    return list(properties_to_script.keys())
+
+
+def get_script_properties_map():
     # read scripts folder, enumerate every file and return as array
-    files = []
+    properties_to_script = {}
     with os.scandir("scripts") as entries:
         for entry in entries:
             with open(entry.path, mode="r") as script:
                 code = script.read()
             # puts properties in global namespace
             exec(code, globals())
-            files.append({'filename': entry.name, 'properties': properties()})
-    return files
+            for prop in properties():
+                properties_to_script[prop] = entry.name
+
+    return properties_to_script
+
+
+def get_script_code(script_name):
+    with os.scandir("scripts") as entries:
+        for entry in entries:
+            if entry.name == script_name:
+                with open(entry.path, mode="r") as script:
+                    return script.read()
+        raise FileNotFoundError
 
 
 # could be sequence/{run}
