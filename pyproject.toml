@@ -27,6 +27,7 @@ Cython = "^0.29.32"
 petsc4py = {path = "./petsc/src/binding/petsc4py"}
 sklearn = "^0.0.post1"
 scikit-learn = "^1.1.3"
+networkx = "^2.8.8"
 
 [tool.poetry.dev-dependencies]
 pyright = "^1.1.244"
@@ -41,3 +42,6 @@ flake8 = "^5.0.4"
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.isort]
+profile = "black"
