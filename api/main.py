@@ -340,6 +340,7 @@ async def load_properties_for_subset(
 
     # build map of properties to script name
     property_to_script = get_script_properties_map()
+    allMissing = []
     if len(missingProperties.keys()) > 0:
         runScripts = {}
         for key, values in missingProperties.items():
@@ -355,9 +356,19 @@ async def load_properties_for_subset(
                 runScripts[script] = values
             else:
                 runScripts[script] = runScripts[script] + values
+            allMissing = allMissing + values
 
-        for analysisName, states in runScripts.items():
-            await run_script(analysisName, states=states)
+        if len(allMissing) > 0:
+            qb = querybuilder.Neo4jQueryBuilder(
+                [
+            ("Atom", "PART_OF", "State", "MANY-TO-ONE"),
+            ])
+            q = qb.generate_get_node_list("State", allMissing, "PART_OF")
+            state_atom_dict = converter.query_to_ASE(driver, q, "Pt")
+
+            for analysisName, states in runScripts.items():
+                script_dict = {id: state_atom_dict[id] for id in states}
+                await run_script(analysisName, script_dict)
 
         q = qb.generate_get_node_list(
             "State", idAttributeList=stateIds, attributeList=props
@@ -372,24 +383,19 @@ async def load_properties_for_subset(
 
 
 # needs to be smarter than this to avoid repetition
-async def run_script(script: str, states: List[int]):
+async def run_script(script: str, state_atom_dict):
     driver = GraphDriver()
-
-    qb = querybuilder.Neo4jQueryBuilder(
-        [
+    qb = querybuilder.Neo4jQueryBuilder([
             ("Atom", "PART_OF", "State", "MANY-TO-ONE"),
-        ]
-    )
-    q = qb.generate_get_node_list("State", states, "PART_OF")
-    state_atom_dict = converter.query_to_ASE(driver, q, "Pt")
+    ])
 
     results = []
 
     code = get_script_code(script)
     exec(code, globals())
-
     new_attributes = run(state_atom_dict)
 
+    # move into seperate process?
     q = None
     with driver.session() as session:
         tx = session.begin_transaction()
