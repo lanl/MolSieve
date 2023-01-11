@@ -1,11 +1,9 @@
 import WebSocketManager from './websocketmanager';
 import GlobalStates from './globalStates';
-import { setDifference } from './myutils';
 
 /* eslint-disable no-param-reassign */
 export default function loadChart(
     statesToLoad,
-    moveBy,
     ws,
     websocketName,
     properties,
@@ -21,8 +19,6 @@ export default function loadChart(
     );
 
     setProgress(0.0);
-    let seen;
-    let i = 0;
 
     ws.current.addEventListener('close', ({ code }) => {
         if (code === 3001 || code === 1011) {
@@ -30,19 +26,16 @@ export default function loadChart(
         }
     });
 
-    let currentStates = [];
-    const total = statesToLoad.length;
+    const stateList = [...new Set(statesToLoad)];
+    const total = stateList.length;
+
+    let currentProgress = 0;
 
     ws.current.addEventListener('open', () => {
-        currentStates = [...statesToLoad.slice(i * moveBy, (i + 1) * moveBy)];
-        i++;
-
-        seen = new Set(currentStates);
-
         ws.current.send(
             JSON.stringify({
                 props: properties,
-                stateIds: [...seen],
+                stateIds: stateList,
             })
         );
     });
@@ -51,34 +44,16 @@ export default function loadChart(
         const parsedData = JSON.parse(e.data);
         GlobalStates.addPropToStates(parsedData);
 
-        const currProgress = i * moveBy;
-        setProgress(currProgress / total);
+        currentProgress += parsedData.length;
+        setProgress(currentProgress / total);
 
         updateGS(parsedData);
         render();
 
         setIsInitialized(true);
-        let sendStates = [];
 
-        // if the chunks have not been fully loaded, continue
-        if (i * moveBy < statesToLoad.length) {
-            const newStateSet = new Set(statesToLoad.slice(i * moveBy, (i + 1) * moveBy));
-            // only send states that exist in newStateSet and not seen
-            const diffSet = setDifference(newStateSet, seen);
-            sendStates = [...diffSet];
-            seen = new Set([...diffSet, ...seen]);
-        }
-
-        if (!sendStates.length) {
+        if (currentProgress === total) {
             ws.current.close(1000);
-        } else {
-            i++;
-            ws.current.send(
-                JSON.stringify({
-                    props: properties,
-                    stateIds: sendStates,
-                })
-            );
         }
     });
 }

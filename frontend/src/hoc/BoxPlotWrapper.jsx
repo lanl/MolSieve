@@ -12,8 +12,6 @@ import BoxPlot from '../vis/BoxPlot';
 import GlobalStates from '../api/globalStates';
 import LoadingBox from '../components/LoadingBox';
 
-const moveBy = 100;
-
 export default function BoxPlotWrapper({
     chunk,
     width,
@@ -70,7 +68,6 @@ export default function BoxPlotWrapper({
         if (!hasProperties) {
             loadChart(
                 missingProperties,
-                moveBy,
                 ws,
                 chunk.trajectory.name,
                 properties,

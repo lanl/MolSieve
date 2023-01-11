@@ -28,13 +28,11 @@ from sklearn.cluster import OPTICS
 from neomd import calculator, converter, querybuilder, utils, visualizations
 
 from .connectionmanager import ConnectionManager
-from .constants import PROPERTY_TO_ANALYSIS
 from .graphdriver import GraphDriver
 from .models import AnalysisStep
 from .trajectory import Trajectory
 from .utils import (
     checkRequiredProperties,
-    get_atom_type,
     getMetadata,
     getScipyDistributions,
     loadTestPickle,
@@ -271,9 +269,27 @@ def load_property_for_subset(prop: str, stateIds: List[int]):
 async def ws_load_properties_for_subset(websocket: WebSocket):
     await websocket.accept()
     try:
-        while True:
-            data = await websocket.receive_json()
-            results = await load_properties_for_subset(data["props"], data["stateIds"])
+        data = await websocket.receive_json()
+        qb = querybuilder.Neo4jQueryBuilder()
+        driver = GraphDriver()
+
+        q = qb.generate_get_node_list(
+            "State", idAttributeList=data["stateIds"], attributeList=data["props"]
+        )
+
+        stateList = []
+        with driver.session() as session:
+            result = session.run(q.text)
+            stateList = result.data()
+
+        def split(arr, chunk_size):
+            for i in range(0, len(arr), chunk_size):
+                yield arr[i:i + chunk_size]
+
+        chunks = list(split(stateList, 100))
+
+        for chunk in chunks:
+            results = await load_properties_for_subset(chunk)
             await websocket.send_json(results)
     except WebSocketDisconnect:
         print("Websocket disconnected")
@@ -312,31 +328,16 @@ def cluster_states(props: List[str] = Body([]), stateIds: List[int] = Body([])):
     return dict(zip(ids, labels))
 
 
-@router.post("/load_properties_for_subset", status_code=200)
-async def load_properties_for_subset(
-    props: List[str] = Body([]), stateIds: List[int] = Body([])
-):
-    qb = querybuilder.Neo4jQueryBuilder()
+async def load_properties_for_subset(stateList):
     driver = GraphDriver()
-
-    q = qb.generate_get_node_list(
-        "State", idAttributeList=stateIds, attributeList=props
-    )
-
-    j = {}
-    with driver.session() as session:
-        result = session.run(q.text)
-        j = result.data()
-
-    # check if property is missing in database
-    # optimize with Neo4j
+ 
     missingProperties = {}
-    for s in j:
-        for key, value in s.items():
+    for state in stateList:
+        for key, value in state.items():
             if value is None:
                 if key not in missingProperties:
                     missingProperties[key] = []
-                missingProperties[key].append(s["id"])
+                missingProperties[key].append(state["id"])
 
     # build map of properties to script name
     property_to_script = get_script_properties_map()
@@ -370,16 +371,7 @@ async def load_properties_for_subset(
                 script_dict = {id: state_atom_dict[id] for id in states}
                 await run_script(analysisName, script_dict)
 
-        q = qb.generate_get_node_list(
-            "State", idAttributeList=stateIds, attributeList=props
-        )
-
-        j = {}
-        with driver.session() as session:
-            result = session.run(q.text)
-            j = result.data()
-
-    return j
+    return stateList
 
 
 # needs to be smarter than this to avoid repetition

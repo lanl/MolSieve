@@ -18,7 +18,6 @@ import LoadingBox from '../components/LoadingBox';
 
 import loadChart from '../api/websocketmethods';
 
-const moveBy = 100;
 const mvaPeriod = 100;
 
 export default function ChunkWrapper({
@@ -98,7 +97,6 @@ export default function ChunkWrapper({
         if (!hasProperties) {
             loadChart(
                 missingProperties,
-                moveBy,
                 ws,
                 chunk.trajectory.name,
                 properties,
