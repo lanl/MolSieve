@@ -14,12 +14,14 @@ import LoadingBox from '../components/LoadingBox';
 
 export default function BoxPlotWrapper({
     chunk,
+    height,
     width,
     properties,
     updateRanks,
     ranks,
     globalScale,
     updateGlobalScale,
+    propertyCombos,
 }) {
     const [boxStats, setBoxStats] = useState({});
     const [isInitialized, setIsInitialized] = useState(false);
@@ -95,6 +97,8 @@ export default function BoxPlotWrapper({
         return <div>Loading interrupted</div>;
     }
 
+    const boxPlotHeight = height / (ranks.length + propertyCombos.length);
+
     return isInitialized ? (
         <Box>
             {progress < 1.0 ? (
@@ -111,7 +115,7 @@ export default function BoxPlotWrapper({
                             chunk={chunk}
                             property={property}
                             width={width}
-                            height={20}
+                            height={boxPlotHeight}
                             globalScaleMin={min}
                             globalScaleMax={max}
                         />

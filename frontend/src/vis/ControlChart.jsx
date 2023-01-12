@@ -9,8 +9,6 @@ import { differentiate } from '../api/math/stats';
 let ttInstance;
 const MARGIN = { top: 5, bottom: 10, left: 0, right: 5 };
 
-export const SPARKLINE_CHART_HEIGHT = 20;
-
 export default function ControlChart({
     globalScaleMin,
     globalScaleMax,
@@ -187,7 +185,7 @@ export default function ControlChart({
 
 ControlChart.defaultProps = {
     lineColor: 'black',
-    height: SPARKLINE_CHART_HEIGHT,
+    height: 40,
     showMedian: false,
     colors: {
         posDiff: '#277C3E',

@@ -65,11 +65,13 @@ export default function EmbeddedChart({
     }, [JSON.stringify(selections), width, height]);
 
     const borderStyle = selected ? 3 : 2;
+    const h = height - margin.top;
+    const w = width - margin.left;
     return (
         <Box
             id={id}
-            width={width - margin.left}
-            height={height - margin.top}
+            width={w}
+            height={h}
             sx={{ display: 'flex' }}
             className="embeddedChart"
             border={borderStyle}
@@ -94,9 +96,9 @@ export default function EmbeddedChart({
                     {buttons}
                 </Box>
             ) : null}
-            <svg ref={ref} width={width} height={height}>
-                <foreignObject x={0} y={0} width={width} height={height}>
-                    {children(width, height, isHovered)}
+            <svg ref={ref} width={w} height={h}>
+                <foreignObject x={0} y={0} width={w} height={h}>
+                    {children(w, h, isHovered)}
                 </foreignObject>
             </svg>
         </Box>

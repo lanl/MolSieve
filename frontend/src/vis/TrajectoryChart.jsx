@@ -73,17 +73,20 @@ function TrajectoryChart({
                 .selectAll('text')
                 .data([...ranks.ordered.slice(0, showTop), ...propertyComboText]);
 
+            const controlChartHeight = (height * 0.8) / (propertyCombos.length + showTop);
+
             textRanks
                 .enter()
                 .append('text')
                 .attr('x', MARGIN.left)
-                .attr('y', (_, i) => (i + 1) * 20 - 5)
+                // dependent on spark chart height
+                .attr('y', (_, i) => (i + 1) * controlChartHeight - controlChartHeight / 2)
                 .attr('font-size', '10px')
                 .text((d) => abbreviate(d));
 
             textRanks.exit().remove();
         }
-    }, [ranks.ordered, ref, showTop, propertyCombos]);
+    }, [ranks.ordered, ref, showTop, propertyCombos, height]);
 
     const { extents } = run;
     // here we can filter out the un-rendered charts right away since we only care about rendering here
@@ -197,7 +200,7 @@ function TrajectoryChart({
                         };
                     });
 
-                const h = chunk.important ? height : height - 50;
+                const h = chunk.important ? height : height * 0.8;
 
                 return (
                     <foreignObject
@@ -255,13 +258,14 @@ function TrajectoryChart({
                                     <BoxPlotWrapper
                                         chunk={chunk}
                                         width={ww}
-                                        height={hh}
+                                        height={hh} // to accomodate for no scatterplot
                                         updateRanks={updateRanks}
                                         ranks={ranks.ordered.slice(0, showTop)}
                                         properties={properties}
                                         globalScale={globalScale}
                                         updateGlobalScale={updateGlobalScale}
                                         showTop={showTop}
+                                        propertyCombos={propertyCombos}
                                     />
                                 )
                             }

@@ -30,7 +30,6 @@ import {
 } from '../api/myutils';
 import { createUUID } from '../api/math/random';
 
-import { SPARKLINE_CHART_HEIGHT } from '../api/constants';
 import { zTest } from '../api/math/stats';
 import { getAllImportantStates } from '../api/trajectories';
 
@@ -439,11 +438,10 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
                                     return (
                                         <TrajectoryChart
                                             width={width}
-                                            height={
-                                                (showTop + propertyCombos.length) *
+                                            height={250}
+                                            /* (showTop + propertyCombos.length) *
                                                     SPARKLINE_CHART_HEIGHT +
-                                                50
-                                            }
+                                                50 */
                                             trajectory={trajectory}
                                             run={runs[trajectory.name]}
                                             setStateHovered={setStateHovered}

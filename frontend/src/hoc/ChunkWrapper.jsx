@@ -23,6 +23,7 @@ const mvaPeriod = 100;
 export default function ChunkWrapper({
     chunk,
     properties,
+    height,
     width,
     trajectory,
     globalScale,
@@ -187,6 +188,8 @@ export default function ChunkWrapper({
 
     const timesteps = chunk.timesteps.filter((d) => d >= start && d <= end);
 
+    const controlChartHeight = (height * 0.8) / (ranks.length + Object.keys(tDict).length);
+
     return isInitialized ? (
         <Box
             onClick={(e) => {
@@ -209,6 +212,7 @@ export default function ChunkWrapper({
                             globalScaleMax={max}
                             ucl={mean + std}
                             lcl={mean - std}
+                            height={controlChartHeight}
                             width={width}
                             yAttributeList={mva[property].slice(sliceStart, sliceEnd)}
                             xAttributeList={timesteps}
@@ -226,6 +230,7 @@ export default function ChunkWrapper({
                             globalScaleMin={d3.min(values)}
                             globalScaleMax={d3.max(values)}
                             ucl={ucl}
+                            height={controlChartHeight}
                             width={width}
                             yAttributeList={values.slice(sliceStart, sliceEnd)}
                             xAttributeList={timesteps}
@@ -237,7 +242,7 @@ export default function ChunkWrapper({
             <Scatterplot
                 key={`${chunk.id}-scatterplot`}
                 width={width}
-                height={50}
+                height={height * 0.2}
                 colorFunc={colorFunc}
                 selected={selections}
                 xAttributeList={timesteps}
