@@ -367,11 +367,23 @@ async def load_properties_for_subset(stateList):
             q = qb.generate_get_node_list("State", allMissing, "PART_OF")
             state_atom_dict = converter.query_to_ASE(driver, q, "Pt")
 
+            # convert stateList to dict for easy modification
+            stateDict = {}
+            for state in stateList:
+                stateDict[state["id"]] = state
+
             for analysisName, states in runScripts.items():
                 script_dict = {id: state_atom_dict[id] for id in states}
-                await run_script(analysisName, script_dict)
+                results = await run_script(analysisName, script_dict)
+                for id, data in results.items():
+                    stateData = stateDict[id]
+                    for key, value in data.items():
+                        stateData[key] = value
+                    stateDict[id] = stateData
 
-    return stateList
+            return list(stateDict.values())
+        else:
+            return stateList
 
 
 # needs to be smarter than this to avoid repetition
@@ -380,8 +392,6 @@ async def run_script(script: str, state_atom_dict):
     qb = querybuilder.Neo4jQueryBuilder([
             ("Atom", "PART_OF", "State", "MANY-TO-ONE"),
     ])
-
-    results = []
 
     code = get_script_code(script)
     exec(code, globals())
@@ -398,9 +408,8 @@ async def run_script(script: str, state_atom_dict):
             data.update({"id": id})
             tx.run(q.text, data)
         tx.commit()
-        results.append(new_attributes)
 
-    return results
+    return new_attributes
 
 
 # move to celery worker
