@@ -382,8 +382,8 @@ async def load_properties_for_subset(stateList):
                     stateDict[id] = stateData
 
             return list(stateDict.values())
-        else:
-            return stateList
+    else:
+        return stateList
 
 
 # needs to be smarter than this to avoid repetition
