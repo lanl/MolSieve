@@ -8,11 +8,11 @@ import Stack from '@mui/material/Stack';
 import { boxPlotStats } from '../api/math/stats';
 import loadChart from '../api/websocketmethods';
 
-import BoxPlot from '../vis/BoxPlot';
+import ViolinPlot from '../vis/ViolinPlot';
 import GlobalStates from '../api/globalStates';
 import LoadingBox from '../components/LoadingBox';
 
-export default function BoxPlotWrapper({
+export default function ViolinPlotWrapper({
     chunk,
     height,
     width,
@@ -108,7 +108,7 @@ export default function BoxPlotWrapper({
                 {ranks.map((property) => {
                     const { min, max } = globalScale[property];
                     return (
-                        <BoxPlot
+                        <ViolinPlot
                             key={`${chunk.id}-${property}`}
                             showYAxis={false}
                             data={chunk.getPropList(property)}

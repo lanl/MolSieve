@@ -17,9 +17,13 @@ export default function ControlChart({
     yAttributeList,
     ucl,
     lcl,
-    margin,
-    colors,
-    showMedian,
+    margin = { top: 3, bottom: 2, left: 0, right: 5 },
+    colors = {
+        posDiff: '#277C3E',
+        negDiff: '#A61E11',
+        noDiff: '#A3A3A3',
+    },
+    showMedian = false,
 }) {
     const buildScaleX = () => {
         return () => d3.scaleLinear().domain(d3.extent(xAttributeList)).range([margin.left, width]);
@@ -185,15 +189,3 @@ export default function ControlChart({
         />
     );
 }
-
-ControlChart.defaultProps = {
-    lineColor: 'black',
-    height: 40,
-    showMedian: false,
-    colors: {
-        posDiff: '#277C3E',
-        negDiff: '#A61E11',
-        noDiff: '#A3A3A3',
-    },
-    margin: { top: 3, bottom: 3, left: 0, right: 5 },
-};

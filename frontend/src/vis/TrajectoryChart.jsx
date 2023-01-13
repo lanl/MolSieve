@@ -3,7 +3,7 @@ import * as d3 from 'd3';
 
 import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
 import ChunkWrapper from '../hoc/ChunkWrapper';
-import BoxPlotWrapper from '../hoc/BoxPlotWrapper';
+import ViolinPlotWrapper from '../hoc/ViolinPlotWrapper';
 import GlobalStates from '../api/globalStates';
 
 import EmbeddedChart from './EmbeddedChart';
@@ -255,7 +255,7 @@ function TrajectoryChart({
                                         extents={extents}
                                     />
                                 ) : (
-                                    <BoxPlotWrapper
+                                    <ViolinPlotWrapper
                                         chunk={chunk}
                                         width={ww}
                                         height={hh} // to accomodate for no scatterplot

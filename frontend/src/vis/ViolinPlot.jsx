@@ -7,7 +7,7 @@ import { tooltip } from '../api/myutils';
 
 let ttInstance;
 
-export default function BoxPlot({
+export default function ViolinPlot({
     data,
     boxStats,
     property,
