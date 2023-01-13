@@ -5,8 +5,6 @@ import * as d3 from 'd3';
 import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
 import { tooltip } from '../api/myutils';
 
-const MARGIN = { top: 5, bottom: 10, left: 0, right: 0 };
-
 let ttInstance;
 
 export default function BoxPlot({
@@ -15,10 +13,11 @@ export default function BoxPlot({
     property,
     width,
     height,
+    margin = { top: 3, bottom: 3, left: 0, right: 0 },
     globalScaleMin,
     globalScaleMax,
-    color,
-    showYAxis,
+    color = 'black',
+    showYAxis = true,
     chunk,
 }) {
     const ref = useTrajectoryChartRender(
@@ -31,17 +30,13 @@ export default function BoxPlot({
                 return;
             }
 
+            // do we even care?
             const { q1, median, q3, iqr } = boxStats;
-            const adjWidth = width - MARGIN.left - MARGIN.right;
-            const center = width / 2;
-            // const { q1, median, q3, iqr } = data;
-            // const adjWidth = width - MARGIN.left - MARGIN.right;
-            // const center = width / 2;
 
             const yScale = d3
                 .scaleLinear()
                 .domain([globalScaleMin, globalScaleMax])
-                .range([height, MARGIN.top]);
+                .range([height - margin.bottom, margin.top]);
 
             const bins = d3.bin().domain(yScale.domain())(data);
 
@@ -51,22 +46,31 @@ export default function BoxPlot({
 
             const xScale = d3
                 .scaleLinear()
-                .range([MARGIN.left, width - MARGIN.left])
+                .range([margin.left, width - margin.left])
                 .domain([-data.length, data.length]);
 
             svg.append('rect')
                 .attr('x', 0)
                 .attr('y', 0)
-                .attr('height', height)
+                .attr('height', height + 1)
                 .attr('width', width)
                 .attr('fill', chunk.color)
                 .classed('unimportant', true);
+
+            svg.append('line')
+                .attr('x1', 0)
+                .attr('y1', 0)
+                .attr('x2', width)
+                .attr('y2', 0)
+                .attr('stroke', chunk.color)
+                .attr('stroke-width', 1);
+
             const violin = svg.append('g');
 
             violin
                 .append('path')
                 .datum(bins)
-                .attr('fill', 'none')
+                .attr('fill', chunk.color)
                 .attr('stroke', 'black')
                 .attr(
                     'd',
@@ -77,45 +81,6 @@ export default function BoxPlot({
                         .y((d) => yScale(d.x0))
                         .curve(d3.curveCatmullRom)
                 );
-
-            // center line
-            /* svg.append('line')
-                .attr('x1', center)
-                .attr('x2', center)
-                .attr('y1', yScale(minThreshold))
-                .attr('y2', yScale(maxThreshold))
-                .attr('stroke', color); */
-
-            // box
-            /* svg.append('rect')
-                .attr('x', center - adjWidth / 2)
-                .attr('y', yScale(q3))
-                .attr('height', yScale(q1) - yScale(q3))
-                .attr('width', adjWidth)
-                .attr('fill', '#ededed');
-
-            svg.selectAll('outliers')
-                .data([q1, q3])
-                .enter()
-                .append('line')
-                .attr('x1', center - adjWidth / 2)
-                .attr('x2', center + adjWidth / 2)
-                .attr('y1', (d) => yScale(d))
-                .attr('y2', (d) => yScale(d))
-                .attr('stroke-width', 1.5)
-                .attr('stroke', '#8b8b8b'); */
-
-            svg.selectAll('median')
-                .data([median])
-                .enter()
-                .append('line')
-                .attr('x1', center - adjWidth / 2)
-                .attr('x2', center + adjWidth / 2)
-                .attr('y1', (d) => yScale(d))
-                .attr('y2', (d) => yScale(d))
-                .attr('stroke-width', 2)
-                .attr('stroke-dasharray', 4)
-                .attr('stroke', 'red');
 
             svg.on('mouseover', () => {
                 if (!ttInstance) {
@@ -138,22 +103,25 @@ export default function BoxPlot({
                 ttInstance = undefined;
             });
         },
-        [property, JSON.stringify(data), color, globalScaleMin, globalScaleMax, width, height]
+        [
+            property,
+            JSON.stringify(data),
+            JSON.stringify(boxStats),
+            color,
+            globalScaleMin,
+            globalScaleMax,
+            width,
+            height,
+        ]
     );
 
     return (
         <svg
             ref={ref}
-            className="vis filterable"
+            className="vis"
             viewBox={[0, 0, width, height]}
             width={width}
             height={height}
         />
     );
 }
-
-BoxPlot.defaultProps = {
-    color: 'black',
-    showYAxis: true,
-    height: 40,
-};

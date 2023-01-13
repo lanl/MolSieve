@@ -128,7 +128,3 @@ export default function BoxPlotWrapper({
         <LoadingBox />
     );
 }
-
-BoxPlot.defaultProps = {
-    showTop: 4,
-};

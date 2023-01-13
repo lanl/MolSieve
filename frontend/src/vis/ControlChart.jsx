@@ -7,7 +7,6 @@ import { tooltip } from '../api/myutils';
 import { differentiate } from '../api/math/stats';
 
 let ttInstance;
-const MARGIN = { top: 5, bottom: 10, left: 0, right: 5 };
 
 export default function ControlChart({
     globalScaleMin,
@@ -18,16 +17,20 @@ export default function ControlChart({
     yAttributeList,
     ucl,
     lcl,
+    margin,
     colors,
     showMedian,
 }) {
     const buildScaleX = () => {
-        return () => d3.scaleLinear().domain(d3.extent(xAttributeList)).range([MARGIN.left, width]);
+        return () => d3.scaleLinear().domain(d3.extent(xAttributeList)).range([margin.left, width]);
     };
 
     const buildScaleY = () => {
         return () =>
-            d3.scaleLinear().domain([globalScaleMin, globalScaleMax]).range([height, MARGIN.top]);
+            d3
+                .scaleLinear()
+                .domain([globalScaleMin, globalScaleMax])
+                .range([height - margin.bottom, margin.top]);
     };
 
     const buildData = () => {
@@ -192,4 +195,5 @@ ControlChart.defaultProps = {
         negDiff: '#A61E11',
         noDiff: '#A3A3A3',
     },
+    margin: { top: 3, bottom: 3, left: 0, right: 5 },
 };
