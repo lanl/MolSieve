@@ -330,6 +330,23 @@ def cluster_states(props: List[str] = Body([]), stateIds: List[int] = Body([])):
     return dict(zip(ids, labels))
 
 
+@router.post("/load_properties_for_subset", status_code=200)
+async def load_properties_for_subset_endpoint(props: List[str] = Body([]), stateIds: List[int] = Body([])):
+    qb = querybuilder.Neo4jQueryBuilder()
+    driver = GraphDriver()
+
+    q = qb.generate_get_node_list(
+        "State", idAttributeList=stateIds, attributeList=props
+    )
+
+    stateList = []
+    with driver.session() as session:
+        result = session.run(q.text)
+        stateList = result.data()
+
+    return await load_properties_for_subset(stateList)
+
+
 async def load_properties_for_subset(stateList):
     driver = GraphDriver()
 
