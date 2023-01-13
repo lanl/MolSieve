@@ -44,7 +44,6 @@ export default function loadChart(
         const parsedData = JSON.parse(e.data);
         GlobalStates.addPropToStates(parsedData);
 
-        console.log('recieved');
         currentProgress += parsedData.length;
         setProgress(currentProgress / total);
 

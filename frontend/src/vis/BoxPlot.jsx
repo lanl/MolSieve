@@ -11,6 +11,7 @@ let ttInstance;
 
 export default function BoxPlot({
     data,
+    boxStats,
     property,
     width,
     height,
@@ -30,18 +31,52 @@ export default function BoxPlot({
                 return;
             }
 
-            const { q1, median, q3, iqr } = data;
+            const { q1, median, q3, iqr } = boxStats;
             const adjWidth = width - MARGIN.left - MARGIN.right;
             const center = width / 2;
+            // const { q1, median, q3, iqr } = data;
+            // const adjWidth = width - MARGIN.left - MARGIN.right;
+            // const center = width / 2;
 
             const yScale = d3
                 .scaleLinear()
                 .domain([globalScaleMin, globalScaleMax])
                 .range([height, MARGIN.top]);
 
+            const bins = d3.bin().domain(yScale.domain())(data);
+
             if (showYAxis) {
                 svg.call(d3.axisRight(yScale));
             }
+
+            const xScale = d3
+                .scaleLinear()
+                .range([MARGIN.left, width - MARGIN.left])
+                .domain([-data.length, data.length]);
+
+            svg.append('rect')
+                .attr('x', 0)
+                .attr('y', 0)
+                .attr('height', height)
+                .attr('width', width)
+                .attr('fill', chunk.color)
+                .classed('unimportant', true);
+            const violin = svg.append('g');
+
+            violin
+                .append('path')
+                .datum(bins)
+                .attr('fill', 'none')
+                .attr('stroke', 'black')
+                .attr(
+                    'd',
+                    d3
+                        .area()
+                        .x0((d) => xScale(-d.length))
+                        .x1((d) => xScale(d.length))
+                        .y((d) => yScale(d.x0))
+                        .curve(d3.curveCatmullRom)
+                );
 
             // center line
             /* svg.append('line')
@@ -51,17 +86,8 @@ export default function BoxPlot({
                 .attr('y2', yScale(maxThreshold))
                 .attr('stroke', color); */
 
-            // background color
-            svg.append('rect')
-                .attr('x', 0)
-                .attr('y', 0)
-                .attr('height', height)
-                .attr('width', width)
-                .attr('fill', chunk.color)
-                .classed('unimportant', true);
-
             // box
-            svg.append('rect')
+            /* svg.append('rect')
                 .attr('x', center - adjWidth / 2)
                 .attr('y', yScale(q3))
                 .attr('height', yScale(q1) - yScale(q3))
@@ -77,7 +103,7 @@ export default function BoxPlot({
                 .attr('y1', (d) => yScale(d))
                 .attr('y2', (d) => yScale(d))
                 .attr('stroke-width', 1.5)
-                .attr('stroke', '#8b8b8b');
+                .attr('stroke', '#8b8b8b'); */
 
             svg.selectAll('median')
                 .data([median])
@@ -95,7 +121,12 @@ export default function BoxPlot({
                 if (!ttInstance) {
                     ttInstance = tooltip(
                         svg.node(),
-                        `${chunk.toString()}<br/><em>${property}</em><br/> <b>Q1</b>: ${q1} <b>Median</b>: ${median} <b>Q3</b>: ${q3} <b>IQR</b>: ${iqr}`
+                        `${chunk.toString()}<br/>
+                        <em>${property}</em><br/> 
+                        <b>Q1</b>: ${q1}</br> 
+                        <b>Median</b>: ${median}</br> 
+                        <b>Q3</b>: ${q3}</br>
+                        <b>IQR</b>: ${iqr} <br/>`
                     );
                 }
                 ttInstance.show();

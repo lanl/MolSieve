@@ -111,7 +111,8 @@ export default function BoxPlotWrapper({
                         <BoxPlot
                             key={`${chunk.id}-${property}`}
                             showYAxis={false}
-                            data={boxStats[property]}
+                            data={chunk.getPropList(property)}
+                            boxStats={boxStats[property]}
                             chunk={chunk}
                             property={property}
                             width={width}
