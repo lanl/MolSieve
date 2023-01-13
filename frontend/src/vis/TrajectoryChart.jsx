@@ -21,7 +21,7 @@ const MARGIN = {
 
 const minimumChartWidth = 200;
 
-function TrajectoryChart({
+export default function TrajectoryChart({
     trajectory,
     setStateHovered,
     stateHovered,
@@ -42,6 +42,7 @@ function TrajectoryChart({
     showTop,
     expand,
     propertyCombos,
+    scatterplotHeight = 50,
 }) {
     const ref = useTrajectoryChartRender(
         (svg) => {
@@ -73,7 +74,8 @@ function TrajectoryChart({
                 .selectAll('text')
                 .data([...ranks.ordered.slice(0, showTop), ...propertyComboText]);
 
-            const controlChartHeight = (height * 0.8) / (propertyCombos.length + showTop);
+            const controlChartHeight =
+                (height - scatterplotHeight) / (propertyCombos.length + showTop);
 
             textRanks
                 .enter()
@@ -200,7 +202,7 @@ function TrajectoryChart({
                         };
                     });
 
-                const h = chunk.important ? height : height * 0.8;
+                const h = chunk.important ? height : height - scatterplotHeight;
 
                 return (
                     <foreignObject
@@ -253,6 +255,7 @@ function TrajectoryChart({
                                         doubleClickAction={() => expand(chunk.id, 100, trajectory)}
                                         propertyCombos={propertyCombos}
                                         extents={extents}
+                                        scatterplotHeight={scatterplotHeight}
                                     />
                                 ) : (
                                     <ViolinPlotWrapper
@@ -291,4 +294,3 @@ function TrajectoryChart({
         </svg>
     );
 }
-export default TrajectoryChart;

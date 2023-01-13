@@ -438,10 +438,8 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
                                     return (
                                         <TrajectoryChart
                                             width={width}
-                                            height={250}
-                                            /* (showTop + propertyCombos.length) *
-                                                    SPARKLINE_CHART_HEIGHT +
-                                                50 */
+                                            height={(showTop + propertyCombos.length) * 50 + 50}
+                                            scatterplotHeight={50}
                                             trajectory={trajectory}
                                             run={runs[trajectory.name]}
                                             setStateHovered={setStateHovered}

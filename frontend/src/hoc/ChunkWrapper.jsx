@@ -34,6 +34,7 @@ export default function ChunkWrapper({
     doubleClickAction,
     propertyCombos,
     extents,
+    scatterplotHeight,
 }) {
     // set as useReducer
     const [isInitialized, setIsInitialized] = useState(false);
@@ -188,7 +189,8 @@ export default function ChunkWrapper({
 
     const timesteps = chunk.timesteps.filter((d) => d >= start && d <= end);
 
-    const controlChartHeight = (height * 0.8) / (ranks.length + Object.keys(tDict).length);
+    const controlChartHeight =
+        (height - scatterplotHeight) / (ranks.length + Object.keys(tDict).length);
 
     return isInitialized ? (
         <Box
@@ -242,7 +244,7 @@ export default function ChunkWrapper({
             <Scatterplot
                 key={`${chunk.id}-scatterplot`}
                 width={width}
-                height={height * 0.2}
+                height={scatterplotHeight}
                 colorFunc={colorFunc}
                 selected={selections}
                 xAttributeList={timesteps}

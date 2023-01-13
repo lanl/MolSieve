@@ -65,10 +65,7 @@ export default function ViolinPlot({
                 .attr('stroke', chunk.color)
                 .attr('stroke-width', 1);
 
-            const violin = svg.append('g');
-
-            violin
-                .append('path')
+            svg.append('path')
                 .datum(bins)
                 .attr('fill', chunk.color)
                 .attr('stroke', 'black')

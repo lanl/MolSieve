@@ -91,7 +91,7 @@ export default function ViolinPlotWrapper({
                 ws.current = null;
             }
         };
-    }, [chunk, properties]);
+    }, [JSON.stringify(chunk)]);
 
     if (isInterrupted) {
         return <div>Loading interrupted</div>;
