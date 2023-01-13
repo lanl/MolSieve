@@ -38,7 +38,7 @@ from .utils import (
     loadTestPickle,
     saveTestPickle,
 )
-from .worker.celery_app import TASK_COMPLETE, celery_app, run_analysis_task
+from .background_worker.celery import TASK_COMPLETE, celery
 
 os.environ["OVITO_THREAD_COUNT"] = "1"
 os.environ["DISPLAY"] = ""
@@ -80,7 +80,7 @@ def run_cypher_query(query: str):
 async def update_task(task_id: str, data: dict):
     if task_id in cm.active_connections:
         if data["type"] == TASK_COMPLETE:
-            result = AsyncResult(task_id, app=celery_app)
+            result = AsyncResult(task_id, app=celery)
             if result.ready():
                 data = result.get()
                 await cm.send(
@@ -95,7 +95,7 @@ async def ws(task_id: str, websocket: WebSocket):
     await cm.connect(task_id, websocket)
     # get the task's parameters, send it off
     task_params = unprocessed[task_id]
-    celery_app.send_task(
+    celery.send_task(
         task_params["name"], kwargs=task_params["params"], task_id=task_id
     )
     try:
@@ -273,6 +273,7 @@ async def ws_load_properties_for_subset(websocket: WebSocket):
         qb = querybuilder.Neo4jQueryBuilder()
         driver = GraphDriver()
 
+        # also potential bottleneck
         q = qb.generate_get_node_list(
             "State", idAttributeList=data["stateIds"], attributeList=data["props"]
         )
@@ -291,6 +292,7 @@ async def ws_load_properties_for_subset(websocket: WebSocket):
         for chunk in chunks:
             results = await load_properties_for_subset(chunk)
             await websocket.send_json(results)
+        await websocket.close()
     except WebSocketDisconnect:
         print("Websocket disconnected")
 
@@ -330,7 +332,8 @@ def cluster_states(props: List[str] = Body([]), stateIds: List[int] = Body([])):
 
 async def load_properties_for_subset(stateList):
     driver = GraphDriver()
- 
+
+    # TODO: put in seperate function
     missingProperties = {}
     for state in stateList:
         for key, value in state.items():
@@ -396,19 +399,10 @@ async def run_script(script: str, state_atom_dict):
     code = get_script_code(script)
     exec(code, globals())
     new_attributes = run(state_atom_dict)
+    task_id = uuid()
+    celery.send_task("save_to_db", kwargs={"new_attributes": new_attributes}, task_id=task_id)
 
     # move into seperate process?
-    q = None
-    with driver.session() as session:
-        tx = session.begin_transaction()
-        for id, data in new_attributes.items():
-            # q is a template query that gets filled in with each datapoint
-            if q is None:
-                q = qb.generate_update_entity(data, "State", "id", "node")
-            data.update({"id": id})
-            tx.run(q.text, data)
-        tx.commit()
-
     return new_attributes
 
 

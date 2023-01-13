@@ -1,6 +1,6 @@
-from api.models import AnalysisStep
+#from api.models import AnalysisStep
 
-from ..utils import get_atom_type, getMetadata
+from api.utils import get_atom_type, getMetadata
 from typing import Optional, List, Dict, Any
 from .celeryconfig import CeleryConfig
 
@@ -13,10 +13,10 @@ from scipy import stats
 import json
 import requests
 
-celery_app = Celery(
-    "tasks", backend="redis://localhost:6379/0", broker="redis://localhost:6379/0"
+celery = Celery(
+    "background_worker", backend="redis://localhost:6379/0", broker="redis://localhost:6379/0"
 )
-celery_app.config_from_object(CeleryConfig)
+celery.config_from_object(CeleryConfig)
 logger = get_task_logger(__name__)
 
 TASK_START = "TASK_START"
@@ -37,7 +37,7 @@ class PostingTask(Task):
         send_update(task_id, {"type": TASK_COMPLETE})
         return super().on_success(retval, task_id, args, kwargs)
 
-
+"""
 @celery_app.task(name="run_analysis", base=PostingTask)
 def run_analysis_task(
     steps: List[AnalysisStep],
@@ -151,9 +151,9 @@ def run_analysis_task(
                     state_number_list = ",".join(
                         [f'"{k}"' for k in new_attributes.keys()]
                     )
-                    q = """ MATCH (n:State) WHERE n.number IN [{state_number_list}]
+                    q = MATCH (n:State) WHERE n.number IN [{state_number_list}]
                     RETURN DISTINCT labels(n) AS labels;
-                    """.format(
+                    .format(
                         state_number_list=state_number_list
                     )
                     res = tx.run(q)
@@ -185,7 +185,7 @@ def run_analysis_task(
             raise NotImplementedError()
 
     return json.dumps(results)
-
+"""
 
 """
 Unused for now, load property usually is pretty fast
@@ -215,7 +215,7 @@ def load_property_task(prop: str):
 """
 
 
-@celery_app.task(name="perform_KS_Test", base=PostingTask)
+@celery.task(name="perform_KS_Test", base=PostingTask)
 def perform_KSTest(data: dict):
     cdf = data["cdf"]
     rvs = data["rvs"]
@@ -256,7 +256,7 @@ def perform_KSTest(data: dict):
     return json.dumps({"statistic": statistic, "pvalue": pvalue})
 
 
-@celery_app.task(name="calculate_neb_on_path", base=PostingTask)
+@celery.task(name="calculate_neb_on_path", base=PostingTask)
 def calculate_neb_on_path(
     run: str,
     start: str,
@@ -400,7 +400,7 @@ def calculate_neb_on_path(
     return json.dumps(j)
 
 
-@celery_app.task(name="calculate_path_similarity", base=PostingTask)
+@celery.task(name="calculate_path_similarity", base=PostingTask)
 def calculate_path_similarity(
     p1: List[int],
     p2: List[int],
@@ -430,3 +430,25 @@ def calculate_path_similarity(
     )
 
     return json.dumps({"score": score})
+
+# used with load_properties to save time
+@celery.task(name="save_to_db")
+def save_to_db(new_attributes):
+    driver = neo4j.GraphDatabase.driver(
+        "bolt://127.0.0.1:7687", auth=("neo4j", "secret")
+    )
+
+    qb = querybuilder.Neo4jQueryBuilder(
+        schema=[("Atom", "PART_OF", "State", "MANY-TO-ONE")]
+    )
+
+    q = None
+    with driver.session() as session:
+        tx = session.begin_transaction()
+        for id, data in new_attributes.items():
+            # q is a template query that gets filled in with each datapoint
+            if q is None:
+                q = qb.generate_update_entity(data, "State", "id", "node")
+            data.update({"id": id})
+            tx.run(q.text, data)
+        tx.commit()

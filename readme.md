@@ -39,3 +39,7 @@ Make sure to bring in all of the submodules using `git submodule update --init -
 5. Start the frontend by running `serve -s build` in the `frontend` directory.
 
 6. Connect to the application in your browser at `http://localhost:3000`.
+
+# Starting the celery background worker
+
+`poetry run celery -A api.background_worker.celery worker -l INFO`
