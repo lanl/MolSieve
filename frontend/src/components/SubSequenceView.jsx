@@ -44,7 +44,7 @@ export default function SubSequenceView({
             const states = [stateIDs[0], ...d, stateIDs[stateIDs.length - 1]].reduce(
                 (acc, val, idx, arr) => {
                     if (idx > 0) {
-                        if (acc[idx - 1] !== arr[idx]) {
+                        if (acc[acc.length - 1] !== arr[idx]) {
                             return [...acc, val];
                         }
                         return acc;

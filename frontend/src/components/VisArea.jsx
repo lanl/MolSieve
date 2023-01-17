@@ -474,8 +474,9 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
                 gap={0.5}
                 sx={{
                     overflow: 'auto',
-                    gridTemplateColumns: 'repeat(1, 1fr)',
+                    gridTemplateColumns: 'repeat(2, 1fr)',
                     justifyItems: 'center',
+                    height: '300px',
                 }}
             >
                 {Object.keys(selections.values).map((uuid) => {
