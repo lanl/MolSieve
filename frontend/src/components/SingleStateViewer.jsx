@@ -6,7 +6,7 @@ import ImageViewer from './ImageViewer';
 
 import { apiGenerateOvitoImage } from '../api/ajax';
 
-export default function SingleStateViewer({ stateID }) {
+export default function SingleStateViewer({ stateID, onHover }) {
     const [img, setImg] = useState(undefined);
 
     useEffect(() => {
@@ -17,7 +17,7 @@ export default function SingleStateViewer({ stateID }) {
     }, [stateID]);
 
     return (
-        <Box>
+        <Box onMouseEnter={onHover}>
             <ImageViewer img={img} />
         </Box>
     );
