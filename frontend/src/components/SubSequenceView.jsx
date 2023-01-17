@@ -8,6 +8,7 @@ import Divider from '@mui/material/Divider';
 import SortIcon from '@mui/icons-material/Sort';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
+import LinearProgress from '@mui/material/LinearProgress';
 
 import SingleStateViewer from './SingleStateViewer';
 import RadarChart from '../vis/RadarChart';
@@ -31,6 +32,7 @@ export default function SubSequenceView({
 }) {
     const [data, setData] = useState([]);
     const [activeState, setActiveState] = useState({ id: stateIDs[0], idx: 0 });
+    const [isLoaded, setIsLoaded] = useState(false);
     const [anchorEl, setAnchorEl] = useState(null);
     const [interestingStates, setInterestingStates] = useState([
         stateIDs[0],
@@ -53,6 +55,7 @@ export default function SubSequenceView({
                 },
                 []
             );
+            setIsLoaded(true);
             setInterestingStates(states);
         });
         // update
@@ -122,6 +125,7 @@ export default function SubSequenceView({
                 </IconButton>
             </Box>
             <Divider />
+            {!isLoaded && <LinearProgress />}
             <Stack direction="row" spacing={0.5}>
                 {interestingStates.map((stateID) => (
                     <SingleStateViewer
@@ -129,6 +133,7 @@ export default function SubSequenceView({
                         onHover={() => setActiveState({ id: stateID })}
                     />
                 ))}
+
                 <RadarChart
                     data={data}
                     properties={properties}
