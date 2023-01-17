@@ -17,6 +17,7 @@ import '../css/App.css';
 import { structuralAnalysisProps } from '../api/constants';
 import GlobalStates from '../api/globalStates';
 import { oneShotTooltip, abbreviate, occurrenceDict } from '../api/myutils';
+import { apiSubsetConnectivityDifference } from '../api/ajax';
 
 export default function SubSequenceView({
     stateIDs,
@@ -31,13 +32,18 @@ export default function SubSequenceView({
     const [data, setData] = useState([]);
     const [activeState, setActiveState] = useState({ id: stateIDs[0], idx: 0 });
     const [anchorEl, setAnchorEl] = useState(null);
-    const [interestingStates, setInterestingStates] = useState([stateIDs[0], stateIDs[1]]);
+    const [interestingStates, setInterestingStates] = useState([
+        stateIDs[0],
+        stateIDs[stateIDs.length - 1],
+    ]);
 
     useEffect(() => {
         // find interesting states
-        setInterestingStates([stateIDs[0], stateIDs[1]]);
+        apiSubsetConnectivityDifference(stateIDs).then((d) => {
+            setInterestingStates([stateIDs[0], ...d, stateIDs[stateIDs.length - 1]]);
+        });
         // update
-    }, [stateIDs]);
+    }, [JSON.stringify(stateIDs)]);
 
     /**
      * Returns the stateIDs without any sorting.

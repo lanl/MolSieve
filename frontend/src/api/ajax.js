@@ -281,3 +281,12 @@ export function apiGetScriptProperties() {
             .catch((e) => reject(e));
     });
 }
+
+export function apiSubsetConnectivityDifference(stateIDs) {
+    return new Promise((resolve, reject) => {
+        axios
+            .post('/api/subset_connectivity_difference', stateIDs)
+            .then((response) => resolve(response.data))
+            .catch((e) => reject(e));
+    });
+}

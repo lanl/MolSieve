@@ -725,4 +725,29 @@ def load_trajectory(run: str, mMin: int, mMax: int, chunkingThreshold: float):
     }
 
 
+@router.post("/subset_connectivity_difference")
+def subset_connectivity_difference(stateIDs: List[int] = Body([])):
+    driver = GraphDriver()
+    qb = querybuilder.Neo4jQueryBuilder([("Atom", "PART_OF", "State", "MANY-TO-ONE")])
+    q = qb.generate_get_node_list("State", stateIDs, "PART_OF")
+    state_atom_dict = converter.query_to_ASE(driver, q, "Pt")
+
+    connectivity_list = []  # all connectivity matrices in order
+    for stateID in stateIDs:
+        atoms = state_atom_dict[stateID]
+        connectivity_list.append((stateID, converter.atoms_to_connectivity_matrix(atoms)))
+
+    maximum_difference = []
+    iter = 0
+    while iter < 3:
+        result = calculator.max_connectivity_difference(connectivity_list[0][1], connectivity_list[1:])
+        print(result)
+        if result['id'] is not None:
+            maximum_difference.append(result['id'])
+            connectivity_list = connectivity_list[result['index']:]
+        else:
+            break
+        iter += 1
+    return maximum_difference
+
 app.include_router(router)
