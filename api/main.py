@@ -126,6 +126,17 @@ async def generate_ovito_images(websocket: WebSocket):
         print("Websocket disconnected")
 
 
+@router.get("/generate_ovito_image", status_code=200)
+async def generate_ovito_image_endpoint(id: int):
+    driver = GraphDriver()
+    qb = querybuilder.Neo4jQueryBuilder([("Atom", "PART_OF", "State", "MANY-TO-ONE")])
+
+    q = qb.generate_get_node_list("State", [id], "PART_OF")
+    atom_dict = converter.query_to_ASE(driver, q, "Pt")
+
+    return {"id": id, "img": generate_ovito_image(atom_dict[id])}
+
+
 def generate_ovito_image(atoms):
     qimg = visualizations.render_ASE(atoms)
 

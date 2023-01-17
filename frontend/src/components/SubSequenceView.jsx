@@ -9,7 +9,7 @@ import SortIcon from '@mui/icons-material/Sort';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
 
-import StateViewer from './StateViewer';
+import SingleStateViewer from './SingleStateViewer';
 import RadarChart from '../vis/RadarChart';
 
 import '../css/App.css';
@@ -31,6 +31,14 @@ export default function SubSequenceView({
     const [data, setData] = useState([]);
     const [activeState, setActiveState] = useState({ id: stateIDs[0], idx: 0 });
     const [anchorEl, setAnchorEl] = useState(null);
+    const [interestingStates, setInterestingStates] = useState([stateIDs[0], stateIDs[1]]);
+
+    useEffect(() => {
+        // find interesting states
+        setInterestingStates([stateIDs[0], stateIDs[1]]);
+        // update
+    }, [stateIDs]);
+
     /**
      * Returns the stateIDs without any sorting.
      *
@@ -96,11 +104,9 @@ export default function SubSequenceView({
             </Box>
             <Divider />
             <Stack direction="row" spacing={0.5}>
-                <StateViewer
-                    stateIDs={stateIDs}
-                    activeState={activeState}
-                    setActiveState={setActiveState}
-                />
+                {interestingStates.map((stateID) => (
+                    <SingleStateViewer stateID={stateID} />
+                ))}
                 <RadarChart
                     data={data}
                     properties={properties}
