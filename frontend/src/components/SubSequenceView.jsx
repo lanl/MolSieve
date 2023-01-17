@@ -124,7 +124,10 @@ export default function SubSequenceView({
             <Divider />
             <Stack direction="row" spacing={0.5}>
                 {interestingStates.map((stateID) => (
-                    <SingleStateViewer stateID={stateID} />
+                    <SingleStateViewer
+                        stateID={stateID}
+                        onHover={() => setActiveState({ id: stateID })}
+                    />
                 ))}
                 <RadarChart
                     data={data}
