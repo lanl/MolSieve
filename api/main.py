@@ -301,8 +301,7 @@ async def ws_load_properties_for_subset(websocket: WebSocket):
         chunks = list(split(stateList, 100))
 
         for chunk in chunks:
-            results = await load_properties_for_subset(chunk)
-            await websocket.send_json(results)
+            await websocket.send_json(await load_properties_for_subset(chunk))
         await websocket.close()
     except WebSocketDisconnect:
         print("Websocket disconnected")
@@ -724,7 +723,6 @@ def load_trajectory(run: str, mMin: int, mMax: int, chunkingThreshold: float):
         "current_clustering": trajectory.current_clustering,
     }
 
-
 @router.post("/subset_connectivity_difference")
 def subset_connectivity_difference(stateIDs: List[int] = Body([])):
     driver = GraphDriver()
@@ -741,13 +739,13 @@ def subset_connectivity_difference(stateIDs: List[int] = Body([])):
     iter = 0
     while iter < 3:
         result = calculator.max_connectivity_difference(connectivity_list[0][1], connectivity_list[1:])
-        print(result)
         if result['id'] is not None:
             maximum_difference.append(result['id'])
             connectivity_list = connectivity_list[result['index']:]
         else:
             break
         iter += 1
+
     return maximum_difference
 
 app.include_router(router)

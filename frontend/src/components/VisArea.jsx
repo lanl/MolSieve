@@ -474,7 +474,7 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
                 gap={0.5}
                 sx={{
                     overflow: 'auto',
-                    gridTemplateColumns: 'repeat(4, 1fr)',
+                    gridTemplateColumns: 'repeat(1, 1fr)',
                     justifyItems: 'center',
                 }}
             >

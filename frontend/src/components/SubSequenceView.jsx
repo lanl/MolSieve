@@ -40,7 +40,20 @@ export default function SubSequenceView({
     useEffect(() => {
         // find interesting states
         apiSubsetConnectivityDifference(stateIDs).then((d) => {
-            setInterestingStates([stateIDs[0], ...d, stateIDs[stateIDs.length - 1]]);
+            // remove duplicates if they are next to each other
+            const states = [stateIDs[0], ...d, stateIDs[stateIDs.length - 1]].reduce(
+                (acc, val, idx, arr) => {
+                    if (idx > 0) {
+                        if (acc[idx - 1] !== arr[idx]) {
+                            return [...acc, val];
+                        }
+                        return acc;
+                    }
+                    return [val];
+                },
+                []
+            );
+            setInterestingStates(states);
         });
         // update
     }, [JSON.stringify(stateIDs)]);
