@@ -476,7 +476,6 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
                     overflow: 'auto',
                     gridTemplateColumns: 'repeat(2, 1fr)',
                     justifyItems: 'center',
-                    height: '300px',
                 }}
             >
                 {Object.keys(selections.values).map((uuid) => {

@@ -2,14 +2,14 @@ import { React, useState, useEffect } from 'react';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
-import Button from '@mui/material/Button';
 import IconButton from '@mui/material/IconButton';
 import Divider from '@mui/material/Divider';
 import SortIcon from '@mui/icons-material/Sort';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
 import LinearProgress from '@mui/material/LinearProgress';
-
+import ScienceIcon from '@mui/icons-material/Science';
+import DisabledByDefaultIcon from '@mui/icons-material/DisabledByDefault';
 import SingleStateViewer from './SingleStateViewer';
 import RadarChart from '../vis/RadarChart';
 
@@ -96,83 +96,86 @@ export default function SubSequenceView({
     }, [activeState.id]);
 
     return (
-        <Box
-            component={Paper}
-            sx={{ sx }}
-            onMouseEnter={() => onMouseEnter(activeState.id)}
-            onMouseLeave={() => onMouseLeave()}
-            disabled={disabled}
-        >
-            <Box display="flex" direction="row">
-                <Button
-                    color="secondary"
-                    size="small"
-                    onClick={() => {
-                        deleteFunc();
-                    }}
-                >
-                    X
-                </Button>
-                <IconButton
-                    color="secondary"
-                    size="small"
-                    onClick={(e) => {
-                        setAnchorEl(e.currentTarget);
-                    }}
-                >
-                    <SortIcon />
-                </IconButton>
-            </Box>
-            <Divider />
-            {!isLoaded && <LinearProgress />}
-            <Stack direction="row" spacing={0.5}>
-                {interestingStates.map((stateID) => (
-                    <SingleStateViewer
-                        stateID={stateID}
-                        onHover={() => setActiveState({ id: stateID })}
-                    />
-                ))}
-
-                <RadarChart
-                    data={data}
-                    properties={properties}
-                    width={200}
-                    height={200}
-                    globalScale={globalScale}
-                    onElementMouseOver={(node, d) => {
-                        oneShotTooltip(node, `<b>${abbreviate(d.property)}</b>: ${d.value}`);
-                    }}
-                    renderSingle={GlobalStates.get(activeState.id)}
-                />
-            </Stack>
-            <Divider />
-            <Stack
-                direction="row"
-                spacing={0.5}
-                sx={{
-                    maxWidth: `${interestingStates.length * 100 + 200}px`,
-                    overflow: 'scroll',
-                    minHeight: '40px',
-                    maxHeight: '40px',
-                }}
+        <>
+            <Box
+                component={Paper}
+                sx={{ sx }}
+                onMouseEnter={() => onMouseEnter(activeState.id)}
+                onMouseLeave={() => onMouseLeave()}
+                disabled={disabled}
             >
-                {stateOrder.map((id) => {
-                    const state = GlobalStates.get(id);
-                    const idx = stateIDs.indexOf(id);
-                    return (
-                        <span
-                            key={id}
-                            className="stateText"
-                            style={{ color: state.individualColor }}
-                            onMouseEnter={() => {
-                                setActiveState({ id, idx });
-                            }}
-                        >
-                            {id}
-                        </span>
-                    );
-                })}
-            </Stack>
+                <Box display="flex" direction="row">
+                    <IconButton
+                        color="secondary"
+                        size="small"
+                        onClick={() => {
+                            deleteFunc();
+                        }}
+                    >
+                        <DisabledByDefaultIcon />
+                    </IconButton>
+                    <IconButton
+                        color="secondary"
+                        size="small"
+                        onClick={(e) => {
+                            setAnchorEl(e.currentTarget);
+                        }}
+                    >
+                        <SortIcon />
+                    </IconButton>
+                    <IconButton color="secondary" size="small" onClick={() => {}}>
+                        <ScienceIcon />
+                    </IconButton>
+                </Box>
+                <Divider />
+                {!isLoaded && <LinearProgress />}
+                <Stack direction="row" spacing={0.5}>
+                    {interestingStates.map((stateID) => (
+                        <SingleStateViewer
+                            stateID={stateID}
+                            onHover={() => setActiveState({ id: stateID })}
+                        />
+                    ))}
+
+                    <RadarChart
+                        data={data}
+                        properties={properties}
+                        width={200}
+                        height={200}
+                        globalScale={globalScale}
+                        onElementMouseOver={(node, d) => {
+                            oneShotTooltip(node, `<b>${abbreviate(d.property)}</b>: ${d.value}`);
+                        }}
+                        renderSingle={GlobalStates.get(activeState.id)}
+                    />
+                </Stack>
+                <Divider />
+                <Stack
+                    direction="row"
+                    spacing={0.5}
+                    sx={{
+                        maxWidth: `${interestingStates.length * 100 + 200}px`,
+                        overflow: 'scroll',
+                        minHeight: '25px',
+                        maxHeight: '25px',
+                    }}
+                >
+                    {stateOrder.map((id) => {
+                        const state = GlobalStates.get(id);
+                        const idx = stateIDs.indexOf(id);
+                        return (
+                            <span
+                                key={id}
+                                className="stateText"
+                                style={{ color: state.individualColor }}
+                                onMouseEnter={() => setActiveState({ id, idx })}
+                            >
+                                {id}
+                            </span>
+                        );
+                    })}
+                </Stack>
+            </Box>
             <Menu open={anchorEl !== null} anchorEl={anchorEl} onClose={() => setAnchorEl(null)}>
                 <MenuItem onClick={() => setStateOrder(sortInOrder)}>
                     Sort by temporal order
@@ -181,6 +184,6 @@ export default function SubSequenceView({
                     Sort by occurrence count
                 </MenuItem>
             </Menu>
-        </Box>
+        </>
     );
 }
