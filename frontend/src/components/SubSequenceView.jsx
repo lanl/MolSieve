@@ -15,7 +15,6 @@ import RadarChart from '../vis/RadarChart';
 
 import '../css/App.css';
 
-import { structuralAnalysisProps } from '../api/constants';
 import GlobalStates from '../api/globalStates';
 import { oneShotTooltip, abbreviate, occurrenceDict } from '../api/myutils';
 import { apiSubsetConnectivityDifference } from '../api/ajax';
@@ -150,7 +149,12 @@ export default function SubSequenceView({
             <Stack
                 direction="row"
                 spacing={0.5}
-                sx={{ maxWidth: '400px', overflow: 'scroll', minHeight: '40px', maxHeight: '40px' }}
+                sx={{
+                    maxWidth: `${interestingStates.length * 100 + 200}px`,
+                    overflow: 'scroll',
+                    minHeight: '40px',
+                    maxHeight: '40px',
+                }}
             >
                 {stateOrder.map((id) => {
                     const state = GlobalStates.get(id);
@@ -158,9 +162,11 @@ export default function SubSequenceView({
                     return (
                         <span
                             key={id}
-                            className="state"
+                            className="stateText"
                             style={{ color: state.individualColor }}
-                            onMouseEnter={() => setActiveState({ id, idx })}
+                            onMouseEnter={() => {
+                                setActiveState({ id, idx });
+                            }}
                         >
                             {id}
                         </span>
@@ -178,7 +184,3 @@ export default function SubSequenceView({
         </Box>
     );
 }
-//
-SubSequenceView.defaultProps = {
-    properties: structuralAnalysisProps,
-};

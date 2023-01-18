@@ -25,3 +25,7 @@ img {
 .Box:disabled {
     color: 'gray';
 }
+
+.stateText:hover {
+    font-weight: bold;
+}

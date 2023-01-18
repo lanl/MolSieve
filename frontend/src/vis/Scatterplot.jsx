@@ -24,7 +24,11 @@ export default function Scatterplot({
     };
 
     const buildScaleY = () => {
-        return () => d3.scaleLinear().domain(d3.extent(yAttributeList)).range([height, MARGIN.top]);
+        return () =>
+            d3
+                .scaleLinear()
+                .domain(d3.extent(yAttributeList))
+                .range([height - MARGIN.bottom, MARGIN.top]);
     };
 
     const buildData = () => {

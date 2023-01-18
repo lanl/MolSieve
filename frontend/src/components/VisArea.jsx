@@ -498,6 +498,7 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
                             onMouseLeave={() => setCurrentSelection(null)}
                             disabled={disabled}
                             stateIDs={ids}
+                            properties={properties}
                             globalScale={globalScale}
                             deleteFunc={() => {
                                 setCurrentSelection(null);
