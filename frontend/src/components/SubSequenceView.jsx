@@ -12,7 +12,7 @@ import ScienceIcon from '@mui/icons-material/Science';
 import DisabledByDefaultIcon from '@mui/icons-material/DisabledByDefault';
 import SingleStateViewer from './SingleStateViewer';
 import RadarChart from '../vis/RadarChart';
-
+import NEBModal from '../modals/NEBModal';
 import '../css/App.css';
 
 import GlobalStates from '../api/globalStates';
@@ -37,6 +37,7 @@ export default function SubSequenceView({
         stateIDs[0],
         stateIDs[stateIDs.length - 1],
     ]);
+    const [openModal, setOpenModal] = useState(false);
 
     useEffect(() => {
         // find interesting states
@@ -123,7 +124,11 @@ export default function SubSequenceView({
                     >
                         <SortIcon />
                     </IconButton>
-                    <IconButton color="secondary" size="small" onClick={() => {}}>
+                    <IconButton
+                        color="secondary"
+                        size="small"
+                        onClick={() => setOpenModal(!openModal)}
+                    >
                         <ScienceIcon />
                     </IconButton>
                 </Box>
@@ -184,6 +189,7 @@ export default function SubSequenceView({
                     Sort by occurrence count
                 </MenuItem>
             </Menu>
+            <NEBModal open={openModal} close={() => setOpenModal(!openModal)} stateIDs={stateIDs} />
         </>
     );
 }

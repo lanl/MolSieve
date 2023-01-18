@@ -6,21 +6,22 @@ import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
 import '../css/vis.css';
 import '../css/App.css';
 
-const MARGIN = { top: 5, bottom: 10, left: 0, right: 5 };
-
 export default function Scatterplot({
     width,
     height,
-    colorFunc,
+    colorFunc = () => 'black',
     xAttributeList,
     yAttributeList,
-    onElementClick,
-    onElementMouseOver,
-    onElementMouseOut,
+    onElementClick = () => {},
+    onElementMouseOver = () => {},
+    onElementMouseOut = () => {},
     selected,
+    brush,
+    margin = { top: 5, bottom: 10, left: 0, right: 5 },
 }) {
+    const [initialized, setInitialized] = useState(false);
     const buildScaleX = () => {
-        return () => d3.scaleLinear().domain(d3.extent(xAttributeList)).range([MARGIN.left, width]);
+        return () => d3.scaleLinear().domain(d3.extent(xAttributeList)).range([margin.left, width]);
     };
 
     const buildScaleY = () => {
@@ -28,7 +29,7 @@ export default function Scatterplot({
             d3
                 .scaleLinear()
                 .domain(d3.extent(yAttributeList))
-                .range([height - MARGIN.bottom, MARGIN.top]);
+                .range([height - margin.bottom, margin.top]);
     };
 
     const buildData = () => {
@@ -64,7 +65,7 @@ export default function Scatterplot({
     const ref = useTrajectoryChartRender(
         (svg) => {
             if (!svg.empty()) {
-                svg.selectAll('*:not(.brush)').remove();
+                svg.selectAll('*').remove();
             }
 
             if (!data) {
@@ -98,11 +99,20 @@ export default function Scatterplot({
                     onElementMouseOut(this, d);
                 });
 
+            if (brush) {
+                const brushG = svg.append('g').classed('brush', true);
+                brushG.call(brush);
+            }
+
+            if (!initialized) {
+                setInitialized(true);
+            }
             // applyFilters(trajectories, runs, ref);
         },
         [JSON.stringify(data), scaleX, scaleY, colorFunc]
     );
 
+    // this should be decoupled
     useEffect(() => {
         d3.select(ref.current).selectAll('.currentSelection').classed('currentSelection', false);
 
@@ -113,11 +123,16 @@ export default function Scatterplot({
                 const end = Math.max(...set);
 
                 if (active) {
-                    d3.select(ref.current)
+                    let states = d3
+                        .select(ref.current)
                         .selectAll('.state')
-                        .filter((d) => d.x >= start && d.x <= end)
-                        .filter((d) => d.y === highlightValue)
-                        .classed('currentSelection', true);
+                        .filter((d) => d.x >= start && d.x <= end);
+
+                    if (highlightValue !== undefined) {
+                        states = states.filter((d) => d.y === highlightValue);
+                    }
+
+                    states.classed('currentSelection', true);
                 }
             }
         } else {
@@ -148,10 +163,3 @@ export default function Scatterplot({
         />
     );
 }
-
-Scatterplot.defaultProps = {
-    onElementClick: () => {},
-    onElementMouseOver: () => {},
-    onElementMouseOut: () => {},
-    colorFunc: () => 'black',
-};

@@ -1,44 +1,36 @@
-import React from 'react';
+import { React, useState } from 'react';
 import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import Button from '@mui/material/Button';
 import Stack from '@mui/material/Stack';
-import MenuItem from '@mui/material/MenuItem';
 import TextField from '@mui/material/TextField';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import FormControl from '@mui/material/FormControl';
 import Checkbox from '@mui/material/Checkbox';
-import Select from '@mui/material/Select';
+
+import * as d3 from 'd3';
 
 import '../css/App.css';
-import { withSnackbar } from "notistack";
-import {isPath} from "../api/myutils";
-import { onMessageHandler } from '../api/ajax';
+import Scatterplot from '../vis/Scatterplot';
+import GlobalStates from '../api/globalStates';
 
-import { apiCalculateNEB } from '../api/ajax';
+import { onEntityMouseOver } from '../api/myutils';
+/* import { onMessageHandler, apiCalculateNEB } from '../api/ajax'; */
 
-class NEBModal extends React.Component {
-    constructor(props) {
-        super(props);
+export default function NEBModal({ stateIDs, close, open, submit }) {
+    const [interpolate, setInterpolate] = useState(1);
+    const [maxSteps, setMaxSteps] = useState(2500);
+    const [fmax, setFMax] = useState(0.01);
+    const [saveResults, setSaveResults] = useState(true);
+    const [selection, setSelection] = useState([0, stateIDs.length - 1]);
 
-        this.state = {
-            interpolate: 1,
-            energies: [],
-            currentExtent: this.props.extents[0],
-            drawSequence: [],
-            maxSteps: 2500,
-            fmax: 0.01,
-            saveResults: true,
-        };
-    }
-
-    calculateNEB = () => {
+    /* const calculateNEB = () => {
         const extents = this.props.extents[0];
         const run = extents.name;
         const start = extents.begin;
-        const {end} = extents;
+        const { end } = extents;
 
         apiCalculateNEB(
             run,
@@ -98,117 +90,102 @@ class NEBModal extends React.Component {
             .catch((e) => {
                 alert(e);
             });
-    };
+    }; */
 
-    closeFunc = () => {
-        this.props.closeFunc();
-    };
+    return (
+        <Dialog open={open} onClose={close} maxWidth="xs" fullWidth>
+            <DialogTitle>NEB</DialogTitle>
+            <DialogContent>
+                <Stack spacing={2}>
+                    <Scatterplot
+                        width={375}
+                        height={200}
+                        colorFunc={(d) => {
+                            const state = GlobalStates.get(d.y);
+                            return state.individualColor;
+                        }}
+                        onElementMouseOver={(node, d) => {
+                            const state = GlobalStates.get(d.y);
+                            onEntityMouseOver(node, state);
+                        }}
+                        xAttributeList={[...Array(stateIDs.length).keys()]}
+                        yAttributeList={stateIDs}
+                        brush={d3.brushX().on('end', (e) => {
+                            if (e.selection) {
+                                const [gStart, gEnd] = e.selection;
+                                const x = d3
+                                    .scaleLinear()
+                                    .domain(d3.extent([...Array(stateIDs.length).keys()]))
+                                    .range([0, 375]);
 
-    render() {
-        if (this.props.open) {
-            const extent_options = this.props.extents.map((extent, i) => {
-                if (isPath(extent)) {
-                    return (
-                        <MenuItem key={i} value={JSON.stringify(extent)}>
-                            {`${extent.name} ${extent.begin} - ${extent.end}`}
-                        </MenuItem>
-                    );
-                }
-                return null;
-            });
-
-            return (
-                <Dialog
-                    open={this.props.open}
-                    onBackdropClick={() => this.closeFunc()}
-                    maxWidth="xs"
-                    fullWidth>
-                >
-                    <DialogTitle>NEB</DialogTitle>
-                    <DialogContent>
-                        <Stack spacing={2}>
-                            <Select
-                                value={JSON.stringify(this.state.currentExtent)}
-                                onChange={(e) => {
-                                    JSON.parse(this.setState(e.target.value));
-                                }}
-                            >
-                                {extent_options}
-                            </Select>
-                            <h4>{`${
-                                this.state.currentExtent.end - this.state.currentExtent.begin
-                            } steps`}</h4>
-                            <TextField
-                                label="Number of images interpolated between points on NEB:"
-                                fullWidth
-                                type="number"
-                                inputProps={{ inputMode: 'numeric', pattern: '[0-9]*', min: 1 }}
-                                defaultValue={this.state.interpolate}
-                                onChange={(e) => {
-                                    this.setState({ interpolate: e.target.value });
-                                }}
-                            />
-                            <TextField
-                                fullWidth
-                                label="Maximum number of optimization steps"
-                                type="number"
-                                inputProps={{ inputMode: 'numeric', pattern: '[0-9]*', min: 1 }}
-                                defaultValue={this.state.maxSteps}
-                                onChange={(e) => {
-                                    this.setState({ maxSteps: e.target.value });
-                                }}
-                            />
-                            <TextField
-                                fullWidth
-                                label="fmax"
-                                type="number"
-                                inputProps={{
-                                    inputMode: 'numeric',
-                                    pattern: '[0-9]*',
-                                    min: 1e-10,
-                                    step: 0.01,
-                                }}
-                                defaultValue={this.state.fmax}
-                                onChange={(e) => {
-                                    this.setState({ fmax: e.target.value });
-                                }}
-                            />
-                            <FormControl>
-                                <FormControlLabel
-                                    control={
-                                        <Checkbox
-                                            size="small"
-                                            checked={this.state.saveResults}
-                                            onChange={(e) => {
-                                                this.setState({
-                                                    saveResults: e.target.checked,
-                                                });
-                                            }}
-                                        />
-                                    }
-                                    label="Save results to database"
+                                const start = x.invert(gStart);
+                                const end = x.invert(gEnd);
+                                setSelection([start, end]);
+                            }
+                        })}
+                        selected={[{ active: true, highlightValue: undefined, set: selection }]}
+                    />
+                    <h4>{`${
+                        stateIDs.slice(selection[0], selection[1]).length
+                    } states selected`}</h4>
+                    <TextField
+                        label="Number of images interpolated between points on NEB:"
+                        fullWidth
+                        type="number"
+                        inputProps={{ inputMode: 'numeric', pattern: '[0-9]*', min: 1 }}
+                        defaultValue={interpolate}
+                        onChange={(e) => setInterpolate(e.target.value)}
+                    />
+                    <TextField
+                        fullWidth
+                        label="Maximum number of optimization steps"
+                        type="number"
+                        inputProps={{ inputMode: 'numeric', pattern: '[0-9]*', min: 1 }}
+                        defaultValue={maxSteps}
+                        onChange={(e) => setMaxSteps(e.target.value)}
+                    />
+                    <TextField
+                        fullWidth
+                        label="fmax"
+                        type="number"
+                        inputProps={{
+                            inputMode: 'numeric',
+                            pattern: '[0-9]*',
+                            min: 1e-10,
+                            step: 0.01,
+                        }}
+                        defaultValue={fmax}
+                        onChange={(e) => setFMax(e.target.value)}
+                    />
+                    <FormControl>
+                        <FormControlLabel
+                            control={
+                                <Checkbox
+                                    size="small"
+                                    checked={saveResults}
+                                    onChange={(e) => setSaveResults(e.target.checked)}
                                 />
-                            </FormControl>
-                        </Stack>
-                    </DialogContent>
-                    <DialogActions>
-                        <Button
-                            onClick={() => {
-                                this.calculateNEB();
-                            }}
-                            size="small"
-                        >
-                            Calculate NEB on Path
-                        </Button>
-                        <Button size="small" color="secondary" onClick={this.closeFunc}>
-                            Close
-                        </Button>
-                    </DialogActions>
-                </Dialog>
-            );
-        }
-        return null;
-    }
+                            }
+                            label="Save results to database"
+                        />
+                    </FormControl>
+                </Stack>
+            </DialogContent>
+            <DialogActions>
+                <Button
+                    onClick={() => {
+                        const [start, end] = selection;
+                        const states = stateIDs.slice(start, end);
+                        submit(states, interpolate, maxSteps, fmax, saveResults);
+                    }}
+                    size="small"
+                >
+                    Calculate NEB on Path
+                </Button>
+                <Button size="small" color="secondary" onClick={close}>
+                    Close
+                </Button>
+            </DialogActions>
+        </Dialog>
+    );
 }
-
-export default withSnackbar(NEBModal);
