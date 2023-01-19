@@ -290,36 +290,31 @@ def calculate_neb_on_path(
     metadata = getMetadata(run)
     atomType = get_atom_type(metadata["parameters"])
 
-    # messy, ugly way of doing it, will fix later
-    driver = neo4j.GraphDatabase.driver(
-        "bolt://127.0.0.1:7687", auth=("neo4j", "secret")
-    )
-
     path = {}
     allStates = []
     with driver.session() as session:
         # get the path first, just the ids
-        q = f"""MATCH (n:{run})-[r:{run}]->(n2:{run}) 
+        q = f"""MATCH (n:State:{run})-[r:{run}]->(n2:State:{run}) 
         WHERE r.timestep >= {start} AND r.timestep <= {end}
-        RETURN n.number AS first, r.timestep AS timestep, n2.number AS second, ID(n2) AS secondID"""
+        RETURN n.id AS first, r.timestep AS timestep, n2.id AS second;"""
+
         res = session.run(q)
         for r in res:
-            path.update({r["timestep"]: (r["first"], r["second"], r["secondID"])})
+            path.update({r["timestep"]: (r["first"], r["second"])})
 
         # get their canonical representations - this is a seperate query
         q = f"""OPTIONAL MATCH (n:{run})-[r:canon_rep_{run}]->(n2:State)
-            WHERE r.timestep >= {start} AND r.timestep <= {end} AND ID(n) IN ["""
+            WHERE r.timestep >= {start} AND r.timestep <= {end} AND n.id IN ["""
         count = 0
         for timestep, relation in path.items():
-            q += str(relation[2])
+            q += str(relation[1])
             path[timestep] = (relation[0], relation[1])
             if count != len(path.items()) - 1:
                 q += ","
             count += 1
-        q += "] RETURN DISTINCT r.timestep AS timestep, n2.number AS sym_state ORDER BY r.timestep"
+        q += "] RETURN DISTINCT r.timestep AS timestep, n2.id AS sym_state ORDER BY r.timestep;"
         res = session.run(q)
         for r in res:
-
             if r["timestep"] in path:
                 curr_tuple = path[r["timestep"]]
                 path[r["timestep"]] = (curr_tuple[0], r["sym_state"])
@@ -331,14 +326,15 @@ def calculate_neb_on_path(
                 allStates.append(relation[1])
     full_atom_dict = {}
     for stateID in allStates:
-        q = f"""MATCH (a:Atom)-[:PART_OF]->(n:State) WHERE n.number = "{stateID}" 
+        q = f"""MATCH (a:Atom)-[:PART_OF]->(n:State:{run}) WHERE n.id = {stateID} 
         WITH n,a ORDER BY a.internal_id WITH collect(DISTINCT a) AS atoms, n
-        RETURN n, atoms
+        RETURN n, atoms;
         """
-        attr_atom_dict = converter.query_to_ASE(driver, qb, Query(q, ["ASE"]), atomType)
+        attr_atom_dict = converter.query_to_ASE(driver, Query(q, ["ASE"]), atomType)
 
         for state, atoms in attr_atom_dict.items():
             full_atom_dict.update({state: atoms})
+
     energyList = []
     if interpolate < 0:
         interpolate = 0
@@ -377,21 +373,12 @@ def calculate_neb_on_path(
             with driver.session() as session:
                 tx = session.begin_transaction()
                 for idx, energies in enumerate(energyList):
-                    q = """MATCH (a:State),
-                    (b:State)
-                    WHERE a.number = '{state_n1}' AND b.number = '{state_n2}'
+                    q = f"""MATCH (a:State:{run}),
+                    (b:State:{run})
+                    WHERE a.id = '{relation[0]}' AND b.id = '{relation[1]}'
                     MERGE (a)-[:{run}_NEB {{timestep: {timestep}, interpolate: {interpolate},
-                    maxSteps: {maxSteps}, fmax: {fmax}, energies: '{energies}'}}]->(b);                    
-                    """.format(
-                        state_n1=relation[0],
-                        state_n2=relation[1],
-                        run=run,
-                        timestep=timestep,
-                        interpolate=interpolate,
-                        maxSteps=maxSteps,
-                        fmax=fmax,
-                        energies=json.dumps(energies),
-                    )
+                    maxSteps: {maxSteps}, fmax: {fmax}, energies: '{json.dumps(energies)}'}}]->(b);                    
+                    """
                     tx.run(q)
                 tx.commit()
 

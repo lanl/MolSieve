@@ -13,6 +13,8 @@ import DisabledByDefaultIcon from '@mui/icons-material/DisabledByDefault';
 import SingleStateViewer from './SingleStateViewer';
 import RadarChart from '../vis/RadarChart';
 import NEBModal from '../modals/NEBModal';
+import NEBWrapper from '../hoc/NEBWrapper';
+
 import '../css/App.css';
 
 import GlobalStates from '../api/globalStates';
@@ -21,6 +23,8 @@ import { apiSubsetConnectivityDifference } from '../api/ajax';
 
 export default function SubSequenceView({
     stateIDs,
+    timesteps,
+    trajectoryName,
     deleteFunc,
     properties,
     sx,
@@ -38,6 +42,7 @@ export default function SubSequenceView({
         stateIDs[stateIDs.length - 1],
     ]);
     const [openModal, setOpenModal] = useState(false);
+    const [nebPlots, setNEBPlots] = useState([]);
 
     useEffect(() => {
         // find interesting states
@@ -70,6 +75,9 @@ export default function SubSequenceView({
         return [...new Set(stateIDs)];
     };
 
+    const addNEB = (start, end, interpolate, maxSteps, fmax, saveResults) => {
+        setNEBPlots([...nebPlots, { start, end, interpolate, maxSteps, fmax, saveResults }]);
+    };
     /**
      * Sorts state counts by occurrences from greatest to least left to right
      *
@@ -180,6 +188,22 @@ export default function SubSequenceView({
                         );
                     })}
                 </Stack>
+                <Stack direction="row" spacing={0.5}>
+                    {nebPlots.map((plot) => {
+                        const { start, end, interpolate, maxSteps, fmax, saveResults } = plot;
+                        return (
+                            <NEBWrapper
+                                trajectoryName={trajectoryName}
+                                start={start}
+                                end={end}
+                                interpolate={interpolate}
+                                maxSteps={maxSteps}
+                                fmax={fmax}
+                                saveResults={saveResults}
+                            />
+                        );
+                    })}
+                </Stack>
             </Box>
             <Menu open={anchorEl !== null} anchorEl={anchorEl} onClose={() => setAnchorEl(null)}>
                 <MenuItem onClick={() => setStateOrder(sortInOrder)}>
@@ -189,7 +213,13 @@ export default function SubSequenceView({
                     Sort by occurrence count
                 </MenuItem>
             </Menu>
-            <NEBModal open={openModal} close={() => setOpenModal(!openModal)} stateIDs={stateIDs} />
+            <NEBModal
+                open={openModal}
+                close={() => setOpenModal(!openModal)}
+                stateIDs={stateIDs}
+                timesteps={timesteps}
+                submit={addNEB}
+            />
         </>
     );
 }

@@ -19,78 +19,12 @@ import GlobalStates from '../api/globalStates';
 import { onEntityMouseOver } from '../api/myutils';
 /* import { onMessageHandler, apiCalculateNEB } from '../api/ajax'; */
 
-export default function NEBModal({ stateIDs, close, open, submit }) {
+export default function NEBModal({ stateIDs, timesteps, close, open, submit }) {
     const [interpolate, setInterpolate] = useState(1);
     const [maxSteps, setMaxSteps] = useState(2500);
     const [fmax, setFMax] = useState(0.01);
     const [saveResults, setSaveResults] = useState(true);
     const [selection, setSelection] = useState([0, stateIDs.length - 1]);
-
-    /* const calculateNEB = () => {
-        const extents = this.props.extents[0];
-        const run = extents.name;
-        const start = extents.begin;
-        const { end } = extents;
-
-        apiCalculateNEB(
-            run,
-            start,
-            end,
-            this.state.interpolate,
-            this.state.maxSteps,
-            this.state.fmax,
-            this.state.saveResults
-        )
-            .then((id) => {
-                const client = new WebSocket(`ws://localhost:8000/api/ws/${id}`);
-                client.onmessage = onMessageHandler(
-                    () => {
-                        this.props.enqueueSnackbar(`Task ${id} started.`);
-                    },
-                    (data) => {
-                        this.props.enqueueSnackbar(`Task ${id}: ${data.message}`);
-                    },
-                    (response) => {
-                        const { data } = response;
-                        const drawSequence = [];
-                        const gap = 1 / this.state.interpolate;
-
-                        const path = this.props.trajectories[
-                            this.state.currentExtent.name
-                        ].sequence.slice(start, end + 1);
-                        const pathVals = [];
-
-                        for (const id of path) {
-                            pathVals.push(this.props.globalUniqueStates.get(id));
-                        }
-
-                        for (let i = 0; i < pathVals.length - 1; i++) {
-                            const state = { ...pathVals[i] };
-                            state.timestep = start + i;
-                            drawSequence.push(state);
-
-                            for (let j = 0; j < this.state.interpolate; j++) {
-                                const stateCopy = { ...state };
-                                stateCopy.timestep += gap * (j + 1);
-                                drawSequence.push(stateCopy);
-                            }
-                        }
-
-                        const unpackedEnergies = [];
-                        data.energies.map((energyList) => {
-                            for (const e of energyList) {
-                                unpackedEnergies.push(e);
-                            }
-                        });
-                        this.props.enqueueSnackbar(`Task ${id} complete.`);
-                        this.props.addNEBPlot(unpackedEnergies, drawSequence, run);
-                    }
-                );
-            })
-            .catch((e) => {
-                alert(e);
-            });
-    }; */
 
     return (
         <Dialog open={open} onClose={close} maxWidth="xs" fullWidth>
@@ -175,8 +109,14 @@ export default function NEBModal({ stateIDs, close, open, submit }) {
                 <Button
                     onClick={() => {
                         const [start, end] = selection;
-                        const states = stateIDs.slice(start, end);
-                        submit(states, interpolate, maxSteps, fmax, saveResults);
+                        submit(
+                            timesteps[Math.round(start)],
+                            timesteps[Math.round(end)],
+                            interpolate,
+                            maxSteps,
+                            fmax,
+                            saveResults
+                        );
                     }}
                     size="small"
                 >
