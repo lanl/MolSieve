@@ -326,7 +326,7 @@ def calculate_neb_on_path(
                 allStates.append(relation[1])
     full_atom_dict = {}
     for stateID in allStates:
-        q = f"""MATCH (a:Atom)-[:PART_OF]->(n:State:{run}) WHERE n.id = {stateID} 
+        q = f"""MATCH (a:Atom)-[:PART_OF]->(n:State) WHERE n.id = {stateID} 
         WITH n,a ORDER BY a.internal_id WITH collect(DISTINCT a) AS atoms, n
         RETURN n, atoms;
         """
@@ -362,9 +362,12 @@ def calculate_neb_on_path(
             {
                 "type": TASK_PROGRESS,
                 "message": f"Image {idx + 1} of {len(path)} processed.",
-                "progress": f"{0.2 + ((idx+1/len(path)) - 0.2)}",
+                "progress": f"{idx+1/len(path)}",
+                "data": energies
             },
         )
+
+        idx += 1
 
         if saveResults:
             # update by timestep
