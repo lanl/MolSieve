@@ -140,8 +140,8 @@ export default function TrajectoryChart({
             .domain(d3.extent(chunk.timesteps.filter((d) => d > extents[0] && d < extents[1])))
             .range([0, chartWidth]);
         // convert start, end to proper values
-        const start = Math.round(x.invert(selection[0]));
-        const end = Math.round(x.invert(selection[1]));
+        const start = x.invert(selection[0]);
+        const end = x.invert(selection[1]);
 
         const states = chunk.sequence
             .map((sID) => GlobalStates.get(sID))
