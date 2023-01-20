@@ -73,9 +73,7 @@ export function oneShotTooltip(node, content) {
 export function onEntityMouseOver(node, d) {
     // https://atomiks.github.io/tippyjs/v6/addons/#singleton
     // can improve performance further
-    let content = '';
-
-    content += `${d.toString()}`;
+    const content = typeof d === 'string' || d instanceof String ? d : `${d.toString()}`;
     // faster if creating many instances
     oneShotTooltip(node, content);
 }

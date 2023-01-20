@@ -15,6 +15,7 @@ export default function NEBWrapper({
     maxSteps,
     fmax,
     saveResults,
+    setActiveState,
 }) {
     const { enqueueSnackbar } = useSnackbar();
     const [results, reduceResults] = useReducer(
@@ -80,15 +81,16 @@ export default function NEBWrapper({
 
     return (
         <Scatterplot
-            width={200}
+            width={250}
             height={200}
             xAttributeList={results.values.map((d) => d.timestep)}
             yAttributeList={results.values.map((d) => d.energy)}
             additionalAttributes={results.values.map((d) => d.id)}
+            margin={{ top: 5, bottom: 10, left: 50, right: 7.5 }}
             onElementMouseOver={(node, d) => {
                 if (d.id) {
-                    const state = GlobalStates.get(d.id);
-                    onEntityMouseOver(node, state);
+                    onEntityMouseOver(node, `<b>ID</b>: ${d.id}<br/> <b>Energy</b>: ${d.y}`);
+                    setActiveState(d.id);
                 }
             }}
             colorFunc={(d) => {

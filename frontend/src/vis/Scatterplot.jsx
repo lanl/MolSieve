@@ -22,11 +22,12 @@ export default function Scatterplot({
     showYAxis = false,
 }) {
     const buildScaleX = () => {
+        const marginLeft = showYAxis ? margin.left + 7.5 : margin.left;
         return () =>
             d3
                 .scaleLinear()
                 .domain(d3.extent(xAttributeList))
-                .range([margin.left, width - margin.right]);
+                .range([marginLeft, width - margin.right]);
     };
 
     const buildScaleY = () => {
@@ -113,8 +114,11 @@ export default function Scatterplot({
                 });
 
             if (showYAxis) {
-                const yAxis = d3.axisRight().scale(scaleY);
-                svg.append('g').call(yAxis);
+                const yAxis = d3
+                    .axisLeft()
+                    .scale(scaleY)
+                    .ticks(height / 30);
+                svg.append('g').attr('transform', `translate(${margin.left},0)`).call(yAxis);
             }
 
             if (brush) {

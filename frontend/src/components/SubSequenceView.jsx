@@ -34,7 +34,7 @@ export default function SubSequenceView({
     globalScale,
 }) {
     const [data, setData] = useState([]);
-    const [activeState, setActiveState] = useState({ id: stateIDs[0], idx: 0 });
+    const [activeState, setActiveState] = useState(stateIDs[0]);
     const [isLoaded, setIsLoaded] = useState(false);
     const [anchorEl, setAnchorEl] = useState(null);
     const [interestingStates, setInterestingStates] = useState([
@@ -42,7 +42,7 @@ export default function SubSequenceView({
         stateIDs[stateIDs.length - 1],
     ]);
     const [openModal, setOpenModal] = useState(false);
-    const [nebPlots, setNEBPlots] = useState([]);
+    const [nebPlots, setNEBPlots] = useState(null);
 
     useEffect(() => {
         // find interesting states
@@ -76,10 +76,14 @@ export default function SubSequenceView({
     };
 
     const addNEB = (states, start, end, interpolate, maxSteps, fmax, saveResults) => {
-        setNEBPlots([
-            ...nebPlots,
-            { states, start, end, interpolate, maxSteps, fmax, saveResults },
-        ]);
+        if (!nebPlots) {
+            setNEBPlots([{ states, start, end, interpolate, maxSteps, fmax, saveResults }]);
+        } else {
+            setNEBPlots([
+                ...nebPlots,
+                { states, start, end, interpolate, maxSteps, fmax, saveResults },
+            ]);
+        }
     };
     /**
      * Sorts state counts by occurrences from greatest to least left to right
@@ -104,15 +108,15 @@ export default function SubSequenceView({
     }, []);
 
     useEffect(() => {
-        onMouseEnter(activeState.id);
-    }, [activeState.id]);
+        onMouseEnter(activeState);
+    }, [activeState]);
 
     return (
         <>
             <Box
                 component={Paper}
                 sx={{ sx }}
-                onMouseEnter={() => onMouseEnter(activeState.id)}
+                onMouseEnter={() => onMouseEnter(activeState)}
                 onMouseLeave={() => onMouseLeave()}
                 disabled={disabled}
             >
@@ -149,7 +153,7 @@ export default function SubSequenceView({
                     {interestingStates.map((stateID) => (
                         <SingleStateViewer
                             stateID={stateID}
-                            onHover={() => setActiveState({ id: stateID })}
+                            onHover={() => setActiveState(stateID)}
                         />
                     ))}
 
@@ -162,7 +166,7 @@ export default function SubSequenceView({
                         onElementMouseOver={(node, d) => {
                             oneShotTooltip(node, `<b>${abbreviate(d.property)}</b>: ${d.value}`);
                         }}
-                        renderSingle={GlobalStates.get(activeState.id)}
+                        renderSingle={GlobalStates.get(activeState)}
                     />
                 </Stack>
                 <Divider />
@@ -170,45 +174,58 @@ export default function SubSequenceView({
                     direction="row"
                     spacing={0.5}
                     sx={{
-                        maxWidth: `${interestingStates.length * 100 + 200}px`,
+                        maxWidth: `${interestingStates.length * 100 + 220}px`,
                         overflow: 'scroll',
                         minHeight: '25px',
                         maxHeight: '25px',
+                        backgroundColor: '#F8F9F9',
                     }}
                 >
                     {stateOrder.map((id) => {
                         const state = GlobalStates.get(id);
-                        const idx = stateIDs.indexOf(id);
                         return (
                             <span
                                 key={id}
                                 className="stateText"
                                 style={{ color: state.individualColor }}
-                                onMouseEnter={() => setActiveState({ id, idx })}
+                                onMouseEnter={() => setActiveState(id)}
                             >
                                 {id}
                             </span>
                         );
                     })}
                 </Stack>
-                <Stack direction="row" spacing={0.5}>
-                    {nebPlots.map((plot) => {
-                        const { states, start, end, interpolate, maxSteps, fmax, saveResults } =
-                            plot;
-                        return (
-                            <NEBWrapper
-                                stateIDs={states}
-                                trajectoryName={trajectoryName}
-                                start={start}
-                                end={end}
-                                interpolate={interpolate}
-                                maxSteps={maxSteps}
-                                fmax={fmax}
-                                saveResults={saveResults}
-                            />
-                        );
-                    })}
-                </Stack>
+                {nebPlots !== null && (
+                    <>
+                        <Divider />
+                        <Stack direction="row" spacing={0.5}>
+                            {nebPlots.map((plot) => {
+                                const {
+                                    states,
+                                    start,
+                                    end,
+                                    interpolate,
+                                    maxSteps,
+                                    fmax,
+                                    saveResults,
+                                } = plot;
+                                return (
+                                    <NEBWrapper
+                                        stateIDs={states}
+                                        trajectoryName={trajectoryName}
+                                        start={start}
+                                        end={end}
+                                        interpolate={interpolate}
+                                        maxSteps={maxSteps}
+                                        fmax={fmax}
+                                        saveResults={saveResults}
+                                        setActiveState={(id) => setActiveState(id)}
+                                    />
+                                );
+                            })}
+                        </Stack>
+                    </>
+                )}
             </Box>
             <Menu open={anchorEl !== null} anchorEl={anchorEl} onClose={() => setAnchorEl(null)}>
                 <MenuItem onClick={() => setStateOrder(sortInOrder)}>
