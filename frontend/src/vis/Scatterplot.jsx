@@ -12,16 +12,21 @@ export default function Scatterplot({
     colorFunc = () => 'black',
     xAttributeList,
     yAttributeList,
+    additionalAttributes,
     onElementClick = () => {},
     onElementMouseOver = () => {},
     onElementMouseOut = () => {},
     selected,
     brush,
-    margin = { top: 5, bottom: 10, left: 0, right: 5 },
+    margin = { top: 5, bottom: 10, left: 0, right: 7.5 },
+    showYAxis = false,
 }) {
-    const [initialized, setInitialized] = useState(false);
     const buildScaleX = () => {
-        return () => d3.scaleLinear().domain(d3.extent(xAttributeList)).range([margin.left, width]);
+        return () =>
+            d3
+                .scaleLinear()
+                .domain(d3.extent(xAttributeList))
+                .range([margin.left, width - margin.right]);
     };
 
     const buildScaleY = () => {
@@ -33,13 +38,17 @@ export default function Scatterplot({
     };
 
     const buildData = () => {
-        if (!yAttributeList) {
+        if (!xAttributeList || !yAttributeList) {
             return undefined;
         }
         const mv = [];
         for (let i = 0; i < yAttributeList.length; i++) {
             const d = { x: xAttributeList[i], y: yAttributeList[i] };
-            mv.push(d);
+            if (additionalAttributes) {
+                mv.push(Object.assign(d, additionalAttributes[i]));
+            } else {
+                mv.push(d);
+            }
         }
         return mv;
     };
@@ -48,7 +57,11 @@ export default function Scatterplot({
 
     useEffect(() => {
         setData(buildData());
-    }, [JSON.stringify(xAttributeList), JSON.stringify(yAttributeList)]);
+    }, [
+        JSON.stringify(xAttributeList),
+        JSON.stringify(yAttributeList),
+        JSON.stringify(additionalAttributes),
+    ]);
 
     const [scaleX, setScaleX] = useState(buildScaleX());
 
@@ -60,7 +73,7 @@ export default function Scatterplot({
 
     useEffect(() => {
         setScaleY(buildScaleY());
-    }, [height]);
+    }, [JSON.stringify(data), height]);
 
     const ref = useTrajectoryChartRender(
         (svg) => {
@@ -99,13 +112,14 @@ export default function Scatterplot({
                     onElementMouseOut(this, d);
                 });
 
+            if (showYAxis) {
+                const yAxis = d3.axisRight().scale(scaleY);
+                svg.append('g').call(yAxis);
+            }
+
             if (brush) {
                 const brushG = svg.append('g').classed('brush', true);
                 brushG.call(brush);
-            }
-
-            if (!initialized) {
-                setInitialized(true);
             }
             // applyFilters(trajectories, runs, ref);
         },

@@ -19,12 +19,12 @@ import GlobalStates from '../api/globalStates';
 import { onEntityMouseOver } from '../api/myutils';
 /* import { onMessageHandler, apiCalculateNEB } from '../api/ajax'; */
 
-export default function NEBModal({ stateIDs, timesteps, close, open, submit }) {
-    const [interpolate, setInterpolate] = useState(1);
-    const [maxSteps, setMaxSteps] = useState(2500);
-    const [fmax, setFMax] = useState(0.01);
-    const [saveResults, setSaveResults] = useState(true);
-    const [selection, setSelection] = useState([0, stateIDs.length - 1]);
+export default function NEBModal({ states, close, open, submit }) {
+    const [interpolate, setInterpolate] = useState(3);
+    const [maxSteps, setMaxSteps] = useState(250);
+    const [fmax, setFMax] = useState(0.1);
+    const [saveResults, setSaveResults] = useState(false);
+    const [selection, setSelection] = useState([0, states.length - 1]);
 
     return (
         <Dialog open={open} onClose={close} maxWidth="xs" fullWidth>
@@ -42,14 +42,14 @@ export default function NEBModal({ stateIDs, timesteps, close, open, submit }) {
                             const state = GlobalStates.get(d.y);
                             onEntityMouseOver(node, state);
                         }}
-                        xAttributeList={[...Array(stateIDs.length).keys()]}
-                        yAttributeList={stateIDs}
+                        xAttributeList={[...Array(states.length).keys()]}
+                        yAttributeList={states.map((d) => d.id)}
                         brush={d3.brushX().on('end', (e) => {
                             if (e.selection) {
                                 const [gStart, gEnd] = e.selection;
                                 const x = d3
                                     .scaleLinear()
-                                    .domain(d3.extent([...Array(stateIDs.length).keys()]))
+                                    .domain(d3.extent([...Array(states.length).keys()]))
                                     .range([0, 375]);
 
                                 const start = x.invert(gStart);
@@ -59,9 +59,7 @@ export default function NEBModal({ stateIDs, timesteps, close, open, submit }) {
                         })}
                         selected={[{ active: true, highlightValue: undefined, set: selection }]}
                     />
-                    <h4>{`${
-                        stateIDs.slice(selection[0], selection[1]).length
-                    } states selected`}</h4>
+                    <h4>{`${states.slice(selection[0], selection[1]).length} states selected`}</h4>
                     <TextField
                         label="Number of images interpolated between points on NEB:"
                         fullWidth
@@ -109,9 +107,12 @@ export default function NEBModal({ stateIDs, timesteps, close, open, submit }) {
                 <Button
                     onClick={() => {
                         const [start, end] = selection;
+                        // might be best to just bind stateIDs with timestep and slice that way...
+                        const selected = states.slice(start, end);
                         submit(
-                            timesteps[Math.round(start)],
-                            timesteps[Math.round(end)],
+                            selected,
+                            selected[0].timestep,
+                            selected[selected.length - 1].timestep,
                             interpolate,
                             maxSteps,
                             fmax,

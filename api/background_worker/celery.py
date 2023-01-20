@@ -337,7 +337,7 @@ def calculate_neb_on_path(
 
     energyList = []
     if interpolate < 0:
-        interpolate = 0
+        raise ValueError("Cannot interpolate less than 0 images.")
 
     idx = 0
     for timestep, relation in path.items():
@@ -351,9 +351,6 @@ def calculate_neb_on_path(
             fmax,
         )
 
-        if idx < len(path) - 2:
-            energies.pop()
-
         energyList.append(energies)
 
         current_task.update_state(state="PROGRESS")
@@ -363,12 +360,11 @@ def calculate_neb_on_path(
                 "type": TASK_PROGRESS,
                 "message": f"Image {idx + 1} of {len(path)} processed.",
                 "progress": f"{idx+1/len(path)}",
-                "data": energies
+                "data": energies,
             },
         )
 
         idx += 1
-
         if saveResults:
             # update by timestep
             q = None
@@ -384,7 +380,6 @@ def calculate_neb_on_path(
                     """
                     tx.run(q)
                 tx.commit()
-
     j = {"energies": energyList}
 
     return json.dumps(j)

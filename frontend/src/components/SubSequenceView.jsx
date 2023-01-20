@@ -75,8 +75,11 @@ export default function SubSequenceView({
         return [...new Set(stateIDs)];
     };
 
-    const addNEB = (start, end, interpolate, maxSteps, fmax, saveResults) => {
-        setNEBPlots([...nebPlots, { start, end, interpolate, maxSteps, fmax, saveResults }]);
+    const addNEB = (states, start, end, interpolate, maxSteps, fmax, saveResults) => {
+        setNEBPlots([
+            ...nebPlots,
+            { states, start, end, interpolate, maxSteps, fmax, saveResults },
+        ]);
     };
     /**
      * Sorts state counts by occurrences from greatest to least left to right
@@ -190,9 +193,11 @@ export default function SubSequenceView({
                 </Stack>
                 <Stack direction="row" spacing={0.5}>
                     {nebPlots.map((plot) => {
-                        const { start, end, interpolate, maxSteps, fmax, saveResults } = plot;
+                        const { states, start, end, interpolate, maxSteps, fmax, saveResults } =
+                            plot;
                         return (
                             <NEBWrapper
+                                stateIDs={states}
                                 trajectoryName={trajectoryName}
                                 start={start}
                                 end={end}
@@ -216,8 +221,10 @@ export default function SubSequenceView({
             <NEBModal
                 open={openModal}
                 close={() => setOpenModal(!openModal)}
-                stateIDs={stateIDs}
-                timesteps={timesteps}
+                states={stateIDs.map((d, i) => ({
+                    id: d,
+                    timestep: timesteps[i],
+                }))}
                 submit={addNEB}
             />
         </>
