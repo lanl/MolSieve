@@ -470,12 +470,14 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
                 )}
             </ChartBox>
             <Box
-                display="grid"
+                display="flex"
                 gap={0.5}
                 sx={{
-                    overflow: 'auto',
-                    gridTemplateColumns: 'repeat(2, 1fr)',
-                    justifyItems: 'center',
+                    // overflow: 'auto',
+                    // gridTemplateColumns: 'repeat(2, 1fr)',
+                    alignItems: 'flex-start',
+                    justifyContent: 'center',
+                    flexWrap: 'wrap',
                 }}
             >
                 {Object.keys(selections.values).map((uuid) => {
@@ -505,7 +507,7 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
                                 setCurrentSelection(null);
                                 deleteExtents(uuid);
                             }}
-                            sx={{ gridColumn: 'span 1', alignSelf: 'center' }}
+                            sx={{ flex: 1 }}
                         />
                     );
                 })}
