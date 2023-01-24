@@ -7,6 +7,7 @@ import '@fontsource/roboto/500.css';
 import '@fontsource/roboto/700.css';
 import { SnackbarProvider } from 'notistack';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
+import CssBaseline from '@mui/material/CssBaseline';
 
 import App from './App';
 
@@ -32,7 +33,9 @@ ReactDOM.render(
                     horizontal: 'left',
                 }}
             >
-                <App />
+                <CssBaseline>
+                    <App />
+                </CssBaseline>
             </SnackbarProvider>
         </ThemeProvider>
     </React.StrictMode>,

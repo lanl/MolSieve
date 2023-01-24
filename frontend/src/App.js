@@ -361,9 +361,20 @@ class App extends React.Component {
                         </Button>
                     )}
                 </Toolbar>
+                <VisArea
+                    trajectories={trajectories}
+                    runs={runs}
+                    swapPositions={this.swapPositions}
+                    expand={this.expand}
+                    properties={properties}
+                    sx={{
+                        width: drawerOpen ? `calc(100% - 350px)` : `100%`,
+                    }}
+                />
 
                 {Object.keys(trajectories).length > 0 && (
                     <ControlDrawer
+                        sx={{ width: '240px', flexShrink: 0, boxSizing: 'border-box' }}
                         trajectories={trajectories}
                         runs={runs}
                         updateRun={this.updateRun}
@@ -376,14 +387,6 @@ class App extends React.Component {
                         setExtent={this.setExtent}
                     />
                 )}
-
-                <VisArea
-                    trajectories={trajectories}
-                    runs={runs}
-                    swapPositions={this.swapPositions}
-                    expand={this.expand}
-                    properties={properties}
-                />
 
                 <AjaxMenu
                     anchorEl={this.runListButton.current}

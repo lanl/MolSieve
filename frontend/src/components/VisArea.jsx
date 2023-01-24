@@ -1,6 +1,7 @@
 import { React, useState, useEffect, useReducer } from 'react';
 import Box from '@mui/material/Box';
-import Container from '@mui/material/Container';
+// import Container from '@mui/material/Container';
+import CssBaseline from '@mui/material/CssBaseline';
 import Button from '@mui/material/Button';
 import IconButton from '@mui/material/IconButton';
 import ViewListIcon from '@mui/icons-material/ViewList';
@@ -46,7 +47,7 @@ const CHUNK_SELECT = 4;
 // for a valid selection
 const SELECTION_LENGTH = [0, 1, 3, 2, 2];
 
-export default function VisArea({ trajectories, runs, properties, swapPositions, expand }) {
+export default function VisArea({ trajectories, runs, properties, swapPositions, expand, sx }) {
     const [currentModal, setCurrentModal] = useState(null);
     const [stateHovered, setStateHovered] = useState(null);
     const [stateClicked, setClicked] = useState(null);
@@ -340,12 +341,8 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
 
     // only clear websockets when charts change!
     return (
-        <Container
-            id="c"
-            maxWidth={false}
-            sx={{ display: 'flex', flexDirection: 'column', flex: 1 }}
-        >
-            {/* Chartbox is used here to take up all of the available room and provide onHover for the trajectory toolbar */}
+        <Box id="c" sx={sx}>
+            <CssBaseline />
             <ChartBox sx={{ marginBottom: 5 }}>
                 {(width, height, isHovered) => (
                     <>
@@ -613,6 +610,6 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
                     />
                 </MenuItem>
             </Menu>
-        </Container>
+        </Box>
     );
 }

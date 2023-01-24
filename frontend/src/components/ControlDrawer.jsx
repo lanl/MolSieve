@@ -50,6 +50,7 @@ function ControlDrawer({
     addFilter,
     //    propagateChange,
     properties,
+    sx,
 }) {
     const [currentModal, setCurrentModal] = useState();
     const [currentRun, setCurrentRun] = useState(null);
@@ -183,6 +184,7 @@ function ControlDrawer({
                 variant="persistent"
                 open={drawerOpen}
                 onClose={() => toggleDrawer()}
+                sx={sx}
             >
                 <Toolbar
                     variant="dense"

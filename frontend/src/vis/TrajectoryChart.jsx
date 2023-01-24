@@ -46,16 +46,13 @@ export default function TrajectoryChart({
 }) {
     const ref = useTrajectoryChartRender(
         (svg) => {
-            if (height === undefined || width === undefined) {
-                return;
-            }
             // clear so we don't draw over-top and cause insane lag
             if (!svg.empty()) {
                 // NOTE: deletes all g elements, even ones inside foreignObjects!
                 svg.selectAll('g:not(.brush, .rankList)').remove();
             }
         },
-        [JSON.stringify(trajectory), JSON.stringify(run), width, height, JSON.stringify(charts)]
+        [JSON.stringify(trajectory), JSON.stringify(run), JSON.stringify(charts)]
     );
 
     const { ranks, reduceRanks } = useRanks(properties, trajectory.chunkOrder());
