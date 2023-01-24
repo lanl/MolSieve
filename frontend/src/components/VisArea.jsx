@@ -82,8 +82,11 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
         }
     );
 
-    const setExtents = (extent, trajectoryName, originalExtent) => {
-        setSelections({ type: 'create', payload: { extent, trajectoryName, originalExtent } });
+    const setExtents = (extent, trajectoryName, originalExtent, brushValues) => {
+        setSelections({
+            type: 'create',
+            payload: { extent, trajectoryName, originalExtent, brushValues },
+        });
     };
 
     const deleteExtents = (id) => {

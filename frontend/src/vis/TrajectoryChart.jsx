@@ -131,14 +131,18 @@ export default function TrajectoryChart({
     };
 
     const finishBrush = (chunk, { selection }, chartWidth) => {
-        // build temp scale for that chunk
+        // extents determines the zoom level
+        const [chunkSliceStart, chunkSliceEnd] = extents;
+
         const x = d3
             .scaleLinear()
-            .domain(d3.extent(chunk.timesteps.filter((d) => d > extents[0] && d < extents[1])))
-            .range([0, chartWidth]);
-        // convert start, end to proper values
-        const start = x.invert(selection[0]);
-        const end = x.invert(selection[1]);
+            .domain(
+                d3.extent(chunk.timesteps.filter((d) => d >= chunkSliceStart && d <= chunkSliceEnd))
+            )
+            .range([0, chartWidth - 7.5]); // 7.5 to match margin on scatterplot
+
+        const startTimestep = x.invert(selection[0]);
+        const endTimestep = x.invert(selection[1]);
 
         const states = chunk.sequence
             .map((sID) => GlobalStates.get(sID))
@@ -146,8 +150,17 @@ export default function TrajectoryChart({
                 timestep: chunk.timestep + i,
                 id: s.id,
             }))
-            .filter((d) => d.timestep >= start && d.timestep <= end);
-        setExtents(states, trajectory.name, { start, end });
+            .filter(
+                (d) =>
+                    d.timestep >= Math.trunc(startTimestep) && d.timestep <= Math.trunc(endTimestep)
+            );
+
+        setExtents(
+            states,
+            trajectory.name,
+            { start: startTimestep, end: endTimestep },
+            { start: selection[0], end: selection[1] }
+        );
     };
 
     return (
@@ -168,6 +181,7 @@ export default function TrajectoryChart({
 
                 const chartW = scaleX(getWidthScale(chunk));
                 const { values, current } = selections;
+
                 const chartSelections = Object.keys(values)
                     .filter((selectionID) => {
                         const selection = values[selectionID];
@@ -179,23 +193,28 @@ export default function TrajectoryChart({
                     })
                     .map((selectionID) => {
                         const selection = values[selectionID];
+                        const { start, end } = selection.originalExtent;
+                        const [chunkSliceStart, chunkSliceEnd] = extents;
+
+                        // this needs to be done so that the selection can rescale
                         const x = d3
                             .scaleLinear()
                             .domain(
                                 d3.extent(
-                                    chunk.timesteps.filter((d) => d > extents[0] && d < extents[1])
+                                    chunk.timesteps.filter(
+                                        (d) => d >= chunkSliceStart && d <= chunkSliceEnd
+                                    )
                                 )
                             )
-                            .range([0, chartW]);
+                            .range([0, chartW - 7.5]);
 
-                        const { start, end } = selection.originalExtent;
+                        const active = current && selectionID === current.id;
 
                         return {
                             set: selection.extent.map((d) => d.timestep),
-                            active: current && selectionID === current.id,
-                            highlightValue:
-                                current && selectionID === current.id ? current.activeState : null,
-                            originalExtent: { start: x(start), end: x(end) },
+                            active,
+                            highlightValue: active ? current.activeState : null,
+                            brushValues: { start: x(start), end: x(end) },
                         };
                     });
 

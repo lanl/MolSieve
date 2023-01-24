@@ -27,7 +27,6 @@ export default function EmbeddedChart({
     const [isHovered, setIsHovered] = useState(false);
     const [selectionMode, setSelectionMode] = useState(false);
 
-    // setSelectionMode(!selectionMode);
     useEffect(() => {
         if (ref.current && brush !== undefined) {
             const svg = d3.select(ref.current);
@@ -44,16 +43,16 @@ export default function EmbeddedChart({
 
         if (selections) {
             for (const s of selections) {
-                const { active, originalExtent } = s;
-                const { start: ogStart, end: ogEnd } = originalExtent;
+                const { active, brushValues } = s;
+                const { start, end } = brushValues;
                 d3.select(ref.current)
                     .append('rect')
-                    .attr('x', ogStart)
+                    .attr('x', start)
                     .attr('y', 0)
                     .attr('height', height)
-                    .attr('width', ogEnd - ogStart)
+                    .attr('width', end - start)
                     .attr('fill', 'none')
-                    .attr('stroke', () => (active ? 'blue' : 'red'))
+                    .attr('stroke', () => (active ? 'red' : 'gray'))
                     .attr('stroke-width', 1)
                     .classed('chartSelection', true);
             }
