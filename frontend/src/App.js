@@ -368,13 +368,13 @@ class App extends React.Component {
                     expand={this.expand}
                     properties={properties}
                     sx={{
-                        width: drawerOpen ? `calc(100% - 350px)` : `100%`,
+                        width: drawerOpen ? `calc(100% - 300px)` : `100%`,
                     }}
                 />
 
                 {Object.keys(trajectories).length > 0 && (
                     <ControlDrawer
-                        sx={{ width: '240px', flexShrink: 0, boxSizing: 'border-box' }}
+                        sx={{ width: '300px', boxSizing: 'border-box' }}
                         trajectories={trajectories}
                         runs={runs}
                         updateRun={this.updateRun}

@@ -87,14 +87,6 @@ function ControlDrawer({
                 >
                     Display metadata
                 </Button>
-                <Button
-                    onClick={() => {
-                        setCurrentRun(run);
-                        toggleModal(ANALYSIS_MODAL);
-                    }}
-                >
-                    Run analysis
-                </Button>
                 <List key={run}>
                     <ListItem>
                         <ListItemText>
@@ -255,10 +247,7 @@ function ControlDrawer({
                         toggleModal(null);
                     }}
                 >
-                    <DialogTitle>
-                        Metadata for
-                        {currentRun}
-                    </DialogTitle>
+                    <DialogTitle>{`Metadata for ${currentRun}`}</DialogTitle>
                     <DialogContent>
                         <p>{trajectories[currentRun].LAMMPSBootstrapScript}</p>
                     </DialogContent>
