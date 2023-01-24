@@ -140,8 +140,6 @@ export default function Scatterplot({
                 const start = Math.min(...set);
                 const end = Math.max(...set);
 
-                console.log(s);
-
                 if (active) {
                     let states = d3
                         .select(ref.current)

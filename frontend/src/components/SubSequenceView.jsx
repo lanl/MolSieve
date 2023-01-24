@@ -19,6 +19,7 @@ import '../css/App.css';
 
 import GlobalStates from '../api/globalStates';
 import { oneShotTooltip, abbreviate, occurrenceDict } from '../api/myutils';
+import { createUUID } from '../api/math/random';
 import { apiSubsetConnectivityDifference } from '../api/ajax';
 
 export default function SubSequenceView({
@@ -73,6 +74,10 @@ export default function SubSequenceView({
      */
     const sortInOrder = () => {
         return [...new Set(stateIDs)];
+    };
+
+    const sortInOrderWithDuplicates = () => {
+        return stateIDs;
     };
 
     const addNEB = (states, start, end, interpolate, maxSteps, fmax, saveResults) => {
@@ -185,7 +190,7 @@ export default function SubSequenceView({
                         const state = GlobalStates.get(id);
                         return (
                             <span
-                                key={id}
+                                key={createUUID()}
                                 className="stateText"
                                 style={{ color: state.individualColor }}
                                 onMouseEnter={() => setActiveState(id)}
@@ -230,6 +235,9 @@ export default function SubSequenceView({
             <Menu open={anchorEl !== null} anchorEl={anchorEl} onClose={() => setAnchorEl(null)}>
                 <MenuItem onClick={() => setStateOrder(sortInOrder)}>
                     Sort by temporal order
+                </MenuItem>
+                <MenuItem onClick={() => setStateOrder(sortInOrderWithDuplicates)}>
+                    Sort by temporal order with duplicates
                 </MenuItem>
                 <MenuItem onClick={() => setStateOrder(sortByCount)}>
                     Sort by occurrence count
