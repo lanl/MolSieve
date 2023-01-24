@@ -8,6 +8,7 @@ from scipy import sparse
 from collections import Counter
 import time
 import logging
+import random
 
 SIZE_THRESHOLD = 250
 
@@ -152,6 +153,8 @@ class Trajectory:
         last = 0
         important = importance[0]
         cluster = self.idToCluster[self.sequence[0]]
+        
+        random.seed(3735928559)
         for timestep, id in enumerate(self.sequence):
             isCurrImportant = importance[timestep]
 
@@ -164,14 +167,18 @@ class Trajectory:
                 sequence = self.sequence[first : last + 1]
                 if not important and len(sequence) > 20:
                     state_counts = Counter(sequence)
-                    sequence = [
+                    top = [
                         x[0]
-                        for x in state_counts.most_common(20 + int(len(sequence) * 0.1))
+                        for x in state_counts.most_common(20)
                     ]
 
-                    # remove these from the list, then randomly select 10%
-                    # select = int(len(stateIDs) * 0.1)
-                    # state_ids = [x[0] for x in most_common]
+                    sequence_set = set(sequence) 
+                    # remove top 20 that were selected
+                    sequence_set.difference_update(top) 
+                    # randomly select 10%
+                    random_selection = random.sample(list(sequence_set), int(len(sequence_set) * 0.1))
+
+                    sequence = [*top, *random_selection]
 
                 chunk = {
                     "timestep": first,

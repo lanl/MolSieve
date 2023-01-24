@@ -61,7 +61,7 @@ export default function ControlChart({
 
     useEffect(() => {
         setScaleY(buildScaleY());
-    }, [height, globalScaleMin, globalScaleMax]);
+    }, [globalScaleMin, globalScaleMax, height]);
 
     const colorPath = (svg, line, color, filterFunc) => {
         svg.append('path')
