@@ -96,7 +96,9 @@ class Trajectory:
             t0 = time.time()
             self._single_pcca(gpcca, idx_to_id, self.optimal_value)
             t1 = time.time()
-            logging.info(f"Clustering into {self.optimal_value} clusters took {t1-t0} seconds total")
+            logging.info(
+                f"Clustering into {self.optimal_value} clusters took {t1-t0} seconds total"
+            )
             self.feasible_clusters = feasible_clusters
         except ValueError as exception:
             raise exception
@@ -110,7 +112,7 @@ class Trajectory:
                 "fuzzy_memberships": self.fuzzy_memberships,
                 "optimal_value": self.optimal_value,
                 "feasible_clusters": self.feasible_clusters,
-                "min_chi": self.min_chi
+                "min_chi": self.min_chi,
             },
         )
 
@@ -153,7 +155,7 @@ class Trajectory:
         last = 0
         important = importance[0]
         cluster = self.idToCluster[self.sequence[0]]
-        
+
         random.seed(3735928559)
         for timestep, id in enumerate(self.sequence):
             isCurrImportant = importance[timestep]
@@ -164,19 +166,18 @@ class Trajectory:
                 or timestep == len(self.sequence) - 1
             ):
 
-                sequence = self.sequence[first : last + 1]
+                sequence = self.sequence[first: last + 1]
                 if not important and len(sequence) > 20:
                     state_counts = Counter(sequence)
-                    top = [
-                        x[0]
-                        for x in state_counts.most_common(20)
-                    ]
+                    top = [x[0] for x in state_counts.most_common(20)]
 
-                    sequence_set = set(sequence) 
+                    sequence_set = set(sequence)
                     # remove top 20 that were selected
-                    sequence_set.difference_update(top) 
+                    sequence_set.difference_update(top)
                     # randomly select 10%
-                    random_selection = random.sample(list(sequence_set), int(len(sequence_set) * 0.1))
+                    random_selection = random.sample(
+                        list(sequence_set), int(len(sequence_set) * 0.1)
+                    )
 
                     sequence = [*top, *random_selection]
 

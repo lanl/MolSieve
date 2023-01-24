@@ -104,6 +104,7 @@ export default function ViolinPlot({
             property,
             JSON.stringify(data),
             JSON.stringify(boxStats),
+            JSON.stringify(chunk),
             color,
             globalScaleMin,
             globalScaleMax,
