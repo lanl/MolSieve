@@ -89,7 +89,8 @@ export default function NEBWrapper({
             margin={{ top: 5, bottom: 10, left: 50, right: 7.5 }}
             onElementMouseOver={(node, d) => {
                 if (d.id) {
-                    onEntityMouseOver(node, `<b>ID</b>: ${d.id}<br/> <b>Energy</b>: ${d.y}`);
+                    const state = GlobalStates.get(d.id);
+                    onEntityMouseOver(node, state, `<b>Energy</b>: ${d.y}`);
                     setActiveState(d.id);
                 }
             }}

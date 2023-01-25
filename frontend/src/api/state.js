@@ -1,6 +1,8 @@
 import { structuralAnalysisProps, mpn65 } from './constants';
+import { abbreviate } from './myutils';
 
 const IGNORE_PROPS = ['img'];
+const NO_ABBREVIATE = ['id', 'seenIn'];
 
 export default class State {
     id;
@@ -65,9 +67,10 @@ export default class State {
         for (const property of Object.keys(this)) {
             const value = this[property];
             if (!IGNORE_PROPS.includes(property) && value !== undefined) {
-                const capitalized = property.charAt(0).toUpperCase() + property.slice(1);
-
-                propertyString += `<b>${capitalized}</b>: ${value} `;
+                const abbreviated = !NO_ABBREVIATE.includes(property)
+                    ? abbreviate(property)
+                    : property.charAt(0).toUpperCase() + property.slice(1);
+                propertyString += `<b>${abbreviated}</b>: ${value} `;
 
                 propCount++;
                 if (propCount % perLine === 0) {

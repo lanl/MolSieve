@@ -70,10 +70,13 @@ export function oneShotTooltip(node, content) {
     tippy(node, settings);
 }
 
-export function onEntityMouseOver(node, d) {
+export function onEntityMouseOver(node, d, text) {
     // https://atomiks.github.io/tippyjs/v6/addons/#singleton
     // can improve performance further
-    const content = typeof d === 'string' || d instanceof String ? d : `${d.toString()}`;
+    let content = d !== null ? `${d.toString()}` : '';
+    if (text) {
+        content += text;
+    }
     // faster if creating many instances
     oneShotTooltip(node, content);
 }

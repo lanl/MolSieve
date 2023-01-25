@@ -175,8 +175,7 @@ export default function ControlChart({
                 ttInstance = undefined;
             });
         },
-        // inefficient, but still faster than re-drawing every single datapoint
-        [JSON.stringify(data), scaleX, scaleY]
+        [scaleX, scaleY]
     );
 
     return (

@@ -127,7 +127,7 @@ export default function Scatterplot({
             }
             // applyFilters(trajectories, runs, ref);
         },
-        [JSON.stringify(data), scaleX, scaleY, colorFunc]
+        [scaleX, scaleY, colorFunc]
     );
 
     // this should be decoupled
