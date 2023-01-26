@@ -74,8 +74,13 @@ export function onEntityMouseOver(node, d, text) {
     // https://atomiks.github.io/tippyjs/v6/addons/#singleton
     // can improve performance further
     let content = d !== null ? `${d.toString()}` : '';
+
     if (text) {
         content += text;
+    }
+
+    if (d.img) {
+        content += `<img src="data:image/png;base64,${d.img}"/>`;
     }
     // faster if creating many instances
     oneShotTooltip(node, content);

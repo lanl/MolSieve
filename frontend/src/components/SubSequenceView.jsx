@@ -18,9 +18,9 @@ import NEBWrapper from '../hoc/NEBWrapper';
 import '../css/App.css';
 
 import GlobalStates from '../api/globalStates';
-import { oneShotTooltip, abbreviate, occurrenceDict } from '../api/myutils';
+import { oneShotTooltip, abbreviate, occurrenceDict, onEntityMouseOver } from '../api/myutils';
 import { createUUID } from '../api/math/random';
-import { apiSubsetConnectivityDifference } from '../api/ajax';
+import { apiSubsetConnectivityDifference, apiGenerateOvitoImage } from '../api/ajax';
 
 export default function SubSequenceView({
     stateIDs,
@@ -181,8 +181,8 @@ export default function SubSequenceView({
                     sx={{
                         maxWidth: `${interestingStates.length * 100 + 220}px`,
                         overflow: 'scroll',
-                        minHeight: '25px',
-                        maxHeight: '25px',
+                        minHeight: '30px',
+                        maxHeight: '30px',
                         backgroundColor: '#F8F9F9',
                     }}
                 >
@@ -193,7 +193,17 @@ export default function SubSequenceView({
                                 key={createUUID()}
                                 className="stateText"
                                 style={{ color: state.individualColor }}
-                                onMouseEnter={() => setActiveState(id)}
+                                onMouseEnter={(e) => {
+                                    if (!state.img) {
+                                        apiGenerateOvitoImage(id).then((d) => {
+                                            GlobalStates.addPropToState(d);
+                                            onEntityMouseOver(e.target, state);
+                                        });
+                                    } else {
+                                        onEntityMouseOver(e.target, state);
+                                    }
+                                    setActiveState(id);
+                                }}
                             >
                                 {id}
                             </span>
