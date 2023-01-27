@@ -27,5 +27,6 @@ img {
 }
 
 .stateText:hover {
+    font-weight: bold;
     cursor: pointer;
 }

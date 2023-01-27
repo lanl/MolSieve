@@ -10,7 +10,7 @@ import Stack from '@mui/material/Stack';
 import ControlChart from '../vis/ControlChart';
 
 import { exponentialMovingAverage, differentiate, betaPDF } from '../api/math/stats';
-import { abbreviate, onEntityMouseOver, buildDictFromArray } from '../api/myutils';
+import { abbreviate, buildDictFromArray } from '../api/myutils';
 
 import Scatterplot from '../vis/Scatterplot';
 import GlobalStates from '../api/globalStates';
@@ -35,6 +35,7 @@ export default function ChunkWrapper({
     propertyCombos,
     extents,
     scatterplotHeight,
+    setStateHovered,
 }) {
     // set as useReducer
     const [isInitialized, setIsInitialized] = useState(false);
@@ -249,9 +250,8 @@ export default function ChunkWrapper({
                 selected={selections}
                 xAttributeList={timesteps}
                 yAttributeList={chunk.sequence.slice(sliceStart, sliceEnd)}
-                onElementMouseOver={(node, d) => {
-                    const state = GlobalStates.get(d.y);
-                    onEntityMouseOver(node, state);
+                onElementMouseOver={(_, d) => {
+                    setStateHovered(d.y);
                 }}
             />
         </Box>

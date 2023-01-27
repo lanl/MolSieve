@@ -1,6 +1,5 @@
 import { React, useState, useEffect, useReducer } from 'react';
 import Box from '@mui/material/Box';
-// import Container from '@mui/material/Container';
 import CssBaseline from '@mui/material/CssBaseline';
 import Button from '@mui/material/Button';
 import IconButton from '@mui/material/IconButton';
@@ -13,7 +12,7 @@ import MenuItem from '@mui/material/MenuItem';
 import TrajectoryChart from '../vis/TrajectoryChart';
 import ChartBox from './ChartBox';
 
-import SingleStateModal from '../modals/SingleStateModal';
+import StateDetailView from './StateDetailView';
 import TransferListModal from '../modals/TransferListModal';
 
 import '../css/App.css';
@@ -34,7 +33,6 @@ import { createUUID } from '../api/math/random';
 import { zTest } from '../api/math/stats';
 import { getAllImportantStates } from '../api/trajectories';
 
-const SINGLE_STATE_MODAL = 'single_state';
 const MULTIVARIATE_CHART_MODAL = 'multivariate_chart';
 
 const NO_SELECT = 0;
@@ -50,7 +48,6 @@ const SELECTION_LENGTH = [0, 1, 3, 2, 2];
 export default function VisArea({ trajectories, runs, properties, swapPositions, expand, sx }) {
     const [currentModal, setCurrentModal] = useState(null);
     const [stateHovered, setStateHovered] = useState(null);
-    const [stateClicked, setClicked] = useState(null);
 
     const [selectionMode, setSelectionMode] = useState(NO_SELECT);
     const [selectedObjects, setSelectedObjects] = useState([]);
@@ -220,11 +217,6 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
         }
     };
 
-    /* Sets the currently clicked state to the supplied ID */
-    const setStateClicked = (id) => {
-        setClicked(GlobalStates.get(id));
-    };
-
     useEffect(() => {
         if (toolTipList.length > 0) {
             for (const tt of toolTipList) {
@@ -264,14 +256,6 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
     setExtentsUniqueStatesProp = this.setExtentsUniqueStates.bind(this);
      
     setSequenceExtentProp = this.setSequenceExtent.bind(this); */
-
-    const toggleModal = (key) => {
-        if (currentModal) {
-            setCurrentModal(currentModal);
-        } else {
-            setCurrentModal(key);
-        }
-    };
 
     const selectObject = (o) => {
         // add chunk if it is not already in the array, otherwise remove it from the array
@@ -333,14 +317,6 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
 
         setToolTipList(ttList);
     };
-
-    useEffect(() => {
-        if (stateClicked) {
-            toggleModal(SINGLE_STATE_MODAL);
-        }
-    }, [stateClicked]);
-
-    useEffect(() => {}, [stateHovered, selections.current]);
 
     // only clear websockets when charts change!
     return (
@@ -443,8 +419,6 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
                                             trajectory={trajectory}
                                             run={runs[trajectory.name]}
                                             setStateHovered={setStateHovered}
-                                            setStateClicked={setStateClicked}
-                                            stateHovered={stateHovered}
                                             isParentHovered={isHovered}
                                             charts={charts}
                                             properties={properties}
@@ -469,62 +443,58 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
                     </>
                 )}
             </ChartBox>
-            <Box
-                display="flex"
-                gap={0.5}
-                sx={{
-                    // overflow: 'auto',
-                    // gridTemplateColumns: 'repeat(2, 1fr)',
-                    alignItems: 'flex-start',
-                    justifyContent: 'center',
-                    flexWrap: 'wrap',
-                }}
-            >
-                {Object.keys(selections.values).map((uuid) => {
-                    const selection = selections.values[uuid];
-                    const { extent, trajectoryName } = selection;
+            <Stack direction="row" gap={1}>
+                <Box marginLeft={5} maxWidth="250px">
+                    {stateHovered !== null && stateHovered !== undefined && (
+                        <StateDetailView state={GlobalStates.get(stateHovered)} />
+                    )}
+                </Box>
 
-                    const ids = extent.map((d) => d.id);
-                    const timesteps = extent.map((d) => d.timestep);
-
-                    // check if start and end timesteps are at least within some chunk of the trajectory
-                    const t = trajectories[trajectoryName];
-                    const disabled = t.isTimestepsWithinChunks(timesteps);
-
-                    return (
-                        <SubSequenceView
-                            onMouseEnter={(activeState) =>
-                                setCurrentSelection({ id: uuid, activeState })
-                            }
-                            onMouseLeave={() => setCurrentSelection(null)}
-                            disabled={disabled}
-                            trajectoryName={trajectoryName}
-                            stateIDs={ids}
-                            timesteps={timesteps}
-                            properties={properties}
-                            globalScale={globalScale}
-                            deleteFunc={() => {
-                                setCurrentSelection(null);
-                                deleteExtents(uuid);
-                            }}
-                            sx={{ flex: 1 }}
-                        />
-                    );
-                })}
-            </Box>
-
-            {/* works for now, not the cleanest solution */}
-            {currentModal === SINGLE_STATE_MODAL && stateClicked && (
-                <SingleStateModal
-                    open={currentModal === SINGLE_STATE_MODAL}
-                    state={stateClicked}
-                    closeFunc={() => {
-                        setClicked(null);
-                        setCurrentModal(null);
+                <Box
+                    display="flex"
+                    gap={1}
+                    sx={{
+                        // overflow: 'auto',
+                        // gridTemplateColumns: 'repeat(2, 1fr)',
+                        alignItems: 'flex-start',
+                        justifyContent: 'center',
+                        flexWrap: 'wrap',
                     }}
-                />
-            )}
+                >
+                    {Object.keys(selections.values).map((uuid) => {
+                        const selection = selections.values[uuid];
+                        const { extent, trajectoryName } = selection;
 
+                        const ids = extent.map((d) => d.id);
+                        const timesteps = extent.map((d) => d.timestep);
+
+                        // check if start and end timesteps are at least within some chunk of the trajectory
+                        const t = trajectories[trajectoryName];
+                        const disabled = t.isTimestepsWithinChunks(timesteps);
+
+                        return (
+                            <SubSequenceView
+                                onMouseEnter={(activeState) => {
+                                    setCurrentSelection({ id: uuid, activeState });
+                                    setStateHovered(activeState);
+                                }}
+                                onMouseLeave={() => setCurrentSelection(null)}
+                                disabled={disabled}
+                                trajectoryName={trajectoryName}
+                                stateIDs={ids}
+                                timesteps={timesteps}
+                                properties={properties}
+                                globalScale={globalScale}
+                                deleteFunc={() => {
+                                    setCurrentSelection(null);
+                                    deleteExtents(uuid);
+                                }}
+                                sx={{ flex: 1 }}
+                            />
+                        );
+                    })}
+                </Box>
+            </Stack>
             <TransferListModal
                 open={currentModal === MULTIVARIATE_CHART_MODAL}
                 title="Create Multivariate Chart"

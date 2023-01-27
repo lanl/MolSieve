@@ -10,10 +10,21 @@ export default function SingleStateViewer({ stateID, onHover }) {
     const [img, setImg] = useState(undefined);
 
     useEffect(() => {
-        apiGenerateOvitoImage(stateID).then((data) => {
-            GlobalStates.addPropToState(data);
-            setImg(data.img);
-        });
+        const controller = new AbortController();
+
+        const state = GlobalStates.get(stateID);
+        if (!state.img) {
+            apiGenerateOvitoImage(stateID, controller)
+                .then((data) => {
+                    GlobalStates.addPropToState(data);
+                    setImg(data.img);
+                })
+                .catch(() => {});
+        } else {
+            setImg(state.img);
+        }
+
+        return () => controller.abort();
     }, [stateID]);
 
     return (

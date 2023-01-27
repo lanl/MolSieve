@@ -24,7 +24,6 @@ const minimumChartWidth = 200;
 export default function TrajectoryChart({
     trajectory,
     setStateHovered,
-    stateHovered,
     selections,
     width,
     height,
@@ -257,7 +256,6 @@ export default function TrajectoryChart({
                                         width={ww}
                                         height={hh}
                                         setStateHovered={setStateHovered}
-                                        stateHovered={stateHovered}
                                         properties={properties}
                                         trajectory={trajectory}
                                         run={run}

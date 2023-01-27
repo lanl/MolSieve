@@ -165,10 +165,12 @@ export function apiCalculateIDToTimestep(run) {
     });
 }
 
-export function apiGenerateOvitoImage(id) {
+export function apiGenerateOvitoImage(id, controller) {
     return new Promise((resolve, reject) => {
         axios
-            .get(`/api/generate_ovito_image?id=${id}`)
+            .get(`/api/generate_ovito_image?id=${id}`, {
+                signal: controller.signal,
+            })
             .then((response) => {
                 resolve(response.data);
             })

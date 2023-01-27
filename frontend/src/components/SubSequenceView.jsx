@@ -18,9 +18,9 @@ import NEBWrapper from '../hoc/NEBWrapper';
 import '../css/App.css';
 
 import GlobalStates from '../api/globalStates';
-import { oneShotTooltip, abbreviate, occurrenceDict, onEntityMouseOver } from '../api/myutils';
+import { oneShotTooltip, abbreviate, occurrenceDict } from '../api/myutils';
 import { createUUID } from '../api/math/random';
-import { apiSubsetConnectivityDifference, apiGenerateOvitoImage } from '../api/ajax';
+import { apiSubsetConnectivityDifference } from '../api/ajax';
 
 export default function SubSequenceView({
     stateIDs,
@@ -121,7 +121,7 @@ export default function SubSequenceView({
             <Box
                 component={Paper}
                 sx={{ sx }}
-                onMouseEnter={() => onMouseEnter(activeState)}
+                // onMouseEnter={() => onMouseEnter(activeState)}
                 onMouseLeave={() => onMouseLeave()}
                 disabled={disabled}
             >
@@ -193,15 +193,7 @@ export default function SubSequenceView({
                                 key={createUUID()}
                                 className="stateText"
                                 style={{ color: state.individualColor }}
-                                onMouseEnter={(e) => {
-                                    if (!state.img) {
-                                        apiGenerateOvitoImage(id).then((d) => {
-                                            GlobalStates.addPropToState(d);
-                                            onEntityMouseOver(e.target, state);
-                                        });
-                                    } else {
-                                        onEntityMouseOver(e.target, state);
-                                    }
+                                onMouseEnter={() => {
                                     setActiveState(id);
                                 }}
                             >

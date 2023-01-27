@@ -80,4 +80,17 @@ export default class State {
         }
         return propertyString;
     }
+
+    // Equivalent of Object.entries, but without undefined properties and nicely abbreviated
+    get properties() {
+        return Object.entries(this)
+            .filter(([, value]) => value !== undefined)
+            .filter(([property]) => !IGNORE_PROPS.includes(property))
+            .map(([property, value]) => {
+                const abbreviated = !NO_ABBREVIATE.includes(property)
+                    ? abbreviate(property)
+                    : property.charAt(0).toUpperCase() + property.slice(1);
+                return [abbreviated, value];
+            });
+    }
 }

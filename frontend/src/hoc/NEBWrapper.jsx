@@ -4,7 +4,6 @@ import { useSnackbar } from 'notistack';
 import Scatterplot from '../vis/Scatterplot';
 import { apiCalculateNEB, onMessageHandler } from '../api/ajax';
 import GlobalStates from '../api/globalStates';
-import { onEntityMouseOver } from '../api/myutils';
 
 export default function NEBWrapper({
     trajectoryName,
@@ -87,10 +86,8 @@ export default function NEBWrapper({
             yAttributeList={results.values.map((d) => d.energy)}
             additionalAttributes={results.values.map((d) => d.id)}
             margin={{ top: 5, bottom: 10, left: 50, right: 7.5 }}
-            onElementMouseOver={(node, d) => {
+            onElementMouseOver={(_, d) => {
                 if (d.id) {
-                    const state = GlobalStates.get(d.id);
-                    onEntityMouseOver(node, state, `<b>Energy</b>: ${d.y}`);
                     setActiveState(d.id);
                 }
             }}
