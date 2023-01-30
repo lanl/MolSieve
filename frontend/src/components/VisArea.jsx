@@ -331,6 +331,9 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
                                 size="small"
                                 id="showTopButton"
                                 onClick={(e) => setAnchorEl(e.currentTarget)}
+                                onMouseEnter={(e) =>
+                                    tooltip(e.target, 'Adjust number of properties shown')
+                                }
                             >
                                 <ViewListIcon />
                             </IconButton>
