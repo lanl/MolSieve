@@ -480,6 +480,17 @@ def get_potential(run: str) -> str:
 
         return filename
 
+def calculate_trajectory_occurrences(run: str):
+    driver = GraphDriver() 
+    
+    qb = querybuilder.Neo4jQueryBuilder([
+            ("State", run, "State", "ONE-TO-ONE")
+    ])
+    
+    q = qb.generate_get_occurrences(run, f"{run}_occurrences")  
+
+    with driver.session() as session:
+        session.run(q.text)
 
 def load_sequence(run: str, properties: List[str], driver):
     """
@@ -492,6 +503,9 @@ def load_sequence(run: str, properties: List[str], driver):
     get_potential(run)
     run_md = get_metadata(run)
 
+    if f"{run}_occurrences" not in run_md:
+        calculate_trajectory_occurrences(run)
+        
     r = loadTestPickle(run, "sequence")
     if r is not None:
         return Trajectory(run, r["sequence"], r["unique_states"])
