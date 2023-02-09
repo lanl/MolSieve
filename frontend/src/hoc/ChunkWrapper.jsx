@@ -14,7 +14,7 @@ import ControlChart from '../vis/ControlChart';
 import { exponentialMovingAverage, betaPDF } from '../api/math/stats';
 import { abbreviate, buildDictFromArray } from '../api/myutils';
 
-import Scatterplot from '../vis/Scatterplot';
+// import Scatterplot from '../vis/Scatterplot';
 import GlobalStates from '../api/globalStates';
 import LoadingBox from '../components/LoadingBox';
 
@@ -32,22 +32,22 @@ export default function ChunkWrapper({
     updateGlobalScale,
     ranks,
     showStateClustering,
-    selections,
+    // selections,
     doubleClickAction,
     propertyCombos,
     extents,
     scatterplotHeight,
-    setStateHovered,
+    // setStateHovered,
 }) {
     // set as useReducer
     const [isInitialized, setIsInitialized] = useState(false);
     const [progress, setProgress] = useState(0.0);
     const [isInterrupted, setIsInterrupted] = useState(false);
 
-    const [colorFunc, setColorFunc] = useState(() => (d) => {
+    /* const [colorFunc, setColorFunc] = useState(() => (d) => {
         const state = GlobalStates.get(d.id);
         return state.individualColor;
-    });
+    }); */
 
     const [mva, setMva] = useState({});
     const [stats, setStats] = useState(
@@ -169,15 +169,17 @@ export default function ChunkWrapper({
 
     useEffect(() => {
         if (showStateClustering) {
-            setColorFunc(() => (d) => {
+            /* setColorFunc(() => (d) => {
                 const state = GlobalStates.get(d.y);
                 return state.stateClusteringColor;
-            });
+            }); */
+            console.log('show');
         } else {
-            setColorFunc(() => (d) => {
+            /* setColorFunc(() => (d) => {
                 const state = GlobalStates.get(d.y);
                 return state.individualColor;
-            });
+            }); */
+            console.log('dont');
         }
     }, [showStateClustering]);
 

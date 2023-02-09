@@ -45,6 +45,7 @@ class App extends React.Component {
         apiGetScriptProperties()
             .then((data) => {
                 const properties = data;
+                GlobalStates.addProperties(properties);
                 this.setState((prevState) => ({
                     properties: [...prevState.properties, ...properties],
                 }));
@@ -177,12 +178,12 @@ class App extends React.Component {
 
         const filters = {};
 
-        const fb = new FilterBuilder();
+        // const fb = new FilterBuilder();
 
         // filters.clustering_difference = fb.buildClusteringDifference();
         //    filters.chunks = fb.buildHideChunks();
         // filters.transitions = fb.buildTransitions();
-        filters.fuzzy_membership = fb.buildFuzzyMemberships();
+        // filters.fuzzy_membership = fb.buildFuzzyMemberships();
 
         runs[run].filters = filters;
 

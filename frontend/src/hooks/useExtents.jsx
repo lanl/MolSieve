@@ -1,6 +1,7 @@
 import * as d3 from 'd3';
 import { useState, useEffect, useCallback } from 'react';
 
+/* eslint-disable */
 export const useExtents = (setExtents, onComplete) => {
     const [iExtents, setInternalExtents] = useState([]);
     const [pushExtent, setPushExtent] = useState(false);

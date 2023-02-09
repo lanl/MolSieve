@@ -15,6 +15,7 @@ import CircularProgress from '@mui/material/CircularProgress';
 import Box from '@mui/material/Box';
 import { apiGenerateOvitoImage } from '../api/ajax';
 
+/*eslint-disable */
 class SingleStateModal extends React.Component {
     constructor(props) {
         super(props);

@@ -1,4 +1,5 @@
 // use this to seed the random generators
+/* eslint-disable */
 export function cyrb128(str) {
     let h1 = 1779033703;
     let h2 = 3144134277;

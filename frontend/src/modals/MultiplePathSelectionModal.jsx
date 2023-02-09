@@ -1,4 +1,4 @@
-import {React, useState} from 'react';
+import { React, useState } from 'react';
 
 import DialogTitle from '@mui/material/DialogTitle';
 import Dialog from '@mui/material/Dialog';
@@ -7,34 +7,41 @@ import MenuItem from '@mui/material/MenuItem';
 import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
 
-import {
-    //intersection,
-    TabPanel,
-    //isPath
-       } from '../api/myutils';
-
+import TabPanel from '../components/TabPanel';
 import AnalysisTab from './AnalysisTab';
 import KSTestTab from './KSTestTab';
 import PathSimilarityTab from './PathSimilarityTab';
+/* eslint-disable */
 
-export default function MultiplePathSelectionModal({properties, close, extents, addKSTestResult, addAnalysisResult, addPathSimilarityResult, extentsID}) {
+export default function MultiplePathSelectionModal({
+    properties,
+    close,
+    extents,
+    addKSTestResult,
+    addAnalysisResult,
+    addPathSimilarityResult,
+    extentsID,
+}) {
     const [tabIdx, setTabIdx] = useState(0);
-   
+
     if (open && extents) {
-        const extents_kv = extents.map((extent, i) => (
-            {'name': `extent ${i+1}`, 'value': JSON.stringify(extent.states.map((state) => state.id))}
-        ));
-        
+        const extents_kv = extents.map((extent, i) => ({
+            name: `extent ${i + 1}`,
+            value: JSON.stringify(extent.states.map((state) => state.id)),
+        }));
+
         const extent_options = extents_kv.map((kv, i) => (
             <MenuItem key={i} name={kv.name} value={kv.value}>
                 {kv.name}
             </MenuItem>
         ));
-           
-        const analysisTabs = extents.map((_, idx) => <Tab key={idx + 1} label={`Analysis for extent ${idx + 1}`} />);
+
+        const analysisTabs = extents.map((_, idx) => (
+            <Tab key={idx + 1} label={`Analysis for extent ${idx + 1}`} />
+        ));
         const analysisTabsContent = extents.map((extent, idx) => (
             <TabPanel value={tabIdx} key={idx + 1} index={idx + 1}>
-                <AnalysisTab                    
+                <AnalysisTab
                     states={extent.states}
                     extentsID={extentsID}
                     addAnalysisResult={addAnalysisResult}
@@ -44,50 +51,57 @@ export default function MultiplePathSelectionModal({properties, close, extents, 
                 />
             </TabPanel>
         ));
-        
+
         return (
             <Dialog
                 onClose={close}
-                onBackdropClick={() => {close();}}
+                onBackdropClick={() => {
+                    close();
+                }}
                 open={open}
                 maxWidth={false}
-              >
+            >
                 <DialogTitle>
-                  Path Selection
-                  <Tabs value={tabIdx} onChange={(_, v) => { setTabIdx(v); }}>                    
-                      <Tab label="Kolmogorov-Smirnov Test"/>
-                      {analysisTabs}
-                      {extents.length > 1 && <Tab label="Path Similarity"/>}
-                  </Tabs>                    
+                    Path Selection
+                    <Tabs
+                        value={tabIdx}
+                        onChange={(_, v) => {
+                            setTabIdx(v);
+                        }}
+                    >
+                        <Tab label="Kolmogorov-Smirnov Test" />
+                        {analysisTabs}
+                        {extents.length > 1 && <Tab label="Path Similarity" />}
+                    </Tabs>
                 </DialogTitle>
                 <TabPanel value={tabIdx} index={0}>
-                    <KSTestTab closeFunc={close}
-                               rvs={extent_options}
-                               cdf={extent_options}
-                               rvsDefault={extents_kv[0]}
-                               extentsID={extentsID}
-                               addKSTestResult={addKSTestResult}
-                               stateProperties={properties}
+                    <KSTestTab
+                        closeFunc={close}
+                        rvs={extent_options}
+                        cdf={extent_options}
+                        rvsDefault={extents_kv[0]}
+                        extentsID={extentsID}
+                        addKSTestResult={addKSTestResult}
+                        stateProperties={properties}
                     />
                 </TabPanel>
                 {analysisTabsContent}
-                {extents.length > 1 &&
-                 <TabPanel value={tabIdx} index={analysisTabsContent.length + 1}>
-                     <PathSimilarityTab
-                         extents={extents_kv}
-                         properties={properties}
-                         closeFunc={close}
-                         extentsID={extentsID}
-                         extent_options={extent_options}
-                         addPathSimilarityResult={addPathSimilarityResult}
-                     />
-                 </TabPanel>}                
+                {extents.length > 1 && (
+                    <TabPanel value={tabIdx} index={analysisTabsContent.length + 1}>
+                        <PathSimilarityTab
+                            extents={extents_kv}
+                            properties={properties}
+                            closeFunc={close}
+                            extentsID={extentsID}
+                            extent_options={extent_options}
+                            addPathSimilarityResult={addPathSimilarityResult}
+                        />
+                    </TabPanel>
+                )}
             </Dialog>
         );
-    } else {
-        return null;
     }
+    return null;
 }
 
 //
-

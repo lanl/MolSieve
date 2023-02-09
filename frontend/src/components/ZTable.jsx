@@ -51,14 +51,12 @@ export default function ZTable({ trajectories, propertyList }) {
                             );
                         }
                     }
-                    if (zScores.length > 0) {
-                        return (
-                            <TableRow>
-                                <TableCell>{property}</TableCell>
-                                {zScores}
-                            </TableRow>
-                        );
-                    }
+                    return (
+                        <TableRow>
+                            <TableCell>{property}</TableCell>
+                            {zScores}
+                        </TableRow>
+                    );
                 })}
             </TableBody>
         </Table>

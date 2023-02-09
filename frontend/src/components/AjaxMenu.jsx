@@ -7,54 +7,62 @@ import ListItemText from '@mui/material/ListItemText';
 import Checkbox from '@mui/material/Checkbox';
 import CircularProgress from '@mui/material/CircularProgress';
 
-export default function AjaxMenu(props) {
+export default function AjaxMenu({
+    open,
+    api_call: apiCall,
+    itemFunction,
+    clicked,
+    click,
+    anchorEl,
+    handleClose,
+}) {
     const [items, setItems] = useState(null);
-    const [clicked, setClicked] = useState([]);
+    const [itemsClicked, setClicked] = useState([]);
     const [lastEvent, setLastEvent] = useState(null);
 
     useEffect(() => {
-        if (props.open) {
-            if (props.api_call !== undefined && props.api_call !== '') {
-                /*const i = axios.create({
+        if (open) {
+            if (apiCall !== undefined && apiCall !== '') {
+                /* const i = axios.create({
                     baseURL: 'http://localhost:8000/',
-                });*/
+                }); */
                 axios
-                    .get(props.api_call)
+                    .get(apiCall)
                     .then((response) => {
                         setItems(response.data);
                     })
                     .catch((e) => {
                         alert(e);
                     });
-            } else if (props.itemFunction !== undefined) {
-                setItems(props.itemFunction());
+            } else if (itemFunction !== undefined) {
+                setItems(itemFunction());
             }
         }
 
-        if (props.clicked !== undefined) {
-            setClicked(props.clicked);
+        if (clicked !== undefined) {
+            setClicked(clicked);
         }
-    }, [props.open]);
+    }, [open]);
 
     const handleChange = (e) => {
         if (e.target.checked) {
-            setClicked([...clicked, e.target.value]);
+            setClicked([...itemsClicked, e.target.value]);
             setLastEvent(e);
         } else {
-            const idx = clicked.indexOf(e.target.value);
-            setClicked(clicked.filter((_, i) => i !== idx));
+            const idx = itemsClicked.indexOf(e.target.value);
+            setClicked(itemsClicked.filter((_, i) => i !== idx));
             setLastEvent(e);
         }
     };
 
     useEffect(() => {
-        if (lastEvent && props.click) {
-            props.click(lastEvent, lastEvent.target.value);
+        if (lastEvent && click) {
+            click(lastEvent, lastEvent.target.value);
         }
     }, [lastEvent]);
 
     return (
-        <Menu anchorEl={props.anchorEl} open={props.open} onClose={props.handleClose}>
+        <Menu anchorEl={anchorEl} open={open} onClose={handleClose}>
             {!items && (
                 <MenuItem>
                     <CircularProgress color="grey" />
@@ -68,7 +76,7 @@ export default function AjaxMenu(props) {
                             <ListItemIcon>
                                 <Checkbox
                                     size="small"
-                                    checked={clicked.includes(item)}
+                                    checked={itemsClicked.includes(item)}
                                     onChange={(e) => {
                                         handleChange(e);
                                     }}

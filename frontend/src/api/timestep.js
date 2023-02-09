@@ -1,7 +1,3 @@
-/* call it timestep because it
- * 1. won't weirdly conflict with react
- * 2. represents a specific point in time during the simulation
- */
 import State from './state';
 
 const TIMESTEP = 1;

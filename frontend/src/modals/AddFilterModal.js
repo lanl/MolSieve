@@ -14,7 +14,7 @@ import Tab from '@mui/material/Tab';
 import Box from '@mui/material/Box';
 import TabPanel from '../components/TabPanel';
 import AjaxSelect from '../components/AjaxSelect';
-
+/* eslint-disable */
 class AddFilterModal extends React.Component {
     constructor(props) {
         super(props);

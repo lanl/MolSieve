@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 
-export default function (key, action, isHovered) {
+export default function useKeyUp(key, action, isHovered) {
     useEffect(() => {
         function onKeyup(e) {
             if (e.key === key) action(e);

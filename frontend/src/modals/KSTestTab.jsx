@@ -13,7 +13,7 @@ import { apiPerformKSTest, onMessageHandler } from '../api/ajax';
 
 import AjaxSelect from '../components/AjaxSelect';
 import CheckboxTable from '../components/CheckboxTable';
-
+/* eslint-disable */
 class KSTestTab extends React.Component {
     constructor(props) {
         super(props);

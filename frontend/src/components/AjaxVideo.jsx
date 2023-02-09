@@ -1,7 +1,7 @@
 import { React, useState, useRef, useEffect } from 'react';
 import axios from 'axios';
 import LoadingBox from './LoadingBox';
-
+/* eslint-disable */
 export default function AjaxVideo({ states, title, width, height }) {
     const [isLoaded, setIsLoaded] = useState(false);
     const videoRef = useRef();

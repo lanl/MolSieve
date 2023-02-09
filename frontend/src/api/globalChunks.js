@@ -1,3 +1,4 @@
+// basically just a counter for the chunks class, can probably re-do this to be more abstract
 class GlobalChunks {
     id;
 

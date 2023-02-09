@@ -1,7 +1,6 @@
 import * as d3 from 'd3';
 import Chunk from './chunk';
 import GlobalStates from './globalStates';
-import { structuralAnalysisProps } from './constants';
 import { chunkSimilarity } from './myutils';
 import { zTest } from './math/stats';
 
@@ -94,7 +93,7 @@ class Trajectory {
             const c1 = pair[0].selected.map((id) => GlobalStates.get(id));
             const c2 = pair[1].selected.map((id) => GlobalStates.get(id));
 
-            for (const prop of structuralAnalysisProps) {
+            for (const prop of GlobalStates.properties) {
                 const s1 = c1.map((d) => d[prop]);
                 const s2 = c2.map((d) => d[prop]);
                 pairDifferences[prop] = zTest(s1, s2);
@@ -103,7 +102,7 @@ class Trajectory {
         });
 
         const aggregateDifferences = {};
-        for (const prop of structuralAnalysisProps) {
+        for (const prop of GlobalStates.properties) {
             aggregateDifferences[prop] = d3.mean(differences, (d) => d[prop]);
         }
 

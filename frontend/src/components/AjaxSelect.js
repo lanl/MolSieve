@@ -3,7 +3,7 @@ import CircularProgress from '@mui/material/CircularProgress';
 import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
 import axios from 'axios';
-
+/* eslint-disable */
 class AjaxSelect extends React.Component {
     constructor(props) {
         super(props);

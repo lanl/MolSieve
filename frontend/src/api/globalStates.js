@@ -1,14 +1,19 @@
 import State from './state';
 import { loadPropertiesForSubset, apiClusterStates } from './ajax';
-import { structuralAnalysisProps } from './constants';
 
 class GlobalStates {
     map = new Map();
+
+    properties = [];
 
     addPropToStates = (propertyList) => {
         for (const prop of propertyList) {
             this.addPropToState(prop);
         }
+    };
+
+    addProperties = (propertyList) => {
+        this.properties = [...new Set([...propertyList, ...this.properties])];
     };
 
     /**
@@ -135,10 +140,10 @@ class GlobalStates {
 
     clusterStates = (states) => {
         return new Promise((resolve, reject) => {
-            loadPropertiesForSubset(structuralAnalysisProps, states)
+            loadPropertiesForSubset(this.properties, states)
                 .then((stateData) => {
                     this.addPropToStates(stateData);
-                    apiClusterStates(structuralAnalysisProps, states)
+                    apiClusterStates(this.properties, states)
                         .then((d) => {
                             for (const [id, clusterID] of Object.entries(d)) {
                                 const previous = this.map.get(parseInt(id, 10));

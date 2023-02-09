@@ -1,10 +1,10 @@
-import React from "react";
-import Dialog from "@mui/material/Dialog";
-import DialogTitle from "@mui/material/DialogTitle";
-import DialogContent from "@mui/material/DialogContent";
-import CircularProgress from "@mui/material/CircularProgress";
-import Box from "@mui/material/Box";
-
+import React from 'react';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import CircularProgress from '@mui/material/CircularProgress';
+import Box from '@mui/material/Box';
+/* eslint-disable */
 class LoadingModal extends React.Component {
     render() {
         return (
@@ -13,9 +13,9 @@ class LoadingModal extends React.Component {
                 <DialogContent>
                     <Box
                         sx={{
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
                         }}
                     >
                         <CircularProgress color="grey" />

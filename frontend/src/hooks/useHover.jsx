@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 
+/* eslint-disable */
 export const useHover = (ref) => {
     const [isHovered, setIsHovered] = useState(false);
 

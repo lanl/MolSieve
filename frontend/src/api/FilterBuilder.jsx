@@ -1,34 +1,26 @@
-import React from 'react';
+import Filter from './Filter';
 import { getMinProperty, getMaxProperty } from './myutils';
 
 import {
-    filter_min_opacity,
-    filter_max_opacity,
-    filter_range_opacity,
-    filter_clustering_difference,
-    filter_fuzzy_membership,
-    filter_transitions,
-    filter_relationship,
-    filter_chunks,
+    filterMinOpacity,
+    filterMaxOpacity,
+    filterRangeOpacity,
+    filterClusteringDifference,
+    // filterFuzzyMembership,
+    // filterTransitions,
+    filterRelationship,
+    // filterChunks,
 } from './filters';
 
 const RANGE_SLIDER = 'range';
 const SLIDER = 'slider';
 const TOGGLE = 'toggle';
 
-class Filter {
-    enabled = false;
-
-    func;
-
-    enabledFor = ['sequence', 'graph'];
-}
-
-class FilterBuilder {
+export default class FilterBuilder {
     filter = new Filter();
 
     buildClusteringDifference() {
-        this.filter.func = filter_clustering_difference;
+        this.filter.func = filterClusteringDifference;
         this.filter.checkBoxLabel = 'Show clustering difference';
         this.filter.id = 'clustering_difference';
         this.filter.type = TOGGLE;
@@ -38,8 +30,8 @@ class FilterBuilder {
         return this.getFilter();
     }
 
-    buildHideChunks() {
-        this.filter.func = filter_chunks;
+    /* buildHideChunks() {
+        this.filter.func = filterChunks;
         this.filter.checkBoxLabel = 'Hide chunks';
         this.filter.id = 'chunks';
         this.filter.type = TOGGLE;
@@ -50,7 +42,7 @@ class FilterBuilder {
     }
 
     buildTransitions() {
-        this.filter.func = filter_transitions;
+        this.filter.func = filterTransitions;
         this.filter.checkBoxLabel = 'Filter transitions from dominant state';
         this.filter.extents = [1, 100];
         this.filter.options = { val: 10, selectVal: 'per' };
@@ -75,7 +67,7 @@ class FilterBuilder {
     }
 
     buildFuzzyMemberships() {
-        this.filter.func = filter_fuzzy_membership;
+        this.filter.func = filterFuzzyMembership;
         this.filter.checkBoxLabel = 'Filter fuzzy memberships';
         this.filter.id = 'fuzzy_membership';
         this.filter.type = TOGGLE;
@@ -83,10 +75,10 @@ class FilterBuilder {
         this.filter.className = ['fuzzy_membership'];
 
         return this.getFilter();
-    }
+    } */
 
     buildMinFilter(attribute, sequence) {
-        this.filter.func = filter_min_opacity;
+        this.filter.func = filterMinOpacity;
         this.filter.sliderLabel = 'At least';
         this.filter.type = SLIDER;
         this.filter.options = {
@@ -98,7 +90,7 @@ class FilterBuilder {
     }
 
     buildMaxFilter(attribute, sequence) {
-        this.filter.func = filter_max_opacity;
+        this.filter.func = filterMaxOpacity;
         this.filter.sliderLabel = 'At most';
         this.filter.type = SLIDER;
         this.filter.options = {
@@ -110,7 +102,7 @@ class FilterBuilder {
     }
 
     buildRangeFilter(attribute, sequence) {
-        this.filter.func = filter_range_opacity;
+        this.filter.func = filterRangeOpacity;
         this.filter.sliderLabel = 'Between';
         this.filter.type = RANGE_SLIDER;
         this.filter.options = {
@@ -125,13 +117,13 @@ class FilterBuilder {
         this.filter.checkBoxLabel = `Filter ${attribute}`;
     }
 
-    buildRelationFilter(attribute, relation_attribute) {
-        this.filter.func = filter_relationship;
+    buildRelationFilter(attribute, relationAttribute) {
+        this.filter.func = filterRelationship;
         this.filter.type = TOGGLE;
         this.filter.val = false;
 
-        this.filter.id = `${attribute}_${relation_attribute}`;
-        this.filter.checkBoxLabel = `Find common ${relation_attribute} with ${attribute}`;
+        this.filter.id = `${attribute}_${relationAttribute}`;
+        this.filter.checkBoxLabel = `Find common ${relationAttribute} with ${attribute}`;
     }
 
     buildCustomFilter(type, attribute, sequence) {
@@ -147,6 +139,8 @@ class FilterBuilder {
                 break;
             case 'RELATION':
                 this.buildRelationFilter();
+                break;
+            default:
                 break;
         }
 
@@ -171,5 +165,3 @@ class FilterBuilder {
         return result;
     }
 }
-
-export default FilterBuilder;

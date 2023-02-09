@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 
-export default function (key, action, isHovered) {
+export default function useKeyDown(key, action, isHovered) {
     useEffect(() => {
         function onKeydown(e) {
             if (!e.repeat) {

@@ -1,4 +1,4 @@
-import { structuralAnalysisProps, mpn65 } from './constants';
+import { mpn65 } from './constants';
 import { abbreviate } from './myutils';
 
 const IGNORE_PROPS = ['img'];
@@ -35,9 +35,10 @@ export default class State {
     get structure() {
         const structure = { FCC: 0, OTHER: 0, HCP: 0, BCC: 0, ICO: 0 };
 
-        for (const property of structuralAnalysisProps) {
+        // check all properties in state and add up the counts
+        for (const property of Object.keys(this)) {
             for (const st of Object.keys(structure)) {
-                if (property in this && property.includes(st)) {
+                if (property.includes(st)) {
                     structure[st] += this[property];
                 }
             }

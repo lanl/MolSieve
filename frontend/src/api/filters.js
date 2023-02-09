@@ -3,12 +3,12 @@ import axios from 'axios';
 import { mostOccurringElement } from './myutils';
 import GlobalStates from './globalStates';
 
-function apply_classes(selection, classes) {
+function applyClasses(selection, classes) {
     if (typeof classes === 'string') {
         selection.classed(classes, true);
     }
-    for (const class_name of classes) {
-        selection.classed(class_name, true);
+    for (const className of classes) {
+        selection.classed(className, true);
     }
 }
 
@@ -17,7 +17,7 @@ function apply_classes(selection, classes) {
  * @param {Object} svg - d3 selection to modify
  * @param {Dictionary} options - the params specific to this filter
  */
-export function filter_min_opacity(trajectory, svg, globalUniqueStates) {
+export function filterMinOpacity(trajectory, svg, globalUniqueStates) {
     const { property } = this.options;
     const { val } = this.options;
     const { className } = this;
@@ -25,12 +25,12 @@ export function filter_min_opacity(trajectory, svg, globalUniqueStates) {
     const selection = svg
         .select(`#g_${trajectory.name}`)
         .selectAll('*')
-        .filter(function (d) {
-            const d_val = globalUniqueStates.get(d.id)[property];
-            return d_val === undefined || d_val <= val;
+        .filter((d) => {
+            const dVal = globalUniqueStates.get(d.id)[property];
+            return dVal === undefined || dVal <= val;
         });
 
-    apply_classes(selection, className);
+    applyClasses(selection, className);
 }
 
 /** Generic filter function that gets all states with at most val of property.
@@ -39,7 +39,7 @@ export function filter_min_opacity(trajectory, svg, globalUniqueStates) {
  * @param {Object} svg - d3 selection of svg to modify
  * @param {number} val - max value
  */
-export function filter_max_opacity(trajectory, svg, globalUniqueStates) {
+export function filterMaxOpacity(trajectory, svg, globalUniqueStates) {
     const { property } = this.options;
     const { val } = this.options;
     const { className } = this;
@@ -47,12 +47,12 @@ export function filter_max_opacity(trajectory, svg, globalUniqueStates) {
     const selection = svg
         .select(`#g_${trajectory.name}`)
         .selectAll('*')
-        .filter(function (d) {
-            const d_val = globalUniqueStates.get(d.id)[property];
-            return d_val === undefined || d_val >= val;
+        .filter((d) => {
+            const dVal = globalUniqueStates.get(d.id)[property];
+            return dVal === undefined || dVal >= val;
         });
 
-    apply_classes(selection, className);
+    applyClasses(selection, className);
 }
 
 /** Generic filter function that gets all states that are between val1 and val2 of the given property
@@ -60,7 +60,7 @@ export function filter_max_opacity(trajectory, svg, globalUniqueStates) {
  * @param {Object} svg - d3 selection to modify
  * @param {Dictionary} options - the params specific to this filter
  */
-export function filter_range_opacity(trajectory, svg, globalUniqueStates) {
+export function filterRangeOpacity(trajectory, svg, globalUniqueStates) {
     const { property } = this.options;
     const { val } = this.options;
     const { className } = this;
@@ -69,11 +69,11 @@ export function filter_range_opacity(trajectory, svg, globalUniqueStates) {
         .select(`#g_${trajectory.name}`)
         .selectAll('*')
         .filter(function (d) {
-            const d_val = globalUniqueStates.get(d.id)[property];
-            return d_val === undefined || d_val <= val[0] || d_val >= val[1];
+            const dVal = globalUniqueStates.get(d.id)[property];
+            return dVal === undefined || dVal <= val[0] || dVal >= val[1];
         });
 
-    apply_classes(selection, className);
+    applyClasses(selection, className);
 }
 
 /** Filter that changes the opacity of the given trajectory based on each state's
@@ -82,7 +82,7 @@ export function filter_range_opacity(trajectory, svg, globalUniqueStates) {
  * @param {Trajectory} trajectory - the trajectory to filter on
  * @param {Object} svg - d3 selection to modify
  */
-export function filter_fuzzy_membership(trajectory, svg) {
+/* export function filterFuzzyMembership(trajectory, svg) {
     const { current_clustering } = trajectory;
     const current_membership_values = trajectory.fuzzy_memberships[current_clustering];
     const { idToCluster } = trajectory;
@@ -132,7 +132,7 @@ export function filter_fuzzy_membership(trajectory, svg) {
             return scales[scale_index](Math.max.apply(Math, value));
         });
 
-    apply_classes(selection, 'fuzzy_membership');
+    applyClasses(selection, 'fuzzy_membership');
 
     const invis_selection = svg
         .select(`#g_${trajectory.name}`)
@@ -141,15 +141,15 @@ export function filter_fuzzy_membership(trajectory, svg) {
             return this.getAttribute('opacity') === 0.0;
         });
 
-    apply_classes(invis_selection, 'invisible');
-}
+    applyClasses(invis_selection, 'invisible');
+} */
 
 /** Build a dict of state number: clustering assignments and then determine how many times the state changed clusters
  * @param {Trajectory} trajectory - the trajectory to filter on
  * @param {Object} svg - d3 selection to modify
  */
-export function filter_clustering_difference(trajectory, svg) {
-    const clustering_assignments = {};
+export function filterClusteringDifference(trajectory, svg) {
+    const clusteringAssignments = {};
     let maxSize = -Number.MAX_SAFE_INTEGER;
 
     // for some reason, an extra labels object is created at the end
@@ -163,13 +163,13 @@ export function filter_clustering_difference(trajectory, svg) {
             }
         }
         maxSize = maxSize < labels.size ? labels.size : maxSize;
-        clustering_assignments[d] = labels;
+        clusteringAssignments[d] = labels;
     }
 
     svg.select(`#g_${trajectory.name}`)
         .selectAll('*')
         .attr('class', function (d) {
-            const instability = clustering_assignments[d.id].size / maxSize;
+            const instability = clusteringAssignments[d.id].size / maxSize;
             if (instability > 0.75) {
                 return 'strongly_unstable';
             }
@@ -181,7 +181,7 @@ export function filter_clustering_difference(trajectory, svg) {
 }
 
 // won't work
-export function filter_relationship(trajectory, svg) {
+export function filterRelationship(trajectory, svg) {
     const run = this.options.property;
     const attribute = this.options.relation_attribute;
     const { className } = this.options;
@@ -193,21 +193,21 @@ export function filter_relationship(trajectory, svg) {
     const query = `MATCH ${node}-[r:${run}]-() RETURN DISTINCT ${entityType}.${attribute};`;
 
     axios.get('/api/run_cypher_query', { params: { query } }).then((response) => {
-        const filter_array = response.data;
+        const filterArray = response.data;
         const selection = svg
             .select(`#g_${trajectory.name}`)
             .selectAll('*')
             .filter(function (d) {
-                return !filter_array.includes(d[attribute]);
+                return !filterArray.includes(d[attribute]);
             });
-        apply_classes(selection, className);
+        applyClasses(selection, className);
     });
 }
 
-export function filter_chunks(trajectory, svg) {
+export function filterChunks(trajectory, svg) {
     const { className } = this;
     const selection = svg.select(`#c_${trajectory.name}`).selectAll('*');
-    apply_classes(selection, className);
+    applyClasses(selection, className);
 }
 
 /** Run a sliding window across the entire trajectory and count how many times the dominant state of the cluster (the state the occurs the most)
@@ -217,49 +217,45 @@ export function filter_chunks(trajectory, svg) {
  * @param {Dictionary} options - the params specific to this filter
  */
 // should only apply to sequence chart
-export function filter_transitions(trajectory, svg) {
+export function filterTransitions(trajectory, svg) {
     const { sequence } = trajectory;
     const clusters = trajectory.clusterings[trajectory.current_clustering];
     const { idToCluster } = trajectory;
 
     const mode = this.options.selectVal;
-    const slider_value = this.options.val;
+    const sliderValue = this.options.val;
 
     let window;
     if (mode === 'abs') {
-        window = parseInt(slider_value);
+        window = parseInt(sliderValue, 10);
     }
 
     let min = Number.MAX_SAFE_INTEGER;
     const dominants = [];
 
     // for each cluster, check who occurs the most in the array
-    for (var i = 0; i < clusters.length; i++) {
+    for (let i = 0; i < clusters.length; i++) {
         // build an array for this cluster with duplicates
-        const clustered_data = sequence.map((stateID) => {
-            if (idToCluster[stateID] === i) {
-                return stateID;
-            }
-        });
+        const clusteredData = sequence.filter((stateID) => idToCluster[stateID] === i);
 
         // this gets you the length of the cluster
-        if (clustered_data.length < min) {
-            min = clustered_data.length;
+        if (clusteredData.length < min) {
+            min = clusteredData.length;
         }
 
         // plus allows you to calculate the most occuring element
-        dominants[i] = mostOccurringElement(clustered_data);
+        dominants[i] = mostOccurringElement(clusteredData);
     }
 
     if (mode === 'per') {
-        const ws = slider_value / 100;
+        const ws = sliderValue / 100;
         window = Math.ceil(ws * min);
     }
 
     const timesteps = [];
     let count;
 
-    for (i = 0; i < sequence.length - window; i += window) {
+    for (let i = 0; i < sequence.length - window; i += window) {
         count = 0;
 
         for (let j = 0; j < window; j++) {
@@ -279,16 +275,16 @@ export function filter_transitions(trajectory, svg) {
             return timesteps[i];
         });
 
-    apply_classes(selection, 'transitions');
+    applyClasses(selection, 'transitions');
 
-    const invis_selection = svg
+    const invisSelection = svg
         .select(`#g_${trajectory.name}`)
         .selectAll('.transitions')
         .filter(function () {
             return this.getAttribute('opacity') === 0.0;
         });
 
-    apply_classes(invis_selection, 'invisible');
+    applyClasses(invisSelection, 'invisible');
 }
 
 function undoFilter(trajectory, svg, filter) {
@@ -300,7 +296,7 @@ function undoFilter(trajectory, svg, filter) {
     }
 }
 
-export function apply_filters(trajectories, runs, ref) {
+export function applyFilters(trajectories, runs, ref) {
     for (const [name, trajectory] of Object.entries(trajectories)) {
         if (Object.keys(runs[name].filters).length > 0) {
             for (const k of Object.keys(runs[name].filters)) {
