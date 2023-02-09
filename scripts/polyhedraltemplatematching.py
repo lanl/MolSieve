@@ -12,5 +12,5 @@ def properties():
 
 def run(state_atom_dict):
     return calculator.apply_ovito_pipeline_modifier(
-            state_atom_dict, "AcklandJonesModifier"
+            state_atom_dict, "PolyhedralTemplateMatchingModifier"
     )
