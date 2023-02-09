@@ -4,6 +4,7 @@ import * as d3 from 'd3';
 import LinearProgress from '@mui/material/LinearProgress';
 import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
+import '../css/App.css';
 
 import { boxPlotStats } from '../api/math/stats';
 import loadChart from '../api/websocketmethods';
@@ -107,15 +108,22 @@ export default function ViolinPlotWrapper({
             <Stack direction="column">
                 {ranks.map((property) => {
                     const { min, max } = globalScale[property];
+                    const { q1, q3, median, iqr } = boxStats[property];
+
                     return (
                         <ViolinPlot
                             key={`${chunk.id}-${property}`}
                             showYAxis={false}
                             data={chunk.getPropList(property)}
-                            boxStats={boxStats[property]}
-                            chunk={chunk}
+                            color={chunk.color}
                             property={property}
                             width={width}
+                            mouseOverText={`${chunk.toString()}<br/>
+                            <em>${property}</em><br/> 
+                            <b>Q1</b>: ${q1}</br> 
+                            <b>Median</b>: ${median}</br> 
+                            <b>Q3</b>: ${q3}</br>
+                            <b>IQR</b>: ${iqr} <br/>`}
                             height={boxPlotHeight}
                             globalScaleMin={min}
                             globalScaleMax={max}

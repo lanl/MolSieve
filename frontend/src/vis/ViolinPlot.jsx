@@ -9,16 +9,15 @@ let ttInstance;
 
 export default function ViolinPlot({
     data,
-    boxStats,
     property,
     width,
     height,
-    margin = { top: 3, bottom: 3, left: 0, right: 0 },
     globalScaleMin,
     globalScaleMax,
+    mouseOverText,
     color = 'black',
     showYAxis = true,
-    chunk,
+    margin = { top: 3, bottom: 3, left: 0, right: 0 },
 }) {
     const ref = useTrajectoryChartRender(
         (svg) => {
@@ -29,10 +28,6 @@ export default function ViolinPlot({
             if (!data) {
                 return;
             }
-
-            console.log('rendering', data);
-            // do we even care?
-            const { q1, median, q3, iqr } = boxStats;
 
             const yScale = d3
                 .scaleLinear()
@@ -55,7 +50,7 @@ export default function ViolinPlot({
                 .attr('y', 0)
                 .attr('height', height + 1)
                 .attr('width', width)
-                .attr('fill', chunk.color)
+                .attr('fill', color)
                 .classed('unimportant', true);
 
             svg.append('line')
@@ -63,12 +58,12 @@ export default function ViolinPlot({
                 .attr('y1', 0)
                 .attr('x2', width)
                 .attr('y2', 0)
-                .attr('stroke', chunk.color)
+                .attr('stroke', color)
                 .attr('stroke-width', 1);
 
             svg.append('path')
                 .datum(bins)
-                .attr('fill', chunk.color)
+                .attr('fill', color)
                 .attr('stroke', 'black')
                 .attr(
                     'd',
@@ -82,15 +77,7 @@ export default function ViolinPlot({
 
             svg.on('mouseover', () => {
                 if (!ttInstance) {
-                    ttInstance = tooltip(
-                        svg.node(),
-                        `${chunk.toString()}<br/>
-                        <em>${property}</em><br/> 
-                        <b>Q1</b>: ${q1}</br> 
-                        <b>Median</b>: ${median}</br> 
-                        <b>Q3</b>: ${q3}</br>
-                        <b>IQR</b>: ${iqr} <br/>`
-                    );
+                    ttInstance = tooltip(svg.node(), mouseOverText);
                 }
                 ttInstance.show();
             });
@@ -101,17 +88,7 @@ export default function ViolinPlot({
                 ttInstance = undefined;
             });
         },
-        [
-            property,
-            JSON.stringify(data),
-            JSON.stringify(boxStats),
-            JSON.stringify(chunk),
-            color,
-            globalScaleMin,
-            globalScaleMax,
-            width,
-            height,
-        ]
+        [property, JSON.stringify(data), color, globalScaleMin, globalScaleMax, width, height]
     );
 
     return (
