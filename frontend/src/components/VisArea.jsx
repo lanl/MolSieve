@@ -138,6 +138,9 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
         }
     }, buildDictFromArray(properties, { min: Number.MAX_VALUE, max: Number.MIN_VALUE }));
 
+    // makes re-renders way faster
+    useEffect(() => {}, [stateHovered]);
+
     useEffect(() => {
         if (globalScale) {
             const currentProperties = Object.keys(globalScale);
@@ -323,9 +326,9 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
         <Box id="c" sx={sx}>
             <CssBaseline />
             <ChartBox sx={{ marginBottom: 5 }}>
-                {(width, height, isHovered) => (
+                {(width) => (
                     <>
-                        <Box display="flex" sx={{ visibility: isHovered ? 'visible' : 'hidden' }}>
+                        <Box display="flex">
                             <IconButton
                                 color="secondary"
                                 size="small"
@@ -422,7 +425,6 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
                                             trajectory={trajectory}
                                             run={runs[trajectory.name]}
                                             setStateHovered={setStateHovered}
-                                            isParentHovered={isHovered}
                                             charts={charts}
                                             properties={properties}
                                             propertyCombos={propertyCombos}
