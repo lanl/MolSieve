@@ -60,7 +60,7 @@ export default function ControlChart({
                 d3
                     .area()
                     .x((_, i) => scaleX(i))
-                    .y0(scaleY(0))
+                    .y0(scaleY(globalScaleMin))
                     .y1((d) => scaleY(d))
                     .defined((d) => filterFunc(d))
             );

@@ -6,6 +6,8 @@ import { create, all } from 'mathjs';
 import Box from '@mui/material/Box';
 import LinearProgress from '@mui/material/LinearProgress';
 
+import '../css/App.css';
+
 import Stack from '@mui/material/Stack';
 import ControlChart from '../vis/ControlChart';
 
@@ -202,7 +204,7 @@ export default function ChunkWrapper({
             }}
         >
             {progress < 1.0 ? (
-                <LinearProgress variant="determinate" value={progress * 100} />
+                <LinearProgress variant="determinate" value={progress * 100} className="bar" />
             ) : null}
             <Stack direction="column">
                 {ranks.map((property) => {

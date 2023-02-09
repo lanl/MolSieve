@@ -34,3 +34,7 @@ img {
 .MuiLinearProgress-bar {
   transition: none;
 }
+
+.bar {
+    transition: none;
+}

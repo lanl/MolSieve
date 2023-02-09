@@ -44,15 +44,19 @@ export default function loadChart(
         const parsedData = JSON.parse(e.data);
         GlobalStates.addPropToStates(parsedData);
 
+        if (currentProgress === 0) {
+            updateGS(parsedData);
+        }
+
         currentProgress += parsedData.length;
         setProgress(currentProgress / total);
 
-        updateGS(parsedData);
         render();
 
         setIsInitialized(true);
 
         if (currentProgress === total) {
+            updateGS(parsedData);
             ws.current.close(1000);
         }
     });

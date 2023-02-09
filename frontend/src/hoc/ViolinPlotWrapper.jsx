@@ -103,7 +103,7 @@ export default function ViolinPlotWrapper({
     return isInitialized ? (
         <Box>
             {progress < 1.0 ? (
-                <LinearProgress variant="determinate" value={progress * 100} />
+                <LinearProgress variant="determinate" value={progress * 100} className="bar" />
             ) : null}
             <Stack direction="column">
                 {ranks.map((property) => {
