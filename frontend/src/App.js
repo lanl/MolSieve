@@ -21,6 +21,8 @@ import { getNeighbors } from './api/myutils';
 import WebSocketManager from './api/websocketmanager';
 import ColorManager from './api/colormanager';
 
+import { API_URL } from './api/constants';
+
 const RUN_MODAL = 'run_modal';
 
 class App extends React.Component {
@@ -391,7 +393,7 @@ class App extends React.Component {
 
                 <AjaxMenu
                     anchorEl={this.runListButton.current}
-                    api_call="/api/get_run_list"
+                    api_call={`${API_URL}/api/get_run_list`}
                     open={showRunList}
                     clicked={Object.keys(trajectories)}
                     handleClose={() => {

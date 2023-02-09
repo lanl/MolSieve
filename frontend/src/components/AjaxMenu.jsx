@@ -16,16 +16,13 @@ export default function AjaxMenu({
     anchorEl,
     handleClose,
 }) {
-    const [items, setItems] = useState(null);
+    const [items, setItems] = useState([]);
     const [itemsClicked, setClicked] = useState([]);
     const [lastEvent, setLastEvent] = useState(null);
 
     useEffect(() => {
         if (open) {
             if (apiCall !== undefined && apiCall !== '') {
-                /* const i = axios.create({
-                    baseURL: 'http://localhost:8000/',
-                }); */
                 axios
                     .get(apiCall)
                     .then((response) => {
@@ -63,13 +60,13 @@ export default function AjaxMenu({
 
     return (
         <Menu anchorEl={anchorEl} open={open} onClose={handleClose}>
-            {!items && (
+            {items.length === 0 && (
                 <MenuItem>
                     <CircularProgress color="grey" />
                 </MenuItem>
             )}
 
-            {items &&
+            {items.length > 0 &&
                 items.map((item, idx) => {
                     return (
                         <MenuItem key={idx}>

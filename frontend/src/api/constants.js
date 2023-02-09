@@ -1,4 +1,3 @@
-/* eslint-disable */
 export const mpn65 = [
     '#ff0029',
     '#377eb8',
@@ -52,3 +51,5 @@ export const mpn65 = [
     '#27d0df',
     '#a04a9b',
 ];
+
+export const API_URL = 'http://localhost:8000';
