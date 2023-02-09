@@ -93,7 +93,6 @@ export default function ControlChart({
 
             const { posDiff, negDiff, noDiff } = colors;
 
-            // draw path and color the line according to the UCL & LCL
             if (ucl && !lcl) {
                 colorPath(svg, line, posDiff, (d) => ucl <= d);
                 colorPath(svg, line, noDiff, (d) => ucl > d);
@@ -105,7 +104,7 @@ export default function ControlChart({
                 colorPath(svg, line, negDiff, (d) => lcl >= d);
                 colorPath(svg, line, noDiff, (d) => lcl < d && ucl > d);
             } else {
-                colorPath(svg, line, noDiff, (d) => d);
+                colorPath(svg, line, noDiff, () => true);
             }
 
             if (showMedian) {
