@@ -4,7 +4,6 @@ import * as d3 from 'd3';
 import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
 
 import { tooltip } from '../api/myutils';
-import { differentiate } from '../api/math/stats';
 
 let ttInstance;
 
@@ -26,7 +25,8 @@ export default function ControlChart({
     showMedian = false,
 }) {
     const buildScaleX = () => {
-        return () => d3.scaleLinear().domain(d3.extent(xAttributeList)).range([margin.left, width]);
+        return () =>
+            d3.scaleLinear().domain([0, yAttributeList.length]).range([margin.left, width]);
     };
 
     const buildScaleY = () => {
@@ -37,25 +37,11 @@ export default function ControlChart({
                 .range([height - margin.bottom, margin.top]);
     };
 
-    const buildData = () => {
-        if (!yAttributeList) {
-            return undefined;
-        }
-        const mv = [];
-        const diff = differentiate(yAttributeList);
-        for (let i = 0; i < yAttributeList.length; i++) {
-            const d = { x: xAttributeList[i], y: yAttributeList[i], d: diff[i] };
-            mv.push(d);
-        }
-        return mv;
-    };
-
-    const [data, setData] = useState(buildData());
     const [scaleX, setScaleX] = useState(buildScaleX());
 
     useEffect(() => {
         setScaleX(buildScaleX());
-    }, [JSON.stringify(data), width]);
+    }, [JSON.stringify(yAttributeList), width]);
 
     const [scaleY, setScaleY] = useState(buildScaleY());
 
@@ -65,7 +51,7 @@ export default function ControlChart({
 
     const colorPath = (svg, line, color, filterFunc) => {
         svg.append('path')
-            .datum(data)
+            .datum(yAttributeList)
             .attr('d', line)
             .attr('stroke', color)
             .attr('fill', color)
@@ -73,21 +59,17 @@ export default function ControlChart({
                 'd',
                 d3
                     .area()
-                    .x((d) => scaleX(d.x))
+                    .x((_, i) => scaleX(i))
                     .y0(scaleY(0))
-                    .y1((d) => scaleY(d.y))
+                    .y1((d) => scaleY(d))
                     .defined((d) => filterFunc(d))
             );
     };
 
-    useEffect(() => {
-        setData(buildData());
-    }, [JSON.stringify(xAttributeList), JSON.stringify(yAttributeList)]);
-
     const line = d3
         .line()
-        .x((d) => scaleX(d.x))
-        .y((d) => scaleY(d.y))
+        .x((_, i) => scaleX(i))
+        .y((d) => scaleY(d))
         .curve(d3.curveCatmullRom.alpha(0.5));
 
     const ref = useTrajectoryChartRender(
@@ -105,7 +87,7 @@ export default function ControlChart({
                 svg.selectAll('*:not(.brush)').remove();
             }
 
-            if (!data) {
+            if (!yAttributeList) {
                 return;
             }
 
@@ -113,15 +95,15 @@ export default function ControlChart({
 
             // draw path and color the line according to the UCL & LCL
             if (ucl && !lcl) {
-                colorPath(svg, line, posDiff, (d) => ucl <= d.y);
-                colorPath(svg, line, noDiff, (d) => ucl > d.y);
+                colorPath(svg, line, posDiff, (d) => ucl <= d);
+                colorPath(svg, line, noDiff, (d) => ucl > d);
             } else if (lcl && !ucl) {
-                colorPath(svg, line, negDiff, (d) => lcl >= d.y);
-                colorPath(svg, line, noDiff, (d) => lcl < d.y);
+                colorPath(svg, line, negDiff, (d) => lcl >= d);
+                colorPath(svg, line, noDiff, (d) => lcl < d);
             } else if (ucl && lcl) {
-                colorPath(svg, line, posDiff, (d) => ucl <= d.y);
-                colorPath(svg, line, negDiff, (d) => lcl >= d.y);
-                colorPath(svg, line, noDiff, (d) => lcl < d.y && ucl > d.y);
+                colorPath(svg, line, posDiff, (d) => ucl <= d);
+                colorPath(svg, line, negDiff, (d) => lcl >= d);
+                colorPath(svg, line, noDiff, (d) => lcl < d && ucl > d);
             } else {
                 colorPath(svg, line, noDiff, (d) => d);
             }
@@ -145,12 +127,15 @@ export default function ControlChart({
 
             // add value tooltip
             svg.on('mousemove', (event) => {
-                const i = d3.bisectCenter(xAttributeList, scaleX.invert(d3.pointer(event)[0]));
-                const xVal = xAttributeList[i];
+                const i = d3.bisectCenter(
+                    [...Array(yAttributeList.length).keys()],
+                    scaleX.invert(d3.pointer(event)[0])
+                );
+                const xVal = xAttributeList ? xAttributeList[i] : i;
                 const yVal = yAttributeList[i];
 
                 tooltipCircle
-                    .attr('cx', scaleX(xVal))
+                    .attr('cx', scaleX(i))
                     .attr('cy', scaleY(yVal))
                     .attr('stroke', 'gray')
                     .attr('fill', 'black')

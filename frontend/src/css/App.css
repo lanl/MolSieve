@@ -30,3 +30,7 @@ img {
     font-weight: bold;
     cursor: pointer;
 }
+
+.MuiLinearProgress-bar {
+  transition: none;
+}

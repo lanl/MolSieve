@@ -30,6 +30,7 @@ export default function ViolinPlot({
                 return;
             }
 
+            console.log('rendering', data);
             // do we even care?
             const { q1, median, q3, iqr } = boxStats;
 

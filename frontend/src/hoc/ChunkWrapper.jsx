@@ -9,7 +9,7 @@ import LinearProgress from '@mui/material/LinearProgress';
 import Stack from '@mui/material/Stack';
 import ControlChart from '../vis/ControlChart';
 
-import { exponentialMovingAverage, differentiate, betaPDF } from '../api/math/stats';
+import { exponentialMovingAverage, betaPDF } from '../api/math/stats';
 import { abbreviate, buildDictFromArray } from '../api/myutils';
 
 import Scatterplot from '../vis/Scatterplot';
@@ -66,7 +66,7 @@ export default function ChunkWrapper({
 
     const render = () => {
         const mvaDict = {};
-        const rDict = {};
+        // const rDict = {};
         const statDict = {};
         const states = chunk.sequence.map((id) => GlobalStates.get(id));
         for (const prop of properties) {
@@ -75,10 +75,10 @@ export default function ChunkWrapper({
             const std = d3.deviation(propList);
             const m = exponentialMovingAverage(propList, mvaPeriod);
             const mean = d3.mean(propList);
-            const diffXtent = d3.extent(differentiate(m));
+            // const diffXtent = d3.extent(differentiate(m));
 
             mvaDict[prop] = m;
-            rDict[prop] = diffXtent.reduce((acc, cv) => acc + Math.abs(cv), 0);
+            // rDict[prop] = diffXtent.reduce((acc, cv) => acc + Math.abs(cv), 0);
             statDict[prop] = { std, mean };
         }
         setMva(mvaDict);
@@ -242,7 +242,13 @@ export default function ChunkWrapper({
                     );
                 })}
             </Stack>
-            <Scatterplot
+        </Box>
+    ) : (
+        <LoadingBox />
+    );
+}
+
+/* <Scatterplot
                 key={`${chunk.id}-scatterplot`}
                 width={width}
                 height={scatterplotHeight}
@@ -254,11 +260,7 @@ export default function ChunkWrapper({
                     setStateHovered(d.y);
                 }}
             />
-        </Box>
-    ) : (
-        <LoadingBox />
-    );
-}
+*/
 
 ChunkWrapper.defaultProps = {
     showTop: 4,

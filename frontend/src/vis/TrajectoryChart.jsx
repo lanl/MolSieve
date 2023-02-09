@@ -84,7 +84,7 @@ export default function TrajectoryChart({
 
             textRanks.exit().remove();
         }
-    }, [ranks.ordered, ref, showTop, propertyCombos, height]);
+    }, [JSON.stringify(ranks.ordered), ref, showTop, propertyCombos, height]);
 
     const { extents } = run;
     // here we can filter out the un-rendered charts right away since we only care about rendering here
