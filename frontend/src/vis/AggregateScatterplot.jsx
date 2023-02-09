@@ -1,0 +1,99 @@
+import { React, useState, useEffect } from 'react';
+
+import * as d3 from 'd3';
+import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
+import { distributionDict } from '../api/myutils';
+
+import GlobalStates from '../api/globalStates';
+
+export default function AggregateScatterplot({
+    xAttributeList,
+    yAttributeList,
+    width,
+    height,
+    margin = { top: 5, bottom: 10, left: 0, right: 7.5 },
+    onElementMouseOver = () => {},
+}) {
+    const [data, setData] = useState(null);
+
+    useEffect(() => {
+        const chunkSize = yAttributeList.length / 10;
+        const chunks = [];
+
+        for (let i = 0; i < yAttributeList.length; i += chunkSize) {
+            const chunk = yAttributeList.slice(i, i + chunkSize);
+            const dist = distributionDict(chunk);
+
+            const uniqueStates = [...new Set(chunk)];
+            const threshold = 1 / uniqueStates.length;
+
+            const majority = [];
+            for (const e of Object.keys(dist)) {
+                if (dist[e] > threshold) {
+                    majority.push(parseInt(e, 10));
+                }
+            }
+            chunks.push(majority.sort());
+        }
+
+        setData(chunks);
+    }, [JSON.stringify(xAttributeList), JSON.stringify(yAttributeList)]);
+
+    const ref = useTrajectoryChartRender(
+        (svg) => {
+            if (!svg.empty()) {
+                svg.selectAll('*').remove();
+            }
+
+            if (!data) {
+                return;
+            }
+
+            const scaleX = d3
+                .scaleLinear()
+                .domain([0, 9])
+                .range([margin.left, width - margin.right]);
+
+            for (let i = 0; i < data.length; i++) {
+                const g = svg.append('g');
+                const chunk = data[i];
+
+                const uniqueStates = [...new Set(chunk)];
+
+                const scaleY = d3
+                    .scaleBand()
+                    .domain(uniqueStates)
+                    .range([height - margin.bottom, margin.top]);
+
+                g.selectAll('rect')
+                    .data(chunk)
+                    .enter()
+                    .append('rect')
+                    .attr('x', scaleX(i))
+                    .attr('y', (d) => scaleY(d))
+                    .attr('width', scaleX(i + 1) - scaleX(i))
+                    .attr('height', scaleY.bandwidth())
+                    .attr('fill', (d) => {
+                        const state = GlobalStates.get(d);
+                        return state.individualColor;
+                    })
+                    .on('mouseover', function (_, d) {
+                        onElementMouseOver(this, d);
+                    })
+                    .classed('state', true)
+                    .classed('fullOpacity', true)
+                    .classed('clickable', true);
+            }
+        },
+        [JSON.stringify(data), width, height]
+    );
+    return (
+        <svg
+            ref={ref}
+            className="vis"
+            viewBox={[0, 0, width, height]}
+            width={width}
+            height={height}
+        />
+    );
+}

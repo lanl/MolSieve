@@ -6,6 +6,10 @@
   opacity: 0.5;
 }
 
+.fullOpacity {
+    opacity: 1.0;
+}
+
 .state:hover {
   opacity: 1.0;
 }

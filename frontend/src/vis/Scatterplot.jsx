@@ -9,15 +9,15 @@ import '../css/App.css';
 export default function Scatterplot({
     width,
     height,
-    colorFunc = () => 'black',
     xAttributeList,
     yAttributeList,
     additionalAttributes,
+    selected,
+    brush,
+    colorFunc = () => 'black',
     onElementClick = () => {},
     onElementMouseOver = () => {},
     onElementMouseOut = () => {},
-    selected,
-    brush,
     margin = { top: 5, bottom: 10, left: 0, right: 7.5 },
     showYAxis = false,
 }) {
