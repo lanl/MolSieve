@@ -15,6 +15,8 @@ import AggregateScatterplot from '../vis/AggregateScatterplot';
 import { exponentialMovingAverage, betaPDF } from '../api/math/stats';
 import { abbreviate, buildDictFromArray } from '../api/myutils';
 
+import { LOADING_CHUNK_SIZE } from '../api/constants';
+
 import Scatterplot from '../vis/Scatterplot';
 import GlobalStates from '../api/globalStates';
 import LoadingBox from '../components/LoadingBox';
@@ -110,7 +112,8 @@ export default function ChunkWrapper({
                 setIsInterrupted,
                 updateGS,
                 render,
-                setIsInitialized
+                setIsInitialized,
+                LOADING_CHUNK_SIZE
             );
         } else {
             setProgress(1.0);

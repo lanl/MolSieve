@@ -53,3 +53,5 @@ export const mpn65 = [
 ];
 
 export const API_URL = 'http://localhost:8000';
+
+export const LOADING_CHUNK_SIZE = 100;

@@ -34,6 +34,15 @@ export function occurrenceDict(arr) {
     }, {});
 }
 
+export function distributionDict(arr) {
+    const oc = occurrenceDict(arr);
+    for (const e of Object.keys(oc)) {
+        const count = oc[e];
+        oc[e] = count / arr.length;
+    }
+    return oc;
+}
+
 // https://stackoverflow.com/questions/59065687/how-to-get-most-frequent-occurring-element-in-an-array
 export function mostOccurringElement(arr) {
     const counts = occurrenceDict(arr);

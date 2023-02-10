@@ -11,7 +11,8 @@ export default function loadChart(
     setIsInterrupted,
     updateGS,
     render,
-    setIsInitialized
+    setIsInitialized,
+    chunkSize
 ) {
     ws.current = WebSocketManager.connect(
         'ws://localhost:8000/api/load_properties_for_subset',
@@ -36,6 +37,7 @@ export default function loadChart(
             JSON.stringify({
                 props: properties,
                 stateIds: stateList,
+                chunkSize,
             })
         );
     });

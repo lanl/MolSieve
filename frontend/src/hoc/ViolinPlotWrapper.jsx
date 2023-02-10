@@ -8,6 +8,7 @@ import '../css/App.css';
 
 import { boxPlotStats } from '../api/math/stats';
 import loadChart from '../api/websocketmethods';
+import { LOADING_CHUNK_SIZE } from '../api/constants';
 
 import ViolinPlot from '../vis/ViolinPlot';
 import GlobalStates from '../api/globalStates';
@@ -78,7 +79,8 @@ export default function ViolinPlotWrapper({
                 setIsInterrupted,
                 updateGS,
                 render,
-                setIsInitialized
+                setIsInitialized,
+                LOADING_CHUNK_SIZE
             );
         } else {
             setIsInitialized(true);
