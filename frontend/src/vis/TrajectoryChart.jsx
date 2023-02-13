@@ -41,6 +41,7 @@ function TrajectoryChart({
     expand,
     propertyCombos,
     scatterplotHeight = 50,
+    extents,
 }) {
     const ref = useTrajectoryChartRender(
         (svg) => {
@@ -89,7 +90,6 @@ function TrajectoryChart({
     }, [JSON.stringify(ranks.ordered), ref, showTop, JSON.stringify(propertyCombos), height]);
 
     useEffect(() => {
-        const { extents } = run;
         const { iChunks, uChunks, topChunkList } = trajectory.getVisibleChunks(extents);
 
         const unimportantWidthExtent =
@@ -132,12 +132,11 @@ function TrajectoryChart({
             return w;
         };
         setScales({ getX, getWidthScale, scaleX });
-    }, [JSON.stringify(trajectory.chunkList), JSON.stringify(run), width]);
+    }, [JSON.stringify(trajectory.chunkList), JSON.stringify(extents), width]);
 
     useEffect(() => {
         if (scales) {
             const { chunkList } = trajectory;
-            const { extents } = run;
 
             // fill this dict with selection data for each chunk
             const chartSelectionDict = {};
@@ -192,7 +191,6 @@ function TrajectoryChart({
     // here we can filter out the un-rendered charts right away since we only care about rendering here
     const finishBrush = (chunk, { selection }, chartWidth) => {
         // extents determines the zoom level
-        const { extents } = run;
         const [chunkSliceStart, chunkSliceEnd] = extents;
 
         const x = d3
@@ -224,7 +222,6 @@ function TrajectoryChart({
         );
     };
 
-    const { extents } = run;
     const { topChunkList } = trajectory.getVisibleChunks(extents);
 
     const selectChart = useCallback(
@@ -296,7 +293,6 @@ function TrajectoryChart({
                                             setStateHovered={setStateHovered}
                                             properties={properties}
                                             trajectory={trajectory}
-                                            run={run}
                                             globalScale={globalScale}
                                             updateGlobalScale={updateGlobalScale}
                                             ranks={ranks.ordered.slice(0, showTop)}

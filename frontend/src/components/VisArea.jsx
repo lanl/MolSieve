@@ -398,13 +398,16 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
                             {Object.values(trajectories)
                                 .sort((a, b) => a.position > b.position)
                                 .map((trajectory) => {
+                                    const run = runs[trajectory.name];
+                                    const { extents } = run;
                                     return (
                                         <TrajectoryChart
                                             width={width}
                                             height={(showTop + propertyCombos.length) * 50 + 50}
                                             scatterplotHeight={50}
                                             trajectory={trajectory}
-                                            run={runs[trajectory.name]}
+                                            run={run}
+                                            extents={extents}
                                             currentClustering={trajectory.current_clustering}
                                             chunkingThreshold={trajectory.chunkingThreshold}
                                             setStateHovered={setStateHovered}
