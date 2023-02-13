@@ -12,12 +12,10 @@ export default function useRanks(keys, chunkOrder) {
                     const chunkIdx = state.chunkOrder.indexOf(id);
                     const neighbors = getNeighbors(state.chunkOrder, chunkIdx);
                     const zScores = buildDictFromArray(Object.keys(values), []);
-                    console.log(values, id, state.chunkOrder, neighbors);
                     for (const neighbor of neighbors) {
                         if (neighbor) {
                             const neighborValues = state.chunkValues[neighbor];
 
-                            console.log(neighborValues, values);
                             for (const prop of Object.keys(values)) {
                                 if (neighborValues) {
                                     zScores[prop] = [
@@ -42,7 +40,6 @@ export default function useRanks(keys, chunkOrder) {
                         .sort((a, b) => a[1] < b[1])
                         .map((d) => d[0]);
 
-                    console.log(ordered);
                     return {
                         ordered,
                         chunkValues: { ...state.chunkValues, [id]: values },

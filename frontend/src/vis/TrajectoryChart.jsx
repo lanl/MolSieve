@@ -3,8 +3,8 @@ import * as d3 from 'd3';
 
 import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
 import ChunkWrapper from '../hoc/ChunkWrapper';
-import ViolinPlotWrapper from '../hoc/ViolinPlotWrapper';
 import GlobalStates from '../api/globalStates';
+import ViolinPlotWrapper from '../hoc/ViolinPlotWrapper';
 
 import EmbeddedChart from './EmbeddedChart';
 
@@ -86,11 +86,12 @@ function TrajectoryChart({
 
             textRanks.exit().remove();
         }
-    }, [JSON.stringify(ranks.ordered), ref, showTop, propertyCombos, height]);
+    }, [JSON.stringify(ranks.ordered), ref, showTop, JSON.stringify(propertyCombos), height]);
 
     useEffect(() => {
         const { extents } = run;
         const { iChunks, uChunks, topChunkList } = trajectory.getVisibleChunks(extents);
+
         const unimportantWidthExtent =
             iChunks.length > 0 ? (width - MARGIN.right) * 0.1 : width - MARGIN.right;
 
@@ -105,10 +106,13 @@ function TrajectoryChart({
             .domain([0, d3.max(iChunks, (d) => d.slice(extents[0], extents[1]).size)]);
 
         const getWidthScale = (data) => {
-            if (data.important) {
-                return importantWidthScale(data.slice(extents[0], extents[1]).size);
+            if (data) {
+                if (data.important) {
+                    return importantWidthScale(data.slice(extents[0], extents[1]).size);
+                }
+                return unimportantWidthScale(data.size);
             }
-            return unimportantWidthScale(data.size);
+            return undefined;
         };
 
         const totalSum = d3.sum(topChunkList, (d) => getWidthScale(d));
@@ -128,7 +132,7 @@ function TrajectoryChart({
             return w;
         };
         setScales({ getX, getWidthScale, scaleX });
-    }, [JSON.stringify(trajectory.chunkList), width]);
+    }, [JSON.stringify(trajectory.chunkList), JSON.stringify(run), width]);
 
     useEffect(() => {
         if (scales) {
@@ -221,7 +225,7 @@ function TrajectoryChart({
     };
 
     const { extents } = run;
-    const { chunkList } = trajectory;
+    const { topChunkList } = trajectory.getVisibleChunks(extents);
 
     const selectChart = useCallback(
         (chunk) => {
@@ -245,17 +249,20 @@ function TrajectoryChart({
             }}
         >
             {scales &&
-                chunkList.map((chunk) => {
+                topChunkList.map((chunk) => {
                     const { scaleX, getWidthScale, getX } = scales;
                     const chartW = scaleX(getWidthScale(chunk));
 
-                    const chunkIndex = chunkList.indexOf(chunk);
+                    const chunkIndex = topChunkList.indexOf(chunk);
                     const h = chunk.important ? height : height - scatterplotHeight;
 
                     return (
                         <foreignObject
                             key={chunk.id}
-                            x={getX(chunkIndex, 0, chunkList, scaleX, getWidthScale) + MARGIN.right}
+                            x={
+                                getX(chunkIndex, 0, topChunkList, scaleX, getWidthScale) +
+                                MARGIN.right
+                            }
                             y={0}
                             width={chartW}
                             height={h}
@@ -341,5 +348,5 @@ function TrajectoryChart({
         </svg>
     );
 }
-
-export default memo(TrajectoryChart);
+// memo breaks re-rendering when simplification changes
+export default TrajectoryChart;

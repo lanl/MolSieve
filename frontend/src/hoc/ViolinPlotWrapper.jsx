@@ -1,4 +1,4 @@
-import { React, useState, useEffect, useRef } from 'react';
+import { React, useState, useEffect, useRef, memo } from 'react';
 
 import * as d3 from 'd3';
 import LinearProgress from '@mui/material/LinearProgress';
@@ -14,7 +14,7 @@ import ViolinPlot from '../vis/ViolinPlot';
 import GlobalStates from '../api/globalStates';
 import LoadingBox from '../components/LoadingBox';
 
-export default function ViolinPlotWrapper({
+function ViolinPlotWrapper({
     chunk,
     height,
     width,
@@ -138,3 +138,5 @@ export default function ViolinPlotWrapper({
         <LoadingBox />
     );
 }
+
+export default memo(ViolinPlotWrapper);
