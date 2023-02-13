@@ -1,4 +1,4 @@
-import { React, useState, useEffect, useRef } from 'react';
+import { React, useState, useEffect, useRef, memo } from 'react';
 
 import * as d3 from 'd3';
 import { create, all } from 'mathjs';
@@ -25,7 +25,7 @@ import loadChart from '../api/websocketmethods';
 
 const mvaPeriod = 100;
 
-export default function ChunkWrapper({
+function ChunkWrapper({
     chunk,
     properties,
     height,
@@ -254,7 +254,7 @@ export default function ChunkWrapper({
                 yAttributeList={chunk.sequence.slice(sliceStart, sliceEnd)}
                 width={width}
                 height={scatterplotHeight}
-                onElementMouseOver={(_, d) => {
+                onElementMouseEnter={(_, d) => {
                     setStateHovered(d);
                 }}
             />
@@ -281,3 +281,5 @@ export default function ChunkWrapper({
 ChunkWrapper.defaultProps = {
     showTop: 4,
 };
+
+export default memo(ChunkWrapper);

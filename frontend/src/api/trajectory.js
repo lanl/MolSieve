@@ -196,6 +196,28 @@ class Trajectory {
         const lastArray = chunkList.map((c) => c.last);
         return Math.max(...lastArray);
     }
+
+    /**
+     * Gets all of the currently rendered chunks for a trajectory.
+     *
+     * @param {Trajectory} trajectory - The trajectory to retrieve the chunks from.
+     * @returns {Array<Chunk>} Array of visible chunks.
+     */
+    getVisibleChunks(extents) {
+        const { chunkList } = this;
+        const [start, end] = extents;
+        // this is all of the chunks we need for data
+        const topChunkList = chunkList.filter((d) => {
+            return !(start > d.last || end < d.timestep);
+        });
+
+        // the important chunks we will render
+        const iChunks = topChunkList.filter((d) => d.important);
+        // the unimportant chunks we will render
+        const uChunks = topChunkList.filter((d) => !d.important);
+
+        return { iChunks, uChunks, topChunkList };
+    }
 }
 
 export default Trajectory;

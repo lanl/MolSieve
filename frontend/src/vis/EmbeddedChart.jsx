@@ -1,4 +1,4 @@
-import { React, createRef, useState, useEffect } from 'react';
+import { React, createRef, useState, useEffect, useCallback } from 'react';
 
 import Box from '@mui/material/Box';
 import '../css/App.css';
@@ -26,6 +26,10 @@ export default function EmbeddedChart({
     const ref = createRef();
     const [isHovered, setIsHovered] = useState(false);
     const [selectionMode, setSelectionMode] = useState(false);
+
+    const onMouseEnter = useCallback(() => setIsHovered(true), []);
+    const onMouseLeave = useCallback(() => setIsHovered(false), []);
+    const onClick = useCallback(() => onChartClick(), [onChartClick]);
 
     useEffect(() => {
         if (ref.current && brush !== undefined) {
@@ -75,9 +79,9 @@ export default function EmbeddedChart({
             className="embeddedChart"
             border={borderStyle}
             borderColor={color}
-            onClick={() => onChartClick()}
-            onMouseEnter={() => setIsHovered(true)}
-            onMouseLeave={() => setIsHovered(false)}
+            onClick={onClick}
+            onMouseEnter={onMouseEnter}
+            onMouseLeave={onMouseLeave}
         >
             {brush !== undefined ? (
                 <Box
@@ -97,7 +101,7 @@ export default function EmbeddedChart({
             ) : null}
             <svg ref={ref} width={w} height={h}>
                 <foreignObject x={0} y={0} width={w} height={h}>
-                    {children(w, h, isHovered)}
+                    {children(w, h)}
                 </foreignObject>
             </svg>
         </Box>

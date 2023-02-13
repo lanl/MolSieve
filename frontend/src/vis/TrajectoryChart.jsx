@@ -1,4 +1,4 @@
-import { React, useEffect, useState } from 'react';
+import { React, useEffect, useState, memo, useCallback } from 'react';
 import * as d3 from 'd3';
 
 import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
@@ -21,14 +21,13 @@ const MARGIN = {
 
 const minimumChartWidth = 200;
 
-export default function TrajectoryChart({
+function TrajectoryChart({
     trajectory,
     setStateHovered,
     selections,
     width,
     height,
     run,
-    charts,
     properties,
     chunkSelectionMode,
     trajectorySelectionMode,
@@ -51,7 +50,7 @@ export default function TrajectoryChart({
                 svg.selectAll('g:not(.brush, .rankList)').remove();
             }
         },
-        [JSON.stringify(trajectory), JSON.stringify(run), JSON.stringify(charts)]
+        [JSON.stringify(trajectory), JSON.stringify(run)]
     );
 
     const { ranks, reduceRanks } = useRanks(properties, trajectory.chunkOrder());
@@ -91,7 +90,7 @@ export default function TrajectoryChart({
 
     useEffect(() => {
         const { extents } = run;
-        const { iChunks, uChunks, topChunkList } = charts;
+        const { iChunks, uChunks, topChunkList } = trajectory.getVisibleChunks(extents);
         const unimportantWidthExtent =
             iChunks.length > 0 ? (width - MARGIN.right) * 0.1 : width - MARGIN.right;
 
@@ -129,16 +128,16 @@ export default function TrajectoryChart({
             return w;
         };
         setScales({ getX, getWidthScale, scaleX });
-    }, [JSON.stringify(charts), width]);
+    }, [JSON.stringify(trajectory.chunkList), width]);
 
     useEffect(() => {
         if (scales) {
-            const { topChunkList } = charts;
+            const { chunkList } = trajectory;
             const { extents } = run;
 
             // fill this dict with selection data for each chunk
             const chartSelectionDict = {};
-            for (const chunk of topChunkList) {
+            for (const chunk of chunkList) {
                 const { scaleX, getWidthScale } = scales;
                 const chartW = scaleX(getWidthScale(chunk));
 
@@ -221,8 +220,17 @@ export default function TrajectoryChart({
         );
     };
 
-    const { topChunkList } = charts;
     const { extents } = run;
+    const { chunkList } = trajectory;
+
+    const selectChart = useCallback(
+        (chunk) => {
+            if (chunkSelectionMode && !trajectorySelectionMode) {
+                selectObject(chunk);
+            }
+        },
+        [chunkSelectionMode, trajectorySelectionMode]
+    );
 
     return (
         <svg
@@ -237,20 +245,17 @@ export default function TrajectoryChart({
             }}
         >
             {scales &&
-                topChunkList.map((chunk) => {
+                chunkList.map((chunk) => {
                     const { scaleX, getWidthScale, getX } = scales;
                     const chartW = scaleX(getWidthScale(chunk));
 
-                    const chunkIndex = topChunkList.indexOf(chunk);
+                    const chunkIndex = chunkList.indexOf(chunk);
                     const h = chunk.important ? height : height - scatterplotHeight;
 
                     return (
                         <foreignObject
                             key={chunk.id}
-                            x={
-                                getX(chunkIndex, 0, topChunkList, scaleX, getWidthScale) +
-                                MARGIN.right
-                            }
+                            x={getX(chunkIndex, 0, chunkList, scaleX, getWidthScale) + MARGIN.right}
                             y={0}
                             width={chartW}
                             height={h}
@@ -266,11 +271,7 @@ export default function TrajectoryChart({
                                               .on('end', (e) => finishBrush(chunk, e, chartW))
                                         : undefined
                                 }
-                                onChartClick={() => {
-                                    if (chunkSelectionMode && !trajectorySelectionMode) {
-                                        selectObject(chunk);
-                                    }
-                                }}
+                                onChartClick={selectChart(chunk)}
                                 id={`ec_${chunk.id}`}
                                 selected={
                                     chunkSelectionMode &&
@@ -291,14 +292,14 @@ export default function TrajectoryChart({
                                             run={run}
                                             globalScale={globalScale}
                                             updateGlobalScale={updateGlobalScale}
-                                            updateRanks={updateRanks}
                                             ranks={ranks.ordered.slice(0, showTop)}
                                             selections={chartSelections}
                                             showStateClustering={showStateClustering}
                                             showTop={showTop}
-                                            doubleClickAction={() =>
-                                                expand(chunk.id, 100, trajectory)
-                                            }
+                                            doubleClickAction={useCallback(
+                                                () => expand(chunk.id, 100, trajectory),
+                                                []
+                                            )}
                                             propertyCombos={propertyCombos}
                                             extents={extents}
                                             scatterplotHeight={scatterplotHeight}
@@ -340,3 +341,5 @@ export default function TrajectoryChart({
         </svg>
     );
 }
+
+export default memo(TrajectoryChart);

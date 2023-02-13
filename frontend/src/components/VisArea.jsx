@@ -1,10 +1,11 @@
-import { React, useState, useEffect, useReducer } from 'react';
+import { React, useState, useEffect, useReducer, useCallback } from 'react';
 import Box from '@mui/material/Box';
 import CssBaseline from '@mui/material/CssBaseline';
-import Button from '@mui/material/Button';
 import IconButton from '@mui/material/IconButton';
 import ViewListIcon from '@mui/icons-material/ViewList';
 import DifferenceIcon from '@mui/icons-material/Difference';
+import LibraryAddIcon from '@mui/icons-material/LibraryAdd';
+import ClearAllIcon from '@mui/icons-material/ClearAll';
 import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
 import Menu from '@mui/material/Menu';
@@ -31,7 +32,7 @@ import {
 import { createUUID } from '../api/math/random';
 
 import { zTest } from '../api/math/stats';
-import { getAllImportantStates } from '../api/trajectories';
+// import { getAllImportantStates } from '../api/trajectories';
 
 const MULTIVARIATE_CHART_MODAL = 'multivariate_chart';
 
@@ -85,6 +86,8 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
             payload: { extent, trajectoryName, originalExtent, brushValues },
         });
     };
+
+    const setExtentsCallback = useCallback(setExtents, []);
 
     const deleteExtents = (id) => {
         setSelections({ type: 'delete', payload: id });
@@ -166,31 +169,6 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
     const [showStateClustering, setShowStateClustering] = useState(false);
 
     /**
-     * Gets all of the currently rendered chunks for a trajectory.
-     *
-     * @param {Trajectory} trajectory - The trajectory to retrieve the chunks from.
-     * @returns {Array<Chunk>} Array of visible chunks.
-     */
-    const getVisibleChunks = (trajectory) => {
-        const { chunkList, name } = trajectory;
-        const { extents } = runs[name];
-        const [start, end] = extents;
-        // this is all of the chunks we need for data
-        const topChunkList = chunkList
-            .filter((d) => !d.hasParent)
-            .filter((d) => {
-                return !(start > d.last || end < d.timestep);
-            });
-
-        // the important chunks we will render
-        const iChunks = topChunkList.filter((d) => d.important);
-        // the unimportant chunks we will render
-        const uChunks = topChunkList.filter((d) => !d.important);
-
-        return { iChunks, uChunks, topChunkList };
-    };
-
-    /**
      * Gets all visible chunks across all trajectories.
      *
      * @returns {Array<Chunk>} All chunks visible on the screen
@@ -198,7 +176,9 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
     const getAllVisibleChunks = () => {
         let visible = [];
         for (const trajectory of Object.values(trajectories)) {
-            const { iChunks, uChunks } = getVisibleChunks(trajectory);
+            const { name } = trajectory;
+            const { extents } = runs[name];
+            const { iChunks, uChunks } = trajectory.getVisibleChunks(extents);
             visible = [...visible, ...iChunks, ...uChunks];
         }
         return visible;
@@ -274,6 +254,8 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
         }
     };
 
+    const selectObjectCallback = useCallback(selectObject, []);
+
     const startSelection = (selectedMode, action) => {
         if (selectionMode === NO_SELECT) {
             setSelectionMode(selectedMode);
@@ -340,7 +322,7 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
                             >
                                 <ViewListIcon />
                             </IconButton>
-                            <IconButton
+                            {/* <IconButton
                                 size="small"
                                 color={selectionMode !== CHUNK_SELECT ? 'secondary' : 'default'}
                                 onClick={() =>
@@ -350,8 +332,8 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
                                 }
                             >
                                 <DifferenceIcon />
-                            </IconButton>
-                            <Button
+                            </IconButton> */}
+                            {/* <Button
                                 color="secondary"
                                 size="small"
                                 onClick={(e) =>
@@ -364,9 +346,9 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
                                 {selectionMode !== FIND_SIMILAR_SELECT
                                     ? 'FindSimilar'
                                     : 'ToggleFindSimilar'}
-                            </Button>
+                            </Button> */}
 
-                            <Button
+                            {/* <Button
                                 color="secondary"
                                 size="small"
                                 onClick={() =>
@@ -378,8 +360,8 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
                                 {selectionMode !== SWAP_SELECTIONS
                                     ? 'SwapSelections'
                                     : 'CompleteSwap'}
-                            </Button>
-                            <Button
+                            </Button> */}
+                            {/* <Button
                                 color="secondary"
                                 size="small"
                                 onClick={() =>
@@ -391,32 +373,29 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
                                 }
                             >
                                 {showStateClustering ? 'ShowStateID' : 'ClusterStates'}
-                            </Button>
-                            <Button
-                                color="secondary"
-                                size="small"
-                                onClick={() => setSelectionMode(CLEAR_SELECTION)}
-                            >
-                                ClearSelection
-                            </Button>
-                            <Button
+                            </Button> */}
+                            <IconButton
                                 color="secondary"
                                 size="small"
                                 onClick={() => setCurrentModal(MULTIVARIATE_CHART_MODAL)}
+                                onMouseEnter={(e) => tooltip(e.target, 'Add multivariate chart')}
                             >
-                                AddMultichart
-                            </Button>
+                                <LibraryAddIcon />
+                            </IconButton>
+                            <IconButton
+                                color="secondary"
+                                size="small"
+                                onClick={() => setSelectionMode(CLEAR_SELECTION)}
+                                onMouseEnter={(e) => tooltip(e.target, 'Clear selections')}
+                            >
+                                <ClearAllIcon />
+                            </IconButton>
                         </Box>
 
                         <Stack direction="column" spacing={2}>
                             {Object.values(trajectories)
                                 .sort((a, b) => a.position > b.position)
                                 .map((trajectory) => {
-                                    const { uChunks, iChunks } = getVisibleChunks(trajectory);
-
-                                    // NOTE: we STILL need the topChunkList to be all of the chunks for expansion to work when zoomed in!
-                                    const charts = { uChunks, iChunks };
-
                                     return (
                                         <TrajectoryChart
                                             width={width}
@@ -425,16 +404,15 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
                                             trajectory={trajectory}
                                             run={runs[trajectory.name]}
                                             setStateHovered={setStateHovered}
-                                            charts={charts}
                                             properties={properties}
                                             propertyCombos={propertyCombos}
                                             chunkSelectionMode={selectionMode}
                                             trajectorySelectionMode={
                                                 selectionMode === SWAP_SELECTIONS
                                             }
-                                            selectObject={(o) => selectObject(o)}
+                                            selectObject={selectObjectCallback}
                                             selectedObjects={selectedObjects}
-                                            setExtents={setExtents}
+                                            setExtents={setExtentsCallback}
                                             selections={selections}
                                             updateGlobalScale={updateGlobalScale}
                                             globalScale={globalScale}

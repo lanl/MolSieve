@@ -1,4 +1,4 @@
-import { React } from 'react';
+import { React, memo } from 'react';
 
 import * as d3 from 'd3';
 
@@ -7,7 +7,7 @@ import { tooltip } from '../api/myutils';
 
 let ttInstance;
 
-export default function ViolinPlot({
+function ViolinPlot({
     data,
     property,
     width,
@@ -101,3 +101,5 @@ export default function ViolinPlot({
         />
     );
 }
+
+export default memo(ViolinPlot);

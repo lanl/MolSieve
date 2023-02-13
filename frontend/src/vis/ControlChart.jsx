@@ -1,4 +1,4 @@
-import { React, useEffect, useState } from 'react';
+import { React, useEffect, useState, memo } from 'react';
 import * as d3 from 'd3';
 
 import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
@@ -7,7 +7,7 @@ import { tooltip } from '../api/myutils';
 
 let ttInstance;
 
-export default function ControlChart({
+function ControlChart({
     globalScaleMin,
     globalScaleMax,
     width,
@@ -172,3 +172,5 @@ export default function ControlChart({
         />
     );
 }
+
+export default memo(ControlChart);

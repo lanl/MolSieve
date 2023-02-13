@@ -1,4 +1,4 @@
-import { React, useState, useEffect } from 'react';
+import { React, useState, useEffect, memo } from 'react';
 
 import * as d3 from 'd3';
 import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
@@ -6,15 +6,17 @@ import { distributionDict } from '../api/myutils';
 
 import GlobalStates from '../api/globalStates';
 
-export default function AggregateScatterplot({
+function AggregateScatterplot({
     xAttributeList,
     yAttributeList,
     width,
     height,
-    margin = { top: 5, bottom: 10, left: 0, right: 7.5 },
-    onElementMouseOver = () => {},
+    margin = { top: 0, bottom: 3, left: 0, right: 0 },
+    onElementMouseEnter = () => {},
 }) {
     const [data, setData] = useState(null);
+
+    console.log('re-render');
 
     useEffect(() => {
         const chunkSize = yAttributeList.length / 10;
@@ -51,7 +53,7 @@ export default function AggregateScatterplot({
 
             const scaleX = d3
                 .scaleLinear()
-                .domain([0, 9])
+                .domain([0, data.length - 1])
                 .range([margin.left, width - margin.right]);
 
             for (let i = 0; i < data.length; i++) {
@@ -77,8 +79,8 @@ export default function AggregateScatterplot({
                         const state = GlobalStates.get(d);
                         return state.individualColor;
                     })
-                    .on('mouseover', function (_, d) {
-                        onElementMouseOver(this, d);
+                    .on('mouseenter', function (_, d) {
+                        onElementMouseEnter(this, d);
                     })
                     .classed('state', true)
                     .classed('fullOpacity', true)
@@ -97,3 +99,5 @@ export default function AggregateScatterplot({
         />
     );
 }
+
+export default memo(AggregateScatterplot);
