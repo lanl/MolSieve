@@ -57,11 +57,12 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
     const [selections, setSelections] = useReducer(
         (state, action) => {
             switch (action.type) {
-                case 'create':
+                case 'create': {
                     return {
                         values: { ...state.values, [createUUID()]: action.payload },
                         current: state.current,
                     };
+                }
                 case 'delete': {
                     const { [action.payload]: _, ...rest } = state.values;
                     return {
@@ -81,14 +82,14 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
         }
     );
 
-    const setExtents = (extent, trajectoryName, originalExtent, brushValues) => {
+    const addSelection = (extent, trajectoryName, originalExtent, brushValues) => {
         setSelections({
             type: 'create',
             payload: { extent, trajectoryName, originalExtent, brushValues },
         });
     };
 
-    const setExtentsCallback = useCallback(setExtents, []);
+    const addSelectionCallback = useCallback(addSelection, []);
 
     const deleteExtents = (id) => {
         setSelections({ type: 'delete', payload: id });
@@ -142,9 +143,6 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
         }
     }, buildDictFromArray(properties, { min: Number.MAX_VALUE, max: Number.MIN_VALUE }));
 
-    // makes re-renders way faster
-    useEffect(() => {}, [stateHovered]);
-
     useEffect(() => {
         if (globalScale) {
             const currentProperties = Object.keys(globalScale);
@@ -153,7 +151,7 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
             );
             updateGlobalScale({ type: 'addProperties', payload: newProperties });
         }
-    }, [properties]);
+    }, [JSON.stringify(properties)]);
 
     const [propertyCombos, reducePropertyCombos] = useReducer((state, action) => {
         switch (action.type) {
@@ -419,7 +417,7 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
                                             }
                                             selectObject={selectObjectCallback}
                                             selectedObjects={selectedObjects}
-                                            setExtents={setExtentsCallback}
+                                            addSelection={addSelectionCallback}
                                             selections={selections}
                                             updateGlobalScale={updateGlobalScale}
                                             globalScale={globalScale}

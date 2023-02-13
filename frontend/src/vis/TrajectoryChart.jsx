@@ -33,7 +33,7 @@ function TrajectoryChart({
     trajectorySelectionMode,
     selectObject,
     selectedObjects,
-    setExtents,
+    addSelection,
     updateGlobalScale,
     globalScale,
     showStateClustering,
@@ -186,13 +186,12 @@ function TrajectoryChart({
             }
             setChartSelections(chartSelectionDict);
         }
-    }, JSON.stringify(selections));
+    }, [JSON.stringify(selections)]);
 
     // here we can filter out the un-rendered charts right away since we only care about rendering here
     const finishBrush = (chunk, { selection }, chartWidth) => {
         // extents determines the zoom level
         const [chunkSliceStart, chunkSliceEnd] = extents;
-
         const x = d3
             .scaleLinear()
             .domain(
@@ -214,7 +213,7 @@ function TrajectoryChart({
                     d.timestep >= Math.trunc(startTimestep) && d.timestep <= Math.trunc(endTimestep)
             );
 
-        setExtents(
+        addSelection(
             states,
             trajectory.name,
             { start: startTimestep, end: endTimestep },
@@ -268,13 +267,7 @@ function TrajectoryChart({
                                 height={h}
                                 width={chartW}
                                 color={chunk.color}
-                                brush={
-                                    chunk.important
-                                        ? d3
-                                              .brushX()
-                                              .on('end', (e) => finishBrush(chunk, e, chartW))
-                                        : undefined
-                                }
+                                brush={d3.brushX().on('end', (e) => finishBrush(chunk, e, chartW))}
                                 onChartClick={selectChart(chunk)}
                                 id={`ec_${chunk.id}`}
                                 selected={
