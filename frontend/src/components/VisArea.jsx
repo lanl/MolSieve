@@ -10,9 +10,10 @@ import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
+import Tooltip from '@mui/material/Tooltip';
+
 import TrajectoryChart from '../vis/TrajectoryChart';
 import ChartBox from './ChartBox';
-
 import StateDetailView from './StateDetailView';
 import TransferListModal from '../modals/TransferListModal';
 
@@ -311,17 +312,16 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
                 {(width) => (
                     <>
                         <Box display="flex">
-                            <IconButton
-                                color="secondary"
-                                size="small"
-                                id="showTopButton"
-                                onClick={(e) => setAnchorEl(e.currentTarget)}
-                                onMouseEnter={(e) =>
-                                    tooltip(e.target, 'Adjust number of properties shown')
-                                }
-                            >
-                                <ViewListIcon />
-                            </IconButton>
+                            <Tooltip title="Adjust number of properties shown" arrow>
+                                <IconButton
+                                    color="secondary"
+                                    size="small"
+                                    id="showTopButton"
+                                    onClick={(e) => setAnchorEl(e.currentTarget)}
+                                >
+                                    <ViewListIcon />
+                                </IconButton>
+                            </Tooltip>
                             {/* <IconButton
                                 size="small"
                                 color={selectionMode !== CHUNK_SELECT ? 'secondary' : 'default'}
@@ -374,22 +374,24 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
                             >
                                 {showStateClustering ? 'ShowStateID' : 'ClusterStates'}
                             </Button> */}
-                            <IconButton
-                                color="secondary"
-                                size="small"
-                                onClick={() => setCurrentModal(MULTIVARIATE_CHART_MODAL)}
-                                onMouseEnter={(e) => tooltip(e.target, 'Add multivariate chart')}
-                            >
-                                <LibraryAddIcon />
-                            </IconButton>
-                            <IconButton
-                                color="secondary"
-                                size="small"
-                                onClick={() => setSelectionMode(CLEAR_SELECTION)}
-                                onMouseEnter={(e) => tooltip(e.target, 'Clear selections')}
-                            >
-                                <ClearAllIcon />
-                            </IconButton>
+                            <Tooltip title="Add multivariate chart" arrow>
+                                <IconButton
+                                    color="secondary"
+                                    size="small"
+                                    onClick={() => setCurrentModal(MULTIVARIATE_CHART_MODAL)}
+                                >
+                                    <LibraryAddIcon />
+                                </IconButton>
+                            </Tooltip>
+                            <Tooltip title="Clear selections" arrow>
+                                <IconButton
+                                    color="secondary"
+                                    size="small"
+                                    onClick={() => setSelectionMode(CLEAR_SELECTION)}
+                                >
+                                    <ClearAllIcon />
+                                </IconButton>
+                            </Tooltip>
                         </Box>
 
                         <Stack direction="column" spacing={2}>
