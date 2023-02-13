@@ -229,7 +229,7 @@ function TrajectoryChart({
                 selectObject(chunk);
             }
         },
-        [chunkSelectionMode, trajectorySelectionMode]
+        [chunkSelectionMode, trajectorySelectionMode, selectObject]
     );
 
     return (

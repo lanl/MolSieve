@@ -5,6 +5,8 @@ import IconButton from '@mui/material/IconButton';
 import ViewListIcon from '@mui/icons-material/ViewList';
 import DifferenceIcon from '@mui/icons-material/Difference';
 import LibraryAddIcon from '@mui/icons-material/LibraryAdd';
+import SwapVertIcon from '@mui/icons-material/SwapVert';
+
 import ClearAllIcon from '@mui/icons-material/ClearAll';
 import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
@@ -12,11 +14,12 @@ import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
 import Tooltip from '@mui/material/Tooltip';
 
+import { useSnackbar } from 'notistack';
+
 import TrajectoryChart from '../vis/TrajectoryChart';
 import ChartBox from './ChartBox';
 import StateDetailView from './StateDetailView';
 import TransferListModal from '../modals/TransferListModal';
-
 import '../css/App.css';
 import GlobalStates from '../api/globalStates';
 
@@ -53,6 +56,8 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
 
     const [selectionMode, setSelectionMode] = useState(NO_SELECT);
     const [selectedObjects, setSelectedObjects] = useState([]);
+
+    const { enqueueSnackbar } = useSnackbar();
 
     const [selections, setSelections] = useReducer(
         (state, action) => {
@@ -216,9 +221,10 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
         setSelectionMode(NO_SELECT);
         setToolTipList([]);
         GlobalStates.clearClusterStates();
-    }, [trajectories]);
+    }, [JSON.stringify(trajectories)]);
 
     useEffect(() => {
+        console.log('selectionMode set to', selectionMode);
         if (selectionMode === NO_SELECT) {
             setSelectedObjects([]);
         } else {
@@ -241,6 +247,7 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
 
     const selectObject = (o) => {
         // add chunk if it is not already in the array, otherwise remove it from the array
+        console.log(o, selectedObjects, SELECTION_LENGTH[selectionMode], selectionMode);
         if (!selectedObjects.map((d) => d.id).includes(o.id)) {
             // check if the selected length is acceptable for the current mode
             if (selectedObjects.length === SELECTION_LENGTH[selectionMode]) {
@@ -253,22 +260,28 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
         }
     };
 
-    const selectObjectCallback = useCallback(selectObject, []);
+    const selectObjectCallback = useCallback(selectObject, [
+        selectionMode,
+        JSON.stringify(selectedObjects),
+    ]);
 
     const startSelection = (selectedMode, action) => {
-        if (selectionMode === NO_SELECT) {
-            setSelectionMode(selectedMode);
-        }
-
         // the button was clicked again, finish the selection
         if (selectionMode === selectedMode) {
             // if we have the correct amount of objects selected, perform the action
             if (selectedObjects.length === SELECTION_LENGTH[selectedMode]) {
                 // calls action with selectedObjects as a parameter
                 action(selectedObjects);
+            } else {
+                enqueueSnackbar(
+                    `Invalid length for selection. Expected ${SELECTION_LENGTH[selectedMode]}.`,
+                    { variant: 'error' }
+                );
             }
             // add notification if selection was incorrect length
             setSelectionMode(NO_SELECT);
+        } else {
+            setSelectionMode(selectedMode);
         }
     };
 
@@ -346,19 +359,19 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
                                     : 'ToggleFindSimilar'}
                             </Button> */}
 
-                            {/* <Button
-                                color="secondary"
-                                size="small"
-                                onClick={() =>
-                                    startSelection(SWAP_SELECTIONS, (selection) =>
-                                        swapPositions(selection[0], selection[1])
-                                    )
-                                }
-                            >
-                                {selectionMode !== SWAP_SELECTIONS
-                                    ? 'SwapSelections'
-                                    : 'CompleteSwap'}
-                            </Button> */}
+                            <Tooltip title="Swap selections" arrow>
+                                <IconButton
+                                    color="secondary"
+                                    size="small"
+                                    onClick={() =>
+                                        startSelection(SWAP_SELECTIONS, (selection) =>
+                                            swapPositions(selection[0], selection[1])
+                                        )
+                                    }
+                                >
+                                    <SwapVertIcon />
+                                </IconButton>
+                            </Tooltip>
                             {/* <Button
                                 color="secondary"
                                 size="small"

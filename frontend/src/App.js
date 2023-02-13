@@ -281,12 +281,15 @@ class App extends React.Component {
 
     swapPositions = (a, b) => {
         // swap the position variables of the two trajectories
+        const temp = a.position;
+        a.position = b.position; // eslint-disable-line
+        b.position = temp; //eslint-disable-line
 
         this.setState((prevState) => ({
             trajectories: {
                 ...prevState.trajectories,
-                [a.name]: { ...a, position: b.position },
-                [b.name]: { ...b, position: a.position },
+                [a.name]: a,
+                [b.name]: b,
             },
         }));
     };
