@@ -348,5 +348,4 @@ function TrajectoryChart({
         </svg>
     );
 }
-// memo breaks re-rendering when simplification changes
-export default TrajectoryChart;
+export default memo(TrajectoryChart);
