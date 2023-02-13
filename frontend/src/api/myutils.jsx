@@ -437,11 +437,11 @@ export function buildDictFromArray(arr, defaultValue) {
 export function getNeighbors(arr, idx) {
     const neighbors = [undefined, undefined];
 
-    if (idx !== arr.length - 1) {
+    if (idx !== 0) {
         neighbors[0] = arr[idx - 1];
     }
 
-    if (idx !== 0) {
+    if (idx !== arr.length - 1) {
         neighbors[1] = arr[idx + 1];
     }
 

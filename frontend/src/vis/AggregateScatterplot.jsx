@@ -16,8 +16,6 @@ function AggregateScatterplot({
 }) {
     const [data, setData] = useState(null);
 
-    console.log('re-render');
-
     useEffect(() => {
         const chunkSize = yAttributeList.length / 10;
         const chunks = [];

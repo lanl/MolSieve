@@ -53,13 +53,13 @@ function TrajectoryChart({
         [JSON.stringify(trajectory), JSON.stringify(run)]
     );
 
-    const { ranks, reduceRanks } = useRanks(properties, trajectory.chunkOrder());
+    const { ranks, reduceRanks } = useRanks(properties, trajectory.chunkOrder(0));
 
     const [scales, setScales] = useState(null);
     const [chartSelections, setChartSelections] = useState({});
 
-    const updateRanks = (values, weight) => {
-        reduceRanks({ type: 'updateValues', payload: { values, weight } });
+    const updateRanks = (values, id) => {
+        reduceRanks({ type: 'updateValues', payload: { values, id } });
     };
 
     useEffect(() => {
