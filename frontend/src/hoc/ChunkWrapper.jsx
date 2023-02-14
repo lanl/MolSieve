@@ -191,13 +191,24 @@ function ChunkWrapper({
         return <div>Loading interrupted</div>;
     }
 
-    const [start, end] = extents;
-    const { timestep, last } = chunk;
-    const sliceStart = start <= timestep ? 0 : start - timestep;
-    const sliceEnd = end >= last ? last : end - last;
+    const [slice, setSlice] = useState([0, chunk.last]);
+    const [timesteps, setTimesteps] = useState(chunk.timesteps);
 
-    const timesteps = chunk.timesteps.filter((d) => d >= start && d <= end);
+    useEffect(() => {
+        const [start, end] = extents;
+        const { timestep, last } = chunk;
+        const sliceStart = start <= timestep ? 0 : start - timestep;
+        const sliceEnd = end >= last ? last : end - last;
 
+        setSlice([sliceStart, sliceEnd]);
+    }, [JSON.stringify(extents)]);
+
+    useEffect(() => {
+        const [sliceStart, sliceEnd] = slice;
+        setTimesteps(chunk.timesteps.filter((d) => d >= sliceStart && d <= sliceEnd));
+    }, [JSON.stringify(slice)]);
+
+    const [sliceStart, sliceEnd] = slice;
     const controlChartHeight =
         (height - scatterplotHeight) / (ranks.length + Object.keys(tDict).length);
 

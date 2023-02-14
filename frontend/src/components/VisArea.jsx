@@ -423,7 +423,6 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
                                             height={(showTop + propertyCombos.length) * 50 + 50}
                                             scatterplotHeight={50}
                                             trajectory={trajectory}
-                                            run={run}
                                             extents={extents}
                                             currentClustering={trajectory.current_clustering}
                                             chunkingThreshold={trajectory.chunkingThreshold}

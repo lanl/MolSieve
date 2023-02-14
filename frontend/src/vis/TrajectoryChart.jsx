@@ -27,7 +27,6 @@ function TrajectoryChart({
     selections,
     width,
     height,
-    run,
     properties,
     selectObject,
     chunkSelectionMode,
@@ -50,7 +49,7 @@ function TrajectoryChart({
                 svg.selectAll('g:not(.brush, .rankList)').remove();
             }
         },
-        [JSON.stringify(trajectory), JSON.stringify(run)]
+        [JSON.stringify(trajectory)]
     );
 
     const { ranks, reduceRanks } = useRanks(properties, trajectory.chunkOrder(0));
