@@ -64,10 +64,8 @@ export default function Timeline({ trajectory, width, height, run, setExtent }) 
                     [margin.left, 0],
                     [width - margin.right, height],
                 ])
-                .on('end', function ({ selection }) {
-                    if (!selection) {
-                        brushG.call(brush.move, defaultSelection);
-                    }
+                .on('end', function ({ selection, sourceEvent }) {
+                    if (!sourceEvent) return;
                     const start = Math.round(scaleX.invert(selection[0]));
                     const end = Math.round(scaleX.invert(selection[1]));
                     setExtent(name, [start, end]);
@@ -81,6 +79,7 @@ export default function Timeline({ trajectory, width, height, run, setExtent }) 
                                 return scaleX(d.timestep);
                             })
                             .attr('width', (d) => scaleX(d.last) - scaleX(d.timestep));
+                        brushG.call(brush).call(brush.move, [scaleX(start), scaleX(end)]);
                     });
                 });
 
@@ -98,6 +97,8 @@ export default function Timeline({ trajectory, width, height, run, setExtent }) 
                             return scaleX(d.timestep);
                         })
                         .attr('width', (d) => scaleX(d.last) - scaleX(d.timestep));
+                    brushG.call(brush).call(brush.move, [scaleX(0), scaleX(trajectory.length)]);
+                    setExtent(name, [0, trajectory.length]);
                 });
 
             brushG.call(brush).call(brush.move, defaultSelection);
