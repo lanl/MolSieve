@@ -7,6 +7,8 @@ import Divider from '@mui/material/Divider';
 import LinearProgress from '@mui/material/LinearProgress';
 import ScienceIcon from '@mui/icons-material/Science';
 import DisabledByDefaultIcon from '@mui/icons-material/DisabledByDefault';
+import Tooltip from '@mui/material/Tooltip';
+
 import SingleStateViewer from './SingleStateViewer';
 import RadarChart from '../vis/RadarChart';
 import NEBModal from '../modals/NEBModal';
@@ -29,6 +31,7 @@ function SubSequenceView({
     disabled = false,
     onMouseEnter = () => {},
     onMouseLeave = () => {},
+
     deleteFunc = () => {},
 }) {
     const [data, setData] = useState([]);
@@ -94,22 +97,26 @@ function SubSequenceView({
                 disabled={disabled}
             >
                 <Box display="flex" direction="row">
-                    <IconButton
-                        color="secondary"
-                        size="small"
-                        onClick={() => {
-                            deleteFunc();
-                        }}
-                    >
-                        <DisabledByDefaultIcon />
-                    </IconButton>
-                    <IconButton
-                        color="secondary"
-                        size="small"
-                        onClick={() => setOpenModal(!openModal)}
-                    >
-                        <ScienceIcon />
-                    </IconButton>
+                    <Tooltip title="Remove selection" arrow>
+                        <IconButton
+                            color="secondary"
+                            size="small"
+                            onClick={() => {
+                                deleteFunc();
+                            }}
+                        >
+                            <DisabledByDefaultIcon />
+                        </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Run NEB" arrow>
+                        <IconButton
+                            color="secondary"
+                            size="small"
+                            onClick={() => setOpenModal(!openModal)}
+                        >
+                            <ScienceIcon />
+                        </IconButton>
+                    </Tooltip>
                 </Box>
                 <Divider />
                 {!isLoaded && <LinearProgress />}
