@@ -135,7 +135,13 @@ function RadarChart({ data, properties, width, height, globalScale, renderSingle
                 .attr('y', (_, k) => rScale(absMax * 0.95) * Math.sin(angleSlice * k - Math.PI / 2))
                 .attr('fill', 'gray')
                 .text((d) => abbreviate(d.property))
-                .attr('class', (d) => d.property);
+                .attr('class', 'label');
+
+            svg.on('mouseenter', function () {
+                svg.selectAll('.label').attr('fill', 'black');
+            }).on('mouseleave', function () {
+                svg.selectAll('.label').attr('fill', 'lightgray');
+            });
         },
         [data, properties, width, height, globalScale, renderSingle]
     );
