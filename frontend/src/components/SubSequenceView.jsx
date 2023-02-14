@@ -1,4 +1,4 @@
-import { React, useState, useEffect, memo } from 'react';
+import { React, useState, useEffect, memo, useCallback } from 'react';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
@@ -8,6 +8,7 @@ import LinearProgress from '@mui/material/LinearProgress';
 import ScienceIcon from '@mui/icons-material/Science';
 import DisabledByDefaultIcon from '@mui/icons-material/DisabledByDefault';
 import Tooltip from '@mui/material/Tooltip';
+import * as d3 from 'd3';
 
 import SingleStateViewer from './SingleStateViewer';
 import RadarChart from '../vis/RadarChart';
@@ -31,7 +32,7 @@ function SubSequenceView({
     disabled = false,
     onMouseEnter = () => {},
     onMouseLeave = () => {},
-
+    onElementClick = () => {},
     deleteFunc = () => {},
 }) {
     const [data, setData] = useState([]);
@@ -43,6 +44,11 @@ function SubSequenceView({
     ]);
     const [openModal, setOpenModal] = useState(false);
     const [nebPlots, setNEBPlots] = useState(null);
+
+    const colorFunc = useCallback((d) => {
+        const state = GlobalStates.get(d.y);
+        return state.individualColor;
+    }, []);
 
     useEffect(() => {
         // find interesting states
@@ -84,7 +90,7 @@ function SubSequenceView({
     }, []);
 
     useEffect(() => {
-        onMouseEnter(activeState);
+        onElementClick(activeState);
     }, [activeState]);
 
     return (
@@ -92,8 +98,8 @@ function SubSequenceView({
             <Box
                 component={Paper}
                 sx={{ sx }}
-                onMouseEnter={() => onMouseEnter(activeState)}
-                onMouseLeave={() => onMouseLeave()}
+                onMouseEnter={onMouseEnter}
+                onMouseLeave={onMouseLeave}
                 disabled={disabled}
             >
                 <Box display="flex" direction="row">
@@ -124,7 +130,11 @@ function SubSequenceView({
                     {interestingStates.map((stateID) => (
                         <SingleStateViewer
                             stateID={stateID}
-                            onHover={() => setActiveState(stateID)}
+                            onClick={(e) => {
+                                d3.selectAll('.clicked').classed('clicked', false);
+                                setActiveState(stateID);
+                                d3.select(e.target).classed('clicked', true);
+                            }}
                         />
                     ))}
 
@@ -155,14 +165,13 @@ function SubSequenceView({
                     <Scatterplot
                         width={interestingStates.length * 100 + 220}
                         height={30}
-                        colorFunc={(d) => {
-                            const state = GlobalStates.get(d.y);
-                            return state.individualColor;
-                        }}
+                        colorFunc={colorFunc}
                         xAttributeList={timesteps}
                         yAttributeList={stateIDs}
-                        onElementMouseOver={(_, d) => {
+                        onElementClick={(node, d) => {
+                            d3.selectAll('.clicked').classed('clicked', false);
                             setActiveState(d.y);
+                            d3.select(node).classed('clicked', true);
                         }}
                     />
                 </Stack>

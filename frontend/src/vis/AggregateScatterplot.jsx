@@ -11,7 +11,7 @@ function AggregateScatterplot({
     height,
     colorFunc = () => 'black',
     margin = { top: 0, bottom: 3, left: 0, right: 0 },
-    onElementMouseEnter = () => {},
+    onElementClick = () => {},
 }) {
     const [data, setData] = useState(null);
 
@@ -73,8 +73,8 @@ function AggregateScatterplot({
                     .attr('width', scaleX(i + 1) - scaleX(i))
                     .attr('height', scaleY.bandwidth())
                     .attr('fill', (d) => colorFunc(d))
-                    .on('mouseenter', function (_, d) {
-                        onElementMouseEnter(this, d);
+                    .on('click', function (_, d) {
+                        onElementClick(this, d);
                     })
                     .classed('state', true)
                     .classed('fullOpacity', true)

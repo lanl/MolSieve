@@ -1,4 +1,4 @@
-import { React, useEffect, useState } from 'react';
+import { React, useEffect, useState, memo } from 'react';
 import * as d3 from 'd3';
 
 import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
@@ -6,7 +6,7 @@ import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
 import '../css/vis.css';
 import '../css/App.css';
 
-export default function Scatterplot({
+function Scatterplot({
     width,
     height,
     xAttributeList,
@@ -103,7 +103,7 @@ export default function Scatterplot({
                 })
                 .classed('state', true)
                 .classed('clickable', true)
-                .on('click', function (_, d) {
+                .on('click', function (e, d) {
                     onElementClick(this, d);
                 })
                 .on('mouseover', function (_, d) {
@@ -181,3 +181,5 @@ export default function Scatterplot({
         />
     );
 }
+
+export default memo(Scatterplot);

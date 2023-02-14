@@ -100,9 +100,9 @@ function ControlChart({
                 colorPath(svg, line, negDiff, (d) => lcl >= d);
                 colorPath(svg, line, noDiff, (d) => lcl < d);
             } else if (ucl && lcl) {
+                colorPath(svg, line, noDiff, (d) => lcl < d && ucl > d);
                 colorPath(svg, line, posDiff, (d) => ucl <= d);
                 colorPath(svg, line, negDiff, (d) => lcl >= d);
-                colorPath(svg, line, noDiff, (d) => lcl < d && ucl > d);
             } else {
                 colorPath(svg, line, noDiff, () => true);
             }

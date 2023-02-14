@@ -55,7 +55,7 @@ const SELECTION_LENGTH = [0, 1, 3, 2, 2];
 
 export default function VisArea({ trajectories, runs, properties, swapPositions, expand, sx }) {
     const [currentModal, setCurrentModal] = useState(null);
-    const [stateHovered, setStateHovered] = useState(null);
+    const [activeState, setActiveState] = useState(null);
 
     const [selectionMode, setSelectionMode] = useState(NO_SELECT);
     const [selectedObjects, setSelectedObjects] = useState([]);
@@ -422,7 +422,7 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
                                             extents={extents}
                                             currentClustering={trajectory.current_clustering}
                                             chunkingThreshold={trajectory.chunkingThreshold}
-                                            setStateHovered={setStateHovered}
+                                            setStateHovered={setActiveState}
                                             properties={properties}
                                             propertyCombos={propertyCombos}
                                             chunkSelectionMode={selectionMode}
@@ -444,8 +444,8 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
             </ChartBox>
             <Stack direction="row" gap={1}>
                 <Box marginLeft={5} maxWidth="250px">
-                    {stateHovered !== null && stateHovered !== undefined && (
-                        <StateDetailView state={GlobalStates.get(stateHovered)} />
+                    {activeState !== null && activeState !== undefined && (
+                        <StateDetailView state={GlobalStates.get(activeState)} />
                     )}
                 </Box>
 
@@ -473,12 +473,11 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
 
                         return (
                             <SubSequenceView
-                                onMouseEnter={(activeState) => {
+                                onMouseEnter={() => {
                                     const sel = d3.select(`#${uuid}`);
                                     if (!sel.empty()) {
                                         sel.attr('stroke', 'red');
                                     }
-                                    setStateHovered(activeState);
                                 }}
                                 onMouseLeave={() => {
                                     const sel = d3.select(`#${uuid}`);
@@ -486,6 +485,7 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
                                         sel.attr('stroke', 'gray');
                                     }
                                 }}
+                                onElementClick={(state) => setActiveState(state)}
                                 disabled={disabled}
                                 trajectoryName={trajectoryName}
                                 stateIDs={ids}

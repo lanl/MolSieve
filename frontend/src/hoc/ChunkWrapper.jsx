@@ -266,8 +266,10 @@ function ChunkWrapper({
                 width={width}
                 height={scatterplotHeight}
                 colorFunc={colorFunc}
-                onElementMouseEnter={(_, d) => {
+                onElementClick={(node, d) => {
+                    d3.selectAll('.clicked').classed('clicked', false);
                     setStateHovered(d);
+                    d3.select(node).classed('clicked', true);
                 }}
             />
         </Box>

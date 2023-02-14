@@ -95,3 +95,12 @@
 .arrowed {    
     marker-end: url(#arrow);
 }
+
+.clicked {
+    opacity: 1.0;
+    stroke: black;
+}
+
+img.clicked {
+    border: 1px solid black;
+}
