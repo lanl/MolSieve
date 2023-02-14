@@ -4,9 +4,6 @@ import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
 import IconButton from '@mui/material/IconButton';
 import Divider from '@mui/material/Divider';
-import SortIcon from '@mui/icons-material/Sort';
-import Menu from '@mui/material/Menu';
-import MenuItem from '@mui/material/MenuItem';
 import LinearProgress from '@mui/material/LinearProgress';
 import ScienceIcon from '@mui/icons-material/Science';
 import DisabledByDefaultIcon from '@mui/icons-material/DisabledByDefault';
@@ -14,12 +11,12 @@ import SingleStateViewer from './SingleStateViewer';
 import RadarChart from '../vis/RadarChart';
 import NEBModal from '../modals/NEBModal';
 import NEBWrapper from '../hoc/NEBWrapper';
+import Scatterplot from '../vis/Scatterplot';
 
 import '../css/App.css';
 
 import GlobalStates from '../api/globalStates';
-import { oneShotTooltip, abbreviate, occurrenceDict } from '../api/myutils';
-import { createUUID } from '../api/math/random';
+import { oneShotTooltip, abbreviate } from '../api/myutils';
 import { apiSubsetConnectivityDifference } from '../api/ajax';
 
 function SubSequenceView({
@@ -37,7 +34,6 @@ function SubSequenceView({
     const [data, setData] = useState([]);
     const [activeState, setActiveState] = useState(stateIDs[0]);
     const [isLoaded, setIsLoaded] = useState(false);
-    const [anchorEl, setAnchorEl] = useState(null);
     const [interestingStates, setInterestingStates] = useState([
         stateIDs[0],
         stateIDs[stateIDs.length - 1],
@@ -67,19 +63,6 @@ function SubSequenceView({
         // update
     }, [JSON.stringify(stateIDs)]);
 
-    /**
-     * Returns the stateIDs without any sorting.
-     *
-     * @returns {Array<Number>} The sorted stateIDs.
-     */
-    const sortInOrder = () => {
-        return [...new Set(stateIDs)];
-    };
-
-    const sortInOrderWithDuplicates = () => {
-        return stateIDs;
-    };
-
     const addNEB = (states, start, end, interpolate, maxSteps, fmax, saveResults) => {
         if (!nebPlots) {
             setNEBPlots([{ states, start, end, interpolate, maxSteps, fmax, saveResults }]);
@@ -90,21 +73,6 @@ function SubSequenceView({
             ]);
         }
     };
-    /**
-     * Sorts state counts by occurrences from greatest to least left to right
-     *
-     * @returns {Array<Number>} The sorted stateIDs.
-     */
-    const sortByCount = () => {
-        const oc = occurrenceDict(stateIDs);
-
-        return Object.entries(oc)
-            .sort((a, b) => a[1] < b[1])
-            .map((e) => parseInt(e[0], 10));
-    };
-
-    const [stateOrder, setStateOrder] = useState(sortByCount);
-
     useEffect(() => {
         GlobalStates.ensureSubsetHasProperties(properties, stateIDs).then(() => {
             const states = stateIDs.map((id) => GlobalStates.get(id));
@@ -134,15 +102,6 @@ function SubSequenceView({
                         }}
                     >
                         <DisabledByDefaultIcon />
-                    </IconButton>
-                    <IconButton
-                        color="secondary"
-                        size="small"
-                        onClick={(e) => {
-                            setAnchorEl(e.currentTarget);
-                        }}
-                    >
-                        <SortIcon />
                     </IconButton>
                     <IconButton
                         color="secondary"
@@ -186,21 +145,19 @@ function SubSequenceView({
                         backgroundColor: '#F8F9F9',
                     }}
                 >
-                    {stateOrder.map((id) => {
-                        const state = GlobalStates.get(id);
-                        return (
-                            <span
-                                key={createUUID()}
-                                className="stateText"
-                                style={{ color: state.individualColor }}
-                                onMouseEnter={() => {
-                                    setActiveState(id);
-                                }}
-                            >
-                                {id}
-                            </span>
-                        );
-                    })}
+                    <Scatterplot
+                        width={interestingStates.length * 100 + 220}
+                        height={30}
+                        colorFunc={(d) => {
+                            const state = GlobalStates.get(d.y);
+                            return state.individualColor;
+                        }}
+                        xAttributeList={timesteps}
+                        yAttributeList={stateIDs}
+                        onElementMouseOver={(_, d) => {
+                            setActiveState(d.y);
+                        }}
+                    />
                 </Stack>
                 {nebPlots !== null && (
                     <>
@@ -234,17 +191,6 @@ function SubSequenceView({
                     </>
                 )}
             </Box>
-            <Menu open={anchorEl !== null} anchorEl={anchorEl} onClose={() => setAnchorEl(null)}>
-                <MenuItem onClick={() => setStateOrder(sortInOrder)}>
-                    Sort by temporal order
-                </MenuItem>
-                <MenuItem onClick={() => setStateOrder(sortInOrderWithDuplicates)}>
-                    Sort by temporal order with duplicates
-                </MenuItem>
-                <MenuItem onClick={() => setStateOrder(sortByCount)}>
-                    Sort by occurrence count
-                </MenuItem>
-            </Menu>
             <NEBModal
                 open={openModal}
                 close={() => setOpenModal(!openModal)}
