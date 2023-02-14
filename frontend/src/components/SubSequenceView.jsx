@@ -1,4 +1,4 @@
-import { React, useState, useEffect } from 'react';
+import { React, useState, useEffect, memo } from 'react';
 import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
@@ -22,17 +22,17 @@ import { oneShotTooltip, abbreviate, occurrenceDict } from '../api/myutils';
 import { createUUID } from '../api/math/random';
 import { apiSubsetConnectivityDifference } from '../api/ajax';
 
-export default function SubSequenceView({
+function SubSequenceView({
     stateIDs,
     timesteps,
     trajectoryName,
-    deleteFunc,
     properties,
-    sx,
-    disabled,
-    onMouseEnter,
-    onMouseLeave,
     globalScale,
+    sx = {},
+    disabled = false,
+    onMouseEnter = () => {},
+    onMouseLeave = () => {},
+    deleteFunc = () => {},
 }) {
     const [data, setData] = useState([]);
     const [activeState, setActiveState] = useState(stateIDs[0]);
@@ -121,7 +121,7 @@ export default function SubSequenceView({
             <Box
                 component={Paper}
                 sx={{ sx }}
-                // onMouseEnter={() => onMouseEnter(activeState)}
+                onMouseEnter={() => onMouseEnter(activeState)}
                 onMouseLeave={() => onMouseLeave()}
                 disabled={disabled}
             >
@@ -257,3 +257,5 @@ export default function SubSequenceView({
         </>
     );
 }
+
+export default memo(SubSequenceView);

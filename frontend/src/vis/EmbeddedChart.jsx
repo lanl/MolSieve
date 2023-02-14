@@ -43,7 +43,7 @@ export default function EmbeddedChart({
 
         if (selections) {
             for (const s of selections) {
-                const { active, brushValues } = s;
+                const { id: sID, brushValues } = s;
                 const { start, end } = brushValues;
                 d3.select(ref.current)
                     .append('rect')
@@ -52,8 +52,9 @@ export default function EmbeddedChart({
                     .attr('height', height)
                     .attr('width', end - start)
                     .attr('fill', 'none')
-                    .attr('stroke', () => (active ? 'red' : 'gray'))
+                    .attr('stroke', () => 'gray')
                     .attr('stroke-width', 1)
+                    .attr('id', sID)
                     .classed('chartSelection', true);
             }
         }

@@ -144,7 +144,7 @@ function TrajectoryChart({
                 const chartW = scaleX(getWidthScale(chunk));
 
                 const slicedChunk = chunk.slice(extents[0], extents[1]);
-                const { values, current } = selections;
+                const { values } = selections;
 
                 const chartSel = Object.keys(values)
                     .filter((selectionID) => {
@@ -172,13 +172,10 @@ function TrajectoryChart({
                             )
                             .range([0, chartW - 7.5]);
 
-                        const active = current && selectionID === current.id;
-
                         return {
                             set: selection.extent.map((d) => d.timestep),
-                            active,
-                            highlightValue: active ? current.activeState : null,
                             brushValues: { start: x(start), end: x(end) },
+                            id: selectionID,
                         };
                     });
                 chartSelectionDict[chunk.id] = chartSel;

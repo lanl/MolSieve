@@ -17,6 +17,7 @@ import MenuItem from '@mui/material/MenuItem';
 import Tooltip from '@mui/material/Tooltip';
 
 import { useSnackbar } from 'notistack';
+import * as d3 from 'd3';
 
 import TrajectoryChart from '../vis/TrajectoryChart';
 import ChartBox from './ChartBox';
@@ -74,18 +75,14 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
                 case 'create': {
                     return {
                         values: { ...state.values, [createUUID()]: action.payload },
-                        current: state.current,
                     };
                 }
                 case 'delete': {
                     const { [action.payload]: _, ...rest } = state.values;
                     return {
                         values: rest,
-                        current: state.current,
                     };
                 }
-                case 'setCurrent':
-                    return { values: state.values, current: action.payload };
                 default:
                     throw new Error('Unknown action');
             }
@@ -108,7 +105,7 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
     };
 
     const setCurrentSelection = (selection) => {
-        setSelections({ type: 'setCurrent', payload: selection });
+        console.log(selection);
     };
 
     const addSelectionCallback = useCallback(addSelection, []);
@@ -482,10 +479,12 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
                         return (
                             <SubSequenceView
                                 onMouseEnter={(activeState) => {
-                                    setCurrentSelection({ id: uuid, activeState });
+                                    d3.select(`#${uuid}`).attr('stroke', 'red');
                                     setStateHovered(activeState);
                                 }}
-                                onMouseLeave={() => setCurrentSelection(null)}
+                                onMouseLeave={() => {
+                                    d3.select(`#${uuid}`).attr('stroke', 'gray');
+                                }}
                                 disabled={disabled}
                                 trajectoryName={trajectoryName}
                                 stateIDs={ids}
