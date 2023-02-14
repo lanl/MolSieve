@@ -8,15 +8,7 @@ import { abbreviate } from '../api/myutils';
 
 const MARGIN = { left: 10, bottom: 15 };
 
-function RadarChart({
-    data,
-    properties,
-    width,
-    height,
-    globalScale,
-    renderSingle,
-    onElementMouseOver = () => {},
-}) {
+function RadarChart({ data, properties, width, height, globalScale, renderSingle }) {
     const buildAxis = (property, radius) => {
         const gs = globalScale[property];
         const { min, max } = gs;
@@ -122,38 +114,15 @@ function RadarChart({
                     j++;
                 }
 
-                const singleLine = linesG
-                    .selectAll('.singleLine')
-                    .data(singlePoints)
-                    .enter()
-                    .append('g')
-                    .classed('singleLine', true)
-                    .classed('clickable', true)
+                linesG
+                    .append('path')
+                    .datum(singlePoints)
+                    .attr('d', line)
                     .classed('state', true)
-                    .on('mouseover', function (_, d) {
-                        onElementMouseOver(this, d);
-                        svg.select(`.${d.property}`).attr('fill', 'black');
-                    })
-                    .on('mouseout', function (_, d) {
-                        svg.select(`.${d.property}`).attr('fill', 'gray');
-                    });
-
-                singleLine
-                    .append('circle')
-                    .attr('cx', (d) => d.x)
-                    .attr('cy', (d) => d.y)
-                    .attr('r', 5)
+                    .attr('fill', renderSingle.color)
                     .attr('stroke', 'black')
-                    .attr('fill', renderSingle.color);
-
-                singleLine
-                    .append('line')
-                    .attr('x1', 0)
-                    .attr('y1', 0)
-                    .attr('x2', (d) => d.x)
-                    .attr('y2', (d) => d.y)
-                    .style('stroke', renderSingle.color)
-                    .style('stroke-width', '1px');
+                    .attr('stroke-width', '1px')
+                    .classed('line', true);
             }
 
             // Append the labels at each axis
