@@ -16,7 +16,7 @@ import Scatterplot from '../vis/Scatterplot';
 import '../css/App.css';
 
 import GlobalStates from '../api/globalStates';
-import { oneShotTooltip, abbreviate } from '../api/myutils';
+import { oneShotTooltip } from '../api/myutils';
 import { apiSubsetConnectivityDifference } from '../api/ajax';
 
 function SubSequenceView({
@@ -128,7 +128,7 @@ function SubSequenceView({
                         height={200}
                         globalScale={globalScale}
                         onElementMouseOver={(node, d) => {
-                            oneShotTooltip(node, `<b>${abbreviate(d.property)}</b>: ${d.value}`);
+                            oneShotTooltip(node, `${d.value}`);
                         }}
                         renderSingle={GlobalStates.get(activeState)}
                     />

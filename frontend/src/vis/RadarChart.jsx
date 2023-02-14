@@ -1,4 +1,4 @@
-import { React } from 'react';
+import { React, memo } from 'react';
 import * as d3 from 'd3';
 import '../css/vis.css';
 
@@ -8,14 +8,14 @@ import { abbreviate } from '../api/myutils';
 
 const MARGIN = { left: 10, bottom: 15 };
 
-export default function Legend({
+function RadarChart({
     data,
     properties,
     width,
     height,
     globalScale,
-    onElementMouseOver,
     renderSingle,
+    onElementMouseOver = () => {},
 }) {
     const buildAxis = (property, radius) => {
         const gs = globalScale[property];
@@ -92,33 +92,20 @@ export default function Legend({
                 i++;
             }
 
-            const gLines = linesG
-                .selectAll('.line')
-                .data(points)
-                .enter()
-                .append('g')
-                .classed('line', true)
-                .classed('clickable', true)
-                .classed('state', true)
-                .on('mouseover', function (_, d) {
-                    onElementMouseOver(this, d);
-                });
+            const line = d3
+                .line()
+                .x((d) => d.x)
+                .y((d) => d.y)
+                .curve(d3.curveCatmullRom.alpha(0.5));
 
-            gLines
-                .append('circle')
-                .attr('cx', (d) => d.x)
-                .attr('cy', (d) => d.y)
-                .attr('r', 5)
-                .attr('fill', 'red');
-
-            gLines
-                .append('line')
-                .attr('x1', 0)
-                .attr('y1', 0)
-                .attr('x2', (d) => d.x)
-                .attr('y2', (d) => d.y)
-                .style('stroke', 'red')
-                .style('stroke-width', '1px');
+            linesG
+                .append('path')
+                .datum(points)
+                .attr('d', line)
+                .attr('fill', 'lightgray')
+                .style('stroke', 'black')
+                .style('stroke-width', '1px')
+                .classed('line', true);
 
             if (renderSingle) {
                 const singlePoints = [];
@@ -145,6 +132,10 @@ export default function Legend({
                     .classed('state', true)
                     .on('mouseover', function (_, d) {
                         onElementMouseOver(this, d);
+                        svg.select(`.${d.property}`).attr('fill', 'black');
+                    })
+                    .on('mouseout', function (_, d) {
+                        svg.select(`.${d.property}`).attr('fill', 'gray');
                     });
 
                 singleLine
@@ -152,6 +143,7 @@ export default function Legend({
                     .attr('cx', (d) => d.x)
                     .attr('cy', (d) => d.y)
                     .attr('r', 5)
+                    .attr('stroke', 'black')
                     .attr('fill', renderSingle.color);
 
                 singleLine
@@ -167,14 +159,18 @@ export default function Legend({
             // Append the labels at each axis
             axis.append('text')
                 .attr('class', 'legend')
-                .style('font-size', '9px')
+                .style('font-size', '8px')
                 .attr('text-anchor', 'middle')
                 .attr('dy', '0.35em')
                 .attr('x', (_, k) => rScale(absMax * 0.95) * Math.cos(angleSlice * k - Math.PI / 2))
                 .attr('y', (_, k) => rScale(absMax * 0.95) * Math.sin(angleSlice * k - Math.PI / 2))
-                .text((d) => abbreviate(d.property));
+                .attr('fill', 'gray')
+                .text((d) => abbreviate(d.property))
+                .attr('class', (d) => d.property);
         },
         [data, properties, width, height, globalScale, renderSingle]
     );
     return <svg ref={ref} viewBox={[0, 0, width, height]} width={width} height={height} />;
 }
+
+export default memo(RadarChart);
