@@ -104,10 +104,6 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
         setSelections({ type: 'delete', payload: id });
     };
 
-    const setCurrentSelection = (selection) => {
-        console.log(selection);
-    };
-
     const addSelectionCallback = useCallback(addSelection, []);
 
     const updateGS = (oldGS, newGS) => {
@@ -478,11 +474,17 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
                         return (
                             <SubSequenceView
                                 onMouseEnter={(activeState) => {
-                                    d3.select(`#${uuid}`).attr('stroke', 'red');
+                                    const sel = d3.select(`#${uuid}`);
+                                    if (!sel.empty()) {
+                                        sel.attr('stroke', 'red');
+                                    }
                                     setStateHovered(activeState);
                                 }}
                                 onMouseLeave={() => {
-                                    d3.select(`#${uuid}`).attr('stroke', 'gray');
+                                    const sel = d3.select(`#${uuid}`);
+                                    if (!sel.empty()) {
+                                        sel.attr('stroke', 'gray');
+                                    }
                                 }}
                                 disabled={disabled}
                                 trajectoryName={trajectoryName}
@@ -491,7 +493,6 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
                                 properties={properties}
                                 globalScale={globalScale}
                                 deleteFunc={() => {
-                                    setCurrentSelection(null);
                                     deleteSelection(uuid);
                                 }}
                                 sx={{ flex: 1 }}

@@ -17,7 +17,6 @@ import { abbreviate, buildDictFromArray } from '../api/myutils';
 
 import { LOADING_CHUNK_SIZE } from '../api/constants';
 
-import Scatterplot from '../vis/Scatterplot';
 import GlobalStates from '../api/globalStates';
 import LoadingBox from '../components/LoadingBox';
 
@@ -33,7 +32,6 @@ function ChunkWrapper({
     updateGlobalScale,
     ranks,
     showStateClustering,
-    selections,
     doubleClickAction,
     propertyCombos,
     extents,
@@ -272,20 +270,6 @@ function ChunkWrapper({
                     setStateHovered(d);
                 }}
             />
-            {false && (
-                <Scatterplot
-                    key={`${chunk.id}-scatterplot`}
-                    width={width}
-                    height={scatterplotHeight}
-                    colorFunc={colorFunc}
-                    selected={selections}
-                    xAttributeList={timesteps}
-                    yAttributeList={chunk.sequence.slice(sliceStart, sliceEnd)}
-                    onElementMouseOver={(_, d) => {
-                        setStateHovered(d.y);
-                    }}
-                />
-            )}
         </Box>
     ) : (
         <LoadingBox />
