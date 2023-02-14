@@ -52,7 +52,7 @@ export default function EmbeddedChart({
                     .attr('height', height)
                     .attr('width', end - start)
                     .attr('fill', 'none')
-                    .attr('stroke', () => 'gray')
+                    .attr('stroke', 'gray')
                     .attr('stroke-width', 1)
                     .attr('id', sID)
                     .classed('chartSelection', true);

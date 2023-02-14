@@ -181,7 +181,7 @@ function TrajectoryChart({
             }
             setChartSelections(chartSelectionDict);
         }
-    }, [JSON.stringify(selections)]);
+    }, [JSON.stringify(selections), JSON.stringify(extents)]);
 
     // here we can filter out the un-rendered charts right away since we only care about rendering here
     const finishBrush = (chunk, { selection }, chartWidth) => {
