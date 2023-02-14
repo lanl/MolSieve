@@ -23,8 +23,6 @@ import LoadingBox from '../components/LoadingBox';
 
 import loadChart from '../api/websocketmethods';
 
-const mvaPeriod = 5;
-
 function ChunkWrapper({
     chunk,
     properties,
@@ -74,6 +72,10 @@ function ChunkWrapper({
         // const rDict = {};
         const statDict = {};
         const states = chunk.sequence.map((id) => GlobalStates.get(id));
+
+        const mvaP = Math.round(Math.log10(chunk.sequence.length));
+        const mvaPeriod = mvaP > 1 ? mvaP : 2;
+
         for (const prop of properties) {
             const propList = states.map((d) => d[prop]);
 

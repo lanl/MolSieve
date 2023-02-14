@@ -71,6 +71,33 @@ export default function Timeline({ trajectory, width, height, run, setExtent }) 
                     const start = Math.round(scaleX.invert(selection[0]));
                     const end = Math.round(scaleX.invert(selection[1]));
                     setExtent(name, [start, end]);
+
+                    // if user double clicks, the timeline will be redrawn
+                    svg.on('dblclick', () => {
+                        scaleX.domain([start, end]);
+                        trajG
+                            .selectAll('rect')
+                            .attr('x', (d) => {
+                                return scaleX(d.timestep);
+                            })
+                            .attr('width', (d) => scaleX(d.last) - scaleX(d.timestep));
+                    });
+                });
+
+            g.append('text')
+                .attr('x', 0)
+                .attr('y', height * 0.35)
+                .text('Reset')
+                .classed('clickable', true)
+                .attr('fill', 'lightgray')
+                .on('click', () => {
+                    scaleX.domain([0, trajectory.length]);
+                    trajG
+                        .selectAll('rect')
+                        .attr('x', (d) => {
+                            return scaleX(d.timestep);
+                        })
+                        .attr('width', (d) => scaleX(d.last) - scaleX(d.timestep));
                 });
 
             brushG.call(brush).call(brush.move, defaultSelection);

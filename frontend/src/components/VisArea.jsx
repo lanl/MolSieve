@@ -59,6 +59,13 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
     const [selectionMode, setSelectionMode] = useState(NO_SELECT);
     const [selectedObjects, setSelectedObjects] = useState([]);
 
+    const [anchorEl, setAnchorEl] = useState(null);
+
+    const [toolTipList, setToolTipList] = useState([]);
+    const oldToolTipList = usePrevious(toolTipList);
+
+    const [showTop, setShowTop] = useState(4);
+
     const { enqueueSnackbar } = useSnackbar();
 
     const [selections, setSelections] = useReducer(
@@ -96,9 +103,7 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
         });
     };
 
-    const addSelectionCallback = useCallback(addSelection, []);
-
-    const deleteExtents = (id) => {
+    const deleteSelection = (id) => {
         setSelections({ type: 'delete', payload: id });
     };
 
@@ -106,12 +111,7 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
         setSelections({ type: 'setCurrent', payload: selection });
     };
 
-    const [anchorEl, setAnchorEl] = useState(null);
-
-    const [toolTipList, setToolTipList] = useState([]);
-    const oldToolTipList = usePrevious(toolTipList);
-
-    const [showTop, setShowTop] = useState(4);
+    const addSelectionCallback = useCallback(addSelection, []);
 
     const updateGS = (oldGS, newGS) => {
         const updatedGS = {};
@@ -494,7 +494,7 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
                                 globalScale={globalScale}
                                 deleteFunc={() => {
                                     setCurrentSelection(null);
-                                    deleteExtents(uuid);
+                                    deleteSelection(uuid);
                                 }}
                                 sx={{ flex: 1 }}
                             />
