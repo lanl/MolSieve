@@ -29,9 +29,8 @@ function TrajectoryChart({
     height,
     run,
     properties,
-    chunkSelectionMode,
-    trajectorySelectionMode,
     selectObject,
+    chunkSelectionMode,
     selectedObjects,
     addSelection,
     updateGlobalScale,
@@ -223,15 +222,6 @@ function TrajectoryChart({
 
     const { topChunkList } = trajectory.getVisibleChunks(extents);
 
-    const selectChart = useCallback(
-        (chunk) => {
-            if (chunkSelectionMode && !trajectorySelectionMode) {
-                selectObject(chunk);
-            }
-        },
-        [chunkSelectionMode, trajectorySelectionMode, selectObject]
-    );
-
     return (
         <svg
             className="vis"
@@ -239,7 +229,7 @@ function TrajectoryChart({
             ref={ref}
             viewBox={[0, 0, width, height]}
             onClick={() => {
-                if (trajectorySelectionMode) {
+                if (chunkSelectionMode === 3) {
                     selectObject(trajectory);
                 }
             }}
@@ -268,11 +258,11 @@ function TrajectoryChart({
                                 width={chartW}
                                 color={chunk.color}
                                 brush={d3.brushX().on('end', (e) => finishBrush(chunk, e, chartW))}
-                                onChartClick={selectChart(chunk)}
+                                onChartClick={() => selectObject(chunk)}
                                 id={`ec_${chunk.id}`}
                                 selected={
-                                    chunkSelectionMode &&
-                                    !trajectorySelectionMode &&
+                                    chunkSelectionMode !== 0 &&
+                                    chunkSelectionMode !== 3 &&
                                     selectedObjects.map((d) => d.id).includes(chunk.id)
                                 }
                                 selections={chartSelections[chunk.id]}
@@ -289,7 +279,7 @@ function TrajectoryChart({
                                             globalScale={globalScale}
                                             updateGlobalScale={updateGlobalScale}
                                             ranks={ranks.ordered.slice(0, showTop)}
-                                            selections={chartSelections}
+                                            selections={chartSelections[chunk.id]}
                                             showStateClustering={showStateClustering}
                                             showTop={showTop}
                                             doubleClickAction={useCallback(
@@ -327,12 +317,7 @@ function TrajectoryChart({
                 stroke="gray"
                 fill="none"
                 strokeWidth={2}
-                opacity={
-                    trajectorySelectionMode &&
-                    selectedObjects.map((d) => d.id).includes(trajectory.id)
-                        ? 1.0
-                        : 0.0
-                }
+                opacity={selectedObjects.map((d) => d.id).includes(trajectory.id) ? 1.0 : 0.0}
             />
         </svg>
     );

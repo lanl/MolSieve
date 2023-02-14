@@ -385,8 +385,6 @@ export function stateRatioChunkSimilarity(a, b) {
     const aRatios = a.stateRatios;
     const bRatios = b.stateRatios;
 
-    console.log(aRatios, bRatios);
-
     const { smallest, largest } = compareSets(aRatios, bRatios);
 
     // cosine similarity

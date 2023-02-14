@@ -23,7 +23,7 @@ import LoadingBox from '../components/LoadingBox';
 
 import loadChart from '../api/websocketmethods';
 
-const mvaPeriod = 100;
+const mvaPeriod = 5;
 
 function ChunkWrapper({
     chunk,
@@ -48,7 +48,7 @@ function ChunkWrapper({
     const [isInterrupted, setIsInterrupted] = useState(false);
 
     const [colorFunc, setColorFunc] = useState(() => (d) => {
-        const state = GlobalStates.get(d.id);
+        const state = GlobalStates.get(d);
         return state.individualColor;
     });
 
@@ -174,12 +174,12 @@ function ChunkWrapper({
     useEffect(() => {
         if (showStateClustering) {
             setColorFunc(() => (d) => {
-                const state = GlobalStates.get(d.y);
+                const state = GlobalStates.get(d);
                 return state.stateClusteringColor;
             });
         } else {
             setColorFunc(() => (d) => {
-                const state = GlobalStates.get(d.y);
+                const state = GlobalStates.get(d);
                 return state.individualColor;
             });
         }
@@ -254,6 +254,7 @@ function ChunkWrapper({
                 yAttributeList={chunk.sequence.slice(sliceStart, sliceEnd)}
                 width={width}
                 height={scatterplotHeight}
+                colorFunc={colorFunc}
                 onElementMouseEnter={(_, d) => {
                     setStateHovered(d);
                 }}

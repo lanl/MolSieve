@@ -4,13 +4,12 @@ import * as d3 from 'd3';
 import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
 import { distributionDict } from '../api/myutils';
 
-import GlobalStates from '../api/globalStates';
-
 function AggregateScatterplot({
     xAttributeList,
     yAttributeList,
     width,
     height,
+    colorFunc = () => 'black',
     margin = { top: 0, bottom: 3, left: 0, right: 0 },
     onElementMouseEnter = () => {},
 }) {
@@ -73,10 +72,7 @@ function AggregateScatterplot({
                     .attr('y', (d) => scaleY(d))
                     .attr('width', scaleX(i + 1) - scaleX(i))
                     .attr('height', scaleY.bandwidth())
-                    .attr('fill', (d) => {
-                        const state = GlobalStates.get(d);
-                        return state.individualColor;
-                    })
+                    .attr('fill', (d) => colorFunc(d))
                     .on('mouseenter', function (_, d) {
                         onElementMouseEnter(this, d);
                     })
@@ -85,7 +81,7 @@ function AggregateScatterplot({
                     .classed('clickable', true);
             }
         },
-        [JSON.stringify(data), width, height]
+        [JSON.stringify(data), width, height, colorFunc]
     );
     return (
         <svg

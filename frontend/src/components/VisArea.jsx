@@ -3,9 +3,11 @@ import Box from '@mui/material/Box';
 import CssBaseline from '@mui/material/CssBaseline';
 import IconButton from '@mui/material/IconButton';
 import ViewListIcon from '@mui/icons-material/ViewList';
-import DifferenceIcon from '@mui/icons-material/Difference';
+// import DifferenceIcon from '@mui/icons-material/Difference';
+import FindInPageIcon from '@mui/icons-material/FindInPage';
 import LibraryAddIcon from '@mui/icons-material/LibraryAdd';
 import SwapVertIcon from '@mui/icons-material/SwapVert';
+import InvertColorsIcon from '@mui/icons-material/InvertColors';
 
 import ClearAllIcon from '@mui/icons-material/ClearAll';
 import Stack from '@mui/material/Stack';
@@ -36,7 +38,7 @@ import {
 import { createUUID } from '../api/math/random';
 
 import { zTest } from '../api/math/stats';
-// import { getAllImportantStates } from '../api/trajectories';
+import { getAllImportantStates } from '../api/trajectories';
 
 const MULTIVARIATE_CHART_MODAL = 'multivariate_chart';
 
@@ -44,7 +46,7 @@ const NO_SELECT = 0;
 const FIND_SIMILAR_SELECT = 1;
 const CLEAR_SELECTION = 2;
 const SWAP_SELECTIONS = 3;
-const CHUNK_SELECT = 4;
+// const CHUNK_SELECT = 4;
 
 // index with current selection mode to determine how many chunks should be selected
 // for a valid selection
@@ -224,7 +226,6 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
     }, [JSON.stringify(trajectories)]);
 
     useEffect(() => {
-        console.log('selectionMode set to', selectionMode);
         if (selectionMode === NO_SELECT) {
             setSelectedObjects([]);
         } else {
@@ -247,7 +248,6 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
 
     const selectObject = (o) => {
         // add chunk if it is not already in the array, otherwise remove it from the array
-        console.log(o, selectedObjects, SELECTION_LENGTH[selectionMode], selectionMode);
         if (!selectedObjects.map((d) => d.id).includes(o.id)) {
             // check if the selected length is acceptable for the current mode
             if (selectedObjects.length === SELECTION_LENGTH[selectionMode]) {
@@ -344,21 +344,20 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
                             >
                                 <DifferenceIcon />
                             </IconButton> */}
-                            {/* <Button
-                                color="secondary"
-                                size="small"
-                                onClick={(e) =>
-                                    selectionMode !== FIND_SIMILAR_SELECT
-                                        ? startSelection(FIND_SIMILAR_SELECT, () => {})
-                                        : setAnchorEl(e.currentTarget)
-                                }
-                                id="findSimilarButton"
-                            >
-                                {selectionMode !== FIND_SIMILAR_SELECT
-                                    ? 'FindSimilar'
-                                    : 'ToggleFindSimilar'}
-                            </Button> */}
-
+                            <Tooltip title="Find similar regions" arrow>
+                                <IconButton
+                                    color="secondary"
+                                    size="small"
+                                    onClick={(e) =>
+                                        selectionMode !== FIND_SIMILAR_SELECT
+                                            ? startSelection(FIND_SIMILAR_SELECT, () => {})
+                                            : setAnchorEl(e.currentTarget)
+                                    }
+                                    id="findSimilarButton"
+                                >
+                                    <FindInPageIcon />
+                                </IconButton>
+                            </Tooltip>
                             <Tooltip title="Swap selections" arrow>
                                 <IconButton
                                     color="secondary"
@@ -372,19 +371,28 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
                                     <SwapVertIcon />
                                 </IconButton>
                             </Tooltip>
-                            {/* <Button
-                                color="secondary"
-                                size="small"
-                                onClick={() =>
-                                    !showStateClustering
-                                        ? GlobalStates.clusterStates(
-                                              getAllImportantStates(trajectories)
-                                          ).then(() => setShowStateClustering(true))
-                                        : setShowStateClustering(false)
+                            <Tooltip
+                                title={
+                                    showStateClustering
+                                        ? 'Color states by ID'
+                                        : 'Color states by structural properties'
                                 }
+                                arrow
                             >
-                                {showStateClustering ? 'ShowStateID' : 'ClusterStates'}
-                            </Button> */}
+                                <IconButton
+                                    color="secondary"
+                                    size="small"
+                                    onClick={() =>
+                                        !showStateClustering
+                                            ? GlobalStates.clusterStates(
+                                                  getAllImportantStates(trajectories)
+                                              ).then(() => setShowStateClustering(true))
+                                            : setShowStateClustering(false)
+                                    }
+                                >
+                                    <InvertColorsIcon />
+                                </IconButton>
+                            </Tooltip>
                             <Tooltip title="Add multivariate chart" arrow>
                                 <IconButton
                                     color="secondary"
@@ -413,6 +421,7 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
                                     const { extents } = run;
                                     return (
                                         <TrajectoryChart
+                                            key={trajectory.id}
                                             width={width}
                                             height={(showTop + propertyCombos.length) * 50 + 50}
                                             scatterplotHeight={50}
@@ -425,12 +434,9 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
                                             properties={properties}
                                             propertyCombos={propertyCombos}
                                             chunkSelectionMode={selectionMode}
-                                            trajectorySelectionMode={
-                                                selectionMode === SWAP_SELECTIONS
-                                            }
                                             selectObject={selectObjectCallback}
-                                            selectedObjects={selectedObjects}
                                             addSelection={addSelectionCallback}
+                                            selectedObjects={selectedObjects}
                                             selections={selections}
                                             updateGlobalScale={updateGlobalScale}
                                             globalScale={globalScale}
