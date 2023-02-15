@@ -41,16 +41,17 @@ function OverlayViolinPlot({
             for (const dist of data) {
                 const bins = d3.bin().domain(yScale.domain())(dist.values);
 
+                const side = i % 2 === 0 ? -1 : 1;
                 svg.append('path')
                     .datum(bins)
                     .attr('stroke', colors[i])
-                    .attr('fill', 'none')
+                    .attr('fill', colors[i])
                     .attr(
                         'd',
                         d3
                             .area()
-                            .x0((d) => xScale(-d.length))
-                            .x1((d) => xScale(d.length))
+                            .x0(xScale(0))
+                            .x1((d) => xScale(d.length * side))
                             .y((d) => yScale(d.x0))
                             .curve(d3.curveCatmullRom)
                     )
@@ -63,6 +64,13 @@ function OverlayViolinPlot({
                     });
                 i++;
             }
+
+            svg.append('line')
+                .attr('stroke', 'gray')
+                .attr('x1', xScale(0))
+                .attr('x2', xScale(0))
+                .attr('y1', margin.top)
+                .attr('y2', height - margin.bottom);
         },
         [JSON.stringify(data), scaleMin, scaleMax, width, height]
     );
