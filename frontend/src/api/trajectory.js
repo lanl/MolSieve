@@ -65,12 +65,14 @@ class Trajectory {
                 chunk.important,
                 chunk.cluster,
                 chunk.sequence,
+                chunk.selected,
                 this
             );
             this.chunks.set(newChunk.id, newChunk);
             // for now, set chunk properties here
             // newChunk.properties = [...newChunk.properties, ...structuralAnalysisProps];
         }
+        console.log(this.chunkList);
     }
 
     /**

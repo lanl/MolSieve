@@ -30,18 +30,15 @@ export default class Chunk {
 
     sequence = [];
 
-    constructor(timestep, last, firstID, important, cluster, sequence, trajectory) {
+    constructor(timestep, last, firstID, important, cluster, sequence, selected, trajectory) {
         this.timestep = timestep;
         this.last = last;
         this.firstID = firstID;
         this.important = important;
         this.cluster = cluster;
         this.id = GlobalChunks.generateID();
-        if (!important) {
-            this.selected = sequence;
-        } else {
-            this.sequence = sequence;
-        }
+        this.selected = selected;
+        this.sequence = sequence;
         this.trajectory = trajectory;
     }
 
@@ -60,18 +57,9 @@ export default class Chunk {
             this.important,
             this.cluster,
             this.sequence.slice(sliceStart, sliceEnd),
+            this.selected,
             this.trajectory
         );
-    }
-
-    static withParent(timestep, last, firstID, important, parentID, trajectory) {
-        const newChunk = new Chunk(timestep, last, firstID, important, undefined, trajectory);
-        newChunk.parentID = parentID;
-        return newChunk;
-    }
-
-    static initEmpty() {
-        return new Chunk(null, null, null, null, null, null, null);
     }
 
     get clusterIdentifier() {
