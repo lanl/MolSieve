@@ -26,6 +26,7 @@ import TransferListModal from '../modals/TransferListModal';
 import '../css/App.css';
 import GlobalStates from '../api/globalStates';
 
+import ComparisonView from './ComparisonView';
 import SubSequenceView from './SubSequenceView';
 
 import usePrevious from '../hooks/usePrevious';
@@ -35,6 +36,8 @@ import {
     buildDictFromArray,
     percentToString,
     tooltip,
+    focusChart,
+    unFocusCharts,
 } from '../api/myutils';
 import { createUUID } from '../api/math/random';
 
@@ -75,15 +78,11 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
             default:
                 throw new Error('Unknown action');
         }
-    });
+    }, {});
 
     const addComparison = (selection, selectionType) => {
         setComparisonSelections({ type: 'add', payload: { selection, selectionType } });
     };
-
-    useEffect(() => {
-        console.log(comparisonSelections);
-    }, [comparisonSelections]);
 
     const { enqueueSnackbar } = useSnackbar();
 
@@ -197,22 +196,6 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
             visible = [...visible, ...iChunks, ...uChunks];
         }
         return visible;
-    };
-
-    const focusChart = (c1) => {
-        const charts = document.querySelectorAll('.embeddedChart');
-        for (const chart of charts) {
-            if (chart.id !== `ec_${c1.id}`) {
-                chart.classList.add('unfocused');
-            }
-        }
-    };
-
-    const unFocusCharts = () => {
-        const charts = document.querySelectorAll('.embeddedChart.unfocused');
-        for (const chart of charts) {
-            chart.classList.remove('unfocused');
-        }
     };
 
     useEffect(() => {
@@ -467,7 +450,7 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
                 )}
             </ChartBox>
             <Stack direction="row" gap={1}>
-                <Box marginLeft={5} maxWidth="250px">
+                <Box marginLeft={5} width="225px" maxWidth="225px">
                     {activeState !== null && activeState !== undefined && (
                         <StateDetailView state={GlobalStates.get(activeState)} />
                     )}
@@ -520,6 +503,17 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
                                     deleteSelection(uuid);
                                 }}
                                 sx={{ flex: 1 }}
+                            />
+                        );
+                    })}
+                    {Object.keys(comparisonSelections).map((uuid) => {
+                        const { selection, selectionType } = comparisonSelections[uuid];
+                        return (
+                            <ComparisonView
+                                properties={properties}
+                                selection={selection}
+                                selectionType={selectionType}
+                                globalScale={globalScale}
                             />
                         );
                     })}

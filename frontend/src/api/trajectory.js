@@ -72,7 +72,6 @@ class Trajectory {
             // for now, set chunk properties here
             // newChunk.properties = [...newChunk.properties, ...structuralAnalysisProps];
         }
-        console.log(this.chunkList);
     }
 
     /**

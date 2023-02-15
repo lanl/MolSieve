@@ -445,3 +445,19 @@ export function getNeighbors(arr, idx) {
 
     return neighbors;
 }
+
+export function focusChart(c1) {
+    const charts = document.querySelectorAll('.embeddedChart');
+    for (const chart of charts) {
+        if (chart.id !== `ec_${c1}`) {
+            chart.classList.add('unfocused');
+        }
+    }
+}
+
+export function unFocusCharts() {
+    const charts = document.querySelectorAll('.embeddedChart.unfocused');
+    for (const chart of charts) {
+        chart.classList.remove('unfocused');
+    }
+}
