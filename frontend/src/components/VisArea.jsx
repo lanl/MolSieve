@@ -3,7 +3,7 @@ import Box from '@mui/material/Box';
 import CssBaseline from '@mui/material/CssBaseline';
 import IconButton from '@mui/material/IconButton';
 import ViewListIcon from '@mui/icons-material/ViewList';
-// import DifferenceIcon from '@mui/icons-material/Difference';
+import CompareIcon from '@mui/icons-material/Compare';
 import FindInPageIcon from '@mui/icons-material/FindInPage';
 import LibraryAddIcon from '@mui/icons-material/LibraryAdd';
 import SwapVertIcon from '@mui/icons-material/SwapVert';
@@ -47,7 +47,7 @@ const NO_SELECT = 0;
 const FIND_SIMILAR_SELECT = 1;
 const CLEAR_SELECTION = 2;
 const SWAP_SELECTIONS = 3;
-// const CHUNK_SELECT = 4;
+const CHUNK_SELECT = 4;
 
 // index with current selection mode to determine how many chunks should be selected
 // for a valid selection
@@ -61,11 +61,29 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
     const [selectedObjects, setSelectedObjects] = useState([]);
 
     const [anchorEl, setAnchorEl] = useState(null);
+    const [showStateClustering, setShowStateClustering] = useState(false);
 
     const [toolTipList, setToolTipList] = useState([]);
     const oldToolTipList = usePrevious(toolTipList);
 
     const [showTop, setShowTop] = useState(4);
+
+    const [comparisonSelections, setComparisonSelections] = useReducer((state, action) => {
+        switch (action.type) {
+            case 'add':
+                return { ...state, [createUUID()]: action.payload };
+            default:
+                throw new Error('Unknown action');
+        }
+    });
+
+    const addComparison = (selection, selectionType) => {
+        setComparisonSelections({ type: 'add', payload: { selection, selectionType } });
+    };
+
+    useEffect(() => {
+        console.log(comparisonSelections);
+    }, [comparisonSelections]);
 
     const { enqueueSnackbar } = useSnackbar();
 
@@ -164,8 +182,6 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
                 throw new Error('Unknown action');
         }
     }, []);
-
-    const [showStateClustering, setShowStateClustering] = useState(false);
 
     /**
      * Gets all visible chunks across all trajectories.
@@ -326,20 +342,26 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
                                     <ViewListIcon />
                                 </IconButton>
                             </Tooltip>
-                            {/* <IconButton
-                                size="small"
-                                color={selectionMode !== CHUNK_SELECT ? 'secondary' : 'default'}
-                                onClick={() =>
-                                    startSelection(CHUNK_SELECT, (selection) => {
-                                        console.log(selection);
-                                    })
-                                }
-                            >
-                                <DifferenceIcon />
-                            </IconButton> */}
+                            <Tooltip title="Compare chunks" arrow>
+                                <IconButton
+                                    size="small"
+                                    color={selectionMode !== CHUNK_SELECT ? 'secondary' : 'default'}
+                                    onClick={() =>
+                                        startSelection(CHUNK_SELECT, (selection) => {
+                                            addComparison(selection, 'chunk');
+                                        })
+                                    }
+                                >
+                                    <CompareIcon />
+                                </IconButton>
+                            </Tooltip>
                             <Tooltip title="Find similar regions" arrow>
                                 <IconButton
-                                    color="secondary"
+                                    color={
+                                        selectionMode !== FIND_SIMILAR_SELECT
+                                            ? 'secondary'
+                                            : 'default'
+                                    }
                                     size="small"
                                     onClick={(e) =>
                                         selectionMode !== FIND_SIMILAR_SELECT
@@ -353,7 +375,9 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
                             </Tooltip>
                             <Tooltip title="Swap selections" arrow>
                                 <IconButton
-                                    color="secondary"
+                                    color={
+                                        selectionMode !== SWAP_SELECTIONS ? 'secondary' : 'default'
+                                    }
                                     size="small"
                                     onClick={() =>
                                         startSelection(SWAP_SELECTIONS, (selection) =>
