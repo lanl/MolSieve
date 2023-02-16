@@ -1,6 +1,7 @@
 import { React, useEffect, useReducer } from 'react';
 
 import { useSnackbar } from 'notistack';
+import * as d3 from 'd3';
 import Scatterplot from '../vis/Scatterplot';
 import { apiCalculateNEB, onMessageHandler } from '../api/ajax';
 import GlobalStates from '../api/globalStates';
@@ -86,10 +87,10 @@ export default function NEBWrapper({
             yAttributeList={results.values.map((d) => d.energy)}
             additionalAttributes={results.values.map((d) => d.id)}
             margin={{ top: 5, bottom: 10, left: 50, right: 7.5 }}
-            onElementMouseOver={(_, d) => {
-                if (d.id) {
-                    setActiveState(d.id);
-                }
+            onElementClick={(node, d) => {
+                d3.selectAll('.clicked').classed('clicked', false);
+                setActiveState(d.id);
+                d3.select(node).classed('clicked', true);
             }}
             colorFunc={(d) => {
                 if (d.id) {

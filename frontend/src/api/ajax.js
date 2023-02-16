@@ -140,7 +140,6 @@ export function apiCalculateNEB(run, start, end, interpolate, maxSteps, fmax, sa
                 },
             })
             .then((response) => {
-                // TODO: can add saddlepoint and other calculations here
                 resolve(response.data);
             })
             .catch((e) => {
