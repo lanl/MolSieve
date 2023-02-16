@@ -332,11 +332,11 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
                                     <ViewListIcon />
                                 </IconButton>
                             </Tooltip>
-                            <Tooltip title="Compare chunks" arrow>
+                            <Tooltip title="Compare chunks / selections" arrow>
                                 <IconButton
                                     size="small"
                                     color={selectionMode !== CHUNK_SELECT ? 'secondary' : 'default'}
-                                    onClick={() =>
+                                    onClick={() => {
                                         startSelection(CHUNK_SELECT, (selection) => {
                                             // check if selection is all one type
                                             const types = selection.map(
@@ -357,9 +357,9 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
                                                     }
                                                 );
                                             }
-                                            d3.selectAll('.selected').classed('selected', false);
-                                        })
-                                    }
+                                        });
+                                        d3.selectAll('.selected').classed('selected', false);
+                                    }}
                                 >
                                     <CompareIcon />
                                 </IconButton>
@@ -521,7 +521,10 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
                                 onClick={(e) => {
                                     if (selectionMode === CHUNK_SELECT) {
                                         selectObject(selection);
-                                        d3.select(e.currentTarget).classed('selected', true);
+                                        const selected = d3
+                                            .select(e.currentTarget)
+                                            .classed('selected');
+                                        d3.select(e.currentTarget).classed('selected', !selected);
                                     }
                                 }}
                                 onElementClick={(state) => setActiveState(state)}
