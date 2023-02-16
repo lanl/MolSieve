@@ -747,7 +747,7 @@ def subset_connectivity_difference(stateIDs: List[int] = Body([])):
     connectivity_list = []  # all connectivity matrices in order
     for stateID in stateIDs:
         atoms = state_atom_dict[stateID]
-        connectivity_list.append((stateID, converter.atoms_to_connectivity_matrix(atoms)))
+        connectivity_list.append((stateID, atoms))
 
     maximum_difference = []
     iter = 0
