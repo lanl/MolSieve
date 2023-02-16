@@ -1,15 +1,15 @@
 import { React, useState, useEffect, memo, useCallback } from 'react';
-import Box from '@mui/material/Box';
 import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
 import IconButton from '@mui/material/IconButton';
 import Divider from '@mui/material/Divider';
 import LinearProgress from '@mui/material/LinearProgress';
 import ScienceIcon from '@mui/icons-material/Science';
-import DisabledByDefaultIcon from '@mui/icons-material/DisabledByDefault';
 import Tooltip from '@mui/material/Tooltip';
+
 import * as d3 from 'd3';
 
+import RemovableBox from './RemovableBox';
 import SingleStateViewer from './SingleStateViewer';
 import RadarChart from '../vis/RadarChart';
 import NEBModal from '../modals/NEBModal';
@@ -95,25 +95,14 @@ function SubSequenceView({
 
     return (
         <>
-            <Box
+            <RemovableBox
                 component={Paper}
                 sx={{ sx }}
                 onMouseEnter={onMouseEnter}
                 onMouseLeave={onMouseLeave}
                 disabled={disabled}
-            >
-                <Box display="flex" direction="row">
-                    <Tooltip title="Remove selection" arrow>
-                        <IconButton
-                            color="secondary"
-                            size="small"
-                            onClick={() => {
-                                deleteFunc();
-                            }}
-                        >
-                            <DisabledByDefaultIcon />
-                        </IconButton>
-                    </Tooltip>
+                deleteFunc={deleteFunc}
+                toolbar={
                     <Tooltip title="Run NEB" arrow>
                         <IconButton
                             color="secondary"
@@ -123,8 +112,8 @@ function SubSequenceView({
                             <ScienceIcon />
                         </IconButton>
                     </Tooltip>
-                </Box>
-                <Divider />
+                }
+            >
                 {!isLoaded && <LinearProgress />}
                 <Stack direction="row" spacing={0.5}>
                     {interestingStates.map((stateID) => (
@@ -206,7 +195,7 @@ function SubSequenceView({
                         </Stack>
                     </>
                 )}
-            </Box>
+            </RemovableBox>
             <NEBModal
                 open={openModal}
                 close={() => setOpenModal(!openModal)}

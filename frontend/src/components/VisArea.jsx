@@ -75,6 +75,10 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
         switch (action.type) {
             case 'add':
                 return { ...state, [createUUID()]: action.payload };
+            case 'delete': {
+                const { [action.payload]: _, ...rest } = state;
+                return rest;
+            }
             default:
                 throw new Error('Unknown action');
         }
@@ -82,6 +86,10 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
 
     const addComparison = (selection, selectionType) => {
         setComparisonSelections({ type: 'add', payload: { selection, selectionType } });
+    };
+
+    const removeComparison = (uuid) => {
+        setComparisonSelections({ type: 'delete', payload: uuid });
     };
 
     const { enqueueSnackbar } = useSnackbar();
@@ -514,6 +522,7 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
                                 selection={selection}
                                 selectionType={selectionType}
                                 globalScale={globalScale}
+                                deleteFunc={() => removeComparison(uuid)}
                             />
                         );
                     })}

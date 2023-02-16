@@ -1,8 +1,8 @@
 import { React, memo } from 'react';
 import Box from '@mui/material/Box';
-import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
 
+import RemovableBox from './RemovableBox';
 import OverlayViolinPlot from '../vis/OverlayViolinPlot';
 import GlobalStates from '../api/globalStates';
 import { focusChart, unFocusCharts, abbreviate } from '../api/myutils';
@@ -11,7 +11,7 @@ function ComparisonView({
     selection,
     properties,
     globalScale,
-    disabled = false,
+    deleteFunc = () => {},
     onMouseEnter = () => {},
     onMouseLeave = () => {},
 }) {
@@ -22,11 +22,10 @@ function ComparisonView({
     }));
 
     return (
-        <Box
-            component={Paper}
+        <RemovableBox
             onMouseEnter={onMouseEnter}
             onMouseLeave={onMouseLeave}
-            disabled={disabled}
+            deleteFunc={deleteFunc}
             height={300}
             overflow="auto"
         >
@@ -39,7 +38,7 @@ function ComparisonView({
                 const { min, max } = globalScale[property];
 
                 return (
-                    <>
+                    <Box key={property} sx={{ textAlign: 'center' }}>
                         <Typography variant="caption" display="block">
                             {abbreviate(property)}
                         </Typography>
@@ -58,10 +57,10 @@ function ComparisonView({
                                 unFocusCharts();
                             }}
                         />
-                    </>
+                    </Box>
                 );
             })}
-        </Box>
+        </RemovableBox>
     );
 }
 

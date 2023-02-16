@@ -1,28 +1,44 @@
-import { React, forwardRef } from 'react';
+import { React } from 'react';
 import Box from '@mui/material/Box';
-import Button from '@mui/material/Button';
+import Paper from '@mui/material/Paper';
+import IconButton from '@mui/material/IconButton';
+import Divider from '@mui/material/Divider';
+import Tooltip from '@mui/material/Tooltip';
 
-// onClick - fn that wants the array + id of the child to remove
-const RemovableBox = forwardRef(function RemovableBox(
-    { children, childID, deleteChild, childType, onClick },
-    ref
-) {
+import DisabledByDefaultIcon from '@mui/icons-material/DisabledByDefault';
+
+/* eslint-disable react/jsx-props-no-spreading */
+function RemovableBox({
+    children,
+    onMouseEnter = () => {},
+    onMouseLeave = () => {},
+    disabled = false,
+    sx = {},
+    toolbar = [],
+    deleteFunc = () => {},
+    ...props
+}) {
     return (
-        <Box onClick={onClick} ref={ref}>
-            <Button
-                sx={{ float: 'left' }}
-                data-value={`${childID}`}
-                data-type={`${childType}`}
-                color="secondary"
-                onClick={(e) => {
-                    deleteChild(e);
-                }}
-            >
-                X
-            </Button>
+        <Box
+            component={Paper}
+            sx={{ sx }}
+            onMouseEnter={onMouseEnter}
+            onMouseLeave={onMouseLeave}
+            disabled={disabled}
+            {...props}
+        >
+            <Box display="flex" direction="row">
+                <Tooltip title="Remove selection" arrow>
+                    <IconButton color="secondary" onClick={deleteFunc}>
+                        <DisabledByDefaultIcon />
+                    </IconButton>
+                </Tooltip>
+                {toolbar}
+            </Box>
+            <Divider />
             {children}
         </Box>
     );
-});
+}
 
 export default RemovableBox;
