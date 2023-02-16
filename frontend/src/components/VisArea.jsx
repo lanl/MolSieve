@@ -51,10 +51,9 @@ const FIND_SIMILAR_SELECT = 1;
 const CLEAR_SELECTION = 2;
 const SWAP_SELECTIONS = 3;
 const CHUNK_SELECT = 4;
-
 // index with current selection mode to determine how many chunks should be selected
 // for a valid selection
-const SELECTION_LENGTH = [0, 1, 3, 2, 2];
+const SELECTION_LENGTH = [0, 1, 3, 2, 2, 2];
 
 export default function VisArea({ trajectories, runs, properties, swapPositions, expand, sx }) {
     const [currentModal, setCurrentModal] = useState(null);
@@ -98,8 +97,9 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
         (state, action) => {
             switch (action.type) {
                 case 'create': {
+                    const id = createUUID();
                     return {
-                        values: { ...state.values, [createUUID()]: action.payload },
+                        values: { ...state.values, [id]: { ...action.payload, id } },
                     };
                 }
                 case 'delete': {
@@ -247,7 +247,6 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
     setSequenceExtentProp = this.setSequenceExtent.bind(this); */
 
     const selectObject = (o) => {
-        // add chunk if it is not already in the array, otherwise remove it from the array
         if (!selectedObjects.map((d) => d.id).includes(o.id)) {
             // check if the selected length is acceptable for the current mode
             if (selectedObjects.length === SELECTION_LENGTH[selectionMode]) {
@@ -339,7 +338,26 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
                                     color={selectionMode !== CHUNK_SELECT ? 'secondary' : 'default'}
                                     onClick={() =>
                                         startSelection(CHUNK_SELECT, (selection) => {
-                                            addComparison(selection, 'chunk');
+                                            // check if selection is all one type
+                                            const types = selection.map(
+                                                (obj) => obj.constructor.name
+                                            );
+
+                                            const allEqual = types.every((val) => val === types[0]);
+
+                                            if (allEqual) {
+                                                const type =
+                                                    types[0] === 'Chunk' ? 'Chunk' : 'Selection';
+                                                addComparison(selection, type);
+                                            } else {
+                                                enqueueSnackbar(
+                                                    'Cannot mix selections. Please choose either only selections or only chunks.',
+                                                    {
+                                                        variant: 'error',
+                                                    }
+                                                );
+                                            }
+                                            d3.selectAll('.selected').classed('selected', false);
                                         })
                                     }
                                 >
@@ -500,6 +518,12 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
                                         sel.attr('stroke', 'gray');
                                     }
                                 }}
+                                onClick={(e) => {
+                                    if (selectionMode === CHUNK_SELECT) {
+                                        selectObject(selection);
+                                        d3.select(e.currentTarget).classed('selected', true);
+                                    }
+                                }}
                                 onElementClick={(state) => setActiveState(state)}
                                 disabled={disabled}
                                 trajectoryName={trajectoryName}
@@ -514,18 +538,31 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
                             />
                         );
                     })}
-                    {Object.keys(comparisonSelections).map((uuid) => {
-                        const { selection, selectionType } = comparisonSelections[uuid];
-                        return (
-                            <ComparisonView
-                                properties={properties}
-                                selection={selection}
-                                selectionType={selectionType}
-                                globalScale={globalScale}
-                                deleteFunc={() => removeComparison(uuid)}
-                            />
-                        );
-                    })}
+                    {Object.keys(comparisonSelections)
+                        .filter((uuid) => {
+                            const { selectionType } = comparisonSelections[uuid];
+                            return selectionType === 'Chunk';
+                        })
+                        .map((uuid) => {
+                            const { selection } = comparisonSelections[uuid];
+                            return (
+                                <ComparisonView
+                                    properties={properties}
+                                    selection={selection}
+                                    globalScale={globalScale}
+                                    deleteFunc={() => removeComparison(uuid)}
+                                />
+                            );
+                        })}
+                    {Object.keys(comparisonSelections)
+                        .filter((uuid) => {
+                            const { selectionType } = comparisonSelections[uuid];
+                            return selectionType === 'Selection';
+                        })
+                        .map((uuid) => {
+                            // const { selection } = comparisonSelections[uuid];
+                            return <Box>{uuid}</Box>;
+                        })}
                 </Box>
             </Stack>
             <TransferListModal

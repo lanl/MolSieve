@@ -104,3 +104,7 @@
 img.clicked {
     border: 1px solid black;
 }
+
+div.selected {
+    border: 1px solid black;
+}

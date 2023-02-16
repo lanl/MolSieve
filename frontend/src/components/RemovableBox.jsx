@@ -10,8 +10,6 @@ import DisabledByDefaultIcon from '@mui/icons-material/DisabledByDefault';
 /* eslint-disable react/jsx-props-no-spreading */
 function RemovableBox({
     children,
-    onMouseEnter = () => {},
-    onMouseLeave = () => {},
     disabled = false,
     sx = {},
     toolbar = [],
@@ -19,14 +17,7 @@ function RemovableBox({
     ...props
 }) {
     return (
-        <Box
-            component={Paper}
-            sx={{ sx }}
-            onMouseEnter={onMouseEnter}
-            onMouseLeave={onMouseLeave}
-            disabled={disabled}
-            {...props}
-        >
+        <Box component={Paper} sx={{ sx }} disabled={disabled} {...props}>
             <Box display="flex" direction="row">
                 <Tooltip title="Remove selection" arrow>
                     <IconButton color="secondary" onClick={deleteFunc}>

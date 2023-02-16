@@ -1,5 +1,4 @@
 import { React, useState, useEffect, memo, useCallback } from 'react';
-import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
 import IconButton from '@mui/material/IconButton';
 import Divider from '@mui/material/Divider';
@@ -32,6 +31,7 @@ function SubSequenceView({
     disabled = false,
     onMouseEnter = () => {},
     onMouseLeave = () => {},
+    onClick = () => {},
     onElementClick = () => {},
     deleteFunc = () => {},
 }) {
@@ -96,10 +96,10 @@ function SubSequenceView({
     return (
         <>
             <RemovableBox
-                component={Paper}
-                sx={{ sx }}
+                sx={sx}
                 onMouseEnter={onMouseEnter}
                 onMouseLeave={onMouseLeave}
+                onClick={onClick}
                 disabled={disabled}
                 deleteFunc={deleteFunc}
                 toolbar={
