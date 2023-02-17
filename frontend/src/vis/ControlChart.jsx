@@ -23,6 +23,7 @@ function ControlChart({
         noDiff: '#A3A3A3',
     },
     showMedian = false,
+    onClick = () => {},
 }) {
     const buildScaleX = () => {
         return () =>
@@ -145,19 +146,26 @@ function ControlChart({
                 }
                 ttInstance.setContent(`<b>X</b>: ${xVal}<br/><b>Y</b>:${yVal.toFixed(2)} <br/>`);
                 ttInstance.show();
-            });
-
-            svg.on('mouseenter', () => {
-                tooltipCircle.attr('visibility', 'visible');
-            });
-            // clean up memory
-            svg.on('mouseleave', () => {
-                tooltipCircle.attr('visibility', 'hidden');
-                if (ttInstance) {
-                    ttInstance.destroy();
-                }
-                ttInstance = undefined;
-            });
+            })
+                .on('click', (e) => {
+                    const i = d3.bisectCenter(
+                        [...Array(yAttributeList.length).keys()],
+                        scaleX.invert(d3.pointer(e)[0])
+                    );
+                    const xVal = xAttributeList ? xAttributeList[i] : i;
+                    const yVal = yAttributeList[i];
+                    onClick(xVal, yVal);
+                })
+                .on('mouseenter', () => {
+                    tooltipCircle.attr('visibility', 'visible');
+                })
+                .on('mouseleave', () => {
+                    tooltipCircle.attr('visibility', 'hidden');
+                    if (ttInstance) {
+                        ttInstance.destroy();
+                    }
+                    ttInstance = undefined;
+                });
         },
         [scaleX, scaleY]
     );

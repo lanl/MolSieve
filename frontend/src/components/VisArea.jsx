@@ -564,6 +564,7 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
                             return (
                                 <SelectionComparisonView
                                     selections={selection}
+                                    onStateClick={(id) => setActiveState(id)}
                                     deleteFunc={() => removeComparison(uuid)}
                                 />
                             );

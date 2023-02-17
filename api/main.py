@@ -40,6 +40,9 @@ from .utils import (
 )
 from .background_worker.celery import TASK_COMPLETE, celery
 
+from itertools import chain
+import ase.geometry
+
 os.environ["OVITO_THREAD_COUNT"] = "1"
 os.environ["DISPLAY"] = ""
 
@@ -226,6 +229,7 @@ async def calculate_neb_on_path(
 ):
 
     task_id = uuid()
+    print(task_id)
     unprocessed.update(
         {
             task_id: {
@@ -737,6 +741,7 @@ def load_trajectory(run: str, mMin: int, mMax: int, chunkingThreshold: float):
         "current_clustering": trajectory.current_clustering,
     }
 
+
 @router.post("/subset_connectivity_difference")
 def subset_connectivity_difference(stateIDs: List[int] = Body([])):
     driver = GraphDriver()
@@ -761,5 +766,26 @@ def subset_connectivity_difference(stateIDs: List[int] = Body([])):
         iter += 1
 
     return maximum_difference
+
+
+@router.post("/selection_distance")
+def selection_distance(stateIDPairs: List[List[int]] = Body([])):
+    driver = GraphDriver()
+    
+    # flattens 2D array
+    stateIDs = list(chain.from_iterable(stateIDPairs))
+    qb = querybuilder.Neo4jQueryBuilder([("Atom", "PART_OF", "State", "MANY-TO-ONE")])
+    q = qb.generate_get_node_list("State", stateIDs, "PART_OF")
+    state_atom_dict = converter.query_to_ASE(driver, q, "Pt")
+
+    distances = []
+    for pair in stateIDPairs:
+        id1, id2 = pair
+        s1 = state_atom_dict[id1]
+        s2 = state_atom_dict[id2]
+        distances.append(ase.geometry.distance(s1, s2))
+
+    return distances
+
 
 app.include_router(router)

@@ -3,18 +3,20 @@ import * as d3 from 'd3';
 import Stack from '@mui/material/Stack';
 import Box from '@mui/material/Box';
 import CircularProgress from '@mui/material/CircularProgress';
+import Divider from '@mui/material/Divider';
 
 import RemovableBox from './RemovableBox';
 import Scatterplot from '../vis/Scatterplot';
+import SingleStateViewer from './SingleStateViewer';
 import GlobalStates from '../api/globalStates';
 import { apiSelectionDistance } from '../api/ajax';
 import ControlChart from '../vis/ControlChart';
 
-function SelectionComparisonView({ selections, deleteFunc = () => {} }) {
+function SelectionComparisonView({ selections, onStateClick = () => {}, deleteFunc = () => {} }) {
     const [extents, setExtents] = useState(() => {
         const extentDict = {};
         for (const selection of selections) {
-            extentDict[selection.id] = [0, selection.extent.length - 1];
+            extentDict[selection.id] = [0, 5];
         }
         return extentDict;
     });
@@ -50,6 +52,8 @@ function SelectionComparisonView({ selections, deleteFunc = () => {} }) {
     const [comparison, setComparison] = useState(() => calculateComparison());
     const [comparisonData, setComparisonData] = useState([]);
 
+    const [activeStates, setActiveStates] = useState([]);
+
     useEffect(() => {
         setComparison(calculateComparison());
     }, [JSON.stringify(extents)]);
@@ -59,7 +63,7 @@ function SelectionComparisonView({ selections, deleteFunc = () => {} }) {
     }, [JSON.stringify(comparison)]);
 
     return (
-        <RemovableBox deleteFunc={deleteFunc} height={300} overflow="auto">
+        <RemovableBox deleteFunc={deleteFunc} height={475} alignItems="center">
             <Stack>
                 {selections.map((selection) => {
                     const states = selection.extent.map((d) => GlobalStates.get(d.id));
@@ -103,21 +107,40 @@ function SelectionComparisonView({ selections, deleteFunc = () => {} }) {
                                     },
                                 ]}
                             />
+                            <Divider />
                         </Box>
                     );
                 })}
             </Stack>
             {comparisonData.length === 0 && <CircularProgress color="primary" />}
             {comparisonData.length > 0 && (
-                <ControlChart
-                    height={100}
-                    width={200}
-                    xAttributeList={comparison}
-                    yAttributeList={comparisonData}
-                    globalScaleMin={Math.min(comparisonData)}
-                    globalScaleMax={Math.max(comparisonData)}
-                />
+                <>
+                    <ControlChart
+                        height={100}
+                        width={200}
+                        xAttributeList={comparison}
+                        yAttributeList={comparisonData}
+                        globalScaleMin={Math.min(...comparisonData) - 5}
+                        globalScaleMax={Math.max(...comparisonData) + 5}
+                        onClick={(x) => {
+                            setActiveStates(x);
+                        }}
+                    />
+                    <Divider />
+                </>
             )}
+            <Stack direction="row" gap={1}>
+                {activeStates.map((stateID) => (
+                    <SingleStateViewer
+                        stateID={stateID}
+                        onClick={(e) => {
+                            d3.selectAll('.clicked').classed('clicked', false);
+                            onStateClick(stateID);
+                            d3.select(e.target).classed('clicked', true);
+                        }}
+                    />
+                ))}
+            </Stack>
         </RemovableBox>
     );
 }
