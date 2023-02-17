@@ -2,7 +2,7 @@ import { React, useState, useEffect, memo } from 'react';
 import * as d3 from 'd3';
 import Stack from '@mui/material/Stack';
 import Box from '@mui/material/Box';
-import CircularProgress from '@mui/material/CircularProgress';
+import LinearProgress from '@mui/material/LinearProgress';
 import Divider from '@mui/material/Divider';
 
 import RemovableBox from './RemovableBox';
@@ -51,15 +51,19 @@ function SelectionComparisonView({ selections, onStateClick = () => {}, deleteFu
 
     const [comparison, setComparison] = useState(() => calculateComparison());
     const [comparisonData, setComparisonData] = useState([]);
-
     const [activeStates, setActiveStates] = useState([]);
+    const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
         setComparison(calculateComparison());
     }, [JSON.stringify(extents)]);
 
     useEffect(() => {
-        apiSelectionDistance(comparison).then((data) => setComparisonData(data));
+        setIsLoading(true);
+        apiSelectionDistance(comparison).then((data) => {
+            setIsLoading(false);
+            setComparisonData(data);
+        });
     }, [JSON.stringify(comparison)]);
 
     return (
@@ -112,7 +116,7 @@ function SelectionComparisonView({ selections, onStateClick = () => {}, deleteFu
                     );
                 })}
             </Stack>
-            {comparisonData.length === 0 && <CircularProgress color="primary" />}
+            {isLoading && <LinearProgress color="primary" variant="indeterminate" />}
             {comparisonData.length > 0 && (
                 <>
                     <ControlChart
