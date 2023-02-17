@@ -297,3 +297,12 @@ export function apiSubsetConnectivityDifference(stateIDs) {
             .catch((e) => reject(e));
     });
 }
+
+export function apiSelectionDistance(stateIDPairs) {
+    return new Promise((resolve, reject) => {
+        axios
+            .post(`${API_URL}/api/selection_distance`, stateIDPairs)
+            .then((response) => resolve(response.data))
+            .catch((e) => reject(e));
+    });
+}

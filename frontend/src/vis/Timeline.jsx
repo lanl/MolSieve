@@ -66,8 +66,8 @@ export default function Timeline({ trajectory, width, height, run, setExtent }) 
                 ])
                 .on('end', function ({ selection, sourceEvent }) {
                     if (!sourceEvent) return;
-                    const start = Math.round(scaleX.invert(selection[0]));
-                    const end = Math.round(scaleX.invert(selection[1]));
+                    const start = Math.trunc(scaleX.invert(selection[0]));
+                    const end = Math.trunc(scaleX.invert(selection[1]));
                     setExtent(name, [start, end]);
 
                     // if user double clicks, the timeline will be redrawn

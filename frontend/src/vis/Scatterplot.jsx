@@ -163,7 +163,7 @@ function Scatterplot({
                 .selectAll('.currentSelection')
                 .classed('currentSelection', false);
         };
-    }, [JSON.stringify(selected)]);
+    }, [JSON.stringify(selected), scaleX, scaleY, colorFunc]);
 
     return (
         <svg

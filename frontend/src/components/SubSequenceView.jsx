@@ -34,6 +34,7 @@ function SubSequenceView({
     onClick = () => {},
     onElementClick = () => {},
     deleteFunc = () => {},
+    className = '',
 }) {
     const [data, setData] = useState([]);
     const [activeState, setActiveState] = useState(stateIDs[0]);
@@ -102,6 +103,7 @@ function SubSequenceView({
                 onClick={onClick}
                 disabled={disabled}
                 deleteFunc={deleteFunc}
+                className={className}
                 toolbar={
                     <Tooltip title="Run NEB" arrow>
                         <IconButton

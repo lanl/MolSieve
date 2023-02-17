@@ -54,7 +54,7 @@ export default function EmbeddedChart({
                     .attr('fill', 'none')
                     .attr('stroke', 'gray')
                     .attr('stroke-width', 1)
-                    .attr('id', sID)
+                    .classed(sID, true)
                     .classed('chartSelection', true);
             }
         }

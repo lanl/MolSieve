@@ -7,6 +7,7 @@ import CompareIcon from '@mui/icons-material/Compare';
 import FindInPageIcon from '@mui/icons-material/FindInPage';
 import LibraryAddIcon from '@mui/icons-material/LibraryAdd';
 import SwapVertIcon from '@mui/icons-material/SwapVert';
+
 import InvertColorsIcon from '@mui/icons-material/InvertColors';
 
 import ClearAllIcon from '@mui/icons-material/ClearAll';
@@ -27,6 +28,7 @@ import '../css/App.css';
 import GlobalStates from '../api/globalStates';
 
 import ComparisonView from './ComparisonView';
+import SelectionComparisonView from './SelectionComparisonView';
 import SubSequenceView from './SubSequenceView';
 
 import usePrevious from '../hooks/usePrevious';
@@ -507,16 +509,10 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
                         return (
                             <SubSequenceView
                                 onMouseEnter={() => {
-                                    const sel = d3.select(`#${uuid}`);
-                                    if (!sel.empty()) {
-                                        sel.attr('stroke', 'red');
-                                    }
+                                    d3.selectAll(`rect.${uuid}`).classed('selected', true);
                                 }}
                                 onMouseLeave={() => {
-                                    const sel = d3.select(`#${uuid}`);
-                                    if (!sel.empty()) {
-                                        sel.attr('stroke', 'gray');
-                                    }
+                                    d3.selectAll(`rect.${uuid}`).classed('selected', false);
                                 }}
                                 onClick={(e) => {
                                     if (selectionMode === CHUNK_SELECT) {
@@ -527,6 +523,7 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
                                         d3.select(e.currentTarget).classed('selected', !selected);
                                     }
                                 }}
+                                className={uuid}
                                 onElementClick={(state) => setActiveState(state)}
                                 disabled={disabled}
                                 trajectoryName={trajectoryName}
@@ -563,8 +560,13 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
                             return selectionType === 'Selection';
                         })
                         .map((uuid) => {
-                            // const { selection } = comparisonSelections[uuid];
-                            return <Box>{uuid}</Box>;
+                            const { selection } = comparisonSelections[uuid];
+                            return (
+                                <SelectionComparisonView
+                                    selections={selection}
+                                    deleteFunc={() => removeComparison(uuid)}
+                                />
+                            );
                         })}
                 </Box>
             </Stack>
