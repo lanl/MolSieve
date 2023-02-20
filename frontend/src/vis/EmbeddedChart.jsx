@@ -1,6 +1,7 @@
 import { React, createRef, useState, useEffect } from 'react';
 
 import Box from '@mui/material/Box';
+import Tooltip from '@mui/material/Tooltip';
 import '../css/App.css';
 
 import IconButton from '@mui/material/IconButton';
@@ -86,14 +87,16 @@ export default function EmbeddedChart({
                 sx={{ visibility: isHovered ? 'visible' : 'hidden' }}
             >
                 {brush !== undefined ? (
-                    <IconButton
-                        color="secondary"
-                        size="small"
-                        aria-label={selectionMode ? 'Clear Selection' : 'Start Selection'}
-                        onClick={() => setSelectionMode(!selectionMode)}
-                    >
-                        {selectionMode ? <DeselectIcon /> : <HighlightAltIcon />}
-                    </IconButton>
+                    <Tooltip title="Select sub-region" arrow>
+                        <IconButton
+                            color="secondary"
+                            size="small"
+                            aria-label={selectionMode ? 'Clear Selection' : 'Start Selection'}
+                            onClick={() => setSelectionMode(!selectionMode)}
+                        >
+                            {selectionMode ? <DeselectIcon /> : <HighlightAltIcon />}
+                        </IconButton>
+                    </Tooltip>
                 ) : null}
                 {controls}
             </Box>

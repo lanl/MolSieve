@@ -10,6 +10,8 @@ import LinearProgress from '@mui/material/LinearProgress';
 import '../css/App.css';
 
 import Stack from '@mui/material/Stack';
+import Typography from '@mui/material/Typography';
+
 import ControlChart from '../vis/ControlChart';
 import AggregateScatterplot from '../vis/AggregateScatterplot';
 
@@ -259,15 +261,16 @@ function ChunkWrapper({
             color={chunk.color}
             brush={d3.brushX().on('end', (e) => finishBrush(e))}
             controls={
-                <Box width={width / 4}>
+                <Box width={width} display="flex" alignItems="center" gap={1}>
                     <Slider
                         min={2}
-                        defaultValue={Math.min(chunk.sequence.length / 4, 100)}
-                        max={chunk.sequence.length / 4}
+                        defaultValue={Math.min(Math.trunc(chunk.sequence.length / 4), 100)}
+                        max={Math.trunc(chunk.sequence.length / 4)}
                         step={1}
                         size="small"
                         onChangeCommitted={(_, v) => setMvaPeriod(v)}
                     />
+                    <Typography variant="caption">{mvaPeriod}</Typography>
                 </Box>
             }
             onChartClick={() => selectObject(chunk)}
