@@ -4,6 +4,7 @@ import * as d3 from 'd3';
 import { create, all } from 'mathjs';
 
 import Box from '@mui/material/Box';
+import Slider from '@mui/material/Slider';
 import LinearProgress from '@mui/material/LinearProgress';
 
 import '../css/App.css';
@@ -60,6 +61,7 @@ function ChunkWrapper({
         buildDictFromArray(properties, { std: undefined, mean: undefined })
     );
 
+    const [mvaPeriod, setMvaPeriod] = useState(Math.min(chunk.sequence.length / 4, 100));
     const [tDict, setTDict] = useState({});
     const ws = useRef(null);
 
@@ -78,9 +80,6 @@ function ChunkWrapper({
         const statDict = {};
         const states = chunk.sequence.map((id) => GlobalStates.get(id));
 
-        const mvaP = Math.round(Math.sqrt(chunk.sequence.length));
-        const mvaPeriod = mvaP > 1 ? mvaP : 2;
-
         for (const prop of properties) {
             const propList = states.map((d) => d[prop]);
 
@@ -97,6 +96,10 @@ function ChunkWrapper({
         // updateRanks(rDict, 1);
         setStats(statDict);
     };
+
+    useEffect(() => {
+        render();
+    }, [mvaPeriod]);
 
     useEffect(() => {
         if (ws.current) {
@@ -255,6 +258,18 @@ function ChunkWrapper({
             width={width}
             color={chunk.color}
             brush={d3.brushX().on('end', (e) => finishBrush(e))}
+            controls={
+                <Box width={width / 4}>
+                    <Slider
+                        min={2}
+                        defaultValue={Math.min(chunk.sequence.length / 4, 100)}
+                        max={chunk.sequence.length / 4}
+                        step={1}
+                        size="small"
+                        onChangeCommitted={(_, v) => setMvaPeriod(v)}
+                    />
+                </Box>
+            }
             onChartClick={() => selectObject(chunk)}
             id={`ec_${chunk.id}`}
             selected={

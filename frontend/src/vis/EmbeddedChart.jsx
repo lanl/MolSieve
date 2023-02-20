@@ -80,7 +80,11 @@ export default function EmbeddedChart({
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
         >
-            <Box className="floatingToolBar" sx={{ visibility: isHovered ? 'visible' : 'hidden' }}>
+            <Box
+                className="floatingToolBar"
+                width={w}
+                sx={{ visibility: isHovered ? 'visible' : 'hidden' }}
+            >
                 {brush !== undefined ? (
                     <IconButton
                         color="secondary"
