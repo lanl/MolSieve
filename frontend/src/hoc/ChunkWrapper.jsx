@@ -11,6 +11,7 @@ import '../css/App.css';
 
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
+import Tooltip from '@mui/material/Tooltip';
 
 import ControlChart from '../vis/ControlChart';
 import AggregateScatterplot from '../vis/AggregateScatterplot';
@@ -270,7 +271,9 @@ function ChunkWrapper({
                         size="small"
                         onChangeCommitted={(_, v) => setMvaPeriod(v)}
                     />
-                    <Typography variant="caption">{mvaPeriod}</Typography>
+                    <Tooltip title="Moving average period" arrow>
+                        <Typography variant="caption">{mvaPeriod}</Typography>
+                    </Tooltip>
                 </Box>
             }
             onChartClick={() => selectObject(chunk)}
