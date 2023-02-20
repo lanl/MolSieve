@@ -1,7 +1,6 @@
 import React from 'react';
 import Paper from '@mui/material/Paper';
-import Divider from '@mui/material/Divider';
-
+import Box from '@mui/material/Box';
 import { DataGrid } from '@mui/x-data-grid';
 
 import SingleStateViewer from './SingleStateViewer';
@@ -10,7 +9,7 @@ export default function StateDetailView({ state }) {
     return (
         <Paper>
             <SingleStateViewer stateID={state.id} />
-            <Divider />
+            <Box height={5} width={225} sx={{ backgroundColor: state.individualColor }} />
             <DataGrid
                 autoHeight
                 density="compact"
@@ -20,8 +19,8 @@ export default function StateDetailView({ state }) {
                 disableSelectionOnClick
                 pageSize={5}
                 columns={[
-                    { field: 'property', headerName: 'property' },
-                    { field: 'value', headerName: 'value' },
+                    { field: 'property', headerName: 'Property' },
+                    { field: 'value', headerName: 'Value' },
                 ]}
                 rows={state.properties.map(([property, value], idx) => ({
                     id: idx,

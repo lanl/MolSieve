@@ -478,7 +478,7 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
                 )}
             </ChartBox>
             <Stack direction="row" gap={1}>
-                <Box marginLeft={5} width="225px" maxWidth="225px">
+                <Box marginLeft={5} minWidth="225px">
                     {activeState !== null && activeState !== undefined && (
                         <StateDetailView state={GlobalStates.get(activeState)} />
                     )}
