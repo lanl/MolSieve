@@ -27,7 +27,10 @@ function ControlChart({
 }) {
     const buildScaleX = () => {
         return () =>
-            d3.scaleLinear().domain([0, yAttributeList.length]).range([margin.left, width]);
+            d3
+                .scaleLinear()
+                .domain([0, yAttributeList.length - 1])
+                .range([margin.left, width - margin.right]);
     };
 
     const buildScaleY = () => {

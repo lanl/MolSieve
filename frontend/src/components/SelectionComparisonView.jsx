@@ -81,12 +81,13 @@ function SelectionComparisonView({ selections, onStateClick = () => {}, deleteFu
                             }
                         >
                             <Scatterplot
-                                width={200}
+                                width={205}
                                 height={50}
                                 colorFunc={(d) => {
                                     const state = GlobalStates.get(d.y);
                                     return state.individualColor;
                                 }}
+                                margin={{ top: 3, bottom: 2, left: 3, right: 3 }}
                                 xAttributeList={[...Array(states.length).keys()]}
                                 yAttributeList={states.map((d) => d.id)}
                                 brush={d3.brushX().on('end', (e) => {
@@ -95,7 +96,7 @@ function SelectionComparisonView({ selections, onStateClick = () => {}, deleteFu
                                         const x = d3
                                             .scaleLinear()
                                             .domain(d3.extent([...Array(states.length).keys()]))
-                                            .range([0, 200]);
+                                            .range([0, 205]);
 
                                         const start = Math.trunc(x.invert(gStart));
                                         const end = Math.trunc(x.invert(gEnd));
@@ -121,7 +122,7 @@ function SelectionComparisonView({ selections, onStateClick = () => {}, deleteFu
                 <>
                     <ControlChart
                         height={100}
-                        width={200}
+                        width={205}
                         xAttributeList={comparison}
                         yAttributeList={comparisonData}
                         globalScaleMin={Math.min(...comparisonData) - 5}
@@ -129,6 +130,7 @@ function SelectionComparisonView({ selections, onStateClick = () => {}, deleteFu
                         onClick={(x) => {
                             setActiveStates(x);
                         }}
+                        margin={{ top: 3, bottom: 2, left: 3, right: 3 }}
                     />
                     <Divider />
                 </>
