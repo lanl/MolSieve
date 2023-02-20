@@ -26,7 +26,7 @@ function ComparisonView({
             onMouseEnter={onMouseEnter}
             onMouseLeave={onMouseLeave}
             deleteFunc={deleteFunc}
-            height={300}
+            height={475}
             overflow="auto"
         >
             {properties.map((property) => {

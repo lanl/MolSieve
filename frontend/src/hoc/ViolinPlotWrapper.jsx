@@ -14,13 +14,18 @@ import ViolinPlot from '../vis/ViolinPlot';
 import GlobalStates from '../api/globalStates';
 import LoadingBox from '../components/LoadingBox';
 
+import EmbeddedChart from '../vis/EmbeddedChart';
+
 function ViolinPlotWrapper({
     chunk,
     height,
     width,
     properties,
     updateRanks,
+    selectObject,
     ranks,
+    chunkSelectionMode,
+    selectedObjects,
     globalScale,
     updateGlobalScale,
     propertyCombos,
@@ -103,37 +108,56 @@ function ViolinPlotWrapper({
     const boxPlotHeight = height / (ranks.length + propertyCombos.length);
 
     return isInitialized ? (
-        <Box>
-            {progress < 1.0 ? (
-                <LinearProgress variant="determinate" value={progress * 100} className="bar" />
-            ) : null}
-            <Stack direction="column">
-                {ranks.map((property) => {
-                    const { min, max } = globalScale[property];
-                    const { q1, q3, median, iqr } = boxStats[property];
+        <EmbeddedChart
+            height={height}
+            width={width}
+            color={chunk.color}
+            onChartClick={() => selectObject(chunk)}
+            id={`ec_${chunk.id}`}
+            selected={
+                chunkSelectionMode !== 0 &&
+                chunkSelectionMode !== 3 &&
+                selectedObjects.map((d) => d.id).includes(chunk.id)
+            }
+        >
+            {(ww) => (
+                <Box>
+                    {progress < 1.0 ? (
+                        <LinearProgress
+                            variant="determinate"
+                            value={progress * 100}
+                            className="bar"
+                        />
+                    ) : null}
+                    <Stack direction="column">
+                        {ranks.map((property) => {
+                            const { min, max } = globalScale[property];
+                            const { q1, q3, median, iqr } = boxStats[property];
 
-                    return (
-                        <ViolinPlot
-                            key={`${chunk.id}-${property}`}
-                            showYAxis={false}
-                            data={chunk.getPropList(property)}
-                            color={chunk.color}
-                            property={property}
-                            width={width}
-                            mouseOverText={`${chunk.toString()}<br/>
+                            return (
+                                <ViolinPlot
+                                    key={`${chunk.id}-${property}`}
+                                    showYAxis={false}
+                                    data={chunk.getPropList(property)}
+                                    color={chunk.color}
+                                    property={property}
+                                    width={ww}
+                                    mouseOverText={`${chunk.toString()}<br/>
                             <em>${property}</em><br/> 
                             <b>Q1</b>: ${q1}</br> 
                             <b>Median</b>: ${median}</br> 
                             <b>Q3</b>: ${q3}</br>
                             <b>IQR</b>: ${iqr} <br/>`}
-                            height={boxPlotHeight}
-                            globalScaleMin={min}
-                            globalScaleMax={max}
-                        />
-                    );
-                })}
-            </Stack>
-        </Box>
+                                    height={boxPlotHeight}
+                                    globalScaleMin={min}
+                                    globalScaleMax={max}
+                                />
+                            );
+                        })}
+                    </Stack>
+                </Box>
+            )}
+        </EmbeddedChart>
     ) : (
         <LoadingBox />
     );

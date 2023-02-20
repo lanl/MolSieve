@@ -1,12 +1,9 @@
-import { React, useEffect, useState, memo, useCallback } from 'react';
+import { React, useEffect, useState, memo } from 'react';
 import * as d3 from 'd3';
 
 import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
 import ChunkWrapper from '../hoc/ChunkWrapper';
-import GlobalStates from '../api/globalStates';
 import ViolinPlotWrapper from '../hoc/ViolinPlotWrapper';
-
-import EmbeddedChart from './EmbeddedChart';
 
 import useRanks from '../hooks/useRanks';
 import { abbreviate } from '../api/myutils';
@@ -184,38 +181,6 @@ function TrajectoryChart({
     }, [JSON.stringify(selections), JSON.stringify(extents)]);
 
     // here we can filter out the un-rendered charts right away since we only care about rendering here
-    const finishBrush = (chunk, { selection }, chartWidth) => {
-        // extents determines the zoom level
-        const [chunkSliceStart, chunkSliceEnd] = extents;
-        const x = d3
-            .scaleLinear()
-            .domain(
-                d3.extent(chunk.timesteps.filter((d) => d >= chunkSliceStart && d <= chunkSliceEnd))
-            )
-            .range([0, chartWidth - 7.5]); // 7.5 to match margin on scatterplot
-
-        const startTimestep = x.invert(selection[0]);
-        const endTimestep = x.invert(selection[1]);
-
-        const states = chunk.sequence
-            .map((sID) => GlobalStates.get(sID))
-            .map((s, i) => ({
-                timestep: chunk.timestep + i,
-                id: s.id,
-            }))
-            .filter(
-                (d) =>
-                    d.timestep >= Math.trunc(startTimestep) && d.timestep <= Math.trunc(endTimestep)
-            );
-
-        addSelection(
-            states,
-            trajectory.name,
-            { start: startTimestep, end: endTimestep },
-            { start: selection[0], end: selection[1] }
-        );
-    };
-
     const { topChunkList } = trajectory.getVisibleChunks(extents);
 
     return (
@@ -249,59 +214,46 @@ function TrajectoryChart({
                             width={chartW}
                             height={h}
                         >
-                            <EmbeddedChart
-                                height={h}
-                                width={chartW}
-                                color={chunk.color}
-                                brush={d3.brushX().on('end', (e) => finishBrush(chunk, e, chartW))}
-                                onChartClick={() => selectObject(chunk)}
-                                id={`ec_${chunk.id}`}
-                                selected={
-                                    chunkSelectionMode !== 0 &&
-                                    chunkSelectionMode !== 3 &&
-                                    selectedObjects.map((d) => d.id).includes(chunk.id)
-                                }
-                                selections={chartSelections[chunk.id]}
-                            >
-                                {(ww, hh) =>
-                                    chunk.important ? (
-                                        <ChunkWrapper
-                                            chunk={chunk}
-                                            width={ww}
-                                            height={hh}
-                                            setStateHovered={setStateHovered}
-                                            properties={properties}
-                                            trajectory={trajectory}
-                                            globalScale={globalScale}
-                                            updateGlobalScale={updateGlobalScale}
-                                            ranks={ranks.ordered.slice(0, showTop)}
-                                            selections={chartSelections[chunk.id]}
-                                            showStateClustering={showStateClustering}
-                                            showTop={showTop}
-                                            doubleClickAction={useCallback(
-                                                () => expand(chunk.id, 100, trajectory),
-                                                []
-                                            )}
-                                            propertyCombos={propertyCombos}
-                                            extents={extents}
-                                            scatterplotHeight={scatterplotHeight}
-                                        />
-                                    ) : (
-                                        <ViolinPlotWrapper
-                                            chunk={chunk}
-                                            width={ww}
-                                            height={hh} // to accomodate for no scatterplot
-                                            updateRanks={updateRanks}
-                                            ranks={ranks.ordered.slice(0, showTop)}
-                                            properties={properties}
-                                            globalScale={globalScale}
-                                            updateGlobalScale={updateGlobalScale}
-                                            showTop={showTop}
-                                            propertyCombos={propertyCombos}
-                                        />
-                                    )
-                                }
-                            </EmbeddedChart>
+                            {chunk.important ? (
+                                <ChunkWrapper
+                                    chunk={chunk}
+                                    width={chartW}
+                                    height={h}
+                                    setStateHovered={setStateHovered}
+                                    properties={properties}
+                                    trajectory={trajectory}
+                                    globalScale={globalScale}
+                                    updateGlobalScale={updateGlobalScale}
+                                    ranks={ranks.ordered.slice(0, showTop)}
+                                    selections={chartSelections[chunk.id]}
+                                    showStateClustering={showStateClustering}
+                                    showTop={showTop}
+                                    addSelection={addSelection}
+                                    selectObject={selectObject}
+                                    selectedObjects={selectedObjects}
+                                    chunkSelectionMode={chunkSelectionMode}
+                                    doubleClickAction={() => expand(chunk.id, 100, trajectory)}
+                                    propertyCombos={propertyCombos}
+                                    extents={extents}
+                                    scatterplotHeight={scatterplotHeight}
+                                />
+                            ) : (
+                                <ViolinPlotWrapper
+                                    chunk={chunk}
+                                    width={chartW}
+                                    height={h} // to accomodate for no scatterplot
+                                    updateRanks={updateRanks}
+                                    selectObject={selectObject}
+                                    selectedObjects={selectedObjects}
+                                    chunkSelectionMode={chunkSelectionMode}
+                                    ranks={ranks.ordered.slice(0, showTop)}
+                                    properties={properties}
+                                    globalScale={globalScale}
+                                    updateGlobalScale={updateGlobalScale}
+                                    showTop={showTop}
+                                    propertyCombos={propertyCombos}
+                                />
+                            )}
                         </foreignObject>
                     );
                 })}

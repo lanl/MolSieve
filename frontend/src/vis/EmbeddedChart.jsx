@@ -21,7 +21,7 @@ export default function EmbeddedChart({
     id,
     brush,
     selections,
-    buttons,
+    controls,
 }) {
     const ref = createRef();
     const [isHovered, setIsHovered] = useState(false);
@@ -80,11 +80,8 @@ export default function EmbeddedChart({
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
         >
-            {brush !== undefined ? (
-                <Box
-                    className="floatingToolBar"
-                    sx={{ visibility: isHovered ? 'visible' : 'hidden' }}
-                >
+            <Box className="floatingToolBar" sx={{ visibility: isHovered ? 'visible' : 'hidden' }}>
+                {brush !== undefined ? (
                     <IconButton
                         color="secondary"
                         size="small"
@@ -93,9 +90,10 @@ export default function EmbeddedChart({
                     >
                         {selectionMode ? <DeselectIcon /> : <HighlightAltIcon />}
                     </IconButton>
-                    {buttons}
-                </Box>
-            ) : null}
+                ) : null}
+                {controls}
+            </Box>
+
             <svg ref={ref} width={w} height={h}>
                 <foreignObject x={0} y={0} width={w} height={h}>
                     {children(w, h)}
