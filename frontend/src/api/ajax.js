@@ -21,7 +21,7 @@ export function apiLoadSequence(run, properties) {
                 return resolve(response.data);
             })
             .catch((e) => {
-                reject(e);
+                reject(`${e}. ${e.response.data.detail}`);
             });
     });
 }
@@ -50,7 +50,7 @@ export function apiCalculatePathSimilarity(e1, e2, stateAttributes, atomAttribut
                 resolve(response.data);
             })
             .catch((e) => {
-                reject(e);
+                reject(`${e}. ${e.response.data.detail}`);
             });
     });
 }
@@ -79,7 +79,7 @@ export function apiPerformKSTest(rvs, cdf, property) {
                 resolve(response.data);
             })
             .catch((e) => {
-                reject(e);
+                reject(`${e}. ${e.response.data.detail}`);
             });
     });
 }
@@ -93,7 +93,7 @@ export function apiLoadMetadata(run) {
                 resolve(response.data);
             })
             .catch((e) => {
-                reject(e);
+                reject(`${e}. ${e.response.data.detail}`);
             });
     });
 }
@@ -119,7 +119,7 @@ export function apiLoadProperty(property) {
                 return resolve(response.data.propertyList);
             })
             .catch((e) => {
-                reject(e);
+                reject(`${e}. ${e.response.data.detail}`);
             });
     });
 }
@@ -143,7 +143,7 @@ export function apiCalculateNEB(run, start, end, interpolate, maxSteps, fmax, sa
                 resolve(response.data);
             })
             .catch((e) => {
-                reject(e);
+                reject(`${e}. ${e.response.data.detail}`);
             });
     });
 }
@@ -161,7 +161,7 @@ export function apiCalculateIDToTimestep(run) {
                 resolve(idToTimestep);
             })
             .catch((e) => {
-                reject(e);
+                reject(`${e}. ${e.response.data.detail}`);
             });
     });
 }
@@ -176,7 +176,7 @@ export function apiGenerateOvitoImage(id, controller) {
                 resolve(response.data);
             })
             .catch((e) => {
-                reject(e);
+                reject(`${e}. ${e.response.data.detail}`);
             });
     });
 }
@@ -193,7 +193,7 @@ export function loadPropertiesForSubset(properties, subset) {
                 resolve(response.data);
             })
             .catch((e) => {
-                reject(e);
+                reject(`${e}. ${e.response.data.detail}`);
             });
     });
 }
@@ -217,7 +217,7 @@ export function apiLoadTrajectory(run, mMin, mMax, chunkingThreshold) {
                 resolve(response.data);
             })
             .catch((e) => {
-                reject(e);
+                reject(`${e}. ${e.response.data.detail}`);
             });
     });
 }
@@ -243,7 +243,7 @@ export function apiClusterStates(properties, states) {
                 resolve(response.data);
             })
             .catch((e) => {
-                reject(e);
+                reject(`${e}. ${e.response.data.detail}`);
             });
     });
 }
@@ -262,7 +262,7 @@ export function apiModifyTrajectory(run, numClusters, chunkingThreshold) {
                 resolve(response.data);
             })
             .catch((e) => {
-                reject(e);
+                reject(`${e}. ${e.response.data.detail}`);
             });
     });
 }
@@ -275,7 +275,7 @@ export function apiGetSequence(run, range) {
                 resolve(response.data);
             })
             .catch((e) => {
-                reject(e);
+                reject(`${e}. ${e.response.data.detail}`);
             });
     });
 }
@@ -285,7 +285,7 @@ export function apiGetScriptProperties() {
         axios
             .get(`${API_URL}/api/script_properties`)
             .then((response) => resolve(response.data))
-            .catch((e) => reject(e));
+            .catch((e) => reject(`${e}. ${e.response.data.detail}`));
     });
 }
 
@@ -294,7 +294,7 @@ export function apiSubsetConnectivityDifference(stateIDs) {
         axios
             .post(`${API_URL}/api/subset_connectivity_difference`, stateIDs)
             .then((response) => resolve(response.data))
-            .catch((e) => reject(e));
+            .catch((e) => reject(`${e}. ${e.response.data.detail}`));
     });
 }
 
@@ -303,6 +303,6 @@ export function apiSelectionDistance(stateIDPairs) {
         axios
             .post(`${API_URL}/api/selection_distance`, stateIDPairs)
             .then((response) => resolve(response.data))
-            .catch((e) => reject(e));
+            .catch((e) => reject(`${e}. ${e.response.data.detail}`));
     });
 }
