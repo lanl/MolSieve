@@ -18,6 +18,8 @@ from fastapi import (
     WebSocketDisconnect,
 )
 
+from fastapi.middleware.cors import CORSMiddleware
+
 # image rendering
 from PIL import Image
 from pymemcache import serde
@@ -49,6 +51,15 @@ os.environ["DISPLAY"] = ""
 trajectories = {}
 
 app = FastAPI()
+
+origins = ['*']
+
+app.add_middleware(CORSMiddleware,
+        allow_origins=origins,
+        allow_methods=["*"],
+        allow_headers=["*"],
+)
+
 router = APIRouter(prefix="/api")
 cm = ConnectionManager()
 unprocessed = {}
@@ -711,7 +722,10 @@ def load_trajectory(run: str, mMin: int, mMax: int, chunkingThreshold: float):
 
     logging.info("Calculating PCCA")
     t0 = time.time()
-    trajectory.pcca(mMin, mMax, driver)
+    try:
+        trajectory.pcca(mMin, mMax, driver)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"{e}")
     t1 = time.time()
     logging.info(f"PCCA took {t1-t0} seconds total.")
 

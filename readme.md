@@ -36,10 +36,11 @@ Make sure to bring in all of the submodules using `git submodule update --init -
 
 4. Start the `uvicorn` server by running `poetry run uvicorn api.main:app`.
 
-5. Start the frontend by running `serve -s build` in the `frontend` directory.
+5. Build the front-end by running `npm run build`
+
+5. Start the front-end by running `http-server -p 3000 --cors -P http://localhost:8000` in the `frontend` directory.
 
 6. Connect to the application in your browser at `http://localhost:3000`.
 
 # Starting the celery background worker
-
 `poetry run celery -A api.background_worker.celery worker -l INFO`

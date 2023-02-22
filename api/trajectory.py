@@ -10,6 +10,8 @@ import time
 import logging
 import random
 
+from fastapi import HTTPException
+
 SIZE_THRESHOLD = 250
 
 """
@@ -53,9 +55,10 @@ class Trajectory:
             return
         try:
             # need to run minChi before clustering
-            gpcca.minChi(2, 20)
+            min_chi_min_clusters = num_clusters if 2 != num_clusters else 3
+            gpcca.minChi(2, min_chi_min_clusters)
             gpcca.optimize(num_clusters)
-        except ValueError as exception:
+        except Exception as exception:
             raise exception
         self.save_membership_info(gpcca, idx_to_id, num_clusters)
 
@@ -70,6 +73,7 @@ class Trajectory:
 
     def pcca(self, m_min: int, m_max: int, driver):
         # attempt to re-hydrate from JSON file before running PCCA
+        
         r = loadTestPickle(self.name, f"optimal_pcca_{m_min}_{m_max}")
         if r is not None:
             self.clusterings = r["clusterings"]
@@ -100,8 +104,8 @@ class Trajectory:
                 f"Clustering into {self.optimal_value} clusters took {t1-t0} seconds total"
             )
             self.feasible_clusters = feasible_clusters
-        except ValueError as exception:
-            raise exception
+        except Exception as e:
+            raise e
 
         self.min_chi = mc
         saveTestPickle(
