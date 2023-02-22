@@ -1,6 +1,6 @@
 import WebSocketManager from './websocketmanager';
 import GlobalStates from './globalStates';
-
+import { WS_URL } from './constants';
 /* eslint-disable no-param-reassign */
 export default function loadChart(
     statesToLoad,
@@ -14,7 +14,7 @@ export default function loadChart(
     setIsInitialized,
     chunkSize
 ) {
-    ws.current = WebSocketManager.connect(`ws://localhost:8000/api/load_properties_for_subset`, 
+    ws.current = WebSocketManager.connect(`${WS_URL}/api/load_properties_for_subset`, 
 	websocketName
     );
 

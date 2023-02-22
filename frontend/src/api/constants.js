@@ -52,6 +52,10 @@ export const mpn65 = [
     '#a04a9b',
 ];
 
-export const API_URL = 'http://localhost:8000';
+// change this to wherever you're hosting the backend
+const URL = 'localhost:8000';
+
+export const API_URL = `http://${URL}`;
+export const WS_URL = `ws://${URL}`
 
 export const LOADING_CHUNK_SIZE = 100;
