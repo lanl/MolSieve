@@ -2,6 +2,7 @@ import axios from 'axios';
 
 import { API_URL } from './constants';
 
+/* eslint-disable*/
 /**
  * Ajax query to the backend to retrieve the sequence for a trajectory, given
  * its name and properties.

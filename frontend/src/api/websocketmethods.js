@@ -14,8 +14,9 @@ export default function loadChart(
     setIsInitialized,
     chunkSize
 ) {
-    ws.current = WebSocketManager.connect(`${WS_URL}/api/load_properties_for_subset`, 
-	websocketName
+    ws.current = WebSocketManager.connect(
+        `${WS_URL}/api/load_properties_for_subset`,
+        websocketName
     );
 
     setProgress(0.0);
