@@ -23,10 +23,12 @@ Make sure to bring in all of the submodules using `git submodule update --init -
    - `BUILD_OMP`
    - `LAMMPS_EXCEPTIONS`
    - `CMAKE_INSTALL_PREFIX` set to $LAMMPS_DIR/install
-   
-2. Install all the Python dependencies using `poetry install --no-dev` - it keeps everything as clean as possible. You can find the installation instructions [here](https://python-poetry.org/docs/). **NOTE: Poetry assumes that LAMMPS has been installed in `lammps/install`.**
 
-3. Compile and install PETSc and SLEPC using `build-petsc-slepc.sh`.
+2. Add `$LAMMPS_DIR/install/lib` to your `LD_LIBRARY_PATH` variable.
+
+3. Install all the Python dependencies using `poetry install --no-dev` - it keeps everything as clean as possible. You can find the installation instructions [here](https://python-poetry.org/docs/). **NOTE: Poetry assumes that LAMMPS has been installed in `lammps/install`.**
+
+4. Compile and install PETSc and SLEPC using `build-petsc-slepc.sh`.
 
 # Usage
 
