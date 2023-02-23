@@ -5,6 +5,7 @@ import * as d3 from 'd3';
 import Scatterplot from '../vis/Scatterplot';
 import { apiCalculateNEB, onMessageHandler } from '../api/ajax';
 import GlobalStates from '../api/globalStates';
+import { WS_URL } from '../api/constants';
 
 export default function NEBWrapper({
     trajectoryName,
@@ -51,7 +52,7 @@ export default function NEBWrapper({
     useEffect(() => {
         apiCalculateNEB(trajectoryName, start, end, interpolate, maxSteps, fmax, saveResults)
             .then((id) => {
-                const client = new WebSocket(`ws://localhost:8000/api/ws/${id}`);
+                const client = new WebSocket(`${WS_URL}/api/ws/${id}`);
                 let count = 0;
                 client.onmessage = onMessageHandler(
                     () => {
