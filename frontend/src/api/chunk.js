@@ -106,9 +106,6 @@ export default class Chunk {
 
     loadSequence() {
         return new Promise((resolve, reject) => {
-            if (this.sequence.length !== 0) {
-                resolve(this.sequence);
-            }
             apiGetSequence(this.trajectory.name, [this.timestep, this.last])
                 .then((data) => {
                     this.sequence = data;
@@ -256,12 +253,19 @@ export default class Chunk {
     }
 
     addToSequence(values, direction) {
-        if (direction === 'front') {
-            this.timestep -= values.length;
-            this.sequence = [...values, ...this.sequence];
-        } else {
-            this.last += values.length;
-            this.sequence = [...this.sequence, ...values];
+        switch (direction) {
+            case 'front': {
+                this.timestep -= values.length;
+                this.sequence = [...values, ...this.sequence];
+                break;
+            }
+            case 'back': {
+                this.last += values.length;
+                this.sequence = [...this.sequence, ...values];
+                break;
+            }
+            default:
+                throw new Error("Unknown direction, please choose either 'front', or 'back'");
         }
     }
 }

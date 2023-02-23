@@ -233,7 +233,7 @@ class App extends React.Component {
         const loadNeighbors = (l, r) => {
             return new Promise((resolve, reject) => {
                 if (l) {
-                    left.loadSequence().then(() => {
+                    l.loadSequence().then(() => {
                         if (r) {
                             r.loadSequence().then(() => resolve());
                         } else {
@@ -269,6 +269,7 @@ class App extends React.Component {
 
             chunks.set(chunk.id, chunk);
 
+            console.log(left, right);
             this.setState((prevState) => ({
                 trajectories: { ...prevState.trajectories, [trajectory.name]: trajectory },
             }));

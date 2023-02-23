@@ -212,12 +212,12 @@ function ChunkWrapper({
         const sliceEnd = end >= last ? last : end - last;
 
         setSlice([sliceStart, sliceEnd]);
-    }, [JSON.stringify(extents)]);
+    }, [JSON.stringify(extents), JSON.stringify(chunk)]);
 
     useEffect(() => {
         const [sliceStart, sliceEnd] = slice;
         setTimesteps(chunk.timesteps.filter((d) => d >= sliceStart && d <= sliceEnd));
-    }, [JSON.stringify(slice)]);
+    }, [JSON.stringify(slice), JSON.stringify(chunk)]);
 
     const [sliceStart, sliceEnd] = slice;
     const controlChartHeight =
