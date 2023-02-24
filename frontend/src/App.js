@@ -248,32 +248,34 @@ class App extends React.Component {
             });
         };
 
-        loadNeighbors(left, right).then(() => {
-            if (left) {
-                const leftVals = left.takeFromSequence(sliceSize, 'back');
-                chunk.addToSequence(leftVals, 'front');
-                chunks.set(left.id, left);
-                if (!left.sequence.length) {
-                    chunks.delete(left.id);
+        loadNeighbors(left, right)
+            .then(() => {
+                if (left) {
+                    const leftVals = left.takeFromSequence(sliceSize, 'back');
+                    chunk.addToSequence(leftVals, 'front');
+                    chunks.set(left.id, left);
+                    if (!left.sequence.length) {
+                        chunks.delete(left.id);
+                    }
                 }
-            }
 
-            if (right) {
-                const rightVals = right.takeFromSequence(sliceSize, 'front');
-                chunk.addToSequence(rightVals, 'back');
-                chunks.set(right.id, right);
-                if (!right.sequence.length) {
-                    chunks.delete(right.id);
+                if (right) {
+                    const rightVals = right.takeFromSequence(sliceSize, 'front');
+                    chunk.addToSequence(rightVals, 'back');
+                    chunks.set(right.id, right);
+                    if (!right.sequence.length) {
+                        chunks.delete(right.id);
+                    }
                 }
-            }
 
-            chunks.set(chunk.id, chunk);
+                chunks.set(chunk.id, chunk);
 
-            console.log(left, right);
-            this.setState((prevState) => ({
-                trajectories: { ...prevState.trajectories, [trajectory.name]: trajectory },
-            }));
-        });
+                // previous state gets pushed down, which is why it doesn't update immediately
+                this.setState((prevState) => ({
+                    trajectories: { ...prevState.trajectories, [trajectory.name]: trajectory },
+                }));
+            })
+            .catch(() => alert('No neighbors to expand into!'));
     };
 
     toggleDrawer = () => {

@@ -1,4 +1,4 @@
-import { React, useEffect, useState, memo } from 'react';
+import { React, useEffect, useState } from 'react';
 import * as d3 from 'd3';
 
 import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
@@ -270,4 +270,4 @@ function TrajectoryChart({
         </svg>
     );
 }
-export default memo(TrajectoryChart);
+export default TrajectoryChart;
