@@ -1,4 +1,4 @@
-import { React } from 'react';
+import { React, useState, useEffect, memo } from 'react';
 import * as d3 from 'd3';
 import '../css/vis.css';
 import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
@@ -10,11 +10,12 @@ const margin = {
     right: 25,
 };
 
-export default function Timeline({ trajectory, width, height, run, setExtent }) {
+function Timeline({ trajectory, width, height, setZoom, extents }) {
+    const [sBrush, setBrush] = useState(null);
     const ref = useTrajectoryChartRender(
         (svg) => {
             if (!svg.empty()) {
-                svg.selectAll('*:not(.brush, .brushG)').remove();
+                svg.selectAll('*').remove();
             }
 
             if (width === undefined || height === undefined) {
@@ -23,7 +24,6 @@ export default function Timeline({ trajectory, width, height, run, setExtent }) 
 
             const g = svg.append('g');
             const { chunkList, name } = trajectory;
-            const { extents } = run;
 
             const topChunkList = chunkList.filter((d) => !d.hasParent);
             const trajG = svg.append('g').classed(name, true);
@@ -57,7 +57,6 @@ export default function Timeline({ trajectory, width, height, run, setExtent }) 
             const defaultSelection = [scaleX(extents[0]), scaleX(extents[1])];
 
             const brushG = svg.append('g').classed('brushG', true);
-            // https://observablehq.com/@d3/click-to-recenter-brush
             const brush = d3
                 .brushX()
                 .extent([
@@ -68,7 +67,7 @@ export default function Timeline({ trajectory, width, height, run, setExtent }) 
                     if (!sourceEvent) return;
                     const start = Math.trunc(scaleX.invert(selection[0]));
                     const end = Math.trunc(scaleX.invert(selection[1]));
-                    setExtent(name, [start, end]);
+                    setZoom(name, [start, end]);
 
                     // if user double clicks, the timeline will be redrawn
                     svg.on('dblclick', () => {
@@ -98,13 +97,30 @@ export default function Timeline({ trajectory, width, height, run, setExtent }) 
                         })
                         .attr('width', (d) => scaleX(d.last) - scaleX(d.timestep));
                     brushG.call(brush).call(brush.move, [scaleX(0), scaleX(trajectory.length)]);
-                    setExtent(name, [0, trajectory.length]);
+                    setZoom(name, [0, trajectory.length]);
                 });
 
             brushG.call(brush).call(brush.move, defaultSelection);
+            setBrush(() => brush);
         },
         [JSON.stringify(trajectory.chunkList), width, height]
     );
 
+    useEffect(() => {
+        if (ref.current && sBrush) {
+            const scaleX = d3
+                .scaleLinear()
+                .range([margin.left, width - margin.right])
+                .domain([0, trajectory.length]);
+
+            d3.select(ref.current)
+                .select('.brushG')
+                .call(sBrush)
+                .call(sBrush.move, [scaleX(extents[0]), scaleX(extents[1])]);
+        }
+    }, [JSON.stringify(extents)]);
+
     return <svg id={`timeline_${trajectory.name}`} ref={ref} viewBox={[0, 0, width, height]} />;
 }
+
+export default memo(Timeline);

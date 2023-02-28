@@ -37,6 +37,7 @@ function TrajectoryChart({
     propertyCombos,
     scatterplotHeight = 50,
     extents,
+    setZoom,
 }) {
     const ref = useTrajectoryChartRender(
         (svg) => {
@@ -236,6 +237,7 @@ function TrajectoryChart({
                                     propertyCombos={propertyCombos}
                                     extents={extents}
                                     scatterplotHeight={scatterplotHeight}
+                                    setZoom={setZoom}
                                 />
                             ) : (
                                 <ViolinPlotWrapper

@@ -379,6 +379,9 @@ class App extends React.Component {
                     sx={{
                         width: drawerOpen ? `calc(100% - 300px)` : `100%`,
                     }}
+                    setZoom={(name, values) => {
+                        this.updateRun(name, 'extents', values);
+                    }}
                 />
 
                 {Object.keys(trajectories).length > 0 && (
@@ -393,7 +396,6 @@ class App extends React.Component {
                         toggleDrawer={this.toggleDrawer}
                         addFilter={this.addFilter}
                         propagateChange={this.propagateChange}
-                        setExtent={this.setExtent}
                     />
                 )}
 

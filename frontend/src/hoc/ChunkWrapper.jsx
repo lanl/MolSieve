@@ -12,7 +12,8 @@ import '../css/App.css';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import Tooltip from '@mui/material/Tooltip';
-
+import IconButton from '@mui/material/IconButton';
+import ZoomInMapIcon from '@mui/icons-material/ZoomInMap';
 import ControlChart from '../vis/ControlChart';
 import AggregateScatterplot from '../vis/AggregateScatterplot';
 
@@ -48,6 +49,7 @@ function ChunkWrapper({
     extents,
     scatterplotHeight,
     setStateHovered,
+    setZoom,
 }) {
     // set as useReducer
     const [isInitialized, setIsInitialized] = useState(false);
@@ -263,6 +265,13 @@ function ChunkWrapper({
             brush={d3.brushX().on('end', (e) => finishBrush(e))}
             controls={
                 <Box width={width} display="flex" alignItems="center" gap={1}>
+                    <Tooltip title="Zoom into region">
+                        <IconButton
+                            onClick={() => setZoom(trajectory.name, [chunk.timestep, chunk.last])}
+                        >
+                            <ZoomInMapIcon />
+                        </IconButton>
+                    </Tooltip>
                     <Slider
                         min={2}
                         defaultValue={Math.min(Math.trunc(chunk.sequence.length / 4), 100)}

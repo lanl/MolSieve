@@ -57,7 +57,15 @@ const CHUNK_SELECT = 4;
 // for a valid selection
 const SELECTION_LENGTH = [0, 1, 3, 2, 2, 2];
 
-export default function VisArea({ trajectories, runs, properties, swapPositions, expand, sx }) {
+export default function VisArea({
+    trajectories,
+    runs,
+    properties,
+    swapPositions,
+    expand,
+    sx,
+    setZoom,
+}) {
     const [currentModal, setCurrentModal] = useState(null);
     const [activeState, setActiveState] = useState(null);
 
@@ -470,6 +478,7 @@ export default function VisArea({ trajectories, runs, properties, swapPositions,
                                             showStateClustering={showStateClustering}
                                             showTop={showTop}
                                             expand={expand}
+                                            setZoom={setZoom}
                                         />
                                     );
                                 })}
