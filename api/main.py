@@ -792,12 +792,18 @@ def selection_distance(stateIDPairs: List[List[int]] = Body([])):
     q = qb.generate_get_node_list("State", stateIDs, "PART_OF")
     state_atom_dict = converter.query_to_ASE(driver, q, "Pt")
 
+    seen = {}
     distances = []
     for pair in stateIDPairs:
-        id1, id2 = pair
-        s1 = state_atom_dict[id1]
-        s2 = state_atom_dict[id2]
-        distances.append(ase.geometry.distance(s1, s2))
+        if pair in seen:
+            distances.append(seen[pair])
+        else:
+            id1, id2 = pair
+            s1 = state_atom_dict[id1]
+            s2 = state_atom_dict[id2]
+            dist = ase.geometry.distance(s1, s2)  
+            distances.append(dist)
+            seen[pair] = dist
 
     return distances
 
