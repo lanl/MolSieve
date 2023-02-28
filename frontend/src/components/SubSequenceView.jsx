@@ -52,8 +52,9 @@ function SubSequenceView({
     }, []);
 
     useEffect(() => {
+        const controller = AbortController();
         // find interesting states
-        apiSubsetConnectivityDifference(stateIDs).then((d) => {
+        apiSubsetConnectivityDifference(stateIDs, controller).then((d) => {
             // remove duplicates if they are next to each other
             const states = [stateIDs[0], ...d, stateIDs[stateIDs.length - 1]].reduce(
                 (acc, val, idx, arr) => {
@@ -71,6 +72,7 @@ function SubSequenceView({
             setInterestingStates(states);
         });
         // update
+        return () => controller.abort();
     }, [JSON.stringify(stateIDs)]);
 
     const addNEB = (states, start, end, interpolate, maxSteps, fmax, saveResults) => {

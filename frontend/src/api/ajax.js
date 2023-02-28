@@ -290,10 +290,10 @@ export function apiGetScriptProperties() {
     });
 }
 
-export function apiSubsetConnectivityDifference(stateIDs) {
+export function apiSubsetConnectivityDifference(stateIDs, controller) {
     return new Promise((resolve, reject) => {
         axios
-            .post(`${API_URL}/api/subset_connectivity_difference`, stateIDs)
+            .post(`${API_URL}/api/subset_connectivity_difference`, {signal: controller.signal, stateIDs})
             .then((response) => resolve(response.data))
             .catch((e) => reject(`${e}. ${e.response.data.detail}`));
     });
