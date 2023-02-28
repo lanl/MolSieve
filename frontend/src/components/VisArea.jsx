@@ -103,30 +103,23 @@ export default function VisArea({
 
     const { enqueueSnackbar } = useSnackbar();
 
-    const [selections, setSelections] = useReducer(
-        (state, action) => {
-            switch (action.type) {
-                case 'create': {
-                    const id = createUUID();
-                    return {
-                        values: { ...state.values, [id]: { ...action.payload, id } },
-                    };
-                }
-                case 'delete': {
-                    const { [action.payload]: _, ...rest } = state.values;
-                    return {
-                        values: rest,
-                    };
-                }
-                default:
-                    throw new Error('Unknown action');
+    const [selections, setSelections] = useReducer((state, action) => {
+        switch (action.type) {
+            case 'create': {
+                const id = createUUID();
+                return {
+                    ...state,
+                    [id]: { ...action.payload, id },
+                };
             }
-        },
-        {
-            values: {},
-            current: null,
+            case 'delete': {
+                const { [action.payload]: _, ...rest } = state;
+                return rest;
+            }
+            default:
+                throw new Error('Unknown action');
         }
-    );
+    }, {});
 
     const addSelection = (extent, trajectoryName, originalExtent, brushValues) => {
         setSelections({
@@ -504,8 +497,8 @@ export default function VisArea({
                         flexWrap: 'wrap',
                     }}
                 >
-                    {Object.keys(selections.values).map((uuid) => {
-                        const selection = selections.values[uuid];
+                    {Object.keys(selections).map((uuid) => {
+                        const selection = selections[uuid];
                         const { extent, trajectoryName } = selection;
 
                         const ids = extent.map((d) => d.id);
@@ -517,6 +510,7 @@ export default function VisArea({
 
                         return (
                             <SubSequenceView
+                                key={uuid}
                                 onMouseEnter={() => {
                                     d3.selectAll(`rect.${uuid}`).classed('selected', true);
                                 }}

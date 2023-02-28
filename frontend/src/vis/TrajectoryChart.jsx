@@ -153,11 +153,10 @@ function TrajectoryChart({
                     const h = chunk.important ? height : height - scatterplotHeight;
 
                     const slicedChunk = chunk.slice(extents[0], extents[1]);
-                    const { values } = selections;
 
-                    const chartSel = Object.keys(values)
+                    const chartSel = Object.keys(selections)
                         .filter((selectionID) => {
-                            const selection = values[selectionID];
+                            const selection = selections[selectionID];
                             const timesteps = selection.extent.map((d) => d.timestep);
                             return (
                                 selection.trajectoryName === trajectory.name &&
@@ -165,7 +164,7 @@ function TrajectoryChart({
                             );
                         })
                         .map((selectionID) => {
-                            const selection = values[selectionID];
+                            const selection = selections[selectionID];
                             const { start, end } = selection.originalExtent;
 
                             // this needs to be done so that the selection can rescale

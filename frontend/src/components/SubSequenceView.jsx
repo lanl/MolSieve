@@ -71,7 +71,6 @@ function SubSequenceView({
             setIsLoaded(true);
             setInterestingStates(states);
         });
-        // update
         return () => controller.abort();
     }, [JSON.stringify(stateIDs)]);
 
