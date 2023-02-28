@@ -527,6 +527,7 @@ export default function VisArea({
                                     }
                                 }}
                                 className={uuid}
+                                id={uuid}
                                 onElementClick={(state) => setActiveState(state)}
                                 disabled={disabled}
                                 trajectoryName={trajectoryName}

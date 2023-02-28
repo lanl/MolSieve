@@ -166,7 +166,7 @@ class App extends React.Component {
                     () => enqueueSnackbar(`Trajectory ${run} successfully loaded.`)
                 );
             })
-            .catch((e) => alert(e));
+            .catch((e) => alert(`${e}. ${e.response.detail}`));
     };
 
     initFilters = (run, newTraj) => {

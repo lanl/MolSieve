@@ -35,6 +35,7 @@ function SubSequenceView({
     onElementClick = () => {},
     deleteFunc = () => {},
     className = '',
+    id = '',
 }) {
     const [data, setData] = useState([]);
     const [activeState, setActiveState] = useState(stateIDs[0]);
@@ -86,7 +87,7 @@ function SubSequenceView({
     };
     useEffect(() => {
         GlobalStates.ensureSubsetHasProperties(properties, stateIDs).then(() => {
-            const states = stateIDs.map((id) => GlobalStates.get(id));
+            const states = stateIDs.map((stateID) => GlobalStates.get(stateID));
             setData(states);
         });
     }, []);
@@ -125,6 +126,10 @@ function SubSequenceView({
                             onClick={(e) => {
                                 d3.selectAll('.clicked').classed('clicked', false);
                                 setActiveState(stateID);
+                                // select matching state in scatterplot
+                                d3.select(`#scatterplot-${id}`)
+                                    .selectAll(`.y-${stateID}`)
+                                    .classed('clicked', true);
                                 d3.select(e.target).classed('clicked', true);
                             }}
                         />
@@ -155,6 +160,7 @@ function SubSequenceView({
                     }}
                 >
                     <Scatterplot
+                        id={`scatterplot-${id}`}
                         width={interestingStates.length * 100 + 220}
                         height={30}
                         colorFunc={colorFunc}
@@ -191,7 +197,7 @@ function SubSequenceView({
                                         maxSteps={maxSteps}
                                         fmax={fmax}
                                         saveResults={saveResults}
-                                        setActiveState={(id) => setActiveState(id)}
+                                        setActiveState={(stateID) => setActiveState(stateID)}
                                     />
                                 );
                             })}

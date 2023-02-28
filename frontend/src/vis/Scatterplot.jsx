@@ -20,6 +20,7 @@ function Scatterplot({
     onElementMouseOut = () => {},
     margin = { top: 5, bottom: 10, left: 0, right: 7.5 },
     showYAxis = false,
+    id = '',
 }) {
     const buildScaleX = () => {
         const marginLeft = showYAxis ? margin.left + 7.5 : margin.left;
@@ -86,7 +87,8 @@ function Scatterplot({
                 return;
             }
 
-            svg.selectAll('rect')
+            const points = svg
+                .selectAll('rect')
                 .data(data)
                 .enter()
                 .append('rect')
@@ -112,6 +114,10 @@ function Scatterplot({
                 .on('mouseout', function (_, d) {
                     onElementMouseOut(this, d);
                 });
+
+            points.each(function (d, i, nodes) {
+                d3.select(nodes[i]).classed(`x-${d.x}`, true).classed(`y-${d.y}`, true);
+            });
 
             if (showYAxis) {
                 const yAxis = d3
@@ -167,8 +173,9 @@ function Scatterplot({
 
     return (
         <svg
+            id={id}
             ref={ref}
-            className="vis filterable"
+            className="vis filterable scatterplot"
             viewBox={[0, 0, width, height]}
             width={width}
             height={height}
