@@ -53,7 +53,6 @@ function TrajectoryChart({
     const { ranks, reduceRanks } = useRanks(properties, trajectory.chunkOrder(0));
 
     const [scales, setScales] = useState(null);
-    const [chartSelections, setChartSelections] = useState({});
 
     const updateRanks = (values, id) => {
         reduceRanks({ type: 'updateValues', payload: { values, id } });
@@ -130,57 +129,6 @@ function TrajectoryChart({
         setScales({ getX, getWidthScale, scaleX });
     }, [JSON.stringify(trajectory.chunkList), JSON.stringify(extents), width]);
 
-    useEffect(() => {
-        if (scales) {
-            const { chunkList } = trajectory;
-
-            // fill this dict with selection data for each chunk
-            const chartSelectionDict = {};
-            for (const chunk of chunkList) {
-                const { scaleX, getWidthScale } = scales;
-                const chartW = scaleX(getWidthScale(chunk));
-
-                const slicedChunk = chunk.slice(extents[0], extents[1]);
-                const { values } = selections;
-
-                const chartSel = Object.keys(values)
-                    .filter((selectionID) => {
-                        const selection = values[selectionID];
-                        const timesteps = selection.extent.map((d) => d.timestep);
-                        return (
-                            selection.trajectoryName === trajectory.name &&
-                            slicedChunk.containsSequence(timesteps)
-                        );
-                    })
-                    .map((selectionID) => {
-                        const selection = values[selectionID];
-                        const { start, end } = selection.originalExtent;
-                        const [chunkSliceStart, chunkSliceEnd] = extents;
-
-                        // this needs to be done so that the selection can rescale
-                        const x = d3
-                            .scaleLinear()
-                            .domain(
-                                d3.extent(
-                                    chunk.timesteps.filter(
-                                        (d) => d >= chunkSliceStart && d <= chunkSliceEnd
-                                    )
-                                )
-                            )
-                            .range([0, chartW - 7.5]);
-
-                        return {
-                            set: selection.extent.map((d) => d.timestep),
-                            brushValues: { start: x(start), end: x(end) },
-                            id: selectionID,
-                        };
-                    });
-                chartSelectionDict[chunk.id] = chartSel;
-            }
-            setChartSelections(chartSelectionDict);
-        }
-    }, [JSON.stringify(selections), JSON.stringify(extents)]);
-
     // here we can filter out the un-rendered charts right away since we only care about rendering here
     const { topChunkList } = trajectory.getVisibleChunks(extents);
 
@@ -204,6 +152,35 @@ function TrajectoryChart({
                     const chunkIndex = topChunkList.indexOf(chunk);
                     const h = chunk.important ? height : height - scatterplotHeight;
 
+                    const slicedChunk = chunk.slice(extents[0], extents[1]);
+                    const { values } = selections;
+
+                    const chartSel = Object.keys(values)
+                        .filter((selectionID) => {
+                            const selection = values[selectionID];
+                            const timesteps = selection.extent.map((d) => d.timestep);
+                            return (
+                                selection.trajectoryName === trajectory.name &&
+                                slicedChunk.containsSequence(timesteps)
+                            );
+                        })
+                        .map((selectionID) => {
+                            const selection = values[selectionID];
+                            const { start, end } = selection.originalExtent;
+
+                            // this needs to be done so that the selection can rescale
+                            const x = d3
+                                .scaleLinear()
+                                .domain(d3.extent(slicedChunk.timesteps))
+                                .range([0, chartW - 7.5]);
+
+                            return {
+                                set: selection.extent.map((d) => d.timestep),
+                                brushValues: { start: x(start), end: x(end) },
+                                id: selectionID,
+                            };
+                        });
+
                     return (
                         <foreignObject
                             key={chunk.id}
@@ -226,7 +203,7 @@ function TrajectoryChart({
                                     globalScale={globalScale}
                                     updateGlobalScale={updateGlobalScale}
                                     ranks={ranks.ordered.slice(0, showTop)}
-                                    selections={chartSelections[chunk.id]}
+                                    selections={chartSel}
                                     showStateClustering={showStateClustering}
                                     showTop={showTop}
                                     addSelection={addSelection}
