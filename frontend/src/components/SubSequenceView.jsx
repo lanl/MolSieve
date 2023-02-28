@@ -52,7 +52,7 @@ function SubSequenceView({
     }, []);
 
     useEffect(() => {
-        const controller = AbortController();
+        const controller = new AbortController();
         // find interesting states
         apiSubsetConnectivityDifference(stateIDs, controller).then((d) => {
             // remove duplicates if they are next to each other
