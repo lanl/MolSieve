@@ -230,6 +230,7 @@ function TrajectoryChart({
                                     updateGlobalScale={updateGlobalScale}
                                     showTop={showTop}
                                     propertyCombos={propertyCombos}
+                                    onClick={() => setStateHovered(chunk.characteristicState)}
                                 />
                             )}
                         </foreignObject>

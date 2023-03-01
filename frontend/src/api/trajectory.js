@@ -66,6 +66,7 @@ class Trajectory {
                 chunk.cluster,
                 chunk.sequence,
                 chunk.selected,
+                chunk.characteristicState,
                 this
             );
             this.chunks.set(newChunk.id, newChunk);

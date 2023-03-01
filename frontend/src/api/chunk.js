@@ -30,7 +30,19 @@ export default class Chunk {
 
     sequence = [];
 
-    constructor(timestep, last, firstID, important, cluster, sequence, selected, trajectory) {
+    characteristicState;
+
+    constructor(
+        timestep,
+        last,
+        firstID,
+        important,
+        cluster,
+        sequence,
+        selected,
+        characteristicState,
+        trajectory
+    ) {
         this.timestep = timestep;
         this.last = last;
         this.firstID = firstID;
@@ -39,6 +51,7 @@ export default class Chunk {
         this.id = GlobalChunks.generateID();
         this.selected = selected;
         this.sequence = sequence;
+        this.characteristicState = characteristicState;
         this.trajectory = trajectory;
     }
 
@@ -58,6 +71,7 @@ export default class Chunk {
             this.cluster,
             this.sequence.slice(sliceStart, sliceEnd),
             this.selected,
+            this.characteristicState,
             this.trajectory
         );
     }

@@ -29,6 +29,7 @@ function ViolinPlotWrapper({
     globalScale,
     updateGlobalScale,
     propertyCombos,
+    onClick,
 }) {
     const [boxStats, setBoxStats] = useState({});
     const [isInitialized, setIsInitialized] = useState(false);
@@ -121,7 +122,7 @@ function ViolinPlotWrapper({
             }
         >
             {(ww) => (
-                <Box>
+                <Box onClick={onClick}>
                     {progress < 1.0 ? (
                         <LinearProgress
                             variant="determinate"
