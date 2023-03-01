@@ -573,12 +573,14 @@ def get_script_properties_map():
     properties_to_script = {}
     with os.scandir("scripts") as entries:
         for entry in entries:
-            with open(entry.path, mode="r") as script:
-                code = script.read()
-            # puts properties in global namespace
-            exec(code, globals())
-            for prop in properties():
-                properties_to_script[prop] = entry.name
+            root, ext = os.path.splitext(entry)
+            if ext == '.py':
+                with open(entry.path, mode="r") as script:
+                    code = script.read()
+                # puts properties in global namespace
+                exec(code, globals())
+                for prop in properties():
+                    properties_to_script[prop] = entry.name
 
     return properties_to_script
 
