@@ -288,7 +288,6 @@ def calculate_neb_on_path(
     )
 
     metadata = getMetadata(run)
-    atomType = get_atom_type(metadata["parameters"])
 
     path = {}
     allStates = []
@@ -330,7 +329,7 @@ def calculate_neb_on_path(
         WITH n,a ORDER BY a.internal_id WITH collect(DISTINCT a) AS atoms, n
         RETURN n, atoms;
         """
-        attr_atom_dict = converter.query_to_ASE(driver, Query(q, ["ASE"]), atomType)
+        attr_atom_dict = converter.query_to_ASE(driver, Query(q, ["ASE"]))
 
         for state, atoms in attr_atom_dict.items():
             full_atom_dict.update({state: atoms})

@@ -131,7 +131,7 @@ async def generate_ovito_images(websocket: WebSocket):
         )
 
         q = qb.generate_get_node_list("State", ids, "PART_OF")
-        attr_atom_dict = converter.query_to_ASE(driver, q, "Pt")
+        attr_atom_dict = converter.query_to_ASE(driver, q)
 
         for id, atoms in attr_atom_dict.items():
             img = generate_ovito_image(atoms)
@@ -146,7 +146,7 @@ async def generate_ovito_image_endpoint(id: int):
     qb = querybuilder.Neo4jQueryBuilder([("Atom", "PART_OF", "State", "MANY-TO-ONE")])
 
     q = qb.generate_get_node_list("State", [id], "PART_OF")
-    atom_dict = converter.query_to_ASE(driver, q, "Pt")
+    atom_dict = converter.query_to_ASE(driver, q)
 
     return {"id": id, "img": generate_ovito_image(atom_dict[id])}
 
@@ -175,7 +175,7 @@ async def generate_ovito_animation(
     qb = querybuilder.Neo4jQueryBuilder([("Atom", "PART_OF", "State", "MANY-TO-ONE")])
 
     q = qb.generate_get_node_list("State", states, "PART_OF")
-    attr_atom_dict = converter.query_to_ASE(driver, q, "Pt")
+    attr_atom_dict = converter.query_to_ASE(driver, q)
 
     output_path = "vid.webm"
     # https://stackoverflow.com/questions/55873174/how-do-i-return-an-image-in-fastapi/67497103#67497103
@@ -410,7 +410,7 @@ async def load_properties_for_subset(stateList):
             ("Atom", "PART_OF", "State", "MANY-TO-ONE"),
             ])
             q = qb.generate_get_node_list("State", allMissing, "PART_OF")
-            state_atom_dict = converter.query_to_ASE(driver, q, "Pt")
+            state_atom_dict = converter.query_to_ASE(driver, q)
 
             # convert stateList to dict for easy modification
             stateDict = {}
@@ -517,10 +517,13 @@ def load_sequence(run: str, properties: List[str], driver):
     """
     get_potential(run)
     run_md = get_metadata(run)
-
+    
     if f"{run}_occurrences" not in run_md:
         calculate_trajectory_occurrences(run)
-        
+
+    if "atom_type" not in run_md:
+        raise HTTPException(status_code=500, detail="No atom type found")
+
     r = loadTestPickle(run, "sequence")
     if r is not None:
         return Trajectory(run, r["sequence"], r["unique_states"])
@@ -761,7 +764,7 @@ def subset_connectivity_difference(stateIDs: List[int] = Body([])):
     driver = GraphDriver()
     qb = querybuilder.Neo4jQueryBuilder([("Atom", "PART_OF", "State", "MANY-TO-ONE")])
     q = qb.generate_get_node_list("State", stateIDs, "PART_OF")
-    state_atom_dict = converter.query_to_ASE(driver, q, "Pt")
+    state_atom_dict = converter.query_to_ASE(driver, q)
 
     connectivity_list = []  # all connectivity matrices in order
     for stateID in stateIDs:
@@ -790,7 +793,7 @@ def selection_distance(stateIDPairs: List[List[int]] = Body([])):
     stateIDs = list(chain.from_iterable(stateIDPairs))
     qb = querybuilder.Neo4jQueryBuilder([("Atom", "PART_OF", "State", "MANY-TO-ONE")])
     q = qb.generate_get_node_list("State", stateIDs, "PART_OF")
-    state_atom_dict = converter.query_to_ASE(driver, q, "Pt")
+    state_atom_dict = converter.query_to_ASE(driver, q)
 
     seen = {}
     distances = []
