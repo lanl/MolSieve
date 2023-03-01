@@ -172,21 +172,25 @@ class Trajectory:
 
                 sequence = self.sequence[first: last + 1]
                 selected = sequence
-                if len(sequence) > 20:
-                    state_counts = Counter(sequence)
-                    top = [x[0] for x in state_counts.most_common(20)]
+                
+                state_counts = Counter(sequence)
+                top = [x[0] for x in state_counts.most_common(min(len(sequence), 20))]
 
-                    sequence_set = set(sequence)
-                    # remove top 20 that were selected
-                    sequence_set.difference_update(top)
+                sequence_set = set(sequence)
+                # remove top 20 that were selected
+                sequence_set.difference_update(top)
+                random_selection = []
+
+                if len(sequence_set) > 20:
                     # randomly select 10%
                     random_selection = random.sample(
                         list(sequence_set), int(len(sequence_set) * 0.1)
                     )
 
-                    selected = [*top, *random_selection]
-                    if not important:
-                        sequence = selected
+                selected = [*top, *random_selection]
+                characteristic_state = top[0]
+                if not important:
+                    sequence = selected
 
                 chunk = {
                     "timestep": first,
@@ -196,6 +200,7 @@ class Trajectory:
                     "cluster": cluster,
                     "sequence": sequence,
                     "selected": selected,
+                    "characteristicState": characteristic_state
                 }
                 first = timestep
                 last = timestep
