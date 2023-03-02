@@ -27,6 +27,7 @@ function SubSequenceView({
     trajectoryName,
     properties,
     globalScale,
+    visScript,
     sx = {},
     disabled = false,
     onMouseEnter = () => {},
@@ -123,6 +124,7 @@ function SubSequenceView({
                     {interestingStates.map((stateID) => (
                         <SingleStateViewer
                             stateID={stateID}
+                            visScript={visScript}
                             onClick={(e) => {
                                 d3.selectAll('.clicked').classed('clicked', false);
                                 setActiveState(stateID);

@@ -12,7 +12,12 @@ import GlobalStates from '../api/globalStates';
 import { apiSelectionDistance } from '../api/ajax';
 import ControlChart from '../vis/ControlChart';
 
-function SelectionComparisonView({ selections, onStateClick = () => {}, deleteFunc = () => {} }) {
+function SelectionComparisonView({
+    selections,
+    visScript,
+    onStateClick = () => {},
+    deleteFunc = () => {},
+}) {
     const [extents, setExtents] = useState(() => {
         const extentDict = {};
         for (const selection of selections) {
@@ -139,6 +144,7 @@ function SelectionComparisonView({ selections, onStateClick = () => {}, deleteFu
                 {activeStates.map((stateID) => (
                     <SingleStateViewer
                         stateID={stateID}
+                        visScript={visScript}
                         onClick={(e) => {
                             d3.selectAll('.clicked').classed('clicked', false);
                             onStateClick(stateID);

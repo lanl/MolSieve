@@ -549,6 +549,7 @@ export default function VisArea({
                                 trajectoryName={trajectoryName}
                                 stateIDs={ids}
                                 timesteps={timesteps}
+                                visScript={visScript}
                                 properties={properties}
                                 globalScale={globalScale}
                                 deleteFunc={() => {
@@ -586,6 +587,7 @@ export default function VisArea({
                                     selections={selection}
                                     onStateClick={(id) => setActiveState(id)}
                                     deleteFunc={() => removeComparison(uuid)}
+                                    visScript={visScript}
                                 />
                             );
                         })}
