@@ -134,25 +134,26 @@ async def generate_ovito_images(websocket: WebSocket):
         attr_atom_dict = converter.query_to_ASE(driver, q)
 
         for id, atoms in attr_atom_dict.items():
-            img = generate_ovito_image(atoms)
+            img = generate_ovito_image(atoms, default_image_modifier)
             await websocket.send_json({"id": id, "img": img})
     except WebSocketDisconnect:
         print("Websocket disconnected")
 
-
 @router.get("/generate_ovito_image", status_code=200)
-async def generate_ovito_image_endpoint(id: int):
+async def generate_ovito_image_endpoint(id: int, visScript: str):
     driver = GraphDriver()
     qb = querybuilder.Neo4jQueryBuilder([("Atom", "PART_OF", "State", "MANY-TO-ONE")])
 
     q = qb.generate_get_node_list("State", [id], "PART_OF")
     atom_dict = converter.query_to_ASE(driver, q)
 
-    return {"id": id, "img": generate_ovito_image(atom_dict[id])}
+    modifier = get_script_code(visScript, folder="vis_scripts")
+    exec(modifier, globals())
 
+    return {"id": id, "img": generate_ovito_image(atom_dict[id], modify_pipeline)}
 
-def generate_ovito_image(atoms):
-    qimg = visualizations.render_ASE(atoms)
+def generate_ovito_image(atoms, image_modifier):
+    qimg = visualizations.render_ASE(atoms, pipeline_modifier=image_modifier)
 
     img = Image.fromqimage(qimg)
     rawBytes = io.BytesIO()
@@ -371,7 +372,6 @@ async def load_properties_for_subset_endpoint(props: List[str] = Body([]), state
 
     return await load_properties_for_subset(stateList)
 
-
 async def load_properties_for_subset(stateList):
     driver = GraphDriver()
 
@@ -567,6 +567,15 @@ def script_properties():
     properties_to_script = get_script_properties_map()
     return list(properties_to_script.keys())
 
+@router.get("/vis_scripts")
+def vis_scripts():
+    scripts = []
+    with os.scandir("vis_scripts") as entries:
+        for entry in entries:
+            root, ext = os.path.splitext(entry)
+            if ext == '.py':
+                scripts.append(entry.name)
+    return scripts
 
 def get_script_properties_map():
     # read scripts folder, enumerate every file and return as array
@@ -585,14 +594,13 @@ def get_script_properties_map():
     return properties_to_script
 
 
-def get_script_code(script_name):
-    with os.scandir("scripts") as entries:
+def get_script_code(script_name, folder="scripts"):
+    with os.scandir(folder) as entries:
         for entry in entries:
             if entry.name == script_name:
                 with open(entry.path, mode="r") as script:
                     return script.read()
         raise FileNotFoundError
-
 
 # could be sequence/{run}
 @router.get("/get_sequence")

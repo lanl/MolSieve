@@ -152,10 +152,10 @@ export function apiCalculateIDToTimestep(run) {
     });
 }
 
-export function apiGenerateOvitoImage(id, controller) {
+export function apiGenerateOvitoImage(id, visScript, controller) {
     return new Promise((resolve, reject) => {
         axios
-            .get(`${API_URL}/api/generate_ovito_image?id=${id}`, {
+            .get(`${API_URL}/api/generate_ovito_image?id=${id}&visScript=${visScript}`, {
                 signal: controller.signal,
             })
             .then((response) => {
@@ -258,6 +258,15 @@ export function apiGetScriptProperties() {
     return new Promise((resolve, reject) => {
         axios
             .get(`${API_URL}/api/script_properties`)
+            .then((response) => resolve(response.data))
+            .catch((e) => reject(e));
+    });
+}
+
+export function apiGetVisScripts() {
+    return new Promise((resolve, reject) => {
+        axios
+            .get(`${API_URL}/api/vis_scripts`)
             .then((response) => resolve(response.data))
             .catch((e) => reject(e));
     });

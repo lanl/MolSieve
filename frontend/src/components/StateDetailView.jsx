@@ -5,10 +5,10 @@ import { DataGrid } from '@mui/x-data-grid';
 
 import SingleStateViewer from './SingleStateViewer';
 
-export default function StateDetailView({ state }) {
+export default function StateDetailView({ state, visScript }) {
     return (
         <Paper>
-            <SingleStateViewer stateID={state.id} />
+            <SingleStateViewer stateID={state.id} visScript={visScript} />
             <Box height={5} width={225} sx={{ backgroundColor: state.individualColor }} />
             <DataGrid
                 autoHeight

@@ -11,6 +11,7 @@ import SwapVertIcon from '@mui/icons-material/SwapVert';
 import InvertColorsIcon from '@mui/icons-material/InvertColors';
 
 import ClearAllIcon from '@mui/icons-material/ClearAll';
+import CameraAltIcon from '@mui/icons-material/CameraAlt';
 import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
 import Menu from '@mui/material/Menu';
@@ -65,6 +66,7 @@ export default function VisArea({
     expand,
     sx,
     setZoom,
+    visScripts,
 }) {
     const [currentModal, setCurrentModal] = useState(null);
     const [activeState, setActiveState] = useState(null);
@@ -79,6 +81,7 @@ export default function VisArea({
     const oldToolTipList = usePrevious(toolTipList);
 
     const [showTop, setShowTop] = useState(4);
+    const [visScript, setVisScript] = useState('default.py');
 
     const [comparisonSelections, setComparisonSelections] = useReducer((state, action) => {
         switch (action.type) {
@@ -431,6 +434,16 @@ export default function VisArea({
                                     <LibraryAddIcon />
                                 </IconButton>
                             </Tooltip>
+                            <Tooltip title="Change state visualization script" arrow>
+                                <IconButton
+                                    color="secondary"
+                                    size="small"
+                                    onClick={(e) => setAnchorEl(e.currentTarget)}
+                                    id="changeVisScriptButton"
+                                >
+                                    <CameraAltIcon />
+                                </IconButton>
+                            </Tooltip>
                             <Tooltip title="Clear selections" arrow>
                                 <IconButton
                                     color="secondary"
@@ -482,7 +495,10 @@ export default function VisArea({
             <Stack direction="row" gap={1}>
                 <Box marginLeft={5} minWidth="225px">
                     {activeState !== null && activeState !== undefined && (
-                        <StateDetailView state={GlobalStates.get(activeState)} />
+                        <StateDetailView
+                            state={GlobalStates.get(activeState)}
+                            visScript={visScript}
+                        />
                     )}
                 </Box>
 
@@ -586,6 +602,25 @@ export default function VisArea({
                 handleClose={() => setCurrentModal(null)}
             />
 
+            <Menu
+                open={!!(anchorEl && anchorEl.id === 'changeVisScriptButton')}
+                anchorEl={anchorEl}
+                onClose={() => setAnchorEl(null)}
+            >
+                {visScripts.map((vs) => (
+                    <MenuItem
+                        onClick={() => {
+                            setVisScript(vs);
+                            setAnchorEl(null);
+                        }}
+                        dense
+                        divider
+                    >
+                        {vs === visScript && <b>{vs}</b>}
+                        {vs !== visScript && vs}
+                    </MenuItem>
+                ))}
+            </Menu>
             {/* equivalent to (condition) ? true : false; do this to get rid of annoying open prop is null error */}
             <Menu
                 open={!!(anchorEl && anchorEl.id === 'findSimilarButton')}

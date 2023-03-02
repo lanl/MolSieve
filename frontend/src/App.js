@@ -12,7 +12,12 @@ import LoadRunModal from './modals/LoadRunModal';
 import Trajectory from './api/trajectory';
 import FilterBuilder from './api/FilterBuilder';
 import VisArea from './components/VisArea';
-import { apiLoadTrajectory, apiModifyTrajectory, apiGetScriptProperties } from './api/ajax';
+import {
+    apiLoadTrajectory,
+    apiModifyTrajectory,
+    apiGetScriptProperties,
+    apiGetVisScripts,
+} from './api/ajax';
 import ControlDrawer from './components/ControlDrawer';
 import GlobalStates from './api/globalStates';
 import { createUUID } from './api/math/random';
@@ -40,17 +45,21 @@ class App extends React.Component {
             runs: {},
             colors: new ColorManager(),
             properties: [],
+            visScripts: [],
         };
     }
 
     componentDidMount() {
         apiGetScriptProperties()
-            .then((data) => {
-                const properties = data;
+            .then((properties) => {
                 GlobalStates.addProperties(properties);
-                this.setState((prevState) => ({
-                    properties: [...prevState.properties, ...properties],
-                }));
+
+                apiGetVisScripts().then((scripts) => {
+                    this.setState((prevState) => ({
+                        properties: [...prevState.properties, ...properties],
+                        visScripts: [...prevState.visScripts, ...scripts],
+                    }));
+                });
             })
             .catch((e) => alert(e));
     }
@@ -333,8 +342,16 @@ class App extends React.Component {
     };
 
     render() {
-        const { trajectories, runs, properties, drawerOpen, showRunList, currentModal, run } =
-            this.state;
+        const {
+            trajectories,
+            runs,
+            properties,
+            drawerOpen,
+            showRunList,
+            currentModal,
+            run,
+            visScripts,
+        } = this.state;
         return (
             <Box sx={{ display: 'flex', flexDirection: 'column' }}>
                 <Toolbar
@@ -376,6 +393,7 @@ class App extends React.Component {
                     swapPositions={this.swapPositions}
                     expand={this.expand}
                     properties={properties}
+                    visScripts={visScripts}
                     sx={{
                         width: drawerOpen ? `calc(100% - 300px)` : `100%`,
                     }}

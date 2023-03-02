@@ -6,26 +6,20 @@ import ImageViewer from './ImageViewer';
 
 import { apiGenerateOvitoImage } from '../api/ajax';
 
-export default function SingleStateViewer({ stateID, onClick }) {
+export default function SingleStateViewer({ stateID, visScript, onClick }) {
     const [img, setImg] = useState(undefined);
 
     useEffect(() => {
         const controller = new AbortController();
 
-        const state = GlobalStates.get(stateID);
-        if (!state.img) {
-            apiGenerateOvitoImage(stateID, controller)
-                .then((data) => {
-                    GlobalStates.addPropToState(data);
-                    setImg(data.img);
-                })
-                .catch(() => {});
-        } else {
-            setImg(state.img);
-        }
-
+        apiGenerateOvitoImage(stateID, visScript, controller)
+            .then((data) => {
+                GlobalStates.addPropToState(data);
+                setImg(data.img);
+            })
+            .catch(() => {});
         return () => controller.abort();
-    }, [stateID]);
+    }, [stateID, visScript]);
 
     return (
         <Box onClick={onClick}>
