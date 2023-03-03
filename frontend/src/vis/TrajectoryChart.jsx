@@ -1,4 +1,4 @@
-import { React, useEffect, useState, memo } from 'react';
+import { React, useEffect, memo, useMemo } from 'react';
 import * as d3 from 'd3';
 
 import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
@@ -52,8 +52,6 @@ function TrajectoryChart({
 
     const { ranks, reduceRanks } = useRanks(properties, trajectory.chunkOrder(0));
 
-    const [scales, setScales] = useState(null);
-
     const updateRanks = (values, id) => {
         reduceRanks({ type: 'updateValues', payload: { values, id } });
     };
@@ -84,7 +82,7 @@ function TrajectoryChart({
         }
     }, [JSON.stringify(ranks.ordered), ref, showTop, JSON.stringify(propertyCombos), height]);
 
-    useEffect(() => {
+    const scales = useMemo(() => {
         const { iChunks, uChunks, topChunkList } = trajectory.getVisibleChunks(extents);
 
         const unimportantWidthExtent =
@@ -126,11 +124,14 @@ function TrajectoryChart({
             }
             return w;
         };
-        setScales({ getX, getWidthScale, scaleX });
+        return { getX, getWidthScale, scaleX };
     }, [JSON.stringify(trajectory.chunkList), JSON.stringify(extents), width]);
 
     // here we can filter out the un-rendered charts right away since we only care about rendering here
-    const { topChunkList } = trajectory.getVisibleChunks(extents);
+    const topChunkList = useMemo(() => {
+        const { topChunkList: tcl } = trajectory.getVisibleChunks(extents);
+        return tcl;
+    }, [JSON.stringify(extents), JSON.stringify(trajectory.chunkList)]);
 
     return (
         <svg
@@ -144,98 +145,94 @@ function TrajectoryChart({
                 }
             }}
         >
-            {scales &&
-                topChunkList.map((chunk) => {
-                    const { scaleX, getWidthScale, getX } = scales;
-                    const chartW = scaleX(getWidthScale(chunk));
+            {topChunkList.map((chunk) => {
+                const { scaleX, getWidthScale, getX } = scales;
+                const chartW = scaleX(getWidthScale(chunk));
 
-                    const chunkIndex = topChunkList.indexOf(chunk);
-                    const h = chunk.important ? height : height - scatterplotHeight;
+                const chunkIndex = topChunkList.indexOf(chunk);
+                const h = chunk.important ? height : height - scatterplotHeight;
 
-                    const slicedChunk = chunk.slice(extents[0], extents[1]);
+                const slicedChunk = chunk.slice(extents[0], extents[1]);
 
-                    const chartSel = Object.keys(selections)
-                        .filter((selectionID) => {
-                            const selection = selections[selectionID];
-                            const timesteps = selection.extent.map((d) => d.timestep);
-                            return (
-                                selection.trajectoryName === trajectory.name &&
-                                slicedChunk.containsSequence(timesteps)
-                            );
-                        })
-                        .map((selectionID) => {
-                            const selection = selections[selectionID];
-                            const { start, end } = selection.originalExtent;
+                const chartSel = Object.keys(selections)
+                    .filter((selectionID) => {
+                        const selection = selections[selectionID];
+                        const timesteps = selection.extent.map((d) => d.timestep);
+                        return (
+                            selection.trajectoryName === trajectory.name &&
+                            slicedChunk.containsSequence(timesteps)
+                        );
+                    })
+                    .map((selectionID) => {
+                        const selection = selections[selectionID];
+                        const { start, end } = selection.originalExtent;
 
-                            // this needs to be done so that the selection can rescale
-                            const x = d3
-                                .scaleLinear()
-                                .domain(d3.extent(slicedChunk.timesteps))
-                                .range([0, chartW - 7.5]);
+                        // this needs to be done so that the selection can rescale
+                        const x = d3
+                            .scaleLinear()
+                            .domain(d3.extent(slicedChunk.timesteps))
+                            .range([0, chartW - 7.5]);
 
-                            return {
-                                set: selection.extent.map((d) => d.timestep),
-                                brushValues: { start: x(start), end: x(end) },
-                                id: selectionID,
-                            };
-                        });
+                        return {
+                            set: selection.extent.map((d) => d.timestep),
+                            brushValues: { start: x(start), end: x(end) },
+                            id: selectionID,
+                        };
+                    });
 
-                    return (
-                        <foreignObject
-                            key={chunk.id}
-                            x={
-                                getX(chunkIndex, 0, topChunkList, scaleX, getWidthScale) +
-                                MARGIN.right
-                            }
-                            y={0}
-                            width={chartW}
-                            height={h}
-                        >
-                            {chunk.important ? (
-                                <ChunkWrapper
-                                    chunk={chunk}
-                                    width={chartW}
-                                    height={h}
-                                    setStateHovered={setStateHovered}
-                                    properties={properties}
-                                    trajectory={trajectory}
-                                    globalScale={globalScale}
-                                    updateGlobalScale={updateGlobalScale}
-                                    ranks={ranks.ordered.slice(0, showTop)}
-                                    selections={chartSel}
-                                    showStateClustering={showStateClustering}
-                                    showTop={showTop}
-                                    addSelection={addSelection}
-                                    selectObject={selectObject}
-                                    selectedObjects={selectedObjects}
-                                    chunkSelectionMode={chunkSelectionMode}
-                                    doubleClickAction={() => expand(chunk.id, 100, trajectory)}
-                                    propertyCombos={propertyCombos}
-                                    extents={extents}
-                                    scatterplotHeight={scatterplotHeight}
-                                    setZoom={setZoom}
-                                />
-                            ) : (
-                                <ViolinPlotWrapper
-                                    chunk={chunk}
-                                    width={chartW}
-                                    height={h} // to accomodate for no scatterplot
-                                    updateRanks={updateRanks}
-                                    selectObject={selectObject}
-                                    selectedObjects={selectedObjects}
-                                    chunkSelectionMode={chunkSelectionMode}
-                                    ranks={ranks.ordered.slice(0, showTop)}
-                                    properties={properties}
-                                    globalScale={globalScale}
-                                    updateGlobalScale={updateGlobalScale}
-                                    showTop={showTop}
-                                    propertyCombos={propertyCombos}
-                                    onClick={() => setStateHovered(chunk.characteristicState)}
-                                />
-                            )}
-                        </foreignObject>
-                    );
-                })}
+                return (
+                    <foreignObject
+                        key={chunk.id}
+                        x={getX(chunkIndex, 0, topChunkList, scaleX, getWidthScale) + MARGIN.right}
+                        y={0}
+                        width={chartW}
+                        height={h}
+                    >
+                        {chunk.important ? (
+                            <ChunkWrapper
+                                chunk={chunk}
+                                width={chartW}
+                                height={h}
+                                setStateHovered={setStateHovered}
+                                properties={properties}
+                                trajectory={trajectory}
+                                globalScale={globalScale}
+                                updateGlobalScale={updateGlobalScale}
+                                ranks={ranks.ordered.slice(0, showTop)}
+                                selections={chartSel}
+                                showStateClustering={showStateClustering}
+                                showTop={showTop}
+                                addSelection={addSelection}
+                                selectObject={selectObject}
+                                selectedObjects={selectedObjects}
+                                chunkSelectionMode={chunkSelectionMode}
+                                doubleClickAction={() => expand(chunk.id, 100, trajectory)}
+                                propertyCombos={propertyCombos}
+                                extents={extents}
+                                scatterplotHeight={scatterplotHeight}
+                                setZoom={setZoom}
+                            />
+                        ) : (
+                            <ViolinPlotWrapper
+                                chunk={chunk}
+                                width={chartW}
+                                height={h} // to accomodate for no scatterplot
+                                updateRanks={updateRanks}
+                                selectObject={selectObject}
+                                selectedObjects={selectedObjects}
+                                chunkSelectionMode={chunkSelectionMode}
+                                ranks={ranks.ordered.slice(0, showTop)}
+                                properties={properties}
+                                globalScale={globalScale}
+                                updateGlobalScale={updateGlobalScale}
+                                showTop={showTop}
+                                propertyCombos={propertyCombos}
+                                onClick={() => setStateHovered(chunk.characteristicState)}
+                            />
+                        )}
+                    </foreignObject>
+                );
+            })}
             <rect
                 x={0}
                 y={0}
