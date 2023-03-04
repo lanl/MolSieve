@@ -14,13 +14,11 @@ def modify_pipeline(pipeline):
     ws = WignerSeitzAnalysisModifier(
         affine_mapping = ReferenceConfigurationModifier.AffineMapping.ToReference
     )
-      
+    #o_reference_cell.cell.vis.enabled = False 
     #ws.output_displaced = True
     ws.reference = StaticSource(data=o_reference_cell)
  
     pipeline.modifiers.append(ws)
-    #pipeline.modifiers.append(ExpressionSelectionModifier(expression = 'Occupancy > 1'))
-    pipeline.modifiers.append(ColorCodingModifier(
-        property = 'Occupancy',
-        gradient = ColorCodingModifier.Hot(),
-    ))
+    pipeline.modifiers.append(ExpressionSelectionModifier(expression = 'Occupancy == 1'))
+    pipeline.modifiers.append(DeleteSelectedModifier())
+    pipeline.modifiers.append(AssignColorModifier(operate_on='particles', color = (1.0,0.0,0.0)))
