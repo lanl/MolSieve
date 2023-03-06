@@ -45,12 +45,10 @@ export default function NEBWrapper({
                 const client = new WebSocket(`${WS_URL}/api/ws/${id}`);
                 client.onmessage = onMessageHandler(
                     () => {
-                        enqueueSnackbar(`Task ${id} started.`);
                         reduceResults({ type: 'clear' });
                     },
                     (response) => {
-                        const { message, data } = response;
-                        enqueueSnackbar(`Task ${id}: ${message}`);
+                        const { data } = response;
                         if (data !== undefined) {
                             reduceResults({
                                 payload: data,

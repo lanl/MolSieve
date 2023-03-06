@@ -299,31 +299,33 @@ def calculate_neb_on_path(
 
         res = session.run(q)
         for r in res:
-            path.update({r["timestep"]: (r["first"], r["second"])})
+            path.update({r["timestep"]: (r["first"], r["second"], r["second"])})
 
         # get their canonical representations - this is a seperate query
         q = f"""OPTIONAL MATCH (n:{run})-[r:canon_rep_{run}]->(n2:State)
             WHERE r.timestep >= {start} AND r.timestep <= {end} AND n.id IN ["""
         count = 0
-        for timestep, relation in path.items():
+        for relation in path.values():
             q += str(relation[1])
-            path[timestep] = (relation[0], relation[1])
             if count != len(path.items()) - 1:
                 q += ","
             count += 1
         q += "] RETURN DISTINCT r.timestep AS timestep, n2.id AS sym_state ORDER BY r.timestep;"
+        print(q)
         res = session.run(q)
         for r in res:
             if r["timestep"] in path:
                 curr_tuple = path[r["timestep"]]
-                path[r["timestep"]] = (curr_tuple[0], r["sym_state"])
+                path[r["timestep"]] = (curr_tuple[0], r["sym_state"], curr_tuple[1])
 
-        for timestep, relation in path.items():
+        print(path)
+
+        for relation in path.values():
             if relation[0] not in allStates:
                 allStates.append(relation[0])
             if relation[1] not in allStates:
                 allStates.append(relation[1])
-    
+
     full_atom_dict = {}
     for stateID in allStates:
         q = f"""MATCH (a:Atom)-[:PART_OF]->(n:State) WHERE n.id = {stateID}
@@ -344,9 +346,13 @@ def calculate_neb_on_path(
     idx = 0
 
     for timestep, relation in path.items():
+        s1, s2, old_state = relation
+        s1_atoms = full_atom_dict[s1]
+        s2_atoms = full_atom_dict[s2]
+
         images = calculator.calculate_neb_for_pair(
-            full_atom_dict[relation[0]],
-            full_atom_dict[relation[1]],
+            s1_atoms,
+            s2_atoms,
             metadata["cmds"],
             interpolate,
             maxSteps,
@@ -362,9 +368,8 @@ def calculate_neb_on_path(
                     task_id,
                     {
                         "type": TASK_PROGRESS,
-                        "message": f"Image {idx + 1} processed.",
                         "progress": f"{idx+1/len(path)}",
-                        "data": {'id': relation[0], 'energy': 0, 'timestep': idx},
+                        "data": {'id': relation[0], 'energy': s1_atoms.get_potential_energy(), 'timestep': idx},
                     },
                 )
             idx += 1 
@@ -427,7 +432,7 @@ def calculate_neb_on_path(
                         "type": TASK_PROGRESS,
                         "message": f"Image {idx + 1} processed.",
                         "progress": f"{idx+1/len(path)}",
-                        "data": {'id': stateIDCounter, 'energy': 0, 'timestep': idx},
+                        "data": {'id': stateIDCounter, 'energy': atoms.get_potential_energy(), 'timestep': idx},
                     },
                 )
                 stateIDCounter += 1
@@ -441,15 +446,14 @@ def calculate_neb_on_path(
                         "type": TASK_PROGRESS,
                         "message": f"Image {idx + 1} processed.",
                         "progress": f"{idx+1/len(path)}",
-                        "data": {'id': relation[1], 'energy': 0, 'timestep': idx },
+                        "data": {'id': old_state, 'energy': s2_atoms.get_potential_energy(), 'timestep': idx },
                     },
                 )
             
             q = f"MATCH (s:ServerMetadata) SET s.stateIDCounter={stateIDCounter};"
             tx.run(q)
             tx.commit()
-
-    return 
+    return
 
 
 @celery.task(name="calculate_path_similarity", base=PostingTask)
