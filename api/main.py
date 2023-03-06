@@ -4,8 +4,10 @@ import json
 import logging
 import os
 import time
+from itertools import chain
 from typing import List, Optional
 
+import ase.geometry
 import neo4j
 from celery.result import AsyncResult
 from celery.utils import uuid
@@ -17,7 +19,6 @@ from fastapi import (
     WebSocket,
     WebSocketDisconnect,
 )
-
 from fastapi.middleware.cors import CORSMiddleware
 
 # image rendering
@@ -29,21 +30,12 @@ from sklearn.cluster import OPTICS
 
 from neomd import calculator, converter, querybuilder, utils, visualizations
 
+from .background_worker.celery import TASK_COMPLETE, celery
 from .connectionmanager import ConnectionManager
 from .graphdriver import GraphDriver
 from .models import AnalysisStep
 from .trajectory import Trajectory
-from .utils import (
-    checkRequiredProperties,
-    getMetadata,
-    getScipyDistributions,
-    loadTestPickle,
-    saveTestPickle,
-)
-from .background_worker.celery import TASK_COMPLETE, celery
-
-from itertools import chain
-import ase.geometry
+from .utils import getMetadata, getScipyDistributions, loadTestPickle, saveTestPickle
 
 os.environ["OVITO_THREAD_COUNT"] = "1"
 os.environ["DISPLAY"] = ""
@@ -52,12 +44,13 @@ trajectories = {}
 
 app = FastAPI()
 
-origins = ['*']
+origins = ["*"]
 
-app.add_middleware(CORSMiddleware,
-        allow_origins=origins,
-        allow_methods=["*"],
-        allow_headers=["*"],
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 router = APIRouter(prefix="/api")
@@ -109,9 +102,7 @@ async def ws(task_id: str, websocket: WebSocket):
     await cm.connect(task_id, websocket)
     # get the task's parameters, send it off
     task_params = unprocessed[task_id]
-    celery.send_task(
-        task_params["name"], kwargs=task_params["params"], task_id=task_id
-    )
+    celery.send_task(task_params["name"], kwargs=task_params["params"], task_id=task_id)
     try:
         await websocket.receive()
     except WebSocketDisconnect:
@@ -139,6 +130,7 @@ async def generate_ovito_images(websocket: WebSocket):
     except WebSocketDisconnect:
         print("Websocket disconnected")
 
+
 @router.get("/generate_ovito_image", status_code=200)
 async def generate_ovito_image_endpoint(id: int, visScript: str):
     driver = GraphDriver()
@@ -151,6 +143,7 @@ async def generate_ovito_image_endpoint(id: int, visScript: str):
     exec(modifier, globals())
 
     return {"id": id, "img": generate_ovito_image(atom_dict[id], modify_pipeline)}
+
 
 def generate_ovito_image(atoms, image_modifier):
     qimg = visualizations.render_ASE(atoms, pipeline_modifier=image_modifier)
@@ -241,7 +234,6 @@ async def calculate_neb_on_path(
 ):
 
     task_id = uuid()
-    print(task_id)
     unprocessed.update(
         {
             task_id: {
@@ -312,7 +304,7 @@ async def ws_load_properties_for_subset(websocket: WebSocket):
 
         def split(arr, chunk_size):
             for i in range(0, len(arr), chunk_size):
-                yield arr[i:i + chunk_size]
+                yield arr[i : i + chunk_size]
 
         chunks = list(split(stateList, 100))
 
@@ -357,7 +349,9 @@ def cluster_states(props: List[str] = Body([]), stateIds: List[int] = Body([])):
 
 
 @router.post("/load_properties_for_subset", status_code=200)
-async def load_properties_for_subset_endpoint(props: List[str] = Body([]), stateIds: List[int] = Body([])):
+async def load_properties_for_subset_endpoint(
+    props: List[str] = Body([]), stateIds: List[int] = Body([])
+):
     qb = querybuilder.Neo4jQueryBuilder()
     driver = GraphDriver()
 
@@ -371,6 +365,7 @@ async def load_properties_for_subset_endpoint(props: List[str] = Body([]), state
         stateList = result.data()
 
     return await load_properties_for_subset(stateList)
+
 
 async def load_properties_for_subset(stateList):
     driver = GraphDriver()
@@ -407,8 +402,9 @@ async def load_properties_for_subset(stateList):
         if len(allMissing) > 0:
             qb = querybuilder.Neo4jQueryBuilder(
                 [
-            ("Atom", "PART_OF", "State", "MANY-TO-ONE"),
-            ])
+                    ("Atom", "PART_OF", "State", "MANY-TO-ONE"),
+                ]
+            )
             q = qb.generate_get_node_list("State", allMissing, "PART_OF")
             state_atom_dict = converter.query_to_ASE(driver, q)
 
@@ -434,15 +430,19 @@ async def load_properties_for_subset(stateList):
 # needs to be smarter than this to avoid repetition
 async def run_script(script: str, state_atom_dict):
     driver = GraphDriver()
-    qb = querybuilder.Neo4jQueryBuilder([
+    qb = querybuilder.Neo4jQueryBuilder(
+        [
             ("Atom", "PART_OF", "State", "MANY-TO-ONE"),
-    ])
+        ]
+    )
 
     code = get_script_code(script)
     exec(code, globals())
     new_attributes = run(state_atom_dict)
     task_id = uuid()
-    celery.send_task("save_to_db", kwargs={"new_attributes": new_attributes}, task_id=task_id)
+    celery.send_task(
+        "save_to_db", kwargs={"new_attributes": new_attributes}, task_id=task_id
+    )
 
     # move into seperate process?
     return new_attributes
@@ -495,17 +495,17 @@ def get_potential(run: str) -> str:
 
         return filename
 
+
 def calculate_trajectory_occurrences(run: str):
-    driver = GraphDriver() 
-    
-    qb = querybuilder.Neo4jQueryBuilder([
-            ("State", run, "State", "ONE-TO-ONE")
-    ])
-    
-    q = qb.generate_get_occurrences(run, f"{run}_occurrences")  
+    driver = GraphDriver()
+
+    qb = querybuilder.Neo4jQueryBuilder([("State", run, "State", "ONE-TO-ONE")])
+
+    q = qb.generate_get_occurrences(run, f"{run}_occurrences")
 
     with driver.session() as session:
         session.run(q.text)
+
 
 def load_sequence(run: str, properties: List[str], driver):
     """
@@ -517,7 +517,7 @@ def load_sequence(run: str, properties: List[str], driver):
     """
     get_potential(run)
     run_md = get_metadata(run)
-    
+
     if f"{run}_occurrences" not in run_md:
         calculate_trajectory_occurrences(run)
 
@@ -567,15 +567,17 @@ def script_properties():
     properties_to_script = get_script_properties_map()
     return list(properties_to_script.keys())
 
+
 @router.get("/vis_scripts")
 def vis_scripts():
     scripts = []
     with os.scandir("vis_scripts") as entries:
         for entry in entries:
             root, ext = os.path.splitext(entry)
-            if ext == '.py':
+            if ext == ".py":
                 scripts.append(entry.name)
     return scripts
+
 
 def get_script_properties_map():
     # read scripts folder, enumerate every file and return as array
@@ -583,7 +585,7 @@ def get_script_properties_map():
     with os.scandir("scripts") as entries:
         for entry in entries:
             root, ext = os.path.splitext(entry)
-            if ext == '.py':
+            if ext == ".py":
                 with open(entry.path, mode="r") as script:
                     code = script.read()
                 # puts properties in global namespace
@@ -602,6 +604,7 @@ def get_script_code(script_name, folder="scripts"):
                     return script.read()
         raise FileNotFoundError
 
+
 # could be sequence/{run}
 @router.get("/get_sequence")
 def get_sequence(run: str, start: Optional[int], end: Optional[int] = None):
@@ -615,7 +618,7 @@ def get_sequence(run: str, start: Optional[int], end: Optional[int] = None):
     if start is None or end is None:
         return trajectory.sequence
     else:
-        return trajectory.sequence[start: end + 1]
+        return trajectory.sequence[start : end + 1]
 
 
 @router.get("/get_property_list")
@@ -784,10 +787,12 @@ def subset_connectivity_difference(stateIDs: List[int] = Body([])):
     maximum_difference = []
     iter = 0
     while iter < 3:
-        result = calculator.max_connectivity_difference(connectivity_list[0][1], connectivity_list[1:])
-        if result['id'] is not None:
-            maximum_difference.append(result['id'])
-            connectivity_list = connectivity_list[result['index']:]
+        result = calculator.max_connectivity_difference(
+            connectivity_list[0][1], connectivity_list[1:]
+        )
+        if result["id"] is not None:
+            maximum_difference.append(result["id"])
+            connectivity_list = connectivity_list[result["index"] :]
         else:
             break
         iter += 1
@@ -798,7 +803,7 @@ def subset_connectivity_difference(stateIDs: List[int] = Body([])):
 @router.post("/selection_distance")
 def selection_distance(stateIDPairs: List[List[int]] = Body([])):
     driver = GraphDriver()
-    
+
     # flattens 2D array
     stateIDs = list(chain.from_iterable(stateIDPairs))
     qb = querybuilder.Neo4jQueryBuilder([("Atom", "PART_OF", "State", "MANY-TO-ONE")])
@@ -814,7 +819,7 @@ def selection_distance(stateIDPairs: List[List[int]] = Body([])):
             id1, id2 = pair
             s1 = state_atom_dict[id1]
             s2 = state_atom_dict[id2]
-            dist = ase.geometry.distance(s1, s2)  
+            dist = ase.geometry.distance(s1, s2)
             distances.append(dist)
             seen[pair] = dist
 

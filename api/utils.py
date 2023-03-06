@@ -1,4 +1,3 @@
-import os
 import pickle
 import json
 import scipy.stats
@@ -6,7 +5,6 @@ import inspect
 import neo4j
 
 from .config import Config
-
 
 def metadata_to_parameters(raw_metadata):
     """
@@ -98,6 +96,17 @@ def saveTestJson(run, t, j):
     with open("api/testing/{run}_{t}.json".format(run=run, t=t), "w") as f:
         json.dump(j, f, ensure_ascii=False, indent=4)
 
+def getStateIDCounter():
+    j = {}
+    driver = neo4j.GraphDatabase.driver(
+        "bolt://127.0.0.1:7687", auth=("neo4j", "secret")
+    )
+    stateIDCounter = 0
+    with driver.session() as session:
+        result = session.run("MATCH (m:ServerMetadata) RETURN m.stateIDCounter as stateIDCounter;")
+        record = result.single()
+        stateIDCounter = record.value()
+    return stateIDCounter
 
 def getMetadata(run, getJson=False):
     """

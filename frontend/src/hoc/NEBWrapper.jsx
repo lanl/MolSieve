@@ -9,7 +9,7 @@ import { WS_URL } from '../api/constants';
 
 export default function NEBWrapper({
     trajectoryName,
-    stateIDs,
+    // stateIDs,
     start,
     end,
     interpolate,
@@ -19,24 +19,14 @@ export default function NEBWrapper({
     setActiveState,
 }) {
     const { enqueueSnackbar } = useSnackbar();
+
     const [results, reduceResults] = useReducer(
         (state, action) => {
             switch (action.type) {
                 case 'update': {
-                    const { energies, count } = action.payload;
-
-                    let corrected = [];
-                    if (count < stateIDs.length - 1) {
-                        corrected = energies.slice(0, -1);
-                    } else {
-                        corrected = [energies[0]];
-                    }
-                    const data = corrected.map((d, i) => ({
-                        energy: d,
-                        timestep: state.values.length + i,
-                        id: stateIDs[count],
-                    }));
-                    return { values: [...state.values, ...data] };
+                    const { id, energy, timestep } = action.payload;
+                    GlobalStates.calculateGlobalUniqueStates([id], 'NEB');
+                    return { values: [...state.values, { id, energy, timestep }] };
                 }
                 case 'clear': {
                     return {
@@ -53,7 +43,6 @@ export default function NEBWrapper({
         apiCalculateNEB(trajectoryName, start, end, interpolate, maxSteps, fmax, saveResults)
             .then((id) => {
                 const client = new WebSocket(`${WS_URL}/api/ws/${id}`);
-                let count = 0;
                 client.onmessage = onMessageHandler(
                     () => {
                         enqueueSnackbar(`Task ${id} started.`);
@@ -64,10 +53,9 @@ export default function NEBWrapper({
                         enqueueSnackbar(`Task ${id}: ${message}`);
                         if (data !== undefined) {
                             reduceResults({
-                                payload: { energies: data, count },
+                                payload: data,
                                 type: 'update',
                             });
-                            count++;
                         }
                     },
                     () => {
@@ -86,7 +74,9 @@ export default function NEBWrapper({
             height={200}
             xAttributeList={results.values.map((d) => d.timestep)}
             yAttributeList={results.values.map((d) => d.energy)}
-            additionalAttributes={results.values.map((d) => d.id)}
+            additionalAttributes={results.values.map((d) => ({
+                id: d.id,
+            }))}
             margin={{ top: 5, bottom: 10, left: 50, right: 7.5 }}
             onElementClick={(node, d) => {
                 d3.selectAll('.clicked').classed('clicked', false);

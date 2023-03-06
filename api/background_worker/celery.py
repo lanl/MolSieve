@@ -1,6 +1,6 @@
 #from api.models import AnalysisStep
 
-from api.utils import get_atom_type, getMetadata
+from api.utils import getMetadata, getStateIDCounter
 from typing import Optional, List, Dict, Any
 from .celeryconfig import CeleryConfig
 
@@ -293,7 +293,7 @@ def calculate_neb_on_path(
     allStates = []
     with driver.session() as session:
         # get the path first, just the ids
-        q = f"""MATCH (n:State:{run})-[r:{run}]->(n2:State:{run}) 
+        q = f"""MATCH (n:State:{run})-[r:{run}]->(n2:State:{run})
         WHERE r.timestep >= {start} AND r.timestep <= {end}
         RETURN n.id AS first, r.timestep AS timestep, n2.id AS second;"""
 
@@ -323,9 +323,10 @@ def calculate_neb_on_path(
                 allStates.append(relation[0])
             if relation[1] not in allStates:
                 allStates.append(relation[1])
+    
     full_atom_dict = {}
     for stateID in allStates:
-        q = f"""MATCH (a:Atom)-[:PART_OF]->(n:State) WHERE n.id = {stateID} 
+        q = f"""MATCH (a:Atom)-[:PART_OF]->(n:State) WHERE n.id = {stateID}
         WITH n,a ORDER BY a.internal_id WITH collect(DISTINCT a) AS atoms, n
         RETURN n, atoms;
         """
@@ -336,52 +337,119 @@ def calculate_neb_on_path(
 
     energyList = []
     if interpolate < 0:
+        # should send error message to main
         raise ValueError("Cannot interpolate less than 0 images.")
 
+    stateIDCounter = getStateIDCounter()
     idx = 0
+
     for timestep, relation in path.items():
-        energies = calculator.calculate_neb_for_pair(
+        images = calculator.calculate_neb_for_pair(
             full_atom_dict[relation[0]],
             full_atom_dict[relation[1]],
-            atomType,
             metadata["cmds"],
             interpolate,
             maxSteps,
             fmax,
         )
 
-        energyList.append(energies)
+        with driver.session() as session:
+            tx = session.begin_transaction()
 
-        current_task.update_state(state="PROGRESS")
-        send_update(
-            task_id,
-            {
-                "type": TASK_PROGRESS,
-                "message": f"Image {idx + 1} of {len(path)} processed.",
-                "progress": f"{idx+1/len(path)}",
-                "data": energies,
-            },
-        )
+            # send first state
+            current_task.update_state(state="PROGRESS")
+            send_update(
+                    task_id,
+                    {
+                        "type": TASK_PROGRESS,
+                        "message": f"Image {idx + 1} processed.",
+                        "progress": f"{idx+1/len(path)}",
+                        "data": {'id': relation[0], 'energy': 0, 'timestep': idx},
+                    },
+                )
+            idx += 1 
+            for atoms in images[1:-1]:
+                cell = atoms.get_cell()
+                cell_x = cell[0, 0] 
+                cell_y = cell[1, 1] 
+                cell_z = cell[2, 2] 
+                xy = cell[1, 0]
+                xz = cell[2, 0]
+                yz = cell[2, 1]
+                px,py,pz = atoms.get_pbc()
+                atom_count = len(atoms)
 
-        idx += 1
-        if saveResults:
-            # update by timestep
-            q = None
+                stateQ = f"""CREATE (s:State:NEB:{run}) 
+                        SET s.id = {stateIDCounter},
+                        s.boxhi_x = {cell_x},
+                        s.boxhi_y = {cell_y},
+                        s.boxhi_z = {cell_z},
+                        s.boxlo_x = 0.0,
+                        s.boxlo_y = 0.0,
+                        s.boxlo_z = 0.0,
+                        s.xy = {xy},
+                        s.xz = {xz},
+                        s.yz = {yz},
+                        s.periodic_x = {int(px)},
+                        s.periodic_y = {int(py)},
+                        s.periodic_z = {int(pz)},
+                        s.AtomCount = {atom_count};"""
+                tx.run(stateQ)
 
-            with driver.session() as session:
-                tx = session.begin_transaction()
-                for idx, energies in enumerate(energyList):
-                    q = f"""MATCH (a:State:{run}),
-                    (b:State:{run})
-                    WHERE a.id = '{relation[0]}' AND b.id = '{relation[1]}'
-                    MERGE (a)-[:{run}_NEB {{timestep: {timestep}, interpolate: {interpolate},
-                    maxSteps: {maxSteps}, fmax: {fmax}, energies: '{json.dumps(energies)}'}}]->(b);                    
-                    """
-                    tx.run(q)
-                tx.commit()
-    j = {"energies": energyList}
+                positions = atoms.get_positions()
+                velocities = atoms.get_velocities()
+                atomQ = """MATCH (s:NEB) WHERE s.id = $stateIDCounter
+                            CREATE (a:Atom)
+                            SET a.atom_type = $symbol,
+                            a.id = $atom_id,
+                            a.internal_id = $internal_id,
+                            a.position_x = $px,
+                            a.position_y = $py,
+                            a.position_z = $pz,
+                            a.velocity_x = $vx,
+                            a.velocity_y = $vy,
+                            a.velocity_z = $vz
+                            MERGE (a)-[:PART_OF]->(s);"""
 
-    return json.dumps(j)
+                atom_counter = 1
+                for atom, position, velocity in zip(atoms, positions, velocities):
+                    symbol = atom.symbol
+                    px, py, pz = position
+                    vx, vy, vz = velocity
+                    tx.run(atomQ, stateIDCounter=stateIDCounter, symbol=symbol, atom_id=f"{stateIDCounter}_{atom_counter}", internal_id=atom_counter,
+                           px=px,py=py,pz=pz,vx=vx,vy=vy,vz=vz)
+                    atom_counter += 1
+                
+                current_task.update_state(state="PROGRESS")
+                send_update(
+                    task_id,
+                    {
+                        "type": TASK_PROGRESS,
+                        "message": f"Image {idx + 1} processed.",
+                        "progress": f"{idx+1/len(path)}",
+                        "data": {'id': stateIDCounter, 'energy': 0, 'timestep': idx},
+                    },
+                )
+                stateIDCounter += 1
+                idx += 1
+
+            # send last state
+            current_task.update_state(state="PROGRESS")
+            send_update(
+                    task_id,
+                    {
+                        "type": TASK_PROGRESS,
+                        "message": f"Image {idx + 1} processed.",
+                        "progress": f"{idx+1/len(path)}",
+                        "data": {'id': relation[1], 'energy': 0, 'timestep': idx },
+                    },
+                )
+            
+            q = f"MATCH (s:ServerMetadata) SET s.stateIDCounter={stateIDCounter};"
+            tx.run(q)
+            tx.commit()
+
+    return 
 
 
 @celery.task(name="calculate_path_similarity", base=PostingTask)
