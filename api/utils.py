@@ -3,6 +3,7 @@ import json
 import scipy.stats
 import inspect
 import neo4j
+import os
 
 from .config import Config
 

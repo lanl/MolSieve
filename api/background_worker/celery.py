@@ -453,7 +453,7 @@ def calculate_neb_on_path(
             q = f"MATCH (s:ServerMetadata) SET s.stateIDCounter={stateIDCounter};"
             tx.run(q)
             tx.commit()
-    return
+    return {}
 
 
 @celery.task(name="calculate_path_similarity", base=PostingTask)
