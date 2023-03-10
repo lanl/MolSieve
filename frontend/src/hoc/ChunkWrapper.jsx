@@ -54,16 +54,23 @@ function ChunkWrapper({
 
     // With useSelector(), returning a new object every time will always force a re-render by default.
     const states = useSelector(
-        (state) => getStates(state, chunk.sequence),
-        (oldStates, newStates) => getNumberLoaded(oldStates) === getNumberLoaded(newStates)
+        (state) => getStates(state, chunk.sequence)
+        //    (oldStates, newStates) => getNumberLoaded(oldStates) === getNumberLoaded(newStates)
+    );
+
+    const stateMap = useMemo(
+        () =>
+            states.reduce((acc, v) => {
+                acc[v.id] = { individualColor: v.individualColor };
+                return acc;
+            }, {}),
+        []
     );
 
     const numLoaded = getNumberLoaded(states);
 
-    const stateMap = useSelector((state) => state.states.values);
-
     const [colorFunc, setColorFunc] = useState(() => (d) => {
-        const state = stateMap.get(d);
+        const state = stateMap[d];
         return state.individualColor;
     });
 
@@ -140,12 +147,12 @@ function ChunkWrapper({
     useEffect(() => {
         if (showStateClustering) {
             setColorFunc(() => (d) => {
-                const state = stateMap.get(d);
+                const state = stateMap[d];
                 return state.stateClusteringColor;
             });
         } else {
             setColorFunc(() => (d) => {
-                const state = stateMap.get(d);
+                const state = stateMap[d];
                 return state.individualColor;
             });
         }
@@ -286,9 +293,10 @@ function ChunkWrapper({
                                                 lcl={mean - std}
                                                 height={controlChartHeight}
                                                 width={ww}
-                                                yAttributeList={mva[property]
-                                                    .slice(sliceStart, sliceEnd)
-                                                    .filter((d) => d !== undefined)}
+                                                yAttributeList={mva[property].slice(
+                                                    sliceStart,
+                                                    sliceEnd
+                                                )}
                                                 xAttributeList={timesteps}
                                                 lineColor={trajectory.colorByCluster(chunk)}
                                                 title={`${abbreviate(property)}`}

@@ -168,10 +168,10 @@ export const states = createSlice({
             const { newUniqueStates, run } = action.payload;
             const { values } = state;
             for (const s of newUniqueStates) {
-                if (values.has(s.id)) {
-                    const previous = values.get(s.id);
+                if (values.has(s)) {
+                    const previous = values.get(s);
                     previous.seenIn = [...previous.seenIn, run];
-                    values.set(s.id, Object.assign(previous, s));
+                    values.set(s, previous);
                 } else {
                     const newState = new State(s);
                     newState.seenIn = [run];

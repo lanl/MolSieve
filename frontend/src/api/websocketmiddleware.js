@@ -13,7 +13,10 @@ const socketMiddleware = () => {
         const state = store.getState();
         const { properties, values } = state.states;
         // try to load 10% of the dataset at a time
-        const stateIds = Array.from(values.values()).map((d) => d.id);
+        const stateIds = Array.from(values.values())
+            .filter((d) => d.loaded !== true)
+            .map((d) => d.id);
+
         const chunkSize = Math.round(stateIds.length / 10);
         socket.send(
             JSON.stringify({

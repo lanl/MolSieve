@@ -161,6 +161,7 @@ class App extends React.Component {
 
                 const { trajectories, colors } = this.state;
 
+                console.log(data.uniqueStates);
                 dispatch(
                     calculateGlobalUniqueStates({
                         newUniqueStates: data.uniqueStates,
@@ -337,6 +338,11 @@ class App extends React.Component {
         runs[state.run] = run;
         this.setState({ runs: { ...runs } });
     }; */
+    setZoom(name, values) {
+        this.updateRun(name, 'extents', values);
+    }
+
+    setZoomProp = this.setZoom.bind(this);
 
     propagateChange = (filter) => {
         const { runs } = this.state;
@@ -410,9 +416,7 @@ class App extends React.Component {
                     sx={{
                         width: drawerOpen ? `calc(100% - 300px)` : `100%`,
                     }}
-                    setZoom={(name, values) => {
-                        this.updateRun(name, 'extents', values);
-                    }}
+                    setZoom={this.setZoomProp}
                 />
 
                 {Object.keys(trajectories).length > 0 && (

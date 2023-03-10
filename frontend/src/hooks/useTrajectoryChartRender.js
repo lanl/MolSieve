@@ -1,13 +1,15 @@
-import React from 'react';
+import { startTransition, useRef, useEffect } from 'react';
 import * as d3 from 'd3';
 
 /* eslint-disable */
-export const useTrajectoryChartRender = (renderChartFn, dependencies, returnFunc = () => {}) => {
-    const ref = React.useRef();
+export const useTrajectoryChartRender = (renderChartFn, dependencies) => {
+    const ref = useRef();
 
-    React.useEffect(() => {
-        renderChartFn(d3.select(ref.current));
-        return returnFunc;
+    useEffect(() => {
+        const svg = d3.select(ref.current); 
+        startTransition(() => { 
+            renderChartFn(svg)
+        });
     }, dependencies);
 
     return ref;

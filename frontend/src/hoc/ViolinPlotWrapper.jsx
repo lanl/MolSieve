@@ -14,7 +14,7 @@ import ViolinPlot from '../vis/ViolinPlot';
 import LoadingBox from '../components/LoadingBox';
 import PropertyWrapper from './PropertyWrapper';
 
-import { getStates, subsetHasProperties } from '../api/states';
+import { getStates } from '../api/states';
 import { getNumberLoaded } from '../api/myutils';
 
 import EmbeddedChart from '../vis/EmbeddedChart';
@@ -36,8 +36,8 @@ function ViolinPlotWrapper({
     const [progress, setProgress] = useState(0.0);
 
     const states = useSelector(
-        (state) => getStates(state, chunk.sequence),
-        (oldStates, newStates) => getNumberLoaded(oldStates) === getNumberLoaded(newStates)
+        (state) => getStates(state, chunk.sequence)
+        // (oldStates, newStates) => getNumberLoaded(oldStates) === getNumberLoaded(newStates)
     );
     const numLoaded = getNumberLoaded(states);
 
