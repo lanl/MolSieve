@@ -1,7 +1,5 @@
 import GlobalChunks from './globalChunks';
-import GlobalStates from './globalStates';
 import Timestep from './timestep';
-import { boxPlotStats } from './math/stats';
 import { apiGetSequence } from './ajax';
 
 const CHUNK = 0;
@@ -198,17 +196,6 @@ export default class Chunk {
         return this.important ? this.sequence : this.selected;
     }
 
-    getPropList(property, range) {
-        let states = this.getMainValues();
-
-        if (range) {
-            states = states.slice(range[0], range[1]);
-        }
-
-        const stateSequence = states.map((id) => GlobalStates.get(id));
-        return stateSequence.map((d) => d[property]);
-    }
-
     /**
      * Gets the color of the current chunk.
      *
@@ -228,11 +215,11 @@ export default class Chunk {
      *
      * @returns {Object} Contains q1, median, q3, IQR, and max / min thresholds.
      */
-    calculateStats(property) {
+    /* calculateStats(property) {
         const data = this.selected ? this.selected : this.states;
-        const states = data.map((id) => GlobalStates.get(id)[property]);
+        const states = data.map((id) => States.get(id)[property]);
         return boxPlotStats(states);
-    }
+    } */
 
     containsSequence(timesteps) {
         const start = Math.min(...timesteps);

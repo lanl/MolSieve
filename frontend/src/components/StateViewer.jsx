@@ -5,7 +5,7 @@ import LinearProgress from '@mui/material/LinearProgress';
 import IconButton from '@mui/material/IconButton';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
-import GlobalStates from '../api/globalStates';
+import States from '../api/globalStates';
 import WebSocketManager from '../api/websocketmanager';
 import ImageViewer from './ImageViewer';
 
@@ -39,7 +39,7 @@ export default function StateViewer({ stateIDs, sx, activeState, setActiveState 
 
         ws.current.addEventListener('message', (e) => {
             const d = JSON.parse(e.data);
-            GlobalStates.addPropToState(d);
+            States.addPropToState(d);
             render(d);
             i++;
             setProgress(i / total);
@@ -57,7 +57,7 @@ export default function StateViewer({ stateIDs, sx, activeState, setActiveState 
         }
 
         // check if we haven't already computed the img for the selection
-        if (!GlobalStates.subsetHasProperty('img', stateIDs)) {
+        if (!States.subsetHasProperty('img', stateIDs)) {
             runSocket();
         } else {
             setProgress(1.0);
@@ -73,7 +73,7 @@ export default function StateViewer({ stateIDs, sx, activeState, setActiveState 
 
     useEffect(() => {
         if (progress === 1.0 && (!img || Object.keys(loaded).length === 0)) {
-            const states = stateIDs.map((id) => GlobalStates.get(id));
+            const states = stateIDs.map((id) => States.get(id));
             const imgDict = {};
             for (const state of states) {
                 imgDict[state.id] = state.img;

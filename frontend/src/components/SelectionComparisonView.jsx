@@ -8,7 +8,6 @@ import Divider from '@mui/material/Divider';
 import RemovableBox from './RemovableBox';
 import Scatterplot from '../vis/Scatterplot';
 import SingleStateViewer from './SingleStateViewer';
-import GlobalStates from '../api/globalStates';
 import { apiSelectionDistance } from '../api/ajax';
 import ControlChart from '../vis/ControlChart';
 
@@ -75,7 +74,7 @@ function SelectionComparisonView({
         <RemovableBox deleteFunc={deleteFunc} height={475} alignItems="center">
             <Stack>
                 {selections.map((selection) => {
-                    const states = selection.extent.map((d) => GlobalStates.get(d.id));
+                    const states = selection.extent.map((d) => States.get(d.id));
                     return (
                         <Box
                             onMouseEnter={() =>
@@ -89,7 +88,7 @@ function SelectionComparisonView({
                                 width={205}
                                 height={50}
                                 colorFunc={(d) => {
-                                    const state = GlobalStates.get(d.y);
+                                    const state = States.get(d.y);
                                     return state.individualColor;
                                 }}
                                 margin={{ top: 3, bottom: 2, left: 3, right: 3 }}

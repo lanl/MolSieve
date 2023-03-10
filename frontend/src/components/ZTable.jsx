@@ -9,7 +9,7 @@ import TableBody from '@mui/material/TableBody';
 import * as d3 from 'd3';
 
 import { normalizeDict } from '../api/myutils';
-import GlobalStates from '../api/globalStates';
+import States from '../api/globalStates';
 
 // in theory, we should still have some idea for the zTable on the first render
 // can't do this if no values are loaded beforehand
@@ -19,7 +19,7 @@ export default function ZTable({ trajectories, propertyList }) {
         for (const traj of Object.values(trajectories)) {
             traj.calculateFeatureImportance();
         }
-    }, [GlobalStates, trajectories]);
+    }, [States, trajectories]);
 
     return (
         <Table size="small">

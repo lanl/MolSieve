@@ -9,6 +9,9 @@ import { SnackbarProvider } from 'notistack';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 
+import { Provider } from 'react-redux';
+import { enableMapSet } from 'immer';
+import store from './store';
 import App from './App';
 
 const theme = createTheme({
@@ -23,6 +26,8 @@ const theme = createTheme({
     },
 });
 
+enableMapSet();
+
 /* eslint-disable react/jsx-filename-extension */
 ReactDOM.render(
     <React.StrictMode>
@@ -33,9 +38,11 @@ ReactDOM.render(
                     horizontal: 'left',
                 }}
             >
-                <CssBaseline>
-                    <App />
-                </CssBaseline>
+                <Provider store={store}>
+                    <CssBaseline>
+                        <App />
+                    </CssBaseline>
+                </Provider>
             </SnackbarProvider>
         </ThemeProvider>
     </React.StrictMode>,

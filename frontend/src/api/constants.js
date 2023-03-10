@@ -53,7 +53,7 @@ export const mpn65 = [
 ];
 
 // change this to wherever you're hosting the backend
-const URL = '10.218.105.51:8000';
+const URL = 'localhost:8000';
 
 export const API_URL = `http://${URL}`;
 export const WS_URL = `ws://${URL}`;

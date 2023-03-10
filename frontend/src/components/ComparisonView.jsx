@@ -4,7 +4,6 @@ import Typography from '@mui/material/Typography';
 
 import RemovableBox from './RemovableBox';
 import OverlayViolinPlot from '../vis/OverlayViolinPlot';
-import GlobalStates from '../api/globalStates';
 import { focusChart, unFocusCharts, abbreviate } from '../api/myutils';
 
 function ComparisonView({
@@ -18,7 +17,7 @@ function ComparisonView({
     const data = selection.map((chunk) => ({
         color: chunk.color,
         id: chunk.id,
-        values: chunk.selected.map((id) => GlobalStates.get(id)),
+        values: chunk.selected.map((id) => States.get(id)),
     }));
 
     return (

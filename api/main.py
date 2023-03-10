@@ -758,12 +758,20 @@ def load_trajectory(run: str, mMin: int, mMax: int, chunkingThreshold: float):
     mem_client = PooledClient("localhost", max_pool_size=1, serde=serde.pickle_serde)
     mem_client.set(run, trajectory)
 
-    # TODO: reduce state list to only important
+    # reduce state list to only important
+    uniqueStates = set()
+    for chunk in trajectory.chunks:
+        chunkUniqueStates = set()
+        if chunk['important']:
+            chunkUniqueStates = set(chunk['sequence'])
+        else:
+            chunkUniqueStates = set(chunk['selected'])
+        uniqueStates.update(chunkUniqueStates)
 
     # only return current clustering?
     # feasible may not be necessary at all
     return {
-        "uniqueStates": set(trajectory.sequence),
+        "uniqueStates": uniqueStates,
         "idToTimestep": trajectory.id_to_timestep,
         "simplified": trajectory.chunks,
         "idToCluster": trajectory.idToCluster,

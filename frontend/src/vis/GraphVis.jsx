@@ -19,7 +19,7 @@ import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
 import { useContextMenu } from '../hooks/useContextMenu';
 import { useResize } from '../hooks/useResize';
 
-import GlobalStates from '../api/globalStates';
+import States from '../api/globalStates';
 
 let container = null;
 let zoom = null;
@@ -639,7 +639,7 @@ function GraphVis({
                 d3.select(ref.current)
                     .select('#important')
                     .selectAll('circle')
-                    .filter((d) => GlobalStates.get(d.id).seenIn.length === 1)
+                    .filter((d) => States.get(d.id).seenIn.length === 1)
                     .classed('inCommonInvisible', true);
             } else {
                 d3.select(ref.current)

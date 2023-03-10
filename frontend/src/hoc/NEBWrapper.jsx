@@ -4,7 +4,6 @@ import { useSnackbar } from 'notistack';
 import * as d3 from 'd3';
 import Scatterplot from '../vis/Scatterplot';
 import { apiCalculateNEB, onMessageHandler } from '../api/ajax';
-import GlobalStates from '../api/globalStates';
 import { WS_URL } from '../api/constants';
 
 export default function NEBWrapper({
@@ -25,7 +24,7 @@ export default function NEBWrapper({
             switch (action.type) {
                 case 'update': {
                     const { id, energy, timestep } = action.payload;
-                    GlobalStates.calculateGlobalUniqueStates([id], 'NEB');
+                    States.calculateGlobalUniqueStates([id], 'NEB');
                     return { values: [...state.values, { id, energy, timestep }] };
                 }
                 case 'clear': {
@@ -83,7 +82,7 @@ export default function NEBWrapper({
             }}
             colorFunc={(d) => {
                 if (d.id) {
-                    const state = GlobalStates.get(d.id);
+                    const state = States.get(d.id);
                     return state.individualColor;
                 }
                 return 'black';

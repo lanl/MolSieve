@@ -14,7 +14,6 @@ import * as d3 from 'd3';
 
 import '../css/App.css';
 import Scatterplot from '../vis/Scatterplot';
-import GlobalStates from '../api/globalStates';
 
 import { onEntityMouseOver } from '../api/myutils';
 /* import { onMessageHandler, apiCalculateNEB } from '../api/ajax'; */
@@ -35,11 +34,11 @@ export default function NEBModal({ states, close, open, submit }) {
                         width={375}
                         height={200}
                         colorFunc={(d) => {
-                            const state = GlobalStates.get(d.y);
+                            const state = States.get(d.y);
                             return state.individualColor;
                         }}
                         onElementMouseOver={(node, d) => {
-                            const state = GlobalStates.get(d.y);
+                            const state = States.get(d.y);
                             onEntityMouseOver(node, state);
                         }}
                         xAttributeList={[...Array(states.length).keys()]}

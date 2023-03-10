@@ -1,8 +1,5 @@
-import * as d3 from 'd3';
 import Chunk from './chunk';
-import GlobalStates from './globalStates';
 import { chunkSimilarity } from './myutils';
-import { zTest } from './math/stats';
 
 class Trajectory {
     // dict of id to cluster id
@@ -80,7 +77,7 @@ class Trajectory {
      * This generates an array of objects; each object is a dictionary of z-scores for each property.
      * This array is then aggregated in a seperate object, and stored in the trajectory.
      */
-    calculateFeatureImportance() {
+    /* calculateFeatureImportance() {
         const { chunkList } = this;
         const pairs = chunkList
             .filter((d) => !d.hasParent && !d.important)
@@ -92,10 +89,10 @@ class Trajectory {
 
         const differences = pairs.map((pair) => {
             const pairDifferences = {};
-            const c1 = pair[0].selected.map((id) => GlobalStates.get(id));
-            const c2 = pair[1].selected.map((id) => GlobalStates.get(id));
+            const c1 = pair[0].selected.map((id) => States.get(id));
+            const c2 = pair[1].selected.map((id) => States.get(id));
 
-            for (const prop of GlobalStates.properties) {
+            for (const prop of States.properties) {
                 const s1 = c1.map((d) => d[prop]);
                 const s2 = c2.map((d) => d[prop]);
                 pairDifferences[prop] = zTest(s1, s2);
@@ -104,12 +101,12 @@ class Trajectory {
         });
 
         const aggregateDifferences = {};
-        for (const prop of GlobalStates.properties) {
+        for (const prop of States.properties) {
             aggregateDifferences[prop] = d3.mean(differences, (d) => d[prop]);
         }
 
         this.featureImportance = aggregateDifferences;
-    }
+    } */
 
     /**
      * Colors an entity based on its cluster identifier (for chunks, its id; for timesteps, its stateID)

@@ -1,4 +1,5 @@
 import { React, useState, useEffect, useRef, memo } from 'react';
+import { useSelector } from 'react-redux';
 
 import * as d3 from 'd3';
 import { create, all } from 'mathjs';
@@ -22,12 +23,11 @@ import { abbreviate, buildDictFromArray } from '../api/myutils';
 
 import { LOADING_CHUNK_SIZE } from '../api/constants';
 
-import GlobalStates from '../api/globalStates';
 import LoadingBox from '../components/LoadingBox';
 
-import loadChart from '../api/websocketmethods';
-
 import EmbeddedChart from '../vis/EmbeddedChart';
+
+import { getStates, subsetHasProperties } from '../api/states';
 
 function ChunkWrapper({
     chunk,
@@ -40,8 +40,6 @@ function ChunkWrapper({
     selectObject,
     chunkSelectionMode,
     selectedObjects,
-    globalScale,
-    updateGlobalScale,
     ranks,
     showStateClustering,
     doubleClickAction,
@@ -54,10 +52,14 @@ function ChunkWrapper({
     // set as useReducer
     const [isInitialized, setIsInitialized] = useState(false);
     const [progress, setProgress] = useState(0.0);
-    const [isInterrupted, setIsInterrupted] = useState(false);
+
+    const states = useSelector((state) => getStates(state, chunk.sequence));
+    const uniqueStates = useSelector((state) => getStates(state, chunk.states));
+    const globalScale = useSelector((state) => state.states.globalScale);
+    const stateMap = useSelector((state) => state.states.values);
 
     const [colorFunc, setColorFunc] = useState(() => (d) => {
-        const state = GlobalStates.get(d);
+        const state = stateMap.get(d);
         return state.individualColor;
     });
 
@@ -68,22 +70,11 @@ function ChunkWrapper({
 
     const [mvaPeriod, setMvaPeriod] = useState(Math.min(chunk.sequence.length / 4, 100));
     const [tDict, setTDict] = useState({});
-    const ws = useRef(null);
-
-    const updateGS = (states) => {
-        const propDict = {};
-        for (const prop of properties) {
-            const vals = states.map((d) => d[prop]);
-            propDict[prop] = { min: d3.min(vals), max: d3.max(vals) };
-        }
-        updateGlobalScale({ type: 'update', payload: propDict });
-    };
 
     const render = () => {
         const mvaDict = {};
         // const rDict = {};
         const statDict = {};
-        const states = chunk.sequence.map((id) => GlobalStates.get(id));
 
         for (const prop of properties) {
             const propList = states.map((d) => d[prop]);
@@ -100,6 +91,7 @@ function ChunkWrapper({
         setMva(mvaDict);
         // updateRanks(rDict, 1);
         setStats(statDict);
+        setIsInitialized(true);
     };
 
     useEffect(() => {
@@ -107,47 +99,13 @@ function ChunkWrapper({
     }, [mvaPeriod]);
 
     useEffect(() => {
-        if (ws.current) {
-            ws.current.close();
-            ws.current = null;
-        }
-
-        const { hasProperties, missingProperties } = GlobalStates.subsetHasProperties(
-            properties,
-            chunk.states
-        );
-
-        if (!hasProperties) {
-            loadChart(
-                missingProperties,
-                ws,
-                chunk.trajectory.name,
-                properties,
-                setProgress,
-                setIsInterrupted,
-                updateGS,
-                render,
-                setIsInitialized,
-                LOADING_CHUNK_SIZE
-            );
-        } else {
-            setProgress(1.0);
-            setIsInitialized(true);
-            render();
-        }
-
-        return () => {
-            if (ws.current) {
-                ws.current.close();
-                ws.current = null;
-            }
-        };
-    }, [JSON.stringify(chunk)]);
+        const { missingProperties } = subsetHasProperties(properties, uniqueStates);
+        setProgress(missingProperties / uniqueStates.length);
+        render();
+    }, [JSON.stringify(uniqueStates)]);
 
     useEffect(() => {
         if (propertyCombos) {
-            const states = chunk.sequence.map((id) => GlobalStates.get(id));
-
             const math = create(all, {});
 
             const combos = {};
@@ -189,20 +147,16 @@ function ChunkWrapper({
     useEffect(() => {
         if (showStateClustering) {
             setColorFunc(() => (d) => {
-                const state = GlobalStates.get(d);
+                const state = stateMap.get(d);
                 return state.stateClusteringColor;
             });
         } else {
             setColorFunc(() => (d) => {
-                const state = GlobalStates.get(d);
+                const state = stateMap.get(d);
                 return state.individualColor;
             });
         }
     }, [showStateClustering]);
-
-    if (isInterrupted) {
-        return <div>Loading interrupted</div>;
-    }
 
     const [slice, setSlice] = useState([0, chunk.last]);
     const [timesteps, setTimesteps] = useState(chunk.timesteps);
@@ -238,8 +192,7 @@ function ChunkWrapper({
         const startTimestep = x.invert(selection[0]);
         const endTimestep = x.invert(selection[1]);
 
-        const states = chunk.sequence
-            .map((sID) => GlobalStates.get(sID))
+        const selectedStates = states
             .map((s, i) => ({
                 timestep: chunk.timestep + i,
                 id: s.id,
@@ -250,14 +203,14 @@ function ChunkWrapper({
             );
 
         addSelection(
-            states,
+            selectedStates,
             trajectory.name,
             { start: startTimestep, end: endTimestep },
             { start: selection[0], end: selection[1] }
         );
     };
 
-    return isInitialized ? (
+    return (
         <EmbeddedChart
             height={height}
             width={width}
@@ -294,77 +247,79 @@ function ChunkWrapper({
             }
             selections={selections}
         >
-            {(ww) => (
-                <Box
-                    onClick={(e) => {
-                        if (e.detail === 2) {
-                            doubleClickAction();
-                        }
-                    }}
-                >
-                    {progress < 1.0 ? (
-                        <LinearProgress
-                            variant="determinate"
-                            value={progress * 100}
-                            className="bar"
-                        />
-                    ) : null}
-                    <Stack direction="column">
-                        {ranks.map((property) => {
-                            const { min, max } = globalScale[property];
-                            const { std, mean } = stats[property];
-                            return (
-                                <ControlChart
-                                    key={`${chunk.id}-${property}`}
-                                    globalScaleMin={min}
-                                    globalScaleMax={max}
-                                    ucl={mean + std}
-                                    lcl={mean - std}
-                                    height={controlChartHeight}
-                                    width={ww}
-                                    yAttributeList={mva[property].slice(sliceStart, sliceEnd)}
-                                    xAttributeList={timesteps}
-                                    lineColor={trajectory.colorByCluster(chunk)}
-                                    title={`${abbreviate(property)}`}
-                                />
-                            );
-                        })}
-                        {Object.keys(tDict).map((id) => {
-                            const t = tDict[id];
-                            const { values, ucl } = t;
-                            return (
-                                <ControlChart
-                                    key={`${chunk.id}-${id}`}
-                                    globalScaleMin={d3.min(values)}
-                                    globalScaleMax={d3.max(values)}
-                                    ucl={ucl}
-                                    height={controlChartHeight}
-                                    width={width}
-                                    yAttributeList={values.slice(sliceStart, sliceEnd)}
-                                    xAttributeList={timesteps}
-                                    lineColor={trajectory.colorByCluster(chunk)}
-                                />
-                            );
-                        })}
-                    </Stack>
-                    <AggregateScatterplot
-                        key={`${chunk.id}-aggregate-scatterplot`}
-                        xAttributeList={timesteps}
-                        yAttributeList={chunk.sequence.slice(sliceStart, sliceEnd)}
-                        width={width}
-                        height={scatterplotHeight}
-                        colorFunc={colorFunc}
-                        onElementClick={(node, d) => {
-                            d3.selectAll('.clicked').classed('clicked', false);
-                            setStateHovered(d);
-                            d3.select(node).classed('clicked', true);
+            {(ww) =>
+                isInitialized ? (
+                    <Box
+                        onClick={(e) => {
+                            if (e.detail === 2) {
+                                doubleClickAction();
+                            }
                         }}
-                    />
-                </Box>
-            )}
+                    >
+                        {progress < 1.0 ? (
+                            <LinearProgress
+                                variant="determinate"
+                                value={progress * 100}
+                                className="bar"
+                            />
+                        ) : null}
+                        <Stack direction="column">
+                            {ranks.map((property) => {
+                                const { min, max } = globalScale[property];
+                                const { std, mean } = stats[property];
+                                return (
+                                    <ControlChart
+                                        key={`${chunk.id}-${property}`}
+                                        globalScaleMin={min}
+                                        globalScaleMax={max}
+                                        ucl={mean + std}
+                                        lcl={mean - std}
+                                        height={controlChartHeight}
+                                        width={ww}
+                                        yAttributeList={mva[property].slice(sliceStart, sliceEnd)}
+                                        xAttributeList={timesteps}
+                                        lineColor={trajectory.colorByCluster(chunk)}
+                                        title={`${abbreviate(property)}`}
+                                    />
+                                );
+                            })}
+                            {Object.keys(tDict).map((id) => {
+                                const t = tDict[id];
+                                const { values, ucl } = t;
+                                return (
+                                    <ControlChart
+                                        key={`${chunk.id}-${id}`}
+                                        globalScaleMin={d3.min(values)}
+                                        globalScaleMax={d3.max(values)}
+                                        ucl={ucl}
+                                        height={controlChartHeight}
+                                        width={width}
+                                        yAttributeList={values.slice(sliceStart, sliceEnd)}
+                                        xAttributeList={timesteps}
+                                        lineColor={trajectory.colorByCluster(chunk)}
+                                    />
+                                );
+                            })}
+                        </Stack>
+                        <AggregateScatterplot
+                            key={`${chunk.id}-aggregate-scatterplot`}
+                            xAttributeList={timesteps}
+                            yAttributeList={chunk.sequence.slice(sliceStart, sliceEnd)}
+                            width={width}
+                            height={scatterplotHeight}
+                            colorFunc={colorFunc}
+                            onElementClick={(node, d) => {
+                                d3.selectAll('.clicked').classed('clicked', false);
+                                setStateHovered(d);
+                                d3.select(node).classed('clicked', true);
+                            }}
+                        />
+                    </Box>
+                ) : (
+                    <LoadingBox />
+                )
+            }
         </EmbeddedChart>
-    ) : (
-        <LoadingBox />
     );
 }
 

@@ -3,9 +3,12 @@ import Paper from '@mui/material/Paper';
 import Box from '@mui/material/Box';
 import { DataGrid } from '@mui/x-data-grid';
 
+import { useSelector } from 'react-redux';
 import SingleStateViewer from './SingleStateViewer';
+import { getState } from '../api/states';
 
-export default function StateDetailView({ state, visScript }) {
+export default function StateDetailView({ stateID, visScript }) {
+    const state = useSelector(getState(stateID));
     return (
         <Paper>
             <SingleStateViewer stateID={state.id} visScript={visScript} />

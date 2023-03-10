@@ -5,7 +5,7 @@ import Tab from '@mui/material/Tab';
 import TabPanel from '../components/TabPanel';
 
 import QQPlot from '../vis/QQPlot';
-import GlobalStates from '../api/globalStates';
+import States from '../api/globalStates';
 import ChartBox from '../components/ChartBox';
 import LoadingBox from '../components/LoadingBox';
 import StructuralComparison from '../vis/StructuralComparison';
@@ -19,10 +19,10 @@ export default function ChunkComparisonView({ chunk1, chunk2, property, children
     const [dist2, setDist2] = useState(null);
 
     useEffect(() => {
-        GlobalStates.ensureSubsetHasProperty(property, chunk1.sequence).then(() => {
-            GlobalStates.ensureSubsetHasProperty(property, chunk2.sequence).then(() => {
-                const c1s = chunk1.sequence.map((id) => GlobalStates.get(id));
-                const c2s = chunk2.sequence.map((id) => GlobalStates.get(id));
+        States.ensureSubsetHasProperty(property, chunk1.sequence).then(() => {
+            States.ensureSubsetHasProperty(property, chunk2.sequence).then(() => {
+                const c1s = chunk1.sequence.map((id) => States.get(id));
+                const c2s = chunk2.sequence.map((id) => States.get(id));
 
                 const c1v = c1s.map((d) => d[property]);
                 const c2v = c2s.map((d) => d[property]);

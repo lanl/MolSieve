@@ -1,7 +1,6 @@
 import * as d3 from 'd3';
 import axios from 'axios';
 import { mostOccurringElement } from './myutils';
-import GlobalStates from './globalStates';
 
 function applyClasses(selection, classes) {
     if (typeof classes === 'string') {
@@ -314,7 +313,7 @@ export function applyFilters(trajectories, runs, ref) {
                 if (filter.enabled) {
                     if (filter.enabledFor.includes(ref.current.getAttribute('id'))) {
                         trajectory.name = name;
-                        filter.func(trajectory, d3.select(ref.current), GlobalStates);
+                        // filter.func(trajectory, d3.select(ref.current), States);
                     }
                 }
             }

@@ -1,4 +1,7 @@
 import React from 'react';
+
+import { connect } from 'react-redux';
+
 import './css/App.css';
 import Box from '@mui/material/Box';
 import Toolbar from '@mui/material/Toolbar';
@@ -10,7 +13,6 @@ import { withSnackbar } from 'notistack';
 import AjaxMenu from './components/AjaxMenu';
 import LoadRunModal from './modals/LoadRunModal';
 import Trajectory from './api/trajectory';
-import FilterBuilder from './api/FilterBuilder';
 import VisArea from './components/VisArea';
 import {
     apiLoadTrajectory,
@@ -19,14 +21,16 @@ import {
     apiGetVisScripts,
 } from './api/ajax';
 import ControlDrawer from './components/ControlDrawer';
-import GlobalStates from './api/globalStates';
 import { createUUID } from './api/math/random';
 import { getNeighbors } from './api/myutils';
+
+import { calculateGlobalUniqueStates, addProperties } from './api/states';
+import { wsConnect } from './api/websocketmiddleware';
 
 import WebSocketManager from './api/websocketmanager';
 import ColorManager from './api/colormanager';
 
-import { API_URL } from './api/constants';
+import { WS_URL, API_URL } from './api/constants';
 
 const RUN_MODAL = 'run_modal';
 
@@ -50,11 +54,12 @@ class App extends React.Component {
     }
 
     componentDidMount() {
+        const { dispatch } = this.props;
+
         apiGetScriptProperties()
             .then((properties) => {
-                GlobalStates.addProperties(properties);
-
                 apiGetVisScripts().then((scripts) => {
+                    dispatch(addProperties(properties));
                     this.setState((prevState) => ({
                         properties: [...prevState.properties, ...properties],
                         visScripts: [...prevState.visScripts, ...scripts],
@@ -140,7 +145,7 @@ class App extends React.Component {
      * @param {Number} chunkingThreshold - Simplification threshold
      */
     loadTrajectory = (run, mMin, mMax, chunkingThreshold) => {
-        const { enqueueSnackbar } = this.props;
+        const { enqueueSnackbar, dispatch } = this.props;
         enqueueSnackbar(`Loading trajectory ${run}...`);
 
         apiLoadTrajectory(run, mMin, mMax, chunkingThreshold)
@@ -154,10 +159,15 @@ class App extends React.Component {
                 newTraj.chunkingThreshold = chunkingThreshold;
                 newTraj.current_clustering = data.current_clustering;
 
-                GlobalStates.calculateGlobalUniqueStates(data.uniqueStates, run);
-                newTraj.simplifySet(data.simplified);
-
                 const { trajectories, colors } = this.state;
+
+                dispatch(
+                    calculateGlobalUniqueStates({
+                        newUniqueStates: data.uniqueStates,
+                        run,
+                    })
+                );
+                newTraj.simplifySet(data.simplified);
 
                 const trajColors = colors.request_colors(newTraj.current_clustering);
                 newTraj.add_colors(trajColors);
@@ -172,10 +182,13 @@ class App extends React.Component {
                         trajectories: { ...trajectories, [run]: newTraj },
                         colors,
                     },
-                    () => enqueueSnackbar(`Trajectory ${run} successfully loaded.`)
+                    () => {
+                        dispatch(wsConnect(`${WS_URL}/api/load_properties_for_subset`));
+                        enqueueSnackbar(`Trajectory ${run} successfully loaded.`);
+                    }
                 );
             })
-            .catch((e) => alert(`${e}. ${e.response.detail}`));
+            .catch((e) => alert(`${e}`));
     };
 
     initFilters = (run, newTraj) => {
@@ -306,7 +319,7 @@ class App extends React.Component {
         }));
     };
 
-    addFilter = (state) => {
+    /* addFilter = (state) => {
         const { runs, trajectories } = this.state;
         const run = runs[state.run];
         const { filters } = run;
@@ -323,7 +336,7 @@ class App extends React.Component {
         run.filters = filters;
         runs[state.run] = run;
         this.setState({ runs: { ...runs } });
-    };
+    }; */
 
     propagateChange = (filter) => {
         const { runs } = this.state;
@@ -352,6 +365,7 @@ class App extends React.Component {
             run,
             visScripts,
         } = this.state;
+        console.log(this.props.states);
         return (
             <Box sx={{ display: 'flex', flexDirection: 'column' }}>
                 <Toolbar
@@ -451,4 +465,5 @@ class App extends React.Component {
         );
     }
 }
-export default withSnackbar(App);
+
+export default connect((state) => ({ states: state }))(withSnackbar(App));

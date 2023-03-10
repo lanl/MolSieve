@@ -1,4 +1,6 @@
 import { React, useState, useEffect, useReducer, useCallback } from 'react';
+import { useDispatch } from 'react-redux';
+
 import Box from '@mui/material/Box';
 import CssBaseline from '@mui/material/CssBaseline';
 import IconButton from '@mui/material/IconButton';
@@ -26,7 +28,6 @@ import ChartBox from './ChartBox';
 import StateDetailView from './StateDetailView';
 import TransferListModal from '../modals/TransferListModal';
 import '../css/App.css';
-import GlobalStates from '../api/globalStates';
 
 import ComparisonView from './ComparisonView';
 import SelectionComparisonView from './SelectionComparisonView';
@@ -46,6 +47,8 @@ import { createUUID } from '../api/math/random';
 
 import { zTest } from '../api/math/stats';
 import { getAllImportantStates } from '../api/trajectories';
+
+import { clearClusterStates, clusterStates } from '../api/states';
 
 const MULTIVARIATE_CHART_MODAL = 'multivariate_chart';
 
@@ -70,6 +73,8 @@ export default function VisArea({
 }) {
     const [currentModal, setCurrentModal] = useState(null);
     const [activeState, setActiveState] = useState(null);
+
+    const dispatch = useDispatch();
 
     const [selectionMode, setSelectionMode] = useState(NO_SELECT);
     const [selectedObjects, setSelectedObjects] = useState([]);
@@ -137,58 +142,11 @@ export default function VisArea({
 
     const addSelectionCallback = useCallback(addSelection, []);
 
-    const updateGS = (oldGS, newGS) => {
-        const updatedGS = {};
-        for (const property of Object.keys(oldGS)) {
-            const oldProp = oldGS[property];
-            const newProp = newGS[property];
-            if (newProp) {
-                updatedGS[property] = {
-                    min: newProp.min < oldProp.min ? newProp.min : oldProp.min,
-                    max: newProp.max > oldProp.max ? newProp.max : oldProp.max,
-                };
-            }
-        }
-        return updatedGS;
-    };
-
-    const [globalScale, updateGlobalScale] = useReducer((state, action) => {
-        switch (action.type) {
-            case 'create':
-                return {
-                    ...state,
-                    [action.payload]: { min: Number.MAX_VALUE, max: Number.MIN_VALUE },
-                };
-            case 'update':
-                return updateGS(state, action.payload);
-            case 'addProperties':
-                return {
-                    ...state,
-                    ...buildDictFromArray(action.payload, {
-                        min: Number.MAX_VALUE,
-                        max: Number.MIN_VALUE,
-                    }),
-                };
-            default:
-                throw new Error('Unknown action');
-        }
-    }, buildDictFromArray(properties, { min: Number.MAX_VALUE, max: Number.MIN_VALUE }));
-
-    useEffect(() => {
-        if (globalScale) {
-            const currentProperties = Object.keys(globalScale);
-            const newProperties = properties.filter(
-                (property) => !currentProperties.includes(property)
-            );
-            updateGlobalScale({ type: 'addProperties', payload: newProperties });
-        }
-    }, [JSON.stringify(properties)]);
-
     const [propertyCombos, reducePropertyCombos] = useReducer((state, action) => {
         switch (action.type) {
             case 'create': {
                 const id = createUUID();
-                updateGlobalScale({ type: 'create', payload: id });
+                //            updateGlobalScale({ type: 'create', payload: id });
                 return [...state, { id, properties: action.payload }];
             }
             default:
@@ -228,7 +186,7 @@ export default function VisArea({
     useEffect(() => {
         setSelectionMode(NO_SELECT);
         setToolTipList([]);
-        GlobalStates.clearClusterStates();
+        dispatch(clearClusterStates);
     }, [JSON.stringify(trajectories)]);
 
     useEffect(() => {
@@ -416,8 +374,8 @@ export default function VisArea({
                                     size="small"
                                     onClick={() =>
                                         !showStateClustering
-                                            ? GlobalStates.clusterStates(
-                                                  getAllImportantStates(trajectories)
+                                            ? dispatch(
+                                                  clusterStates(getAllImportantStates(trajectories))
                                               ).then(() => setShowStateClustering(true))
                                             : setShowStateClustering(false)
                                     }
@@ -479,8 +437,6 @@ export default function VisArea({
                                             addSelection={addSelectionCallback}
                                             selectedObjects={selectedObjects}
                                             selections={selections}
-                                            updateGlobalScale={updateGlobalScale}
-                                            globalScale={globalScale}
                                             showStateClustering={showStateClustering}
                                             showTop={showTop}
                                             expand={expand}
@@ -495,10 +451,7 @@ export default function VisArea({
             <Stack direction="row" gap={1}>
                 <Box marginLeft={5} minWidth="225px">
                     {activeState !== null && activeState !== undefined && (
-                        <StateDetailView
-                            state={GlobalStates.get(activeState)}
-                            visScript={visScript}
-                        />
+                        <StateDetailView state={activeState} visScript={visScript} />
                     )}
                 </Box>
 
@@ -656,11 +609,11 @@ export default function VisArea({
                 <MenuItem
                     disabled
                     onClick={() => {
-                        startSelection(FIND_SIMILAR_SELECT, (selection) =>
+                        /* startSelection(FIND_SIMILAR_SELECT, (selection) =>
                             findSimilar(
                                 (a, b) => {
-                                    const aStates = a.states.map((id) => GlobalStates.get(id));
-                                    const bStates = b.states.map((id) => GlobalStates.get(id));
+                                    const aStates = a.states.map((id) => States.get(id));
+                                    const bStates = b.states.map((id) => States.get(id));
                                     // for which property?
                                     return zTest(
                                         aStates.map((d) => d[properties]),
@@ -671,7 +624,7 @@ export default function VisArea({
                                 selection
                             )
                         );
-                        setAnchorEl(null);
+                        setAnchorEl(null) */
                     }}
                 >
                     Z-score

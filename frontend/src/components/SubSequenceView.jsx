@@ -17,7 +17,6 @@ import Scatterplot from '../vis/Scatterplot';
 
 import '../css/App.css';
 
-import GlobalStates from '../api/globalStates';
 import { oneShotTooltip } from '../api/myutils';
 import { apiSubsetConnectivityDifference } from '../api/ajax';
 
@@ -49,7 +48,7 @@ function SubSequenceView({
     const [nebPlots, setNEBPlots] = useState(null);
 
     const colorFunc = useCallback((d) => {
-        const state = GlobalStates.get(d.y);
+        const state = States.get(d.y);
         return state.individualColor;
     }, []);
 
@@ -87,8 +86,8 @@ function SubSequenceView({
         }
     };
     useEffect(() => {
-        GlobalStates.ensureSubsetHasProperties(properties, stateIDs).then(() => {
-            const states = stateIDs.map((stateID) => GlobalStates.get(stateID));
+        States.ensureSubsetHasProperties(properties, stateIDs).then(() => {
+            const states = stateIDs.map((stateID) => States.get(stateID));
             setData(states);
         });
     }, []);
@@ -146,7 +145,7 @@ function SubSequenceView({
                         onElementMouseOver={(node, d) => {
                             oneShotTooltip(node, `${d.value}`);
                         }}
-                        renderSingle={GlobalStates.get(activeState)}
+                        renderSingle={States.get(activeState)}
                     />
                 </Stack>
                 <Divider />
