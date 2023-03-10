@@ -27,6 +27,7 @@ export default function EmbeddedChart({
     const ref = createRef();
     const [isHovered, setIsHovered] = useState(false);
     const [selectionMode, setSelectionMode] = useState(false);
+    const [borderStyle, setBorderStyle] = useState(2);
 
     useEffect(() => {
         if (ref.current && brush !== undefined) {
@@ -65,7 +66,14 @@ export default function EmbeddedChart({
         };
     }, [JSON.stringify(selections), width, height]);
 
-    const borderStyle = selected ? 3 : 2;
+    useEffect(() => {
+        if (selected) {
+            setBorderStyle(3);
+        } else {
+            setBorderStyle(2);
+        }
+    }, [selected]);
+
     const h = height - margin.top;
     const w = width - margin.left;
     return (
@@ -73,10 +81,8 @@ export default function EmbeddedChart({
             id={id}
             width={w}
             height={h}
-            sx={{ display: 'flex' }}
+            sx={{ display: 'flex', border: borderStyle, borderColor: color }}
             className="embeddedChart"
-            border={borderStyle}
-            borderColor={color}
             onClick={onChartClick}
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}

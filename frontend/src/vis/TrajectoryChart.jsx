@@ -130,6 +130,8 @@ function TrajectoryChart({
         return tcl;
     }, [JSON.stringify(extents), JSON.stringify(trajectory.chunkList)]);
 
+    const cutRanks = useMemo(() => ranks.ordered.slice(0, showTop), [showTop]);
+
     return (
         <svg
             className="vis"
@@ -195,10 +197,9 @@ function TrajectoryChart({
                                 trajectory={trajectory}
                                 globalScale={globalScale}
                                 updateGlobalScale={updateGlobalScale}
-                                ranks={ranks.ordered.slice(0, showTop)}
+                                ranks={cutRanks}
                                 selections={chartSel}
                                 showStateClustering={showStateClustering}
-                                showTop={showTop}
                                 addSelection={addSelection}
                                 selectObject={selectObject}
                                 selectedObjects={selectedObjects}
@@ -218,11 +219,10 @@ function TrajectoryChart({
                                 selectObject={selectObject}
                                 selectedObjects={selectedObjects}
                                 chunkSelectionMode={chunkSelectionMode}
-                                ranks={ranks.ordered.slice(0, showTop)}
+                                ranks={cutRanks}
                                 properties={properties}
                                 globalScale={globalScale}
                                 updateGlobalScale={updateGlobalScale}
-                                showTop={showTop}
                                 propertyCombos={propertyCombos}
                                 onClick={() => setStateHovered(chunk.characteristicState)}
                             />

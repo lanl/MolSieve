@@ -28,16 +28,12 @@ import IconButton from '@mui/material/IconButton';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 
 import Container from '@mui/material/Container';
-import AnalysisTab from '../modals/AnalysisTab';
-import AddFilterModal from '../modals/AddFilterModal';
 
 import ChartBox from './ChartBox';
 // import FilterComponent from './FilterComponent';
 import Timeline from '../vis/Timeline';
 
-const ADD_FILTER_MODAL = 'add-filter-modal';
 const METADATA_MODAL = 'metadata-modal';
-const ANALYSIS_MODAL = 'analysis-modal';
 
 function ControlDrawer({
     trajectories,
@@ -47,9 +43,7 @@ function ControlDrawer({
     simplifySet,
     drawerOpen,
     toggleDrawer,
-    addFilter,
     //    propagateChange,
-    properties,
     sx,
 }) {
     const [currentModal, setCurrentModal] = useState();
@@ -208,36 +202,6 @@ function ControlDrawer({
                     {controls}
                 </Container>
             </Drawer>
-
-            {currentModal === ADD_FILTER_MODAL && (
-                <AddFilterModal
-                    title={`Add filter for ${currentRun}`}
-                    open={currentModal === ADD_FILTER_MODAL}
-                    properties={properties}
-                    trajectory={trajectories[currentRun]}
-                    closeFunc={() => {
-                        toggleModal(null);
-                    }}
-                    addFilter={addFilter}
-                    run={currentRun}
-                />
-            )}
-
-            {currentModal === ANALYSIS_MODAL && (
-                <Dialog
-                    open={currentModal === ANALYSIS_MODAL}
-                    onClose={toggleModal}
-                    onBackdropClick={() => {
-                        toggleModal(null);
-                    }}
-                >
-                    <DialogTitle>
-                        Analysis for
-                        {currentRun}
-                    </DialogTitle>
-                    <AnalysisTab run={currentRun} closeFunc={toggleModal} />
-                </Dialog>
-            )}
 
             {currentModal === METADATA_MODAL && (
                 <Dialog

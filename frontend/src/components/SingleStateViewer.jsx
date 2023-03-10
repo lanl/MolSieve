@@ -2,10 +2,11 @@ import { React, useEffect, useState } from 'react';
 
 import Box from '@mui/material/Box';
 import LinearProgress from '@mui/material/LinearProgress';
-import { useDispatch } from 'react-redux';
+
 import ImageViewer from './ImageViewer';
 
 import { apiGenerateOvitoImage } from '../api/ajax';
+// import { useDispatch } from 'react-redux';
 // import { addPropToState } from '../api/states';
 
 export default function SingleStateViewer({ stateID, visScript, onClick }) {

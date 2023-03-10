@@ -1,4 +1,4 @@
-import { React, useState, useEffect, useRef, memo, useMemo, startTransition } from 'react';
+import { React, useState, useEffect, memo, useMemo } from 'react';
 import { useSelector } from 'react-redux';
 
 import * as d3 from 'd3';
@@ -19,15 +19,14 @@ import ControlChart from '../vis/ControlChart';
 import AggregateScatterplot from '../vis/AggregateScatterplot';
 
 import { exponentialMovingAverage, betaPDF } from '../api/math/stats';
-import { abbreviate, buildDictFromArray, getNumberLoaded } from '../api/myutils';
+import { abbreviate, getNumberLoaded } from '../api/myutils';
 
-import { LOADING_CHUNK_SIZE } from '../api/constants';
 import LoadingBox from '../components/LoadingBox';
 
 import EmbeddedChart from '../vis/EmbeddedChart';
 import PropertyWrapper from './PropertyWrapper';
 
-import { getStates, subsetHasProperties } from '../api/states';
+import { getStates } from '../api/states';
 
 function ChunkWrapper({
     chunk,
@@ -232,7 +231,11 @@ function ChunkWrapper({
                     </Tooltip>
                 </Box>
             }
-            onChartClick={() => selectObject(chunk)}
+            onChartClick={() => {
+                if (chunkSelectionMode === 1 || chunkSelectionMode === 4) {
+                    selectObject(chunk);
+                }
+            }}
             id={`ec_${chunk.id}`}
             selected={
                 chunkSelectionMode !== 0 &&
@@ -323,9 +326,5 @@ function ChunkWrapper({
         </EmbeddedChart>
     );
 }
-
-ChunkWrapper.defaultProps = {
-    showTop: 4,
-};
 
 export default memo(ChunkWrapper);

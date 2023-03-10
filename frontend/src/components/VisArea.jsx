@@ -37,7 +37,6 @@ import usePrevious from '../hooks/usePrevious';
 import {
     chunkSimilarity,
     stateRatioChunkSimilarity,
-    buildDictFromArray,
     percentToString,
     tooltip,
     focusChart,
@@ -45,7 +44,6 @@ import {
 } from '../api/myutils';
 import { createUUID } from '../api/math/random';
 
-import { zTest } from '../api/math/stats';
 import { getAllImportantStates } from '../api/trajectories';
 
 import { clearClusterStates, clusterStates } from '../api/states';
@@ -223,10 +221,7 @@ export default function VisArea({
         }
     };
 
-    const selectObjectCallback = useCallback(selectObject, [
-        selectionMode,
-        JSON.stringify(selectedObjects),
-    ]);
+    const selectObjectCallback = useCallback(selectObject, [selectionMode, selectedObjects.length]);
 
     const startSelection = (selectedMode, action) => {
         // the button was clicked again, finish the selection
