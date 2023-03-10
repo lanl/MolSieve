@@ -1,4 +1,6 @@
-import { React, useState, useEffect, memo, useCallback } from 'react';
+import { React, useState, useEffect, memo, useCallback, useMemo } from 'react';
+import { useSelector } from 'react-redux';
+
 import Stack from '@mui/material/Stack';
 import IconButton from '@mui/material/IconButton';
 import Divider from '@mui/material/Divider';
@@ -19,13 +21,13 @@ import '../css/App.css';
 
 import { oneShotTooltip } from '../api/myutils';
 import { apiSubsetConnectivityDifference } from '../api/ajax';
+import { getStates } from '../api/states';
 
 function SubSequenceView({
     stateIDs,
     timesteps,
     trajectoryName,
     properties,
-    globalScale,
     visScript,
     sx = {},
     disabled = false,
@@ -37,7 +39,6 @@ function SubSequenceView({
     className = '',
     id = '',
 }) {
-    const [data, setData] = useState([]);
     const [activeState, setActiveState] = useState(stateIDs[0]);
     const [isLoaded, setIsLoaded] = useState(false);
     const [interestingStates, setInterestingStates] = useState([
@@ -47,8 +48,23 @@ function SubSequenceView({
     const [openModal, setOpenModal] = useState(false);
     const [nebPlots, setNEBPlots] = useState(null);
 
+    const states = useSelector(
+        (state) => getStates(state, stateIDs)
+        // (oldStates, newStates) => getNumberLoaded(oldStates) === getNumberLoaded(newStates)
+    );
+    const globalScale = useSelector((state) => state.states.globalScale);
+
+    const stateMap = useMemo(
+        () =>
+            states.reduce((acc, v) => {
+                acc[v.id] = { individualColor: v.individualColor };
+                return acc;
+            }, {}),
+        []
+    );
+
     const colorFunc = useCallback((d) => {
-        const state = States.get(d.y);
+        const state = stateMap[d.y];
         return state.individualColor;
     }, []);
 
@@ -57,7 +73,7 @@ function SubSequenceView({
         // find interesting states
         apiSubsetConnectivityDifference(stateIDs, controller).then((d) => {
             // remove duplicates if they are next to each other
-            const states = [stateIDs[0], ...d, stateIDs[stateIDs.length - 1]].reduce(
+            const iStates = [stateIDs[0], ...d, stateIDs[stateIDs.length - 1]].reduce(
                 (acc, val, idx, arr) => {
                     if (idx > 0) {
                         if (acc[acc.length - 1] !== arr[idx]) {
@@ -70,27 +86,21 @@ function SubSequenceView({
                 []
             );
             setIsLoaded(true);
-            setInterestingStates(states);
+            setInterestingStates(iStates);
         });
         return () => controller.abort();
     }, [JSON.stringify(stateIDs)]);
 
-    const addNEB = (states, start, end, interpolate, maxSteps, fmax, saveResults) => {
+    const addNEB = (nebStates, start, end, interpolate, maxSteps, fmax, saveResults) => {
         if (!nebPlots) {
-            setNEBPlots([{ states, start, end, interpolate, maxSteps, fmax, saveResults }]);
+            setNEBPlots([{ nebStates, start, end, interpolate, maxSteps, fmax, saveResults }]);
         } else {
             setNEBPlots([
                 ...nebPlots,
-                { states, start, end, interpolate, maxSteps, fmax, saveResults },
+                { nebStates, start, end, interpolate, maxSteps, fmax, saveResults },
             ]);
         }
     };
-    useEffect(() => {
-        States.ensureSubsetHasProperties(properties, stateIDs).then(() => {
-            const states = stateIDs.map((stateID) => States.get(stateID));
-            setData(states);
-        });
-    }, []);
 
     useEffect(() => {
         onElementClick(activeState);
@@ -137,7 +147,7 @@ function SubSequenceView({
                     ))}
 
                     <RadarChart
-                        data={data}
+                        data={states}
                         properties={properties}
                         width={200}
                         height={200}
@@ -145,7 +155,7 @@ function SubSequenceView({
                         onElementMouseOver={(node, d) => {
                             oneShotTooltip(node, `${d.value}`);
                         }}
-                        renderSingle={States.get(activeState)}
+                        // renderSingle={States.get(activeState)}
                     />
                 </Stack>
                 <Divider />
@@ -180,7 +190,7 @@ function SubSequenceView({
                         <Stack direction="row" spacing={0.5}>
                             {nebPlots.map((plot) => {
                                 const {
-                                    states,
+                                    nebStates,
                                     start,
                                     end,
                                     interpolate,
@@ -190,7 +200,7 @@ function SubSequenceView({
                                 } = plot;
                                 return (
                                     <NEBWrapper
-                                        stateIDs={states}
+                                        stateIDs={nebStates}
                                         trajectoryName={trajectoryName}
                                         start={start}
                                         end={end}

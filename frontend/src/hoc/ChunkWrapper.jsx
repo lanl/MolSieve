@@ -52,10 +52,54 @@ function ChunkWrapper({
     const [isInitialized, setIsInitialized] = useState(false);
     const [progress, setProgress] = useState(0.0);
 
+    const slice = useMemo(() => {
+        const [start, end] = extents;
+        const { timestep, last } = chunk;
+        const sliceStart = start <= timestep ? 0 : start - timestep;
+        const sliceEnd = end >= last ? last : end - last;
+
+        return [sliceStart, sliceEnd];
+    }, [extents[0], extents[1], chunk.timestep, chunk.last]);
+
     // With useSelector(), returning a new object every time will always force a re-render by default.
+    const slicedChunk = useMemo(
+        () => chunk.slice(extents[0], extents[1]),
+        [extents[0], extents[1]]
+    );
+
     const states = useSelector(
-        (state) => getStates(state, chunk.sequence)
+        (state) => getStates(state, slicedChunk.sequence)
         //    (oldStates, newStates) => getNumberLoaded(oldStates) === getNumberLoaded(newStates)
+    );
+
+    const chartSel = useMemo(
+        () =>
+            Object.keys(selections)
+                .filter((selectionID) => {
+                    const selection = selections[selectionID];
+                    const timesteps = selection.extent.map((d) => d.timestep);
+                    return (
+                        selection.trajectoryName === trajectory.name &&
+                        slicedChunk.containsSequence(timesteps)
+                    );
+                })
+                .map((selectionID) => {
+                    const selection = selections[selectionID];
+                    const { start, end } = selection.originalExtent;
+
+                    // this needs to be done so that the selection can rescale
+                    const x = d3
+                        .scaleLinear()
+                        .domain(d3.extent(slicedChunk.timesteps))
+                        .range([0, width - 7.5]);
+
+                    return {
+                        set: selection.extent.map((d) => d.timestep),
+                        brushValues: { start: x(start), end: x(end) },
+                        id: selectionID,
+                    };
+                }),
+        [Object.keys(selections).length, width, slicedChunk.length]
     );
 
     const stateMap = useMemo(
@@ -74,7 +118,7 @@ function ChunkWrapper({
         return state.individualColor;
     });
 
-    const [mvaPeriod, setMvaPeriod] = useState(Math.min(chunk.sequence.length / 4, 100));
+    const [mvaPeriod, setMvaPeriod] = useState(Math.min(slicedChunk.sequence.length / 4, 100));
     const [tDict, setTDict] = useState({});
 
     const calculations = useMemo(() => {
@@ -158,35 +202,15 @@ function ChunkWrapper({
         }
     }, [showStateClustering]);
 
-    const [slice, setSlice] = useState([0, chunk.last]);
-    const [timesteps, setTimesteps] = useState(chunk.timesteps);
-
-    useEffect(() => {
-        const [start, end] = extents;
-        const { timestep, last } = chunk;
-        const sliceStart = start <= timestep ? 0 : start - timestep;
-        const sliceEnd = end >= last ? last : end - last;
-
-        setSlice([sliceStart, sliceEnd]);
-    }, [JSON.stringify(extents), chunk.timestep, chunk.last]);
-
-    useEffect(() => {
-        const [sliceStart, sliceEnd] = slice;
-        setTimesteps(chunk.timesteps.filter((d) => d >= sliceStart && d <= sliceEnd));
-    }, [JSON.stringify(slice), chunk.timestep, chunk.last]);
-
     const [sliceStart, sliceEnd] = slice;
     const controlChartHeight =
         (height - scatterplotHeight) / (ranks.length + Object.keys(tDict).length);
 
     const finishBrush = ({ selection }) => {
         // extents determines the zoom level
-        const [chunkSliceStart, chunkSliceEnd] = extents;
         const x = d3
             .scaleLinear()
-            .domain(
-                d3.extent(chunk.timesteps.filter((d) => d >= chunkSliceStart && d <= chunkSliceEnd))
-            )
+            .domain(d3.extent(slicedChunk.timesteps))
             .range([0, width - 7.5]); // 7.5 to match margin on scatterplot
 
         const startTimestep = x.invert(selection[0]);
@@ -211,8 +235,8 @@ function ChunkWrapper({
     };
 
     const brush = useCallback(
-        () => d3.brushX().on('end', (e) => finishBrush(e)),
-        [JSON.stringify(extents), chunk.timesteps.length]
+        d3.brushX().on('end', (e) => finishBrush(e)),
+        [extents[0], extents[1], slicedChunk.timesteps.length, width]
     );
 
     const chartControls = useMemo(
@@ -227,8 +251,8 @@ function ChunkWrapper({
                 </Tooltip>
                 <Slider
                     min={2}
-                    defaultValue={Math.min(Math.trunc(chunk.sequence.length / 4), 100)}
-                    max={Math.trunc(chunk.sequence.length / 4)}
+                    defaultValue={Math.min(Math.trunc(slicedChunk.sequence.length / 4), 100)}
+                    max={Math.trunc(slicedChunk.sequence.length / 4)}
                     step={1}
                     size="small"
                     onChangeCommitted={(_, v) => setMvaPeriod(v)}
@@ -238,7 +262,7 @@ function ChunkWrapper({
                 </Tooltip>
             </Box>
         ),
-        [chunk.timestep, chunk.last]
+        [slicedChunk.timestep, slicedChunk.last, mvaPeriod]
     );
 
     return (
@@ -259,7 +283,7 @@ function ChunkWrapper({
                 chunkSelectionMode !== 3 &&
                 selectedObjects.map((d) => d.id).includes(chunk.id)
             }
-            selections={selections}
+            selections={chartSel}
         >
             {(ww) =>
                 isInitialized ? (
@@ -297,7 +321,7 @@ function ChunkWrapper({
                                                     sliceStart,
                                                     sliceEnd
                                                 )}
-                                                xAttributeList={timesteps}
+                                                xAttributeList={slicedChunk.timesteps}
                                                 lineColor={trajectory.colorByCluster(chunk)}
                                                 title={`${abbreviate(property)}`}
                                             />
@@ -317,7 +341,7 @@ function ChunkWrapper({
                                         height={controlChartHeight}
                                         width={width}
                                         yAttributeList={values.slice(sliceStart, sliceEnd)}
-                                        xAttributeList={timesteps}
+                                        xAttributeList={slicedChunk.timesteps}
                                         lineColor={trajectory.colorByCluster(chunk)}
                                     />
                                 );
@@ -325,8 +349,8 @@ function ChunkWrapper({
                         </Stack>
                         <AggregateScatterplot
                             key={`${chunk.id}-aggregate-scatterplot`}
-                            xAttributeList={timesteps}
-                            yAttributeList={chunk.sequence.slice(sliceStart, sliceEnd)}
+                            xAttributeList={slicedChunk.timesteps}
+                            yAttributeList={slicedChunk.sequence}
                             width={width}
                             height={scatterplotHeight}
                             colorFunc={colorFunc}
