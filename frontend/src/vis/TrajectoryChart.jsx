@@ -153,31 +153,35 @@ function TrajectoryChart({
 
                 const slicedChunk = chunk.slice(extents[0], extents[1]);
 
-                const chartSel = Object.keys(selections)
-                    .filter((selectionID) => {
-                        const selection = selections[selectionID];
-                        const timesteps = selection.extent.map((d) => d.timestep);
-                        return (
-                            selection.trajectoryName === trajectory.name &&
-                            slicedChunk.containsSequence(timesteps)
-                        );
-                    })
-                    .map((selectionID) => {
-                        const selection = selections[selectionID];
-                        const { start, end } = selection.originalExtent;
+                const chartSel = useMemo(
+                    () =>
+                        Object.keys(selections)
+                            .filter((selectionID) => {
+                                const selection = selections[selectionID];
+                                const timesteps = selection.extent.map((d) => d.timestep);
+                                return (
+                                    selection.trajectoryName === trajectory.name &&
+                                    slicedChunk.containsSequence(timesteps)
+                                );
+                            })
+                            .map((selectionID) => {
+                                const selection = selections[selectionID];
+                                const { start, end } = selection.originalExtent;
 
-                        // this needs to be done so that the selection can rescale
-                        const x = d3
-                            .scaleLinear()
-                            .domain(d3.extent(slicedChunk.timesteps))
-                            .range([0, chartW - 7.5]);
+                                // this needs to be done so that the selection can rescale
+                                const x = d3
+                                    .scaleLinear()
+                                    .domain(d3.extent(slicedChunk.timesteps))
+                                    .range([0, chartW - 7.5]);
 
-                        return {
-                            set: selection.extent.map((d) => d.timestep),
-                            brushValues: { start: x(start), end: x(end) },
-                            id: selectionID,
-                        };
-                    });
+                                return {
+                                    set: selection.extent.map((d) => d.timestep),
+                                    brushValues: { start: x(start), end: x(end) },
+                                    id: selectionID,
+                                };
+                            }),
+                    [selections.length, chartW]
+                );
 
                 return (
                     <foreignObject

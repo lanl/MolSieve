@@ -1,4 +1,4 @@
-import { React, useState, useEffect, memo, useMemo } from 'react';
+import { React, useState, useEffect, memo, useMemo, useCallback } from 'react';
 import { useSelector } from 'react-redux';
 
 import * as d3 from 'd3';
@@ -203,34 +203,44 @@ function ChunkWrapper({
         );
     };
 
+    const brush = useCallback(
+        () => d3.brushX().on('end', (e) => finishBrush(e)),
+        [JSON.stringify(extents), chunk.timesteps.length]
+    );
+
+    const chartControls = useMemo(
+        () => (
+            <Box width={width} display="flex" alignItems="center" gap={1}>
+                <Tooltip title="Zoom into region">
+                    <IconButton
+                        onClick={() => setZoom(trajectory.name, [chunk.timestep, chunk.last])}
+                    >
+                        <ZoomInMapIcon />
+                    </IconButton>
+                </Tooltip>
+                <Slider
+                    min={2}
+                    defaultValue={Math.min(Math.trunc(chunk.sequence.length / 4), 100)}
+                    max={Math.trunc(chunk.sequence.length / 4)}
+                    step={1}
+                    size="small"
+                    onChangeCommitted={(_, v) => setMvaPeriod(v)}
+                />
+                <Tooltip title="Moving average period" arrow>
+                    <Typography variant="caption">{mvaPeriod}</Typography>
+                </Tooltip>
+            </Box>
+        ),
+        [chunk.timestep, chunk.last]
+    );
+
     return (
         <EmbeddedChart
             height={height}
             width={width}
             color={chunk.color}
-            brush={d3.brushX().on('end', (e) => finishBrush(e))}
-            controls={
-                <Box width={width} display="flex" alignItems="center" gap={1}>
-                    <Tooltip title="Zoom into region">
-                        <IconButton
-                            onClick={() => setZoom(trajectory.name, [chunk.timestep, chunk.last])}
-                        >
-                            <ZoomInMapIcon />
-                        </IconButton>
-                    </Tooltip>
-                    <Slider
-                        min={2}
-                        defaultValue={Math.min(Math.trunc(chunk.sequence.length / 4), 100)}
-                        max={Math.trunc(chunk.sequence.length / 4)}
-                        step={1}
-                        size="small"
-                        onChangeCommitted={(_, v) => setMvaPeriod(v)}
-                    />
-                    <Tooltip title="Moving average period" arrow>
-                        <Typography variant="caption">{mvaPeriod}</Typography>
-                    </Tooltip>
-                </Box>
-            }
+            brush={brush}
+            controls={chartControls}
             onChartClick={() => {
                 if (chunkSelectionMode === 1 || chunkSelectionMode === 4) {
                     selectObject(chunk);
