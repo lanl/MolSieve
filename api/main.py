@@ -711,11 +711,11 @@ def modify_trajectory(run: str, chunkingThreshold: float, numClusters: int):
     mem_client.set(run, trajectory)
 
     return {
+        "uniqueStates": trajectory.simplified_unique_states,
         "simplified": trajectory.chunks,
         "idToCluster": trajectory.idToCluster,
         "current_clustering": trajectory.current_clustering,
     }
-
 
 @router.get("/load_trajectory")
 def load_trajectory(run: str, mMin: int, mMax: int, chunkingThreshold: float):
@@ -758,20 +758,10 @@ def load_trajectory(run: str, mMin: int, mMax: int, chunkingThreshold: float):
     mem_client = PooledClient("localhost", max_pool_size=1, serde=serde.pickle_serde)
     mem_client.set(run, trajectory)
 
-    # reduce state list to only important
-    uniqueStates = set()
-    for chunk in trajectory.chunks:
-        chunkUniqueStates = set()
-        if chunk['important']:
-            chunkUniqueStates = set(chunk['sequence'])
-        else:
-            chunkUniqueStates = set(chunk['selected'])
-        uniqueStates.update(chunkUniqueStates)
-
     # only return current clustering?
     # feasible may not be necessary at all
     return {
-        "uniqueStates": uniqueStates,
+        "uniqueStates": trajectory.simplified_unique_states,
         "idToTimestep": trajectory.id_to_timestep,
         "simplified": trajectory.chunks,
         "idToCluster": trajectory.idToCluster,

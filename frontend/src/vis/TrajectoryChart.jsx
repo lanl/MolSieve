@@ -153,7 +153,7 @@ function TrajectoryChart({
 
                 const slicedChunk = chunk.slice(extents[0], extents[1]);
 
-                const chartSel = useMemo(
+                const chartSel = []; /* useMemo(
                     () =>
                         Object.keys(selections)
                             .filter((selectionID) => {
@@ -181,7 +181,7 @@ function TrajectoryChart({
                                 };
                             }),
                     [selections.length, chartW]
-                );
+                ); */
 
                 return (
                     <foreignObject

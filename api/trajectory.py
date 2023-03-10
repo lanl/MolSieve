@@ -30,6 +30,7 @@ class Trajectory:
     idToCluster = {}
     chunks = []
     min_chi = []
+    simplified_unique_states = None
 
     def __init__(self, name, sequence, unique_states):
         self.name = name
@@ -212,6 +213,15 @@ class Trajectory:
 
         self.chunkingThreshold = chunkingThreshold
         self.chunks = chunks
+        uniqueStates = set()
+        for chunk in self.chunks:
+            chunkUniqueStates = set()
+            if chunk['important']:
+                chunkUniqueStates = set(chunk['sequence'])
+            else:
+                chunkUniqueStates = set(chunk['selected'])
+            uniqueStates.update(chunkUniqueStates)
+        self.simplified_unique_states = uniqueStates
 
     def calculate_sequence_importance(
         self,

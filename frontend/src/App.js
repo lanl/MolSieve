@@ -161,7 +161,6 @@ class App extends React.Component {
 
                 const { trajectories, colors } = this.state;
 
-                console.log(data.uniqueStates);
                 dispatch(
                     calculateGlobalUniqueStates({
                         newUniqueStates: data.uniqueStates,
@@ -226,17 +225,28 @@ class App extends React.Component {
         const { trajectories } = this.state;
         const { [run]: newTraj } = trajectories;
 
-        const { enqueueSnackbar } = this.props;
+        const { enqueueSnackbar, dispatch } = this.props;
 
         enqueueSnackbar(`Re-simplifying trajectory ${run}...`);
         apiModifyTrajectory(run, newTraj.current_clustering, threshold).then((data) => {
             newTraj.simplifySet(data.simplified);
             newTraj.chunkingThreshold = threshold;
+
+            dispatch(
+                calculateGlobalUniqueStates({
+                    newUniqueStates: data.uniqueStates,
+                    run,
+                })
+            );
+
             this.setState(
                 (prevState) => ({
                     trajectories: { ...prevState.trajectories, [run]: newTraj },
                 }),
-                () => enqueueSnackbar(`Sequence re-simplified for trajectory ${run}.`)
+                () => {
+                    enqueueSnackbar(`Sequence re-simplified for trajectory ${run}.`);
+                    dispatch(wsConnect(`${WS_URL}/api/load_properties_for_subset`));
+                }
             );
         });
     };
