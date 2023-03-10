@@ -31,7 +31,6 @@ function TrajectoryChart({
     addSelection,
     updateGlobalScale,
     globalScale,
-    showStateClustering,
     showTop,
     expand,
     propertyCombos,
@@ -171,7 +170,6 @@ function TrajectoryChart({
                                 updateGlobalScale={updateGlobalScale}
                                 ranks={cutRanks}
                                 selections={selections}
-                                showStateClustering={showStateClustering}
                                 addSelection={addSelection}
                                 selectObject={selectObject}
                                 selectedObjects={selectedObjects}

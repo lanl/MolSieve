@@ -40,7 +40,6 @@ function ChunkWrapper({
     chunkSelectionMode,
     selectedObjects,
     ranks,
-    showStateClustering,
     doubleClickAction,
     propertyCombos,
     extents,
@@ -73,6 +72,8 @@ function ChunkWrapper({
         (state) => getStates(state, slicedChunk.sequence)
         //    (oldStates, newStates) => getNumberLoaded(oldStates) === getNumberLoaded(newStates)
     );
+
+    const colorByStateCluster = useSelector((state) => state.states.colorByStateCluster);
 
     const chartSel = useMemo(
         () =>
@@ -107,18 +108,16 @@ function ChunkWrapper({
     const stateMap = useMemo(
         () =>
             states.reduce((acc, v) => {
-                acc[v.id] = { individualColor: v.individualColor };
+                const color = colorByStateCluster ? v.stateClusteringColor : v.individualColor;
+                acc[v.id] = {
+                    color,
+                };
                 return acc;
             }, {}),
-        []
+        [colorByStateCluster]
     );
 
     const numLoaded = getNumberLoaded(states);
-
-    const [colorFunc, setColorFunc] = useState(() => (d) => {
-        const state = stateMap[d];
-        return state.individualColor;
-    });
 
     const [mvaPeriod, setMvaPeriod] = useState(Math.min(slicedChunk.sequence.length / 4, 100));
     const [tDict, setTDict] = useState({});
@@ -196,20 +195,6 @@ function ChunkWrapper({
         }
     }, [JSON.stringify(propertyCombos), JSON.stringify(stats)]);
 
-    useEffect(() => {
-        if (showStateClustering) {
-            setColorFunc(() => (d) => {
-                const state = stateMap[d];
-                return state.stateClusteringColor;
-            });
-        } else {
-            setColorFunc(() => (d) => {
-                const state = stateMap[d];
-                return state.individualColor;
-            });
-        }
-    }, [showStateClustering]);
-
     const [sliceStart, sliceEnd] = slice;
     const controlChartHeight =
         (height - scatterplotHeight) / (ranks.length + Object.keys(tDict).length);
@@ -272,6 +257,8 @@ function ChunkWrapper({
         ),
         [slicedChunk.timestep, slicedChunk.last, mvaPeriod]
     );
+
+    const colorFunc = useMemo(() => (d) => stateMap[d].color, [colorByStateCluster]);
 
     return (
         <EmbeddedChart
@@ -344,6 +331,7 @@ function ChunkWrapper({
                             {Object.keys(tDict).map((id) => {
                                 const t = tDict[id];
                                 const { values, ucl, property } = t;
+
                                 return (
                                     <PropertyWrapper
                                         key={`${chunk.id}-${property}`}
@@ -372,6 +360,7 @@ function ChunkWrapper({
                             yAttributeList={slicedChunk.sequence}
                             width={width}
                             height={scatterplotHeight}
+                            coloring={colorByStateCluster}
                             colorFunc={colorFunc}
                             onElementClick={(node, d) => {
                                 d3.selectAll('.clicked').classed('clicked', false);

@@ -66,6 +66,11 @@ export const ensureSubsetHasProperties = createAsyncThunk(
     }
 );
 
+export const clusterStates = createAsyncThunk('states/clusterStates', async (payload) => {
+    const { properties, stateIDs } = payload;
+    return apiClusterStates(properties, stateIDs);
+});
+
 /* Wrapper for hasProperties in case only one property is needed */
 export const ensureSubsetHasProperty = (state, property, subset) => {
     return ensureSubsetHasProperties(state, [property], subset);
@@ -96,14 +101,6 @@ export const getPropList = (state, stateList, property, range) => {
     return stateSequence.map((d) => d[property]);
 };
 
-export const clusterStates = createAsyncThunk(
-    'states/clusterStates',
-    async (properties, states) => {
-        const response = await apiClusterStates(properties, states);
-        return response;
-    }
-);
-
 // immutable.js if need map
 // should have globalScale as part of it
 export const states = createSlice({
@@ -112,6 +109,7 @@ export const states = createSlice({
         values: new Map(),
         properties: [],
         globalScale: {},
+        colorByStateCluster: false,
     },
     reducers: {
         addProperties: (state, action) => {
@@ -201,6 +199,10 @@ export const states = createSlice({
                 s.stateCluster = undefined;
                 values.set(id, s);
             }
+            return { ...state, values, colorByStateCluster: !state.colorByStateCluster };
+        },
+        toggleStateClustering: (state) => {
+            return { ...state, colorByStateCluster: !state.colorByStateCluster };
         },
     },
     extraReducers: (builder) => {
@@ -211,12 +213,19 @@ export const states = createSlice({
             .addCase(ensureSubsetHasProperties.fulfilled, (state, action) =>
                 state.caseReducers.addPropToState(action.payload)
             )
+            .addCase(clusterStates.rejected, (state, action) => {
+                // should have a failure case, since it can sometimes fail to cluster
+            })
             .addCase(clusterStates.fulfilled, (state, action) => {
+                const { values, colorByStateCluster } = state;
                 for (const [id, clusterID] of Object.entries(action.payload)) {
-                    const previous = state.values.get(parseInt(id, 10));
-                    previous.stateCluster = clusterID;
-                    state.values.set(id, previous);
+                    const intID = parseInt(id, 10);
+                    const previous = values.get(intID);
+                    previous.stateCluster = parseInt(clusterID, 10);
+                    values.set(intID, previous);
+                    // state.caseReducers.toggleStateClustering();
                 }
+                return { ...state, values, colorByStateCluster: !colorByStateCluster };
             });
     },
 });
@@ -229,6 +238,7 @@ export const {
     clearClusterStates,
     addProperties,
     updateGlobalScale,
+    toggleStateClustering,
 } = states.actions;
 
 export default states.reducer;

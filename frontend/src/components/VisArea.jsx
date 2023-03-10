@@ -1,5 +1,5 @@
 import { React, useState, useEffect, useReducer, useCallback } from 'react';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 
 import Box from '@mui/material/Box';
 import CssBaseline from '@mui/material/CssBaseline';
@@ -46,7 +46,7 @@ import { createUUID } from '../api/math/random';
 
 import { getAllImportantStates } from '../api/trajectories';
 
-import { clearClusterStates, clusterStates } from '../api/states';
+import { clearClusterStates, clusterStates, toggleStateClustering } from '../api/states';
 
 const MULTIVARIATE_CHART_MODAL = 'multivariate_chart';
 
@@ -78,7 +78,7 @@ export default function VisArea({
     const [selectedObjects, setSelectedObjects] = useState([]);
 
     const [anchorEl, setAnchorEl] = useState(null);
-    const [showStateClustering, setShowStateClustering] = useState(false);
+    const showStateClustering = useSelector((state) => state.states.colorByStateCluster);
 
     const [toolTipList, setToolTipList] = useState([]);
     const oldToolTipList = usePrevious(toolTipList);
@@ -370,9 +370,12 @@ export default function VisArea({
                                     onClick={() =>
                                         !showStateClustering
                                             ? dispatch(
-                                                  clusterStates(getAllImportantStates(trajectories))
-                                              ).then(() => setShowStateClustering(true))
-                                            : setShowStateClustering(false)
+                                                  clusterStates({
+                                                      properties,
+                                                      stateIDs: getAllImportantStates(trajectories),
+                                                  })
+                                              )
+                                            : dispatch(clearClusterStates())
                                     }
                                 >
                                     <InvertColorsIcon />
@@ -432,7 +435,6 @@ export default function VisArea({
                                             addSelection={addSelectionCallback}
                                             selectedObjects={selectedObjects}
                                             selections={selections}
-                                            showStateClustering={showStateClustering}
                                             showTop={showTop}
                                             expand={expand}
                                             setZoom={setZoom}

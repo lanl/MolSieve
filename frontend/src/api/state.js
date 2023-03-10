@@ -21,9 +21,6 @@ export default class State {
 
     // -1 stateCluster is noise / unclustered
     get stateClusteringColor() {
-        if (this.stateCluster === undefined) {
-            throw new Error('State cluster is not defined!');
-        }
         return this.stateCluster !== -1 ? mpn65[this.stateCluster % mpn65.length] : 'black';
     }
 
