@@ -115,13 +115,29 @@ export const states = createSlice({
     },
     reducers: {
         addProperties: (state, action) => {
-            const { properties, globalScale } = state;
+            const { properties } = state;
             for (const property of action.payload) {
                 properties.push(property);
-                if (!globalScale[property]) {
-                    globalScale[property] = { min: Number.MAX_VALUE, max: Number.MIN_VALUE };
-                }
+                states.caseReducers.addPropertyToGlobalScale(state, { payload: { property } });
             }
+        },
+        addPropertyToGlobalScale: (state, action) => {
+            const { globalScale } = state;
+            const { property } = action.payload;
+
+            if (!globalScale[property]) {
+                globalScale[property] = { min: Number.MAX_VALUE, max: Number.MIN_VALUE };
+            }
+        },
+        updateGlobalScale: (state, action) => {
+            const { globalScale } = state;
+            const { property, values } = action.payload;
+
+            states.caseReducers.addPropertyToGlobalScale(state, { payload: { property } });
+            globalScale[property] = {
+                min: Math.min(globalScale[property].min, Math.min(...values)),
+                max: Math.max(globalScale[property].max, Math.max(...values)),
+            };
         },
         addPropToState: (state, action) => {
             const { prop } = action.payload;
@@ -212,6 +228,7 @@ export const {
     calculateGlobalUniqueStates,
     clearClusterStates,
     addProperties,
+    updateGlobalScale,
 } = states.actions;
 
 export default states.reducer;

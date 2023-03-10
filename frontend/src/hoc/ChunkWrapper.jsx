@@ -1,5 +1,5 @@
 import { React, useState, useEffect, memo, useMemo, useCallback } from 'react';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 
 import * as d3 from 'd3';
 import { create, all } from 'mathjs';
@@ -26,7 +26,7 @@ import LoadingBox from '../components/LoadingBox';
 import EmbeddedChart from '../vis/EmbeddedChart';
 import PropertyWrapper from './PropertyWrapper';
 
-import { getStates } from '../api/states';
+import { getStates, updateGlobalScale } from '../api/states';
 
 function ChunkWrapper({
     chunk,
@@ -66,6 +66,8 @@ function ChunkWrapper({
         () => chunk.slice(extents[0], extents[1]),
         [extents[0], extents[1]]
     );
+
+    const dispatch = useDispatch();
 
     const states = useSelector(
         (state) => getStates(state, slicedChunk.sequence)
@@ -167,7 +169,7 @@ function ChunkWrapper({
                     const vv = math.multiply(math.transpose(ma), ma);
                     const s = math.divide(vv, 2 * (states.length - 1));
                     const t = math.multiply(math.transpose(md), math.inv(s), md);
-                    if (t !== Infinity) {
+                    if (t !== Infinity && !Number.isNaN(t)) {
                         t2.push(t);
                     } else {
                         t2.push(0);
@@ -182,11 +184,17 @@ function ChunkWrapper({
                 // determine best value for alpha
                 const ucl = ((m - 1) ** 2 / m) * betaPDF(0.005, p / 2, (q - p - 1) / 2);
 
-                combos[combo.id] = { ucl, values: t2 };
+                dispatch(
+                    updateGlobalScale({
+                        property: combo.id,
+                        values: t2,
+                    })
+                );
+                combos[combo.id] = { ucl, values: t2, property: combo.id };
             }
             setTDict(combos);
         }
-    }, [JSON.stringify(propertyCombos), chunk.timestep, chunk.last, JSON.stringify(stats)]);
+    }, [JSON.stringify(propertyCombos), JSON.stringify(stats)]);
 
     useEffect(() => {
         if (showStateClustering) {
@@ -321,6 +329,9 @@ function ChunkWrapper({
                                                     sliceStart,
                                                     sliceEnd
                                                 )}
+                                                /* .filter(
+                                                        (d) => !Number.isNaN(d) && d !== undefined
+                                                    )} */
                                                 xAttributeList={slicedChunk.timesteps}
                                                 lineColor={trajectory.colorByCluster(chunk)}
                                                 title={`${abbreviate(property)}`}
@@ -329,21 +340,29 @@ function ChunkWrapper({
                                     </PropertyWrapper>
                                 );
                             })}
+
                             {Object.keys(tDict).map((id) => {
                                 const t = tDict[id];
-                                const { values, ucl } = t;
+                                const { values, ucl, property } = t;
                                 return (
-                                    <ControlChart
-                                        key={`${chunk.id}-${id}`}
-                                        globalScaleMin={d3.min(values)}
-                                        globalScaleMax={d3.max(values)}
-                                        ucl={ucl}
-                                        height={controlChartHeight}
-                                        width={width}
-                                        yAttributeList={values.slice(sliceStart, sliceEnd)}
-                                        xAttributeList={slicedChunk.timesteps}
-                                        lineColor={trajectory.colorByCluster(chunk)}
-                                    />
+                                    <PropertyWrapper
+                                        key={`${chunk.id}-${property}`}
+                                        property={property}
+                                    >
+                                        {(min, max) => (
+                                            <ControlChart
+                                                key={`${chunk.id}-${id}`}
+                                                globalScaleMin={min}
+                                                globalScaleMax={max}
+                                                ucl={ucl}
+                                                height={controlChartHeight}
+                                                width={width}
+                                                yAttributeList={values.slice(sliceStart, sliceEnd)}
+                                                xAttributeList={slicedChunk.timesteps}
+                                                lineColor={trajectory.colorByCluster(chunk)}
+                                            />
+                                        )}
+                                    </PropertyWrapper>
                                 );
                             })}
                         </Stack>

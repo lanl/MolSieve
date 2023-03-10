@@ -12,6 +12,8 @@ function PropertyWrapper({ property, children }) {
 
     const { min, max } = globalScale;
 
+    console.log(property, min, max);
+
     return <>{children(min, max)}</>;
 }
 
