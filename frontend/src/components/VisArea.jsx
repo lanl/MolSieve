@@ -451,7 +451,7 @@ export default function VisArea({
             <Stack direction="row" gap={1}>
                 <Box marginLeft={5} minWidth="225px">
                     {activeState !== null && activeState !== undefined && (
-                        <StateDetailView state={activeState} visScript={visScript} />
+                        <StateDetailView stateID={activeState} visScript={visScript} />
                     )}
                 </Box>
 
@@ -504,7 +504,6 @@ export default function VisArea({
                                 timesteps={timesteps}
                                 visScript={visScript}
                                 properties={properties}
-                                globalScale={globalScale}
                                 deleteFunc={() => {
                                     deleteSelection(uuid);
                                 }}
@@ -523,7 +522,6 @@ export default function VisArea({
                                 <ComparisonView
                                     properties={properties}
                                     selection={selection}
-                                    globalScale={globalScale}
                                     deleteFunc={() => removeComparison(uuid)}
                                 />
                             );

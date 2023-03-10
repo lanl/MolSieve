@@ -25,7 +25,7 @@ function ViolinPlot({
                 svg.selectAll('*').remove();
             }
 
-            if (!data) {
+            if (!data || !data.length) {
                 return;
             }
 
@@ -92,7 +92,7 @@ function ViolinPlot({
                 ttInstance = undefined;
             });
         },
-        [property, JSON.stringify(data), color, globalScaleMin, globalScaleMax, width, height]
+        [property, data.length, color, globalScaleMin, globalScaleMax, width, height]
     );
 
     return (

@@ -1,7 +1,7 @@
 import { mpn65 } from './constants';
 import { abbreviate } from './myutils';
 
-const IGNORE_PROPS = ['img'];
+const IGNORE_PROPS = ['img', 'loaded'];
 const NO_ABBREVIATE = ['id', 'seenIn'];
 
 export default class State {

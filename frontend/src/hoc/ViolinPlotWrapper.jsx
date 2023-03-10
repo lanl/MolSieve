@@ -87,7 +87,9 @@ function ViolinPlotWrapper({
                         <Stack direction="column">
                             {ranks.map((property) => {
                                 const { q1, q3, median, iqr } = boxStats[property];
-                                const propertyList = states.map((d) => d[property]);
+                                const propertyList = states
+                                    .map((d) => d[property])
+                                    .filter((d) => d !== undefined);
 
                                 return (
                                     <PropertyWrapper

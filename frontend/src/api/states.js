@@ -18,10 +18,6 @@ export const findMissingPropertyInSubset = (property, subset) => {
     return missing;
 };
 
-export const getState = (state, stateID) => {
-    return state.values.get(stateID);
-};
-
 /**
  * Check if the states indexed by the ids provided in the subset array have the given properties loaded.
  *
@@ -78,6 +74,11 @@ export const ensureSubsetHasProperty = (state, property, subset) => {
 export const getStates = createSelector(
     [(state) => state.states.values, (_, stateIDList) => stateIDList],
     (values, stateIDList) => stateIDList.map((id) => values.get(id))
+);
+
+export const getState = createSelector(
+    [(state) => state.states.values, (_, id) => id],
+    (values, id) => values.get(id)
 );
 
 export const getGlobalScale = createSelector(

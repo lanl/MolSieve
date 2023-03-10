@@ -8,7 +8,7 @@ import SingleStateViewer from './SingleStateViewer';
 import { getState } from '../api/states';
 
 export default function StateDetailView({ stateID, visScript }) {
-    const state = useSelector(getState(stateID));
+    const state = useSelector((states) => getState(states, stateID));
     return (
         <Paper>
             <SingleStateViewer stateID={state.id} visScript={visScript} />

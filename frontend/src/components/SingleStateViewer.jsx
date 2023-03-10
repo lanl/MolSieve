@@ -6,19 +6,19 @@ import { useDispatch } from 'react-redux';
 import ImageViewer from './ImageViewer';
 
 import { apiGenerateOvitoImage } from '../api/ajax';
-import { addPropToState } from '../api/states';
+// import { addPropToState } from '../api/states';
 
 export default function SingleStateViewer({ stateID, visScript, onClick }) {
     const [img, setImg] = useState(undefined);
     const [isLoading, setIsLoading] = useState(false);
-    const dispatch = useDispatch();
+    // const dispatch = useDispatch();
 
     useEffect(() => {
         const controller = new AbortController();
         setIsLoading(true);
         apiGenerateOvitoImage(stateID, visScript, controller)
             .then((data) => {
-                dispatch(addPropToState(data));
+                // dispatch(addPropToState(data)); do we need to save this?
                 setImg(data.img);
                 setIsLoading(false);
             })

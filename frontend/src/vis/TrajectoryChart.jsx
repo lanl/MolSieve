@@ -50,7 +50,7 @@ function TrajectoryChart({
     const { ranks, reduceRanks } = useRanks(properties, trajectory.chunkOrder(0));
 
     const updateRanks = (values, id) => {
-        // reduceRanks({ type: 'updateValues', payload: { values, id } });
+        reduceRanks({ type: 'updateValues', payload: { values, id } });
     };
 
     useEffect(() => {
