@@ -34,8 +34,12 @@ function ViolinPlot({
                 .domain([globalScaleMin, globalScaleMax])
                 .range([height - margin.bottom, margin.top]);
 
-            const bins = d3.bin().domain(yScale.domain())(data);
-
+            let bins = null;
+            try {
+                bins = d3.bin().domain(yScale.domain())(data);
+            } catch (error) {
+                return;
+            }
             if (showYAxis) {
                 svg.call(d3.axisRight(yScale));
             }

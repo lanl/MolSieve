@@ -1,4 +1,4 @@
-import { React, useState, useEffect, useRef, memo } from 'react';
+import { React, useState, useEffect, useRef, memo, startTransition, useMemo } from 'react';
 
 import * as d3 from 'd3';
 import LinearProgress from '@mui/material/LinearProgress';
@@ -12,8 +12,10 @@ import { LOADING_CHUNK_SIZE } from '../api/constants';
 
 import ViolinPlot from '../vis/ViolinPlot';
 import LoadingBox from '../components/LoadingBox';
+import PropertyWrapper from './PropertyWrapper';
 
 import { getStates, subsetHasProperties } from '../api/states';
+import { getNumberLoaded } from '../api/myutils';
 
 import EmbeddedChart from '../vis/EmbeddedChart';
 
@@ -31,13 +33,15 @@ function ViolinPlotWrapper({
     onClick,
 }) {
     const [isInitialized, setIsInitialized] = useState(false);
-    const [boxStats, setBoxStats] = useState({});
     const [progress, setProgress] = useState(0.0);
 
-    const states = useSelector((state) => getStates(state, chunk.selected));
-    const globalScale = useSelector((state) => state.states.globalScale);
+    const states = useSelector(
+        (state) => getStates(state, chunk.sequence),
+        (oldStates, newStates) => getNumberLoaded(oldStates) === getNumberLoaded(newStates)
+    );
+    const numLoaded = getNumberLoaded(states);
 
-    const render = () => {
+    const boxStats = useMemo(() => {
         const bpStatDict = {};
         const rd = {};
         for (const prop of properties) {
@@ -46,16 +50,14 @@ function ViolinPlotWrapper({
             bpStatDict[prop] = bpStats;
             rd[prop] = vals;
         }
-        setBoxStats(bpStatDict);
         updateRanks(rd, chunk.id);
-        setIsInitialized(true);
-    };
+        return bpStatDict;
+    }, [numLoaded]);
 
     useEffect(() => {
-        const { missingProperties } = subsetHasProperties(properties, states);
-        setProgress(missingProperties / states.length);
-        render();
-    }, [JSON.stringify(states)]);
+        setProgress(numLoaded / states.length);
+        setIsInitialized(true);
+    }, [numLoaded]);
 
     const boxPlotHeight = height / (ranks.length + propertyCombos.length);
 
@@ -84,28 +86,33 @@ function ViolinPlotWrapper({
                         ) : null}
                         <Stack direction="column">
                             {ranks.map((property) => {
-                                const { min, max } = globalScale[property];
                                 const { q1, q3, median, iqr } = boxStats[property];
                                 const propertyList = states.map((d) => d[property]);
 
                                 return (
-                                    <ViolinPlot
+                                    <PropertyWrapper
                                         key={`${chunk.id}-${property}`}
-                                        showYAxis={false}
-                                        data={propertyList}
-                                        color={chunk.color}
                                         property={property}
-                                        width={ww}
-                                        mouseOverText={`${chunk.toString()}<br/>
+                                    >
+                                        {(min, max) => (
+                                            <ViolinPlot
+                                                showYAxis={false}
+                                                data={propertyList}
+                                                color={chunk.color}
+                                                property={property}
+                                                width={ww}
+                                                mouseOverText={`${chunk.toString()}<br/>
                             <em>${property}</em><br/> 
                             <b>Q1</b>: ${q1}</br> 
                             <b>Median</b>: ${median}</br> 
                             <b>Q3</b>: ${q3}</br>
                             <b>IQR</b>: ${iqr} <br/>`}
-                                        height={boxPlotHeight}
-                                        globalScaleMin={min}
-                                        globalScaleMax={max}
-                                    />
+                                                height={boxPlotHeight}
+                                                globalScaleMin={min}
+                                                globalScaleMax={max}
+                                            />
+                                        )}
+                                    </PropertyWrapper>
                                 );
                             })}
                         </Stack>

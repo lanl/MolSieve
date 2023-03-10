@@ -39,21 +39,18 @@ function TrajectoryChart({
     extents,
     setZoom,
 }) {
-    const ref = useTrajectoryChartRender(
-        (svg) => {
-            // clear so we don't draw over-top and cause insane lag
-            if (!svg.empty()) {
-                // NOTE: deletes all g elements, even ones inside foreignObjects!
-                svg.selectAll('g:not(.brush, .rankList)').remove();
-            }
-        },
-        [JSON.stringify(trajectory)]
-    );
+    const ref = useTrajectoryChartRender((svg) => {
+        // clear so we don't draw over-top and cause insane lag
+        if (!svg.empty()) {
+            // NOTE: deletes all g elements, even ones inside foreignObjects!
+            svg.selectAll('g:not(.brush, .rankList)').remove();
+        }
+    }, []);
 
     const { ranks, reduceRanks } = useRanks(properties, trajectory.chunkOrder(0));
 
     const updateRanks = (values, id) => {
-        reduceRanks({ type: 'updateValues', payload: { values, id } });
+        // reduceRanks({ type: 'updateValues', payload: { values, id } });
     };
 
     useEffect(() => {

@@ -10,14 +10,16 @@ const socketMiddleware = () => {
     let socket = null;
 
     const onOpen = (store) => (event) => {
-        console.log('websocket open', event.target.url);
         const state = store.getState();
         const { properties, values } = state.states;
+        // try to load 10% of the dataset at a time
+        const stateIds = Array.from(values.values()).map((d) => d.id);
+        const chunkSize = Math.round(stateIds.length / 10);
         socket.send(
             JSON.stringify({
                 props: properties,
-                stateIds: Array.from(values.values()).map((d) => d.id),
-                chunkSize: 100,
+                stateIds,
+                chunkSize,
             })
         );
 
@@ -54,14 +56,11 @@ const socketMiddleware = () => {
                     socket.close();
                 }
                 socket = null;
-                console.log('websocket closed');
                 break;
             case 'NEW_MESSAGE':
-                console.log('sending a message', action.msg);
                 socket.send(JSON.stringify({ command: 'NEW_MESSAGE', message: action.msg }));
                 break;
             default:
-                console.log('the next action:', action);
                 return next(action);
         }
     };

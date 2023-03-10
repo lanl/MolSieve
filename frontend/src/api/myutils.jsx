@@ -5,6 +5,8 @@ import * as d3 from 'd3';
 
 import 'tippy.js/themes/translucent.css';
 
+export const getNumberLoaded = (arr) => arr.filter((d) => d.loaded).length;
+
 export function djb2(str) {
     let hash = 5381;
     for (let i = 0; i < str.length; i++) {

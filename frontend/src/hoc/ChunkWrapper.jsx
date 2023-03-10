@@ -1,4 +1,4 @@
-import { React, useState, useEffect, useRef, memo } from 'react';
+import { React, useState, useEffect, useRef, memo, useMemo, startTransition } from 'react';
 import { useSelector } from 'react-redux';
 
 import * as d3 from 'd3';
@@ -19,13 +19,13 @@ import ControlChart from '../vis/ControlChart';
 import AggregateScatterplot from '../vis/AggregateScatterplot';
 
 import { exponentialMovingAverage, betaPDF } from '../api/math/stats';
-import { abbreviate, buildDictFromArray } from '../api/myutils';
+import { abbreviate, buildDictFromArray, getNumberLoaded } from '../api/myutils';
 
 import { LOADING_CHUNK_SIZE } from '../api/constants';
-
 import LoadingBox from '../components/LoadingBox';
 
 import EmbeddedChart from '../vis/EmbeddedChart';
+import PropertyWrapper from './PropertyWrapper';
 
 import { getStates, subsetHasProperties } from '../api/states';
 
@@ -53,9 +53,14 @@ function ChunkWrapper({
     const [isInitialized, setIsInitialized] = useState(false);
     const [progress, setProgress] = useState(0.0);
 
-    const states = useSelector((state) => getStates(state, chunk.sequence));
-    const uniqueStates = useSelector((state) => getStates(state, chunk.states));
-    const globalScale = useSelector((state) => state.states.globalScale);
+    // With useSelector(), returning a new object every time will always force a re-render by default.
+    const states = useSelector(
+        (state) => getStates(state, chunk.sequence),
+        (oldStates, newStates) => getNumberLoaded(oldStates) === getNumberLoaded(newStates)
+    );
+
+    const numLoaded = getNumberLoaded(states);
+
     const stateMap = useSelector((state) => state.states.values);
 
     const [colorFunc, setColorFunc] = useState(() => (d) => {
@@ -63,18 +68,13 @@ function ChunkWrapper({
         return state.individualColor;
     });
 
-    const [mva, setMva] = useState({});
-    const [stats, setStats] = useState(
-        buildDictFromArray(properties, { std: undefined, mean: undefined })
-    );
-
     const [mvaPeriod, setMvaPeriod] = useState(Math.min(chunk.sequence.length / 4, 100));
     const [tDict, setTDict] = useState({});
 
-    const render = () => {
-        const mvaDict = {};
+    const calculations = useMemo(() => {
+        const mva = {};
         // const rDict = {};
-        const statDict = {};
+        const stats = {};
 
         for (const prop of properties) {
             const propList = states.map((d) => d[prop]);
@@ -84,25 +84,19 @@ function ChunkWrapper({
             const mean = d3.mean(propList);
             // const diffXtent = d3.extent(differentiate(m));
 
-            mvaDict[prop] = m;
+            mva[prop] = m;
             // rDict[prop] = diffXtent.reduce((acc, cv) => acc + Math.abs(cv), 0);
-            statDict[prop] = { std, mean };
+            stats[prop] = { std, mean };
         }
-        setMva(mvaDict);
-        // updateRanks(rDict, 1);
-        setStats(statDict);
+        return { mva, stats };
+    }, [mvaPeriod, numLoaded]);
+
+    const { stats, mva } = calculations;
+
+    useEffect(() => {
+        setProgress(numLoaded / states.length);
         setIsInitialized(true);
-    };
-
-    useEffect(() => {
-        render();
-    }, [mvaPeriod]);
-
-    useEffect(() => {
-        const { missingProperties } = subsetHasProperties(properties, uniqueStates);
-        setProgress(missingProperties / uniqueStates.length);
-        render();
-    }, [JSON.stringify(uniqueStates)]);
+    }, [numLoaded]);
 
     useEffect(() => {
         if (propertyCombos) {
@@ -142,7 +136,7 @@ function ChunkWrapper({
             }
             setTDict(combos);
         }
-    }, [JSON.stringify(propertyCombos), JSON.stringify(chunk), JSON.stringify(stats)]);
+    }, [JSON.stringify(propertyCombos), chunk.timestep, chunk.last, JSON.stringify(stats)]);
 
     useEffect(() => {
         if (showStateClustering) {
@@ -168,12 +162,12 @@ function ChunkWrapper({
         const sliceEnd = end >= last ? last : end - last;
 
         setSlice([sliceStart, sliceEnd]);
-    }, [JSON.stringify(extents), JSON.stringify(chunk)]);
+    }, [JSON.stringify(extents), chunk.timestep, chunk.last]);
 
     useEffect(() => {
         const [sliceStart, sliceEnd] = slice;
         setTimesteps(chunk.timesteps.filter((d) => d >= sliceStart && d <= sliceEnd));
-    }, [JSON.stringify(slice), JSON.stringify(chunk)]);
+    }, [JSON.stringify(slice), chunk.timestep, chunk.last]);
 
     const [sliceStart, sliceEnd] = slice;
     const controlChartHeight =
@@ -265,22 +259,29 @@ function ChunkWrapper({
                         ) : null}
                         <Stack direction="column">
                             {ranks.map((property) => {
-                                const { min, max } = globalScale[property];
                                 const { std, mean } = stats[property];
                                 return (
-                                    <ControlChart
+                                    <PropertyWrapper
                                         key={`${chunk.id}-${property}`}
-                                        globalScaleMin={min}
-                                        globalScaleMax={max}
-                                        ucl={mean + std}
-                                        lcl={mean - std}
-                                        height={controlChartHeight}
-                                        width={ww}
-                                        yAttributeList={mva[property].slice(sliceStart, sliceEnd)}
-                                        xAttributeList={timesteps}
-                                        lineColor={trajectory.colorByCluster(chunk)}
-                                        title={`${abbreviate(property)}`}
-                                    />
+                                        property={property}
+                                    >
+                                        {(min, max) => (
+                                            <ControlChart
+                                                globalScaleMin={min}
+                                                globalScaleMax={max}
+                                                ucl={mean + std}
+                                                lcl={mean - std}
+                                                height={controlChartHeight}
+                                                width={ww}
+                                                yAttributeList={mva[property]
+                                                    .slice(sliceStart, sliceEnd)
+                                                    .filter((d) => d !== undefined)}
+                                                xAttributeList={timesteps}
+                                                lineColor={trajectory.colorByCluster(chunk)}
+                                                title={`${abbreviate(property)}`}
+                                            />
+                                        )}
+                                    </PropertyWrapper>
                                 );
                             })}
                             {Object.keys(tDict).map((id) => {

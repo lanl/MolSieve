@@ -365,7 +365,6 @@ class App extends React.Component {
             run,
             visScripts,
         } = this.state;
-        console.log(this.props.states);
         return (
             <Box sx={{ display: 'flex', flexDirection: 'column' }}>
                 <Toolbar

@@ -306,7 +306,7 @@ async def ws_load_properties_for_subset(websocket: WebSocket):
             for i in range(0, len(arr), chunk_size):
                 yield arr[i : i + chunk_size]
 
-        chunks = list(split(stateList, 100))
+        chunks = list(split(stateList, data["chunkSize"]))
 
         for chunk in chunks:
             await websocket.send_json(await load_properties_for_subset(chunk))

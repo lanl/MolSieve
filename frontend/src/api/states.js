@@ -80,6 +80,11 @@ export const getStates = createSelector(
     (values, stateIDList) => stateIDList.map((id) => values.get(id))
 );
 
+export const getGlobalScale = createSelector(
+    [(state) => state.states.globalScale, (_, property) => property],
+    (globalScale, property) => globalScale[property]
+);
+
 export const getPropList = (state, stateList, property, range) => {
     let usedStates = stateList;
     if (range) {
@@ -144,6 +149,7 @@ export const states = createSlice({
         },
         addPropToStates: (state, action) => {
             for (const prop of action.payload) {
+                prop.loaded = true;
                 states.caseReducers.addPropToState(state, { payload: { prop } });
             }
         },

@@ -1,4 +1,4 @@
-import { React, useEffect, useState, memo } from 'react';
+import { React, useMemo, memo } from 'react';
 import * as d3 from 'd3';
 
 import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
@@ -25,33 +25,23 @@ function ControlChart({
     showMedian = false,
     onClick = () => {},
 }) {
-    const buildScaleX = () => {
-        return () =>
+    const scaleX = useMemo(
+        () =>
             d3
                 .scaleLinear()
                 .domain([0, yAttributeList.length - 1])
-                .range([margin.left, width - margin.right]);
-    };
+                .range([margin.left, width - margin.right]),
+        [yAttributeList.length, width]
+    );
 
-    const buildScaleY = () => {
-        return () =>
+    const scaleY = useMemo(
+        () =>
             d3
                 .scaleLinear()
                 .domain([globalScaleMin, globalScaleMax])
-                .range([height - margin.bottom, margin.top]);
-    };
-
-    const [scaleX, setScaleX] = useState(buildScaleX());
-
-    useEffect(() => {
-        setScaleX(buildScaleX());
-    }, [JSON.stringify(yAttributeList), width]);
-
-    const [scaleY, setScaleY] = useState(buildScaleY());
-
-    useEffect(() => {
-        setScaleY(buildScaleY());
-    }, [globalScaleMin, globalScaleMax, height]);
+                .range([height - margin.bottom, margin.top]),
+        [globalScaleMin, globalScaleMax, height]
+    );
 
     const colorPath = (svg, line, color, filterFunc) => {
         svg.append('path')
@@ -170,7 +160,7 @@ function ControlChart({
                     ttInstance = undefined;
                 });
         },
-        [scaleX, scaleY]
+        [JSON.stringify(yAttributeList)]
     );
 
     return (
