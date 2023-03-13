@@ -305,7 +305,6 @@ async def ws_load_properties_for_subset(websocket: WebSocket):
         def split(arr, chunk_size):
             for i in range(0, len(arr), chunk_size):
                 yield arr[i : i + chunk_size]
-
         chunks = list(split(stateList, data["chunkSize"]))
 
         for chunk in chunks:

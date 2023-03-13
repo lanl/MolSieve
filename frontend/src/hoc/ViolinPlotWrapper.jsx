@@ -1,6 +1,5 @@
-import { React, useState, useEffect, useRef, memo, startTransition, useMemo } from 'react';
+import { React, useState, useEffect, memo, useMemo } from 'react';
 
-import * as d3 from 'd3';
 import LinearProgress from '@mui/material/LinearProgress';
 import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
@@ -8,7 +7,6 @@ import '../css/App.css';
 
 import { useSelector } from 'react-redux';
 import { boxPlotStats } from '../api/math/stats';
-import { LOADING_CHUNK_SIZE } from '../api/constants';
 
 import ViolinPlot from '../vis/ViolinPlot';
 import LoadingBox from '../components/LoadingBox';

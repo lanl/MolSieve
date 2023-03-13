@@ -29,8 +29,6 @@ function TrajectoryChart({
     chunkSelectionMode,
     selectedObjects,
     addSelection,
-    updateGlobalScale,
-    globalScale,
     showTop,
     expand,
     propertyCombos,
@@ -131,7 +129,10 @@ function TrajectoryChart({
         return tcl;
     }, [JSON.stringify(extents), JSON.stringify(trajectory.chunkList)]);
 
-    const cutRanks = useMemo(() => ranks.ordered.slice(0, showTop), [showTop]);
+    const cutRanks = useMemo(
+        () => ranks.ordered.slice(0, showTop),
+        [showTop, JSON.stringify(ranks.ordered)]
+    );
 
     return (
         <svg
@@ -168,8 +169,6 @@ function TrajectoryChart({
                                 setStateHovered={setStateHovered}
                                 properties={properties}
                                 trajectory={trajectory}
-                                globalScale={globalScale}
-                                updateGlobalScale={updateGlobalScale}
                                 ranks={cutRanks}
                                 selections={selections}
                                 addSelection={addSelection}
@@ -193,8 +192,6 @@ function TrajectoryChart({
                                 chunkSelectionMode={chunkSelectionMode}
                                 ranks={cutRanks}
                                 properties={properties}
-                                globalScale={globalScale}
-                                updateGlobalScale={updateGlobalScale}
                                 propertyCombos={propertyCombos}
                                 onClick={() => setStateHovered(chunk.characteristicState)}
                             />
