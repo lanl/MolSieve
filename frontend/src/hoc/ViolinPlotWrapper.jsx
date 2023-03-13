@@ -39,7 +39,7 @@ function ViolinPlotWrapper({
     );
     const numLoaded = getNumberLoaded(states);
 
-    const boxStats = useMemo(() => {
+    const { boxStats, rankDict } = useMemo(() => {
         const bpStatDict = {};
         const rd = {};
         for (const prop of properties) {
@@ -48,9 +48,12 @@ function ViolinPlotWrapper({
             bpStatDict[prop] = bpStats;
             rd[prop] = vals;
         }
-        updateRanks(rd, chunk.id);
-        return bpStatDict;
+        return { boxStats: bpStatDict, rankDict: rd };
     }, [numLoaded]);
+
+    useEffect(() => {
+        updateRanks(rankDict, chunk.id);
+    }, [JSON.stringify(rankDict)]);
 
     useEffect(() => {
         setProgress(numLoaded / states.length);

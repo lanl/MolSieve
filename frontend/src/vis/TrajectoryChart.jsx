@@ -79,7 +79,7 @@ function TrajectoryChart({
     }, [JSON.stringify(ranks.ordered), ref, showTop, JSON.stringify(propertyCombos), height]);
 
     const scales = useMemo(() => {
-        const { iChunks, uChunks, topChunkList } = trajectory.getVisibleChunks(extents);
+        const { iChunks, uChunks, topChunkList } = trajectory.getVisibleChunks();
 
         const unimportantWidthExtent =
             iChunks.length > 0 ? (width - MARGIN.right) * 0.1 : width - MARGIN.right;
@@ -125,7 +125,7 @@ function TrajectoryChart({
 
     // here we can filter out the un-rendered charts right away since we only care about rendering here
     const topChunkList = useMemo(() => {
-        const { topChunkList: tcl } = trajectory.getVisibleChunks(extents);
+        const { topChunkList: tcl } = trajectory.getVisibleChunks();
         return tcl;
     }, [JSON.stringify(extents), JSON.stringify(trajectory.chunkList)]);
 

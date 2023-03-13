@@ -204,8 +204,8 @@ class Trajectory {
      * @param {Trajectory} trajectory - The trajectory to retrieve the chunks from.
      * @returns {Array<Chunk>} Array of visible chunks.
      */
-    getVisibleChunks(extents) {
-        const { chunkList } = this;
+    getVisibleChunks() {
+        const { chunkList, extents } = this;
         const [start, end] = extents;
         // this is all of the chunks we need for data
         const topChunkList = chunkList.filter((d) => {
