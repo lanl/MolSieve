@@ -50,20 +50,18 @@ function ChunkWrapper({
     // set as useReducer
     const [isInitialized, setIsInitialized] = useState(false);
     const [progress, setProgress] = useState(0.0);
+    const [startExtent, endExtent] = extents;
 
-    const slice = useMemo(() => {
-        const [start, end] = extents;
+    const [startSlice, endSlice] = useMemo(() => {
         const { timestep, last } = chunk;
-        const sliceStart = start <= timestep ? 0 : start - timestep;
-        const sliceEnd = end >= last ? last : end - last;
+        const sliceStart = startExtent <= timestep ? 0 : startExtent - timestep;
+        const sliceEnd = endExtent >= last ? last : endExtent;
 
         return [sliceStart, sliceEnd];
-    }, [extents[0], extents[1], chunk.timestep, chunk.last]);
-
-    console.log(slice, extents[0], extents[1]);
+    }, [startExtent, endExtent, chunk.timestep, chunk.last]);
 
     // With useSelector(), returning a new object every time will always force a re-render by default.
-    const slicedChunk = useMemo(() => chunk.slice(slice[0], slice[1]), [slice[0], slice[1]]);
+    const slicedChunk = useMemo(() => chunk.slice(startSlice, endSlice), [startSlice, endSlice]);
 
     const dispatch = useDispatch();
 
@@ -101,7 +99,13 @@ function ChunkWrapper({
                         id: selectionID,
                     };
                 }),
-        [Object.keys(selections).length, width, slicedChunk.length]
+        [
+            Object.keys(selections).length,
+            width,
+            slicedChunk.timesteps.length,
+            startExtent,
+            endExtent,
+        ]
     );
 
     const stateMap = useMemo(
@@ -194,7 +198,6 @@ function ChunkWrapper({
         }
     }, [JSON.stringify(propertyCombos), JSON.stringify(stats)]);
 
-    const [sliceStart, sliceEnd] = slice;
     const controlChartHeight =
         (height - scatterplotHeight) / (ranks.length + Object.keys(tDict).length);
 
@@ -228,9 +231,10 @@ function ChunkWrapper({
 
     const brush = useCallback(
         d3.brushX().on('end', (e) => finishBrush(e)),
-        [extents[0], extents[1], slicedChunk.timesteps.length, width]
+        [startExtent, endExtent, width]
     );
 
+    // seems off
     const chartControls = useMemo(
         () => (
             <Box width={width} display="flex" alignItems="center" gap={1}>
@@ -312,8 +316,8 @@ function ChunkWrapper({
                                                 height={controlChartHeight}
                                                 width={ww}
                                                 yAttributeList={mva[property].slice(
-                                                    sliceStart,
-                                                    sliceEnd
+                                                    startSlice,
+                                                    endSlice
                                                 )}
                                                 /* .filter(
                                                         (d) => !Number.isNaN(d) && d !== undefined
@@ -344,7 +348,7 @@ function ChunkWrapper({
                                                 ucl={ucl}
                                                 height={controlChartHeight}
                                                 width={width}
-                                                yAttributeList={values.slice(sliceStart, sliceEnd)}
+                                                yAttributeList={values.slice(startSlice, endSlice)}
                                                 xAttributeList={slicedChunk.timesteps}
                                                 lineColor={trajectory.colorByCluster(chunk)}
                                             />
