@@ -2,6 +2,8 @@ import { React, useState, useEffect, memo } from 'react';
 import * as d3 from 'd3';
 import Stack from '@mui/material/Stack';
 import Box from '@mui/material/Box';
+import { useSelector } from 'react-redux';
+
 import LinearProgress from '@mui/material/LinearProgress';
 import Divider from '@mui/material/Divider';
 
@@ -17,6 +19,7 @@ function SelectionComparisonView({
     onStateClick = () => {},
     deleteFunc = () => {},
 }) {
+    const stateData = useSelector((state) => state.states.values);
     const [extents, setExtents] = useState(() => {
         const extentDict = {};
         for (const selection of selections) {
@@ -74,7 +77,7 @@ function SelectionComparisonView({
         <RemovableBox deleteFunc={deleteFunc} height={475} alignItems="center">
             <Stack>
                 {selections.map((selection) => {
-                    const states = selection.extent.map((d) => States.get(d.id));
+                    const states = selection.extent.map((d) => stateData.get(d.id));
                     return (
                         <Box
                             onMouseEnter={() =>
@@ -88,7 +91,7 @@ function SelectionComparisonView({
                                 width={205}
                                 height={50}
                                 colorFunc={(d) => {
-                                    const state = States.get(d.y);
+                                    const state = stateData.get(d.y);
                                     return state.individualColor;
                                 }}
                                 margin={{ top: 3, bottom: 2, left: 3, right: 3 }}

@@ -1,4 +1,4 @@
-import { React, useEffect, memo, useMemo } from 'react';
+import { React, useEffect, memo, useMemo, startTransition } from 'react';
 import * as d3 from 'd3';
 
 import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
@@ -49,7 +49,9 @@ function TrajectoryChart({
     const { ranks, reduceRanks } = useRanks(properties, trajectory.chunkOrder(0));
 
     const updateRanks = (values, id) => {
-        reduceRanks({ type: 'updateValues', payload: { values, id } });
+        startTransition(() => {
+            reduceRanks({ type: 'updateValues', payload: { values, id } });
+        });
     };
 
     useEffect(() => {
