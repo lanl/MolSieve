@@ -17,7 +17,9 @@ const socketMiddleware = () => {
             .filter((d) => d.loaded !== true)
             .map((d) => d.id);
 
-        const chunkSize = Math.round(stateIds.length / 10);
+        const chunkSize =
+            stateIds.length > 100 ? Math.round(stateIds.length / 10) : stateIds.length;
+
         socket.send(
             JSON.stringify({
                 props: properties,
