@@ -60,16 +60,15 @@ function ChunkWrapper({
         return [sliceStart, sliceEnd];
     }, [extents[0], extents[1], chunk.timestep, chunk.last]);
 
+    console.log(slice, extents[0], extents[1]);
+
     // With useSelector(), returning a new object every time will always force a re-render by default.
-    const slicedChunk = useMemo(
-        () => chunk.slice(extents[0], extents[1]),
-        [extents[0], extents[1]]
-    );
+    const slicedChunk = useMemo(() => chunk.slice(slice[0], slice[1]), [slice[0], slice[1]]);
 
     const dispatch = useDispatch();
 
     const states = useSelector(
-        (state) => getStates(state, slicedChunk.sequence)
+        (state) => getStates(state, chunk.sequence)
         //    (oldStates, newStates) => getNumberLoaded(oldStates) === getNumberLoaded(newStates)
     );
 
@@ -119,7 +118,7 @@ function ChunkWrapper({
 
     const numLoaded = getNumberLoaded(states);
 
-    const [mvaPeriod, setMvaPeriod] = useState(Math.min(slicedChunk.sequence.length / 4, 100));
+    const [mvaPeriod, setMvaPeriod] = useState(Math.min(chunk.sequence.length / 4, 100));
     const [tDict, setTDict] = useState({});
 
     const calculations = useMemo(() => {
