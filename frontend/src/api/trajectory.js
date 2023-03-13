@@ -33,6 +33,8 @@ class Trajectory {
 
     occurrenceMap = new Map();
 
+    extents;
+
     get currentClusterArray() {
         return this.clusterings[this.current_clustering];
     }
@@ -67,9 +69,9 @@ class Trajectory {
                 this
             );
             this.chunks.set(newChunk.id, newChunk);
-            // for now, set chunk properties here
-            // newChunk.properties = [...newChunk.properties, ...structuralAnalysisProps];
         }
+        // set extents here
+        this.extents = [0, this.length];
     }
 
     /**

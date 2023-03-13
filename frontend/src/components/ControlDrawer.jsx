@@ -1,4 +1,4 @@
-import { React, useState } from 'react';
+import { React, useState, useEffect } from 'react';
 
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
@@ -37,17 +37,37 @@ const METADATA_MODAL = 'metadata-modal';
 
 function ControlDrawer({
     trajectories,
-    runs,
-    updateRun,
     recalculateClustering,
+    setZoom,
     simplifySet,
     drawerOpen,
     toggleDrawer,
-    //    propagateChange,
     sx,
 }) {
     const [currentModal, setCurrentModal] = useState();
     const [currentRun, setCurrentRun] = useState(null);
+
+    const [runs, setRuns] = useState({});
+
+    useEffect(() => {
+        const newRuns = {};
+        for (const [name, trajectory] of Object.entries(trajectories)) {
+            if (!runs[name]) {
+                newRuns[name] = {
+                    chunkingThreshold: trajectory.chunkingThreshold,
+                    current_clustering: trajectory.current_clustering,
+                };
+            }
+        }
+
+        setRuns((prevState) => ({ ...prevState, ...newRuns }));
+    }, [Object.keys(trajectories).length]);
+
+    const updateRun = (name, property, value) => {
+        const run = runs[name];
+        run[property] = value;
+        setRuns({ ...runs, [name]: run });
+    };
 
     const toggleModal = (key) => {
         if (currentModal) {
@@ -58,11 +78,12 @@ function ControlDrawer({
         setCurrentModal(key);
     };
 
-    const thisRecalculateClustering = async (run) => {
+    const thisRecalculateClustering = async (run, value) => {
         try {
-            await recalculateClustering(run, runs[run].current_clustering);
+            await recalculateClustering(run, value);
         } catch (e) {
             updateRun(run, 'current_clustering', trajectories[run].current_clustering);
+            alert(e);
         }
     };
 
@@ -92,8 +113,8 @@ function ControlDrawer({
                             step={1}
                             min={2}
                             max={20}
-                            onChangeCommitted={() => {
-                                thisRecalculateClustering(run);
+                            onChangeCommitted={(_, v) => {
+                                thisRecalculateClustering(run, v);
                             }}
                             valueLabelDisplay="auto"
                             onChange={(e) => {
@@ -116,8 +137,8 @@ function ControlDrawer({
                             step={0.01}
                             min={0}
                             max={1}
-                            onChangeCommitted={() => {
-                                simplifySet(run, runs[run].chunkingThreshold);
+                            onChangeCommitted={(_, v) => {
+                                simplifySet(run, v);
                             }}
                             valueLabelDisplay="auto"
                             onChange={(e) => {
@@ -188,10 +209,8 @@ function ControlDrawer({
                             return Object.values(trajectories).map((trajectory) => (
                                 <Timeline
                                     width={width}
-                                    setZoom={(name, values) => {
-                                        updateRun(name, 'extents', values);
-                                    }}
-                                    extents={runs[trajectory.name].extents}
+                                    setZoom={setZoom}
+                                    extents={trajectory.extents}
                                     height={h}
                                     trajectory={trajectory}
                                 />

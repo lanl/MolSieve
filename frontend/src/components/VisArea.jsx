@@ -46,7 +46,7 @@ import { createUUID } from '../api/math/random';
 
 import { getAllImportantStates } from '../api/trajectories';
 
-import { clearClusterStates, clusterStates, toggleStateClustering } from '../api/states';
+import { clearClusterStates, clusterStates } from '../api/states';
 
 const MULTIVARIATE_CHART_MODAL = 'multivariate_chart';
 
@@ -61,7 +61,6 @@ const SELECTION_LENGTH = [0, 1, 3, 2, 2, 2];
 
 export default function VisArea({
     trajectories,
-    runs,
     properties,
     swapPositions,
     expand,
@@ -160,8 +159,7 @@ export default function VisArea({
     const getAllVisibleChunks = () => {
         let visible = [];
         for (const trajectory of Object.values(trajectories)) {
-            const { name } = trajectory;
-            const { extents } = runs[name];
+            const { extents } = trajectory;
             const { iChunks, uChunks } = trajectory.getVisibleChunks(extents);
             visible = [...visible, ...iChunks, ...uChunks];
         }
@@ -415,8 +413,6 @@ export default function VisArea({
                             {Object.values(trajectories)
                                 .sort((a, b) => a.position > b.position)
                                 .map((trajectory) => {
-                                    const run = runs[trajectory.name];
-                                    const { extents } = run;
                                     return (
                                         <TrajectoryChart
                                             key={trajectory.id}
@@ -424,7 +420,7 @@ export default function VisArea({
                                             height={(showTop + propertyCombos.length) * 50 + 50}
                                             scatterplotHeight={50}
                                             trajectory={trajectory}
-                                            extents={extents}
+                                            extents={trajectory.extents}
                                             currentClustering={trajectory.current_clustering}
                                             chunkingThreshold={trajectory.chunkingThreshold}
                                             setStateHovered={setActiveState}

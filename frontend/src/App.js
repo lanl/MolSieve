@@ -46,7 +46,6 @@ class App extends React.Component {
             drawerOpen: false,
             run: null,
             trajectories: {},
-            runs: {},
             colors: new ColorManager(),
             properties: [],
             visScripts: [],
@@ -69,17 +68,19 @@ class App extends React.Component {
             .catch((e) => alert(e));
     }
 
-    toggleModal = (key) => {
-        const { currentModal } = this.state;
-        if (currentModal) {
-            this.setState({
-                currentModal: null,
-            });
-            return;
-        }
+    setZoom(name, values) {
+        const { trajectories } = this.state;
+        const trajectory = trajectories[name];
+        trajectory.extents = values;
+        this.setState((prevState) => ({
+            trajectories: {
+                ...prevState.trajectories,
+                [name]: trajectory,
+            },
+        }));
+    }
 
-        this.setState({ currentModal: key });
-    };
+    setZoomProp = this.setZoom.bind(this);
 
     selectRun = (v) => {
         this.setState({
@@ -173,12 +174,9 @@ class App extends React.Component {
                 newTraj.add_colors(trajColors);
                 newTraj.position = Object.keys(trajectories).length;
 
-                const newRuns = this.initFilters(run, newTraj);
-
                 WebSocketManager.addKey(run);
                 this.setState(
                     {
-                        runs: newRuns,
                         trajectories: { ...trajectories, [run]: newTraj },
                         colors,
                     },
@@ -189,35 +187,6 @@ class App extends React.Component {
                 );
             })
             .catch((e) => alert(`${e}`));
-    };
-
-    initFilters = (run, newTraj) => {
-        const { runs } = this.state;
-
-        runs[run] = {
-            current_clustering: newTraj.current_clustering,
-            chunkingThreshold: newTraj.chunkingThreshold,
-            extents: [0, newTraj.length],
-        };
-
-        const filters = {};
-
-        // const fb = new FilterBuilder();
-
-        // filters.clustering_difference = fb.buildClusteringDifference();
-        //    filters.chunks = fb.buildHideChunks();
-        // filters.transitions = fb.buildTransitions();
-        // filters.fuzzy_membership = fb.buildFuzzyMemberships();
-
-        runs[run].filters = filters;
-
-        return runs;
-    };
-
-    updateRun = (run, attribute, value) => {
-        const { runs } = this.state;
-        runs[run][attribute] = value;
-        this.setState({ runs: { ...runs } });
     };
 
     simplifySet = (run, threshold) => {
@@ -330,29 +299,17 @@ class App extends React.Component {
         }));
     };
 
-    /* addFilter = (state) => {
-        const { runs, trajectories } = this.state;
-        const run = runs[state.run];
-        const { filters } = run;
+    toggleModal = (key) => {
+        const { currentModal } = this.state;
+        if (currentModal) {
+            this.setState({
+                currentModal: null,
+            });
+            return;
+        }
 
-        // get us the ids of all the states in our simplified sequence
-        const stateIds = trajectories[state.run].uniqueStates;
-        const sequence = stateIds.map((s) => GlobalStates.get(s));
-
-        const fb = new FilterBuilder();
-        const filter = fb.buildCustomFilter(state.filter_type, state.attribute, sequence);
-
-        filters[filter.id] = filter;
-
-        run.filters = filters;
-        runs[state.run] = run;
-        this.setState({ runs: { ...runs } });
-    }; */
-    setZoom(name, values) {
-        this.updateRun(name, 'extents', values);
-    }
-
-    setZoomProp = this.setZoom.bind(this);
+        this.setState({ currentModal: key });
+    };
 
     propagateChange = (filter) => {
         const { runs } = this.state;
@@ -371,16 +328,8 @@ class App extends React.Component {
     };
 
     render() {
-        const {
-            trajectories,
-            runs,
-            properties,
-            drawerOpen,
-            showRunList,
-            currentModal,
-            run,
-            visScripts,
-        } = this.state;
+        const { trajectories, properties, drawerOpen, showRunList, currentModal, run, visScripts } =
+            this.state;
         return (
             <Box sx={{ display: 'flex', flexDirection: 'column' }}>
                 <Toolbar
@@ -418,7 +367,6 @@ class App extends React.Component {
                 </Toolbar>
                 <VisArea
                     trajectories={trajectories}
-                    runs={runs}
                     swapPositions={this.swapPositions}
                     expand={this.expand}
                     properties={properties}
@@ -433,11 +381,10 @@ class App extends React.Component {
                     <ControlDrawer
                         sx={{ width: '300px', boxSizing: 'border-box' }}
                         trajectories={trajectories}
-                        runs={runs}
-                        updateRun={this.updateRun}
                         recalculateClustering={this.recalculate_clustering}
                         simplifySet={this.simplifySet}
                         drawerOpen={drawerOpen}
+                        setZoom={this.setZoomProp}
                         toggleDrawer={this.toggleDrawer}
                         addFilter={this.addFilter}
                         propagateChange={this.propagateChange}
