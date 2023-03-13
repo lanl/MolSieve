@@ -34,7 +34,6 @@ function ChunkWrapper({
     height,
     addSelection,
     width,
-    trajectory,
     selections,
     selectObject,
     chunkSelectionMode,
@@ -45,6 +44,7 @@ function ChunkWrapper({
     extents,
     scatterplotHeight,
     setStateHovered,
+    trajectory,
     setZoom,
 }) {
     // set as useReducer
@@ -65,10 +65,7 @@ function ChunkWrapper({
 
     const dispatch = useDispatch();
 
-    const states = useSelector(
-        (state) => getStates(state, chunk.sequence)
-        //    (oldStates, newStates) => getNumberLoaded(oldStates) === getNumberLoaded(newStates)
-    );
+    const states = useSelector((state) => getStates(state, chunk.sequence));
 
     const colorByStateCluster = useSelector((state) => state.states.colorByStateCluster);
 
@@ -112,12 +109,10 @@ function ChunkWrapper({
         () =>
             states.reduce((acc, v) => {
                 const color = colorByStateCluster ? v.stateClusteringColor : v.individualColor;
-                acc[v.id] = {
-                    color,
-                };
+                acc[v.id] = color;
                 return acc;
             }, {}),
-        [colorByStateCluster]
+        [colorByStateCluster, chunk.timestep, chunk.last]
     );
 
     const numLoaded = getNumberLoaded(states);
@@ -261,7 +256,10 @@ function ChunkWrapper({
         [slicedChunk.timestep, slicedChunk.last, mvaPeriod]
     );
 
-    const colorFunc = useMemo(() => (d) => stateMap[d].color, [colorByStateCluster]);
+    const colorFunc = useCallback(
+        (d) => stateMap[d],
+        [colorByStateCluster, chunk.timestep, chunk.last]
+    );
 
     return (
         <EmbeddedChart
