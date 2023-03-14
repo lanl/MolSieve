@@ -796,9 +796,10 @@ def selection_distance(stateIDPairs: List[List[int]] = Body([])):
     q = qb.generate_get_node_list("State", stateIDs, "PART_OF")
     state_atom_dict = converter.query_to_ASE(driver, q)
 
+    pairs = [(x[0], x[1]) for x in stateIDPairs]
     seen = {}
     distances = []
-    for pair in stateIDPairs:
+    for pair in pairs:
         if pair in seen:
             distances.append(seen[pair])
         else:
