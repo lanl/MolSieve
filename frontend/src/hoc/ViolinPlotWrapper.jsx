@@ -1,4 +1,4 @@
-import { React, useState, useEffect, memo, useMemo } from 'react';
+import { React, useState, useEffect, memo, useMemo, startTransition } from 'react';
 
 import LinearProgress from '@mui/material/LinearProgress';
 import Box from '@mui/material/Box';
@@ -52,7 +52,7 @@ function ViolinPlotWrapper({
     }, [numLoaded]);
 
     useEffect(() => {
-        updateRanks(rankDict, chunk.id);
+        startTransition(() => updateRanks(rankDict, chunk.id));
     }, [JSON.stringify(rankDict)]);
 
     useEffect(() => {

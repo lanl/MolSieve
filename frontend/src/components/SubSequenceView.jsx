@@ -1,4 +1,4 @@
-import { React, useState, useEffect, memo, useCallback, useMemo } from 'react';
+import { React, useState, useEffect, memo, useCallback, useMemo, useRef } from 'react';
 import { useSelector } from 'react-redux';
 
 import Stack from '@mui/material/Stack';
@@ -7,8 +7,9 @@ import Divider from '@mui/material/Divider';
 import LinearProgress from '@mui/material/LinearProgress';
 import ScienceIcon from '@mui/icons-material/Science';
 import Tooltip from '@mui/material/Tooltip';
-
 import * as d3 from 'd3';
+import WebSocketManager from '../api/websocketmanager';
+import { WS_URL } from '../api/constants';
 
 import RemovableBox from './RemovableBox';
 import SingleStateViewer from './SingleStateViewer';
@@ -48,6 +49,8 @@ function SubSequenceView({
     const [openModal, setOpenModal] = useState(false);
     const [nebPlots, setNEBPlots] = useState(null);
 
+    const ws = useRef(null);
+
     const states = useSelector(
         (state) => getStates(state, stateIDs)
         // (oldStates, newStates) => getNumberLoaded(oldStates) === getNumberLoaded(newStates)
@@ -69,26 +72,44 @@ function SubSequenceView({
     }, []);
 
     useEffect(() => {
-        const controller = new AbortController();
+        if (ws.current) {
+            ws.current.close();
+            ws.current = null;
+        }
         // find interesting states
-        apiSubsetConnectivityDifference(stateIDs, controller).then((d) => {
-            // remove duplicates if they are next to each other
-            const iStates = [stateIDs[0], ...d, stateIDs[stateIDs.length - 1]].reduce(
-                (acc, val, idx, arr) => {
-                    if (idx > 0) {
-                        if (acc[acc.length - 1] !== arr[idx]) {
-                            return [...acc, val];
-                        }
-                        return acc;
-                    }
-                    return [val];
-                },
-                []
-            );
-            setIsLoaded(true);
-            setInterestingStates(iStates);
+        apiSubsetConnectivityDifference(stateIDs).then((taskID) => {
+            // open web socket
+            ws.current = WebSocketManager.connect(`${WS_URL}/api/ws/${taskID}`, 'selections');
+
+            const insertAt = 1;
+            ws.current.addEventListener('message', (e) => {
+                const parsedData = JSON.parse(e.data);
+                const { data, type } = parsedData;
+                if (type === 'TASK_PROGRESS') {
+                    setInterestingStates((prev) => [
+                        ...prev.slice(0, insertAt),
+                        data,
+                        ...prev.slice(insertAt),
+                    ]);
+                }
+
+                if (type === 'TASK_COMPLETE') {
+                    ws.current.close();
+                }
+            });
+
+            ws.current.addEventListener('close', () => {
+                setIsLoaded(true);
+            });
+            // setInterestingStates(iStates);
         });
-        return () => controller.abort();
+
+        return () => {
+            if (ws.current) {
+                ws.current.close();
+                ws.current = null;
+            }
+        };
     }, [JSON.stringify(stateIDs)]);
 
     const addNEB = (nebStates, start, end, interpolate, maxSteps, fmax, saveResults) => {

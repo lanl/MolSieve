@@ -272,12 +272,10 @@ export function apiGetVisScripts() {
     });
 }
 
-export function apiSubsetConnectivityDifference(stateIDs, controller) {
+export function apiSubsetConnectivityDifference(stateIDs) {
     return new Promise((resolve, reject) => {
         axios
-            .post(`${API_URL}/api/subset_connectivity_difference`, stateIDs, {
-                signal: controller.signal,
-            })
+            .post(`${API_URL}/api/subset_connectivity_difference`, stateIDs)
             .then((response) => resolve(response.data))
             .catch((e) => reject(e));
     });

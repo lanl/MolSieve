@@ -91,8 +91,9 @@ async def update_task(task_id: str, data: dict):
             if result.ready():
                 data = result.get()
                 await cm.send(
-                    task_id, {"type": TASK_COMPLETE, "data": json.loads(data)}
+                    task_id, {"type": TASK_COMPLETE}
                 )
+                await cm.disconnect(task_id)
         else:
             await cm.send(task_id, data)
 
@@ -771,31 +772,19 @@ def load_trajectory(run: str, mMin: int, mMax: int, chunkingThreshold: float):
 
 @router.post("/subset_connectivity_difference")
 def subset_connectivity_difference(stateIDs: List[int] = Body([])):
-    driver = GraphDriver()
-    qb = querybuilder.Neo4jQueryBuilder([("Atom", "PART_OF", "State", "MANY-TO-ONE")])
-    q = qb.generate_get_node_list("State", stateIDs, "PART_OF")
-    state_atom_dict = converter.query_to_ASE(driver, q)
+    task_id = uuid()
+    unprocessed.update(
+        {
+            task_id: {
+                "name": "subset_connectivity_difference",
+                "params": {
+                    "stateIDs": stateIDs,
+                },
+            }
+        }
+    )
 
-    connectivity_list = []  # all connectivity matrices in order
-    for stateID in stateIDs:
-        atoms = state_atom_dict[stateID]
-        connectivity_list.append((stateID, atoms))
-
-    maximum_difference = []
-    iter = 0
-    while iter < 3:
-        result = calculator.max_connectivity_difference(
-            connectivity_list[0][1], connectivity_list[1:]
-        )
-        if result["id"] is not None:
-            maximum_difference.append(result["id"])
-            connectivity_list = connectivity_list[result["index"] :]
-        else:
-            break
-        iter += 1
-
-    return maximum_difference
-
+    return task_id
 
 @router.post("/selection_distance")
 def selection_distance(stateIDPairs: List[List[int]] = Body([])):
