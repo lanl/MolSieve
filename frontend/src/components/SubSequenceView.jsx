@@ -77,32 +77,35 @@ function SubSequenceView({
             ws.current = null;
         }
         // find interesting states
-        apiSubsetConnectivityDifference(stateIDs).then((taskID) => {
-            // open web socket
-            ws.current = WebSocketManager.connect(`${WS_URL}/api/ws/${taskID}`, 'selections');
+        if (!isLoaded) {
+            apiSubsetConnectivityDifference(stateIDs).then((taskID) => {
+                // open web socket
+                ws.current = WebSocketManager.connect(`${WS_URL}/api/ws/${taskID}`, 'selections');
 
-            const insertAt = 1;
-            ws.current.addEventListener('message', (e) => {
-                const parsedData = JSON.parse(e.data);
-                const { data, type } = parsedData;
-                if (type === 'TASK_PROGRESS') {
-                    setInterestingStates((prev) => [
-                        ...prev.slice(0, insertAt),
-                        data,
-                        ...prev.slice(insertAt),
-                    ]);
-                }
+                let insertAt = 1;
+                ws.current.addEventListener('message', (e) => {
+                    const parsedData = JSON.parse(e.data);
+                    const { data, type } = parsedData;
+                    if (type === 'TASK_PROGRESS') {
+                        setInterestingStates((prev) => [
+                            ...prev.slice(0, insertAt),
+                            data,
+                            ...prev.slice(insertAt),
+                        ]);
+                        insertAt++;
+                    }
 
-                if (type === 'TASK_COMPLETE') {
-                    ws.current.close();
-                }
+                    if (type === 'TASK_COMPLETE') {
+                        ws.current.close();
+                    }
+                });
+
+                ws.current.addEventListener('close', () => {
+                    setIsLoaded(true);
+                });
+                // setInterestingStates(iStates);
             });
-
-            ws.current.addEventListener('close', () => {
-                setIsLoaded(true);
-            });
-            // setInterestingStates(iStates);
-        });
+        }
 
         return () => {
             if (ws.current) {
