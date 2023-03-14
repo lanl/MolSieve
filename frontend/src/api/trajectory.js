@@ -57,18 +57,7 @@ class Trajectory {
     simplifySet(simplifiedSet) {
         this.chunks.clear();
         for (const chunk of simplifiedSet) {
-            const newChunk = new Chunk(
-                chunk.timestep,
-                chunk.last,
-                chunk.firstID,
-                chunk.important,
-                chunk.cluster,
-                chunk.sequence,
-                chunk.selected,
-                chunk.characteristicState,
-                this
-            );
-            this.chunks.set(newChunk.id, newChunk);
+            this.chunks.set(chunk.id, chunk);
         }
         // set extents here
         this.extents = [0, this.length];

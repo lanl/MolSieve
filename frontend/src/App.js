@@ -8,8 +8,9 @@ import Toolbar from '@mui/material/Toolbar';
 import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
 import MenuIcon from '@mui/icons-material/Menu';
-
 import { withSnackbar } from 'notistack';
+import Chunk from './api/chunk';
+
 import AjaxMenu from './components/AjaxMenu';
 import LoadRunModal from './modals/LoadRunModal';
 import Trajectory from './api/trajectory';
@@ -168,7 +169,29 @@ class App extends React.Component {
                         run,
                     })
                 );
-                newTraj.simplifySet(data.simplified);
+
+                const createChunkObjects = (simplifiedSet, trajectory) => {
+                    const chunks = [];
+                    for (const chunk of simplifiedSet) {
+                        const newChunk = new Chunk(
+                            chunk.timestep,
+                            chunk.last,
+                            chunk.firstID,
+                            chunk.important,
+                            chunk.cluster,
+                            chunk.sequence,
+                            chunk.selected,
+                            chunk.characteristicState,
+                            trajectory
+                        );
+                        chunks.push(newChunk);
+                    }
+                    return chunks;
+                };
+
+                const chunks = createChunkObjects(data.simplified, newTraj);
+
+                newTraj.simplifySet(chunks);
 
                 const trajColors = colors.request_colors(newTraj.current_clustering);
                 newTraj.add_colors(trajColors);
