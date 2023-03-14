@@ -184,7 +184,7 @@ export const states = createSlice({
             for (const s of newUniqueStates) {
                 if (values.has(s)) {
                     const previous = values.get(s);
-                    previous.seenIn = [...previous.seenIn, run];
+                    previous.seenIn = [...new Set([...previous.seenIn, run])];
                     values.set(s, previous);
                 } else {
                     const newState = new State(s);

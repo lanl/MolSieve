@@ -18,8 +18,9 @@ const socketMiddleware = () => {
             .filter((d) => d.loaded !== true)
             .map((d) => d.id);
 
-        const chunkSize =
-            stateIds.length > 100 ? Math.round(stateIds.length / 10) : stateIds.length;
+        if(stateIds.length !== 0) {
+            const chunkSize =
+                stateIds.length > 100 ? Math.round(stateIds.length / 10) : stateIds.length;
 
         socket.send(
             JSON.stringify({
@@ -30,6 +31,7 @@ const socketMiddleware = () => {
         );
 
         store.dispatch(wsConnected(event.target.url));
+        }
     };
 
     const onClose = (store) => () => {

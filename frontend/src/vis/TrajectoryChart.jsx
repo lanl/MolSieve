@@ -127,7 +127,7 @@ function TrajectoryChart({
     const topChunkList = useMemo(() => {
         const { topChunkList: tcl } = trajectory.getVisibleChunks();
         return tcl;
-    }, [JSON.stringify(extents), JSON.stringify(trajectory.chunkList)]);
+    }, [JSON.stringify(trajectory.extents), JSON.stringify(trajectory.chunkList)]);
 
     const cutRanks = useMemo(
         () => ranks.ordered.slice(0, showTop),

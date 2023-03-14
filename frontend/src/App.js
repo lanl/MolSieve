@@ -226,6 +226,7 @@ class App extends React.Component {
      */
     expand = (id, sliceSize, trajectory) => {
         const { chunkList, chunks } = trajectory;
+        const { dispatch } = this.props;
         const chunk = chunks.get(id);
         const chunkIndex = chunkList.indexOf(chunk);
 
@@ -235,15 +236,15 @@ class App extends React.Component {
         const loadNeighbors = (l, r) => {
             return new Promise((resolve, reject) => {
                 if (l) {
-                    l.loadSequence().then(() => {
+                    l.loadSequence().then((lData) => {
                         if (r) {
-                            r.loadSequence().then(() => resolve());
+                            r.loadSequence().then((rData) => resolve([...lData, ...rData]));
                         } else {
-                            resolve();
+                            resolve(lData);
                         }
                     });
                 } else if (r) {
-                    r.loadSequence().then(() => resolve());
+                    r.loadSequence().then((rData) => resolve(rData));
                 } else {
                     reject();
                 }
@@ -251,7 +252,16 @@ class App extends React.Component {
         };
 
         loadNeighbors(left, right)
-            .then(() => {
+            .then((data) => {
+                // update global states with any new data
+                dispatch(
+                    calculateGlobalUniqueStates({
+                        newUniqueStates: data,
+                        run: trajectory.name,
+                    })
+                );
+                dispatch(wsConnect(`${WS_URL}/api/load_properties_for_subset`));
+
                 if (left) {
                     const leftVals = left.takeFromSequence(sliceSize, 'back');
                     chunk.addToSequence(leftVals, 'front');
@@ -272,11 +282,11 @@ class App extends React.Component {
 
                 chunks.set(chunk.id, chunk);
 
-                // previous state gets pushed down, which is why it doesn't update immediately
                 this.setState((prevState) => ({
                     trajectories: { ...prevState.trajectories, [trajectory.name]: trajectory },
                 }));
             })
+            // should really catch error but whatever
             .catch(() => alert('No neighbors to expand into!'));
     };
 

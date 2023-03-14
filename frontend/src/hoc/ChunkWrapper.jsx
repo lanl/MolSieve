@@ -47,7 +47,6 @@ function ChunkWrapper({
     trajectory,
     setZoom,
 }) {
-    // set as useReducer
     const [isInitialized, setIsInitialized] = useState(false);
     const [progress, setProgress] = useState(0.0);
     const [startExtent, endExtent] = extents;
@@ -138,7 +137,7 @@ function ChunkWrapper({
             stats[prop] = { std, mean };
         }
         return { mva, stats };
-    }, [mvaPeriod, numLoaded]);
+    }, [mvaPeriod, numLoaded, chunk.timestep, chunk.last]);
 
     const { stats, mva } = calculations;
 
@@ -258,7 +257,7 @@ function ChunkWrapper({
 
     const colorFunc = useCallback(
         (d) => stateMap[d],
-        [colorByStateCluster, chunk.timestep, chunk.last]
+        [colorByStateCluster, chunk.timestep, chunk.last, JSON.stringify(stateMap)]
     );
 
     return (
