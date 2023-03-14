@@ -74,10 +74,6 @@ export default class Chunk {
         );
     }
 
-    get clusterIdentifier() {
-        return this.firstID;
-    }
-
     get size() {
         return this.last - this.timestep + 1;
     }
@@ -202,8 +198,8 @@ export default class Chunk {
      * @returns {String} Hexadecimal color code of the chunk.
      */
     get color() {
-        const { colors, idToCluster } = this.trajectory;
-        return colors[idToCluster[this.clusterIdentifier]];
+        const { colors } = this.trajectory;
+        return colors[this.cluster];
     }
 
     toString() {

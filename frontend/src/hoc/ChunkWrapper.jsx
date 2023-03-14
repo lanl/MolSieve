@@ -320,7 +320,7 @@ function ChunkWrapper({
                                                         (d) => !Number.isNaN(d) && d !== undefined
                                                     )} */
                                                 xAttributeList={slicedChunk.timesteps}
-                                                lineColor={trajectory.colorByCluster(chunk)}
+                                                lineColor={chunk.color}
                                                 title={`${abbreviate(property)}`}
                                             />
                                         )}
@@ -347,7 +347,7 @@ function ChunkWrapper({
                                                 width={width}
                                                 yAttributeList={values.slice(startSlice, endSlice)}
                                                 xAttributeList={slicedChunk.timesteps}
-                                                lineColor={trajectory.colorByCluster(chunk)}
+                                                lineColor={chunk.color}
                                             />
                                         )}
                                     </PropertyWrapper>

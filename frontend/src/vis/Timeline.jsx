@@ -44,7 +44,7 @@ function Timeline({ trajectory, width, height, setZoom, extents }) {
                 .attr('y', height / 2)
                 .attr('height', 5)
                 .attr('width', (d) => scaleX(d.last) - scaleX(d.timestep))
-                .attr('fill', (d) => trajectory.colorByCluster(d))
+                .attr('fill', (d) => d.color)
                 .classed('unimportant', (d) => !d.important)
                 .classed('important', (d) => d.important);
 

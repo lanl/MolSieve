@@ -159,8 +159,7 @@ export default function VisArea({
     const getAllVisibleChunks = () => {
         let visible = [];
         for (const trajectory of Object.values(trajectories)) {
-            const { extents } = trajectory;
-            const { iChunks, uChunks } = trajectory.getVisibleChunks(extents);
+            const { iChunks, uChunks } = trajectory.getVisibleChunks();
             visible = [...visible, ...iChunks, ...uChunks];
         }
         return visible;
@@ -468,7 +467,7 @@ export default function VisArea({
 
                         // check if start and end timesteps are at least within some chunk of the trajectory
                         const t = trajectories[trajectoryName];
-                        const disabled = t.isTimestepsWithinChunks(timesteps);
+                        // const disabled = t.isTimestepsWithinChunks(timesteps);
 
                         return (
                             <SubSequenceView
@@ -491,7 +490,7 @@ export default function VisArea({
                                 className={uuid}
                                 id={uuid}
                                 onElementClick={(state) => setActiveState(state)}
-                                disabled={disabled}
+                                // disabled={disabled}
                                 trajectoryName={trajectoryName}
                                 stateIDs={ids}
                                 timesteps={timesteps}

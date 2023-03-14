@@ -2,18 +2,9 @@ import Chunk from './chunk';
 import { chunkSimilarity } from './myutils';
 
 class Trajectory {
-    // dict of id to cluster id
-    idToCluster = {};
-
     idToTimestep = new Map();
 
-    optimal_cluster_value;
-
     feasible_clusters;
-
-    clusterings = {};
-
-    fuzzy_memberships = {};
 
     current_clustering;
 
@@ -21,23 +12,15 @@ class Trajectory {
 
     raw;
 
-    atom_properties;
-
     LAMMPSBootstrapScript;
 
     chunks = new Map();
 
     chunkingThreshold;
 
-    uniqueStates;
-
     occurrenceMap = new Map();
 
     extents;
-
-    get currentClusterArray() {
-        return this.clusterings[this.current_clustering];
-    }
 
     /** Sets the metadata for the run in the this object
      * data - metadata for the run retrieved from get_metadata
@@ -100,14 +83,6 @@ class Trajectory {
     } */
 
     /**
-     * Colors an entity based on its cluster identifier (for chunks, its id; for timesteps, its stateID)
-     * Will probably change to id once the mess with chunks / states is sorted
-     */
-    colorByCluster(entity) {
-        return this.colors[this.idToCluster[entity.clusterIdentifier]];
-    }
-
-    /**
      * Gets the chunk ids in the trajectory in temporal order
      *
      * @param {Number} type - which function to use
@@ -127,32 +102,6 @@ class Trajectory {
         }
 
         return this.chunkList.filter(filterFunc).map((d) => d.id);
-    }
-
-    /* Calculates the similarities between chunks and returns a 2D matrix of similarity scores
-     * idList - list of chunk ids to perform a pair-wise comparison on
-     */
-    calculateChunkSimilarities(idList) {
-        const matrix = Array.from(Array(idList.length), () => new Array(idList.length));
-        for (let i = 0; i < idList.length; i++) {
-            for (let j = 0; j < idList.length; j++) {
-                if (i === j) {
-                    matrix[i][j] = 0;
-                } else {
-                    const simScore = this.calculateChunkSimilarity(idList[i], idList[j]);
-                    matrix[i][j] = simScore;
-                }
-            }
-        }
-        return matrix;
-    }
-
-    /* Chunk similarity is currently calculated as the size of the intersection of the states between chunks and the size of their union */
-    calculateChunkSimilarity(i, j) {
-        const iChunk = this.chunks.get(i);
-        const jChunk = this.chunks.get(j);
-
-        return chunkSimilarity(iChunk, jChunk);
     }
 
     /**

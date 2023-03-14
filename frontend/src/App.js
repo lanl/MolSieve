@@ -26,6 +26,8 @@ import { createUUID } from './api/math/random';
 import { getNeighbors } from './api/myutils';
 
 import { calculateGlobalUniqueStates, addProperties } from './api/states';
+import { addChunks } from './api/chunks';
+
 import { wsConnect } from './api/websocketmiddleware';
 
 import WebSocketManager from './api/websocketmanager';
@@ -122,7 +124,6 @@ class App extends React.Component {
                         clusters - currentTraj.current_clustering
                     );
                     currentTraj.current_clustering = clusters;
-                    currentTraj.idToCluster = data.idToCluster;
                     currentTraj.simplifySet(data.simplified);
                     currentTraj.add_colors(newColors);
                     this.setState(
@@ -153,11 +154,10 @@ class App extends React.Component {
         apiLoadTrajectory(run, mMin, mMax, chunkingThreshold)
             .then((data) => {
                 const newTraj = new Trajectory();
-                newTraj.uniqueStates = data.uniqueStates;
+                // newTraj.uniqueStates = data.uniqueStates;
                 newTraj.name = run;
                 newTraj.id = createUUID();
-                newTraj.idToCluster = data.idToCluster;
-                newTraj.feasible_clusters = data.feasible_clusters;
+                // newTraj.feasible_clusters = data.feasible_clusters;
                 newTraj.chunkingThreshold = chunkingThreshold;
                 newTraj.current_clustering = data.current_clustering;
 
@@ -191,6 +191,7 @@ class App extends React.Component {
 
                 const chunks = createChunkObjects(data.simplified, newTraj);
 
+                dispatch(addChunks({ chunks }));
                 newTraj.simplifySet(chunks);
 
                 const trajColors = colors.request_colors(newTraj.current_clustering);
@@ -459,4 +460,4 @@ class App extends React.Component {
     }
 }
 
-export default connect((state) => ({ states: state }))(withSnackbar(App));
+export default connect()(withSnackbar(App));
