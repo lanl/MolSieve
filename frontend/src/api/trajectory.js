@@ -1,6 +1,3 @@
-import Chunk from './chunk';
-import { chunkSimilarity } from './myutils';
-
 class Trajectory {
     idToTimestep = new Map();
 
@@ -36,7 +33,6 @@ class Trajectory {
         }
     }
 
-    // convert calculated chunks into chunk objects
     simplifySet(simplifiedSet) {
         this.chunks.clear();
         for (const chunk of simplifiedSet) {
@@ -45,42 +41,6 @@ class Trajectory {
         // set extents here
         this.extents = [0, this.length];
     }
-
-    /**
-     * Calculates the distribution difference between unimportant chunks for each property.
-     * This generates an array of objects; each object is a dictionary of z-scores for each property.
-     * This array is then aggregated in a seperate object, and stored in the trajectory.
-     */
-    /* calculateFeatureImportance() {
-        const { chunkList } = this;
-        const pairs = chunkList
-            .filter((d) => !d.hasParent && !d.important)
-            .reduce((result, _, i, array) => {
-                result.push(array.slice(i, i + 2));
-                return result;
-            }, [])
-            .filter((a) => a.length > 1);
-
-        const differences = pairs.map((pair) => {
-            const pairDifferences = {};
-            const c1 = pair[0].selected.map((id) => States.get(id));
-            const c2 = pair[1].selected.map((id) => States.get(id));
-
-            for (const prop of States.properties) {
-                const s1 = c1.map((d) => d[prop]);
-                const s2 = c2.map((d) => d[prop]);
-                pairDifferences[prop] = zTest(s1, s2);
-            }
-            return pairDifferences;
-        });
-
-        const aggregateDifferences = {};
-        for (const prop of States.properties) {
-            aggregateDifferences[prop] = d3.mean(differences, (d) => d[prop]);
-        }
-
-        this.featureImportance = aggregateDifferences;
-    } */
 
     /**
      * Gets the chunk ids in the trajectory in temporal order

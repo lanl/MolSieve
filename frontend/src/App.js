@@ -222,7 +222,28 @@ class App extends React.Component {
 
         enqueueSnackbar(`Re-simplifying trajectory ${run}...`);
         apiModifyTrajectory(run, newTraj.current_clustering, threshold).then((data) => {
-            newTraj.simplifySet(data.simplified);
+            const createChunkObjects = (simplifiedSet, trajectory) => {
+                const chunks = [];
+                for (const chunk of simplifiedSet) {
+                    const newChunk = new Chunk(
+                        chunk.timestep,
+                        chunk.last,
+                        chunk.firstID,
+                        chunk.important,
+                        chunk.cluster,
+                        chunk.sequence,
+                        chunk.selected,
+                        chunk.characteristicState,
+                        trajectory
+                    );
+                    chunks.push(newChunk);
+                }
+                return chunks;
+            };
+
+            const chunks = createChunkObjects(data.simplified, newTraj);
+
+            newTraj.simplifySet(chunks);
             newTraj.chunkingThreshold = threshold;
 
             dispatch(

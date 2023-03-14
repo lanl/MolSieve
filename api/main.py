@@ -293,7 +293,6 @@ async def ws_load_properties_for_subset(websocket: WebSocket):
         qb = querybuilder.Neo4jQueryBuilder()
         driver = GraphDriver()
 
-        # also potential bottleneck
         q = qb.generate_get_node_list(
             "State", idAttributeList=data["stateIds"], attributeList=data["props"]
         )
@@ -713,7 +712,6 @@ def modify_trajectory(run: str, chunkingThreshold: float, numClusters: int):
     return {
         "uniqueStates": trajectory.simplified_unique_states,
         "simplified": trajectory.chunks,
-        "idToCluster": trajectory.idToCluster,
         "current_clustering": trajectory.current_clustering,
     }
 
@@ -764,7 +762,6 @@ def load_trajectory(run: str, mMin: int, mMax: int, chunkingThreshold: float):
         "uniqueStates": trajectory.simplified_unique_states,
         "idToTimestep": trajectory.id_to_timestep,
         "simplified": trajectory.chunks,
-        "idToCluster": trajectory.idToCluster,
         "feasible_clusters": trajectory.feasible_clusters,
         "current_clustering": trajectory.current_clustering,
     }
