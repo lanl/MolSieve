@@ -18,6 +18,7 @@ export const getAllImportantStates = createSelector([getAllImportantChunks], (ch
     chunks.reduce((acc, v) => [...acc, ...v.states], [])
 );
 
+// apparently don't need to memoize
 export const selectTrajectory = createSelector(
     [selectTrajectories, (_, name) => name],
     (trajectories, name) => trajectories[name]
@@ -61,6 +62,24 @@ export const getVisibleChunks = createSelector(
         const [start, end] = extents;
         const topChunkList = chunkList.filter((c) => !(start > c.last || end < c.timestep));
         return topChunkList;
+    }
+);
+
+export const getAllVisibleChunks = createSelector(
+    [selectTrajectories, selectChunks],
+    (trajectories, chunks) => {
+        let totalList = [];
+        for (const trajectory of Object.values(trajectories)) {
+            const { extents, chunkList } = trajectory;
+            const [start, end] = extents;
+            totalList = [
+                ...totalList,
+                ...chunkList
+                    .map((id) => chunks[id])
+                    .filter((c) => !(start > c.last || end < c.timestep)),
+            ];
+        }
+        return totalList;
     }
 );
 

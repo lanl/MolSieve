@@ -44,7 +44,7 @@ import {
 } from '../api/myutils';
 import { createUUID } from '../api/math/random';
 
-import { getAllImportantStates } from '../api/trajectories';
+import { getAllImportantStates, getAllVisibleChunks } from '../api/trajectories';
 
 import { clearClusterStates, clusterStates } from '../api/states';
 
@@ -232,14 +232,16 @@ export default function VisArea({
         }
     };
 
+    const visible = useSelector((state) => getAllVisibleChunks(state));
+
     const findSimilar = (chunkSimilarityFunc, formatFunc, selection) => {
         // compare all chunks to the one that was selected
         const selected = selection[0];
         focusChart(selected.id);
 
-        const visible = getAllVisibleChunks().filter((c) => c.id !== selected.id && c.important);
+        const v = visible.filter((d) => d.id !== selected.id && d.important);
         const similarities = {};
-        for (const vc of visible) {
+        for (const vc of v) {
             const sim = chunkSimilarityFunc(selected, vc);
             similarities[`ec_${vc.id}`] = sim;
         }
