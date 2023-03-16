@@ -233,9 +233,7 @@ function ChunkWrapper({
         () => (
             <Box width={width} display="flex" alignItems="center" gap={1}>
                 <Tooltip title="Zoom into region">
-                    <IconButton
-                        onClick={() => setZoom(trajectory.name, [chunk.timestep, chunk.last])}
-                    >
+                    <IconButton onClick={() => setZoom([chunk.timestep, chunk.last])}>
                         <ZoomInMapIcon />
                     </IconButton>
                 </Tooltip>

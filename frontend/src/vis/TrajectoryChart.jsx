@@ -1,7 +1,7 @@
 import { React, useEffect, memo, useMemo, startTransition } from 'react';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import * as d3 from 'd3';
-import { selectTrajectory, getVisibleChunks } from '../api/trajectories';
+import { selectTrajectory, getVisibleChunks, setZoom } from '../api/trajectories';
 
 import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
 import ChunkWrapper from '../hoc/ChunkWrapper';
@@ -35,7 +35,6 @@ function TrajectoryChart({
     expand,
     propertyCombos,
     scatterplotHeight = 50,
-    setZoom,
 }) {
     const trajectory = useSelector(
         (state) => selectTrajectory(state, trajectoryName),
@@ -50,6 +49,9 @@ function TrajectoryChart({
             return false;
         }
     );
+    const dispatch = useDispatch();
+    const setZoomCallback = (extents) => dispatch(setZoom({ name: trajectoryName, extents }));
+
     const { extents } = trajectory;
     const topChunkList = useSelector(
         (state) => getVisibleChunks(state, trajectoryName),
@@ -207,7 +209,7 @@ function TrajectoryChart({
                                 propertyCombos={propertyCombos}
                                 extents={extents}
                                 scatterplotHeight={scatterplotHeight}
-                                setZoom={setZoom}
+                                setZoom={setZoomCallback}
                             />
                         ) : (
                             <ViolinPlotWrapper

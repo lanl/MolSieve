@@ -70,20 +70,6 @@ class App extends React.Component {
             .catch((e) => alert(e));
     }
 
-    setZoom(name, values) {
-        const { trajectories } = this.state;
-        const trajectory = trajectories[name];
-        trajectory.extents = values;
-        this.setState((prevState) => ({
-            trajectories: {
-                ...prevState.trajectories,
-                [name]: trajectory,
-            },
-        }));
-    }
-
-    setZoomProp = this.setZoom.bind(this);
-
     selectRun = (v) => {
         this.setState({
             run: v,
@@ -366,7 +352,6 @@ class App extends React.Component {
                     sx={{
                         width: drawerOpen ? `calc(100% - 300px)` : `100%`,
                     }}
-                    setZoom={this.setZoomProp}
                 />
 
                 {trajectoryNames.length > 0 && (

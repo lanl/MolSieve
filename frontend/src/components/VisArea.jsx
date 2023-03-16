@@ -65,7 +65,6 @@ export default function VisArea({
     swapPositions,
     expand,
     sx,
-    setZoom,
     visScripts,
 }) {
     const [currentModal, setCurrentModal] = useState(null);
@@ -422,7 +421,6 @@ export default function VisArea({
                                         selections={selections}
                                         showTop={showTop}
                                         expand={expand}
-                                        setZoom={setZoom}
                                     />
                                 );
                             })}
