@@ -44,7 +44,7 @@ import {
 } from '../api/myutils';
 import { createUUID } from '../api/math/random';
 
-import { getAllImportantStates, getAllVisibleChunks } from '../api/trajectories';
+import { getAllImportantStates, getAllVisibleChunks, swapPositions } from '../api/trajectories';
 
 import { clearClusterStates, clusterStates } from '../api/states';
 
@@ -59,14 +59,7 @@ const CHUNK_SELECT = 4;
 // for a valid selection
 const SELECTION_LENGTH = [0, 1, 3, 2, 2, 2];
 
-export default function VisArea({
-    trajectories,
-    properties,
-    swapPositions,
-    expand,
-    sx,
-    visScripts,
-}) {
+export default function VisArea({ trajectories, properties, expand, sx, visScripts }) {
     const [currentModal, setCurrentModal] = useState(null);
     const [activeState, setActiveState] = useState(null);
 
@@ -339,9 +332,15 @@ export default function VisArea({
                                     }
                                     size="small"
                                     onClick={() =>
-                                        startSelection(SWAP_SELECTIONS, (selection) =>
-                                            swapPositions(selection[0], selection[1])
-                                        )
+                                        startSelection(SWAP_SELECTIONS, (selection) => {
+                                            console.log(selection);
+                                            dispatch(
+                                                swapPositions({
+                                                    a: selection[0].name,
+                                                    b: selection[1].name,
+                                                })
+                                            );
+                                        })
                                     }
                                 >
                                     <SwapVertIcon />

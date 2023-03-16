@@ -262,21 +262,6 @@ class App extends React.Component {
         this.setState((prevState) => ({ drawerOpen: !prevState.drawerOpen }));
     };
 
-    swapPositions = (a, b) => {
-        // swap the position variables of the two trajectories
-        const temp = a.position;
-        a.position = b.position; // eslint-disable-line
-        b.position = temp; //eslint-disable-line
-
-        this.setState((prevState) => ({
-            trajectories: {
-                ...prevState.trajectories,
-                [a.name]: a,
-                [b.name]: b,
-            },
-        }));
-    };
-
     toggleModal = (key) => {
         const { currentModal } = this.state;
         if (currentModal) {
@@ -345,7 +330,6 @@ class App extends React.Component {
                 </Toolbar>
                 <VisArea
                     trajectories={trajectoryNames}
-                    swapPositions={this.swapPositions}
                     expand={this.expand}
                     properties={properties}
                     visScripts={visScripts}

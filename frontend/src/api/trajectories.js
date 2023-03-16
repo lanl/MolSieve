@@ -123,6 +123,7 @@ export const trajectories = createSlice({
             names.push(name);
             values[name] = {
                 id,
+                name,
                 currentClustering,
                 colors,
                 chunkList: [],
@@ -134,6 +135,14 @@ export const trajectories = createSlice({
                     chunkingThreshold,
                 },
             });
+        },
+        swapPositions: (state, action) => {
+            const { names } = state;
+            const { a, b } = action.payload;
+            const aIdx = names.indexOf(a);
+            const bIdx = names.indexOf(b);
+            names[aIdx] = b;
+            names[bIdx] = a;
         },
         // swap position?
         // overwrites chunks entirely
@@ -185,6 +194,6 @@ export const trajectories = createSlice({
     },
 });
 
-export const { addTrajectory, setChunks, setZoom } = trajectories.actions;
+export const { addTrajectory, setChunks, setZoom, swapPositions } = trajectories.actions;
 
 export default trajectories.reducer;
