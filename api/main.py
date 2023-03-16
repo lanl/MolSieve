@@ -751,7 +751,7 @@ def load_trajectory(run: str, mMin: int, mMax: int, chunkingThreshold: float):
     t1 = time.time()
     logging.info(f"Simplification took {t1-t0} seconds total.")
 
-    trajectory.calculate_id_to_timestep(driver)
+    # trajectory.calculate_id_to_timestep(driver)
 
     mem_client = PooledClient("localhost", max_pool_size=1, serde=serde.pickle_serde)
     mem_client.set(run, trajectory)
@@ -760,7 +760,6 @@ def load_trajectory(run: str, mMin: int, mMax: int, chunkingThreshold: float):
     # feasible may not be necessary at all
     return {
         "uniqueStates": trajectory.simplified_unique_states,
-        "idToTimestep": trajectory.id_to_timestep,
         "simplified": trajectory.chunks,
         "feasible_clusters": trajectory.feasible_clusters,
         "current_clustering": trajectory.current_clustering,

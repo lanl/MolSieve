@@ -1,5 +1,8 @@
 import { React, useState, useEffect, memo } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
 import * as d3 from 'd3';
+import { getChunkList, selectTrajectory, setZoom } from '../api/trajectories';
+
 import '../css/vis.css';
 import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
 
@@ -10,7 +13,11 @@ const margin = {
     right: 25,
 };
 
-function Timeline({ trajectory, width, height, setZoom, extents }) {
+function Timeline({ trajectoryName, width, height }) {
+    const dispatch = useDispatch();
+    const trajectory = useSelector((state) => selectTrajectory(state, trajectoryName));
+    const chunkList = useSelector((state) => getChunkList(state, trajectoryName));
+
     const [sBrush, setBrush] = useState(null);
     const ref = useTrajectoryChartRender(
         (svg) => {
@@ -21,26 +28,23 @@ function Timeline({ trajectory, width, height, setZoom, extents }) {
             if (width === undefined || height === undefined) {
                 return;
             }
+            const { extents } = trajectory;
 
             const g = svg.append('g');
-            const { chunkList, name } = trajectory;
 
-            const topChunkList = chunkList.filter((d) => !d.hasParent);
-            const trajG = svg.append('g').classed(name, true);
+            const trajG = svg.append('g').classed(trajectoryName, true);
 
             const scaleX = d3
                 .scaleLinear()
                 .range([margin.left, width - margin.right])
-                .domain([0, trajectory.length]);
+                .domain([0, 16527]);
 
             trajG
                 .selectAll('rect')
-                .data(topChunkList)
+                .data(chunkList)
                 .enter()
                 .append('rect')
-                .attr('x', (d) => {
-                    return scaleX(d.timestep);
-                })
+                .attr('x', (d) => scaleX(d.timestep))
                 .attr('y', height / 2)
                 .attr('height', 5)
                 .attr('width', (d) => scaleX(d.last) - scaleX(d.timestep))
@@ -52,7 +56,7 @@ function Timeline({ trajectory, width, height, setZoom, extents }) {
                 .attr('x', width / 2)
                 .attr('y', height / 2 - 5)
                 .attr('text-anchor', 'middle')
-                .text(name);
+                .text(trajectoryName);
 
             const defaultSelection = [scaleX(extents[0]), scaleX(extents[1])];
 
@@ -67,7 +71,7 @@ function Timeline({ trajectory, width, height, setZoom, extents }) {
                     if (!sourceEvent) return;
                     const start = Math.trunc(scaleX.invert(selection[0]));
                     const end = Math.trunc(scaleX.invert(selection[1]));
-                    setZoom(name, [start, end]);
+                    dispatch(setZoom({ name: trajectoryName, extents: [start, end] }));
 
                     // if user double clicks, the timeline will be redrawn
                     svg.on('dblclick', () => {
@@ -97,17 +101,19 @@ function Timeline({ trajectory, width, height, setZoom, extents }) {
                         })
                         .attr('width', (d) => scaleX(d.last) - scaleX(d.timestep));
                     brushG.call(brush).call(brush.move, [scaleX(0), scaleX(trajectory.length)]);
-                    setZoom(name, [0, trajectory.length]);
+                    dispatch(setZoom({ name: trajectoryName, extents: [0, trajectory.length] }));
                 });
 
             brushG.call(brush).call(brush.move, defaultSelection);
             setBrush(() => brush);
         },
-        [JSON.stringify(trajectory.chunkList), width, height]
+        [JSON.stringify(chunkList), width, height]
     );
 
     useEffect(() => {
         if (ref.current && sBrush) {
+            const { extents } = trajectory;
+            const [start, stop] = extents;
             const scaleX = d3
                 .scaleLinear()
                 .range([margin.left, width - margin.right])
@@ -116,11 +122,11 @@ function Timeline({ trajectory, width, height, setZoom, extents }) {
             d3.select(ref.current)
                 .select('.brushG')
                 .call(sBrush)
-                .call(sBrush.move, [scaleX(extents[0]), scaleX(extents[1])]);
+                .call(sBrush.move, [scaleX(start), scaleX(stop)]);
         }
-    }, [JSON.stringify(extents)]);
+    }, [JSON.stringify(trajectory.extents)]);
 
-    return <svg id={`timeline_${trajectory.name}`} ref={ref} viewBox={[0, 0, width, height]} />;
+    return <svg ref={ref} viewBox={[0, 0, width, height]} />;
 }
 
 export default memo(Timeline);
