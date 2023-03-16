@@ -2,6 +2,9 @@ import { createSlice, createAsyncThunk, createSelector } from '@reduxjs/toolkit'
 import Chunk from './chunk';
 import { calculateGlobalUniqueStates } from './states';
 import { apiModifyTrajectory } from './ajax';
+import { getNeighbors } from './myutils';
+import { WS_URL } from './constants';
+import { wsConnect } from './websocketmiddleware';
 
 // functions that you can call on the trajectories dictionary
 // no trajectories object because that would make it harder for react to diff
@@ -9,6 +12,8 @@ import { apiModifyTrajectory } from './ajax';
 // https://redux.js.org/usage/deriving-data-selectors
 const selectTrajectories = (state) => state.trajectories.values;
 const selectChunks = (state) => state.trajectories.chunks;
+export const selectTrajectory = (state, name) => state.trajectories.values[name];
+export const selectChunk = (state, id) => state.trajectories.chunks[id];
 
 export const getAllImportantChunks = createSelector([selectChunks], (chunks) =>
     Array.from(Object.values(chunks)).filter((c) => c.important)
@@ -16,17 +21,6 @@ export const getAllImportantChunks = createSelector([selectChunks], (chunks) =>
 
 export const getAllImportantStates = createSelector([getAllImportantChunks], (chunks) =>
     chunks.reduce((acc, v) => [...acc, ...v.states], [])
-);
-
-// apparently don't need to memoize
-export const selectTrajectory = createSelector(
-    [selectTrajectories, (_, name) => name],
-    (trajectories, name) => trajectories[name]
-);
-
-export const selectChunk = createSelector(
-    [selectChunks, (_, id) => id],
-    (chunks, id) => chunks[id]
 );
 
 export const getChunkList = createSelector(
@@ -97,6 +91,58 @@ export const simplifySet = createAsyncThunk('trajectories/simplifySet', async (a
         })
     );
     return { simplified: data.simplified, name, threshold };
+});
+
+export const expand = createAsyncThunk('trajectories/expand', async (args, thunkAPI) => {
+    const { id, sliceSize, name } = args;
+    const { getState, dispatch } = thunkAPI;
+
+    const state = getState();
+    const { chunks, values } = state.trajectories;
+    const trajectory = values[name];
+
+    const { chunkList } = trajectory;
+
+    const chunkIndex = chunkList.indexOf(id);
+
+    const neighbors = getNeighbors(chunkList, chunkIndex);
+    const [leftID, rightID] = neighbors;
+    const left = chunks[leftID];
+    const right = chunks[rightID];
+
+    const loadNeighbors = (l, r) => {
+        return new Promise((resolve, reject) => {
+            if (l) {
+                l.loadSequence(name).then((lData) => {
+                    if (r) {
+                        r.loadSequence(name).then((rData) => {
+                            resolve({ lData, rData });
+                        });
+                    } else {
+                        resolve({ lData });
+                    }
+                });
+            } else if (r) {
+                r.loadSequence(name).then((rData) => {
+                    resolve({ rData });
+                });
+            } else {
+                reject();
+            }
+        });
+    };
+
+    const { lData, rData } = await loadNeighbors(left, right);
+    // update global states with any new data
+    dispatch(
+        calculateGlobalUniqueStates({
+            newUniqueStates: [...lData, ...rData],
+            run: name,
+        })
+    );
+    dispatch(wsConnect(`${WS_URL}/api/load_properties_for_subset`));
+
+    return { left, lData, rData, right, sliceSize, id, name };
 });
 
 export const trajectories = createSlice({
@@ -190,6 +236,40 @@ export const trajectories = createSlice({
                     chunkingThreshold: threshold,
                 },
             });
+        });
+        builder.addCase(expand.fulfilled, (state, action) => {
+            const { chunks, values } = state;
+            const { left, lData, rData, right, id, sliceSize, name } = action.payload;
+            const chunk = chunks[id];
+            let { chunkList } = values[name];
+
+            if (left) {
+                left.sequence = lData;
+                const leftVals = left.takeFromSequence(sliceSize, 'back');
+                chunk.addToSequence(leftVals, 'front');
+                chunks[left.id] = left;
+                if (!left.sequence.length) {
+                    delete chunks[left.id];
+                    chunkList = chunkList.filter((d) => d.id !== left.id);
+                    // need to update trajectory array then
+                }
+            }
+
+            if (right) {
+                right.sequence = rData;
+                const rightVals = right.takeFromSequence(sliceSize, 'front');
+                chunk.addToSequence(rightVals, 'back');
+                chunks[right.id] = right;
+                if (!right.sequence.length) {
+                    delete chunks[right.id];
+                    chunkList = chunkList.filter((d) => d.id !== right.id);
+                }
+            }
+
+            values[name].chunkList = chunkList;
+            console.log(left, chunk, right);
+            chunks[chunk.id] = chunk;
+            return { ...state, chunks };
         });
     },
 });

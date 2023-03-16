@@ -1,4 +1,3 @@
-import GlobalChunks from './globalChunks';
 import Timestep from './timestep';
 import { apiGetSequence } from './ajax';
 
@@ -112,12 +111,11 @@ export default class Chunk {
         return new Set(this.sequence);
     }
 
-    loadSequence() {
+    loadSequence(name) {
         return new Promise((resolve, reject) => {
-            apiGetSequence(this.trajectory.name, [this.timestep, this.last])
+            apiGetSequence(name, [this.timestep, this.last])
                 .then((data) => {
-                    this.sequence = data;
-                    resolve(this.sequence);
+                    resolve(data);
                 })
                 .catch((e) => reject(e));
         });

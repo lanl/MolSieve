@@ -52,6 +52,7 @@ function ChunkWrapper({
     const [startExtent, endExtent] = extents;
 
     const [startSlice, endSlice] = useMemo(() => {
+        console.log('chunk changed');
         const { timestep, last } = chunk;
         const sliceStart = startExtent <= timestep ? 0 : startExtent - timestep;
         const sliceEnd = endExtent >= last ? last : endExtent;

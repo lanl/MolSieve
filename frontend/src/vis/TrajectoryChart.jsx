@@ -1,7 +1,7 @@
 import { React, useEffect, memo, useMemo, startTransition } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
+import { useSelector, useDispatch, shallowEqual } from 'react-redux';
 import * as d3 from 'd3';
-import { selectTrajectory, getVisibleChunks, setZoom } from '../api/trajectories';
+import { selectTrajectory, getVisibleChunks, setZoom, expand } from '../api/trajectories';
 
 import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
 import ChunkWrapper from '../hoc/ChunkWrapper';
@@ -32,44 +32,17 @@ function TrajectoryChart({
     selectedObjects,
     addSelection,
     showTop,
-    expand,
     propertyCombos,
     scatterplotHeight = 50,
 }) {
-    const trajectory = useSelector(
-        (state) => selectTrajectory(state, trajectoryName),
-        (oldTraj, newTraj) => {
-            // only re-render if chunkList has changed, or extents has changed
-            const { extents: oldExtents } = oldTraj;
-            const { extents: newExtents } = newTraj;
-
-            if (oldExtents[0] === newExtents[0] && oldExtents[1] === newExtents[1]) {
-                return JSON.stringify(oldTraj.chunkList) === JSON.stringify(newTraj.chunkList);
-            }
-            return false;
-        }
-    );
+    const trajectory = useSelector((state) => selectTrajectory(state, trajectoryName));
     const dispatch = useDispatch();
     const setZoomCallback = (extents) => dispatch(setZoom({ name: trajectoryName, extents }));
 
     const { extents } = trajectory;
-    const topChunkList = useSelector(
-        (state) => getVisibleChunks(state, trajectoryName),
-        (oldChunks, newChunks) => {
-            // check if length is the same
-            if (oldChunks.length === newChunks.length) {
-                const oldSizes = oldChunks.map((c) => c.size);
-                const newSizes = newChunks.map((c) => c.size);
-                for (let i = 0; i < oldChunks.length; i++) {
-                    if (oldSizes[i] !== newSizes[i]) {
-                        return false;
-                    }
-                }
-                return true;
-            }
-            return false;
-        }
-    );
+    const topChunkList = useSelector((state) => getVisibleChunks(state, trajectoryName));
+
+    console.log(topChunkList);
 
     const ref = useTrajectoryChartRender((svg) => {
         // clear so we don't draw over-top and cause insane lag
@@ -205,7 +178,15 @@ function TrajectoryChart({
                                 selectObject={selectObject}
                                 selectedObjects={selectedObjects}
                                 chunkSelectionMode={chunkSelectionMode}
-                                doubleClickAction={() => expand(chunk.id, 100, trajectory)}
+                                doubleClickAction={() =>
+                                    dispatch(
+                                        expand({
+                                            id: chunk.id,
+                                            sliceSize: 100,
+                                            name: trajectoryName,
+                                        })
+                                    )
+                                }
                                 propertyCombos={propertyCombos}
                                 extents={extents}
                                 scatterplotHeight={scatterplotHeight}

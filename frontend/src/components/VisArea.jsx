@@ -59,7 +59,7 @@ const CHUNK_SELECT = 4;
 // for a valid selection
 const SELECTION_LENGTH = [0, 1, 3, 2, 2, 2];
 
-export default function VisArea({ trajectories, properties, expand, sx, visScripts }) {
+export default function VisArea({ trajectories, properties, sx, visScripts }) {
     const [currentModal, setCurrentModal] = useState(null);
     const [activeState, setActiveState] = useState(null);
 
@@ -333,7 +333,6 @@ export default function VisArea({ trajectories, properties, expand, sx, visScrip
                                     size="small"
                                     onClick={() =>
                                         startSelection(SWAP_SELECTIONS, (selection) => {
-                                            console.log(selection);
                                             dispatch(
                                                 swapPositions({
                                                     a: selection[0].name,
@@ -419,7 +418,6 @@ export default function VisArea({ trajectories, properties, expand, sx, visScrip
                                         selectedObjects={selectedObjects}
                                         selections={selections}
                                         showTop={showTop}
-                                        expand={expand}
                                     />
                                 );
                             })}

@@ -22,7 +22,6 @@ import {
 } from './api/ajax';
 import ControlDrawer from './components/ControlDrawer';
 import { createUUID } from './api/math/random';
-import { getNeighbors } from './api/myutils';
 
 import { calculateGlobalUniqueStates, addProperties } from './api/states';
 import { addTrajectory, simplifySet } from './api/trajectories';
@@ -188,76 +187,6 @@ class App extends React.Component {
         dispatch(wsConnect(`${WS_URL}/api/load_properties_for_subset`));
     };
 
-    /**
-     * Expands the given chunk by the sliceSize provided. The left / right neighbors of the chunk are shortened.
-     *
-     */
-    expand = (id, sliceSize, trajectory) => {
-        const { chunkList, chunks } = trajectory;
-        const { dispatch } = this.props;
-        const chunk = chunks.get(id);
-        const chunkIndex = chunkList.indexOf(chunk);
-
-        const neighbors = getNeighbors(chunkList, chunkIndex);
-        const [left, right] = neighbors;
-
-        const loadNeighbors = (l, r) => {
-            return new Promise((resolve, reject) => {
-                if (l) {
-                    l.loadSequence().then((lData) => {
-                        if (r) {
-                            r.loadSequence().then((rData) => resolve([...lData, ...rData]));
-                        } else {
-                            resolve(lData);
-                        }
-                    });
-                } else if (r) {
-                    r.loadSequence().then((rData) => resolve(rData));
-                } else {
-                    reject();
-                }
-            });
-        };
-
-        loadNeighbors(left, right)
-            .then((data) => {
-                // update global states with any new data
-                dispatch(
-                    calculateGlobalUniqueStates({
-                        newUniqueStates: data,
-                        run: trajectory.name,
-                    })
-                );
-                dispatch(wsConnect(`${WS_URL}/api/load_properties_for_subset`));
-
-                if (left) {
-                    const leftVals = left.takeFromSequence(sliceSize, 'back');
-                    chunk.addToSequence(leftVals, 'front');
-                    chunks.set(left.id, left);
-                    if (!left.sequence.length) {
-                        chunks.delete(left.id);
-                    }
-                }
-
-                if (right) {
-                    const rightVals = right.takeFromSequence(sliceSize, 'front');
-                    chunk.addToSequence(rightVals, 'back');
-                    chunks.set(right.id, right);
-                    if (!right.sequence.length) {
-                        chunks.delete(right.id);
-                    }
-                }
-
-                chunks.set(chunk.id, chunk);
-
-                this.setState((prevState) => ({
-                    trajectories: { ...prevState.trajectories, [trajectory.name]: trajectory },
-                }));
-            })
-            // should really catch error but whatever
-            .catch(() => alert('No neighbors to expand into!'));
-    };
-
     toggleDrawer = () => {
         this.setState((prevState) => ({ drawerOpen: !prevState.drawerOpen }));
     };
@@ -330,7 +259,6 @@ class App extends React.Component {
                 </Toolbar>
                 <VisArea
                     trajectories={trajectoryNames}
-                    expand={this.expand}
                     properties={properties}
                     visScripts={visScripts}
                     sx={{
