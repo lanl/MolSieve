@@ -233,6 +233,7 @@ export default function VisArea({
     };
 
     const visible = useSelector((state) => getAllVisibleChunks(state));
+    const allStates = useSelector((state) => getAllImportantStates(state));
 
     const findSimilar = (chunkSimilarityFunc, formatFunc, selection) => {
         // compare all chunks to the one that was selected
@@ -363,7 +364,7 @@ export default function VisArea({
                                             ? dispatch(
                                                   clusterStates({
                                                       properties,
-                                                      stateIDs: getAllImportantStates(trajectories),
+                                                      stateIDs: allStates,
                                                   })
                                               )
                                             : dispatch(clearClusterStates())

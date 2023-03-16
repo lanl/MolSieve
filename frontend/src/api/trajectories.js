@@ -11,7 +11,7 @@ const selectTrajectories = (state) => state.trajectories.values;
 const selectChunks = (state) => state.trajectories.chunks;
 
 export const getAllImportantChunks = createSelector([selectChunks], (chunks) =>
-    Array.from(chunks.values()).filter((c) => c.important)
+    Array.from(Object.values(chunks)).filter((c) => c.important)
 );
 
 export const getAllImportantStates = createSelector([getAllImportantChunks], (chunks) =>
