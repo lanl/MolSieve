@@ -51,17 +51,17 @@ function ControlDrawer({
 
     useEffect(() => {
         const newRuns = {};
-        for (const [name, trajectory] of Object.entries(trajectories)) {
+        for (const name of trajectories) {
             if (!runs[name]) {
                 newRuns[name] = {
-                    chunkingThreshold: trajectory.chunkingThreshold,
-                    current_clustering: trajectory.current_clustering,
+                    chunkingThreshold: 0.75,
+                    current_clustering: 2,
                 };
             }
         }
 
         setRuns((prevState) => ({ ...prevState, ...newRuns }));
-    }, [Object.keys(trajectories).length]);
+    }, [trajectories.length]);
 
     const updateRun = (name, property, value) => {
         const run = runs[name];
@@ -205,14 +205,14 @@ function ControlDrawer({
                     <ChartBox>
                         {(width) => {
                             // 50px per trajectory
-                            const h = Object.keys(trajectories).length * 50;
-                            return Object.values(trajectories).map((trajectory) => (
+                            const h = trajectories.length * 50;
+                            return trajectories.map((name) => (
                                 <Timeline
+                                    key={name}
                                     width={width}
                                     setZoom={setZoom}
-                                    extents={trajectory.extents}
                                     height={h}
-                                    trajectory={trajectory}
+                                    trajectoryName={name}
                                 />
                             ));
                         }}

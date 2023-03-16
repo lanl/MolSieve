@@ -1,5 +1,8 @@
 import { createSlice, createAsyncThunk, createSelector } from '@reduxjs/toolkit';
 import Chunk from './chunk';
+import { calculateGlobalUniqueStates } from './states';
+import { apiModifyTrajectory } from './ajax';
+
 // functions that you can call on the trajectories dictionary
 // no trajectories object because that would make it harder for react to diff
 //
@@ -61,12 +64,29 @@ export const getVisibleChunks = createSelector(
     }
 );
 
+export const simplifySet = createAsyncThunk('trajectories/simplifySet', async (args, thunkAPI) => {
+    const { name, threshold } = args;
+    const { getState, dispatch } = thunkAPI;
+    const state = getState();
+
+    const trajectory = state.trajectories.values[name];
+    const data = await apiModifyTrajectory(name, trajectory.currentClustering, threshold);
+    dispatch(
+        calculateGlobalUniqueStates({
+            newUniqueStates: data.uniqueStates,
+            run: name,
+        })
+    );
+    return { simplified: data.simplified, name, threshold };
+});
+
 export const trajectories = createSlice({
     name: 'trajectories',
     initialState: {
         names: [],
         values: {},
         chunks: {},
+        counter: 0,
         /*
         extents: {},
         current_clustering: {},
@@ -84,24 +104,29 @@ export const trajectories = createSlice({
             names.push(name);
             values[name] = {
                 id,
-                chunkingThreshold,
                 currentClustering,
                 colors,
                 chunkList: [],
             };
             trajectories.caseReducers.setChunks(state, {
-                payload: { newChunks, trajectoryName: name },
+                payload: {
+                    newChunks,
+                    trajectoryName: name,
+                    chunkingThreshold,
+                },
             });
         },
         // swap position?
         // overwrites chunks entirely
         setChunks: (state, action) => {
-            const { newChunks, trajectoryName } = action.payload;
+            const { newChunks, trajectoryName, chunkingThreshold } = action.payload;
             const { chunks, values } = state;
+            const trajectory = values[trajectoryName];
             const chunkList = [];
             let lastTimestep = 0;
             for (const chunk of newChunks) {
                 const newChunk = new Chunk(
+                    Object.keys(chunks).length,
                     chunk.timestep,
                     chunk.last,
                     chunk.firstID,
@@ -110,18 +135,37 @@ export const trajectories = createSlice({
                     chunk.sequence,
                     chunk.selected,
                     chunk.characteristicState,
-                    values[trajectoryName]
+                    trajectory.colors[chunk.cluster]
                 );
                 chunks[newChunk.id] = newChunk;
                 chunkList.push(newChunk.id);
                 lastTimestep = Math.max(lastTimestep, chunk.last);
             }
-            values[trajectoryName].chunkList = chunkList;
+            values[trajectoryName].length = lastTimestep;
             values[trajectoryName].extents = [0, lastTimestep];
+            values[trajectoryName].chunkingThreshold = chunkingThreshold;
+            values[trajectoryName].chunkList = chunkList;
         },
+        setZoom: (state, action) => {
+            const { name, extents } = action.payload;
+            const { values } = state;
+            values[name].extents = extents;
+        },
+    },
+    extraReducers: (builder) => {
+        builder.addCase(simplifySet.fulfilled, (state, action) => {
+            const { name, simplified, threshold } = action.payload;
+            trajectories.caseReducers.setChunks(state, {
+                payload: {
+                    newChunks: simplified,
+                    trajectoryName: name,
+                    chunkingThreshold: threshold,
+                },
+            });
+        });
     },
 });
 
-export const { addTrajectory, setChunks } = trajectories.actions;
+export const { addTrajectory, setChunks, setZoom } = trajectories.actions;
 
 export default trajectories.reducer;

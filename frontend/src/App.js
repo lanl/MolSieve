@@ -12,7 +12,7 @@ import { withSnackbar } from 'notistack';
 
 import AjaxMenu from './components/AjaxMenu';
 import LoadRunModal from './modals/LoadRunModal';
-import Trajectory from './api/trajectory';
+
 import VisArea from './components/VisArea';
 import {
     apiLoadTrajectory,
@@ -25,7 +25,7 @@ import { createUUID } from './api/math/random';
 import { getNeighbors } from './api/myutils';
 
 import { calculateGlobalUniqueStates, addProperties } from './api/states';
-import { addTrajectory } from './api/trajectories';
+import { addTrajectory, simplifySet } from './api/trajectories';
 
 import { wsConnect } from './api/websocketmiddleware';
 
@@ -191,36 +191,15 @@ class App extends React.Component {
     };
 
     simplifySet = (run, threshold) => {
-        WebSocketManager.clear(run);
-        const { trajectories } = this.state;
-        const { [run]: newTraj } = trajectories;
+        // WebSocketManager.clear(run);
 
         const { enqueueSnackbar, dispatch } = this.props;
 
         enqueueSnackbar(`Re-simplifying trajectory ${run}...`);
-        apiModifyTrajectory(run, newTraj.current_clustering, threshold).then((data) => {
-            const chunks = createChunkObjects(data.simplified, newTraj);
 
-            newTraj.simplifySet(chunks);
-            newTraj.chunkingThreshold = threshold;
-
-            dispatch(
-                calculateGlobalUniqueStates({
-                    newUniqueStates: data.uniqueStates,
-                    run,
-                })
-            );
-
-            this.setState(
-                (prevState) => ({
-                    trajectories: { ...prevState.trajectories, [run]: newTraj },
-                }),
-                () => {
-                    enqueueSnackbar(`Sequence re-simplified for trajectory ${run}.`);
-                    dispatch(wsConnect(`${WS_URL}/api/load_properties_for_subset`));
-                }
-            );
-        });
+        dispatch(simplifySet({ name: run, threshold }));
+        enqueueSnackbar(`Sequence re-simplified for trajectory ${run}.`);
+        dispatch(wsConnect(`${WS_URL}/api/load_properties_for_subset`));
     };
 
     /**
@@ -341,7 +320,7 @@ class App extends React.Component {
     };
 
     render() {
-        const { trajectories, trajectoryNames } = this.props;
+        const { trajectoryNames } = this.props;
         const { properties, drawerOpen, showRunList, currentModal, run, visScripts } = this.state;
         return (
             <Box sx={{ display: 'flex', flexDirection: 'column' }}>
@@ -367,7 +346,7 @@ class App extends React.Component {
                     >
                         Manage trajectories
                     </Button>
-                    {Object.keys(trajectories).length > 0 && (
+                    {trajectoryNames.length > 0 && (
                         <Button
                             color="primary"
                             onClick={() => {
@@ -390,10 +369,10 @@ class App extends React.Component {
                     setZoom={this.setZoomProp}
                 />
 
-                {Object.keys(trajectories).length > 0 && (
+                {trajectoryNames.length > 0 && (
                     <ControlDrawer
                         sx={{ width: '300px', boxSizing: 'border-box' }}
-                        trajectories={trajectories}
+                        trajectories={trajectoryNames}
                         recalculateClustering={this.recalculate_clustering}
                         simplifySet={this.simplifySet}
                         drawerOpen={drawerOpen}
@@ -408,7 +387,7 @@ class App extends React.Component {
                     anchorEl={this.runListButton.current}
                     api_call={`${API_URL}/api/get_run_list`}
                     open={showRunList}
-                    clicked={Object.keys(trajectories)}
+                    clicked={trajectoryNames}
                     handleClose={() => {
                         this.setState({
                             showRunList: !showRunList,
@@ -440,6 +419,5 @@ class App extends React.Component {
 }
 
 export default connect((state) => ({
-    trajectories: state.trajectories.values,
     trajectoryNames: state.trajectories.names,
 }))(withSnackbar(App));

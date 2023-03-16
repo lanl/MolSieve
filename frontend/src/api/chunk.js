@@ -31,6 +31,7 @@ export default class Chunk {
     characteristicState;
 
     constructor(
+        id,
         timestep,
         last,
         firstID,
@@ -39,18 +40,18 @@ export default class Chunk {
         sequence,
         selected,
         characteristicState,
-        trajectory
+        color
     ) {
+        this.id = id;
         this.timestep = timestep;
         this.last = last;
         this.firstID = firstID;
         this.important = important;
         this.cluster = cluster;
-        this.id = GlobalChunks.generateID();
         this.selected = selected;
         this.sequence = sequence;
         this.characteristicState = characteristicState;
-        this.trajectory = trajectory;
+        this.color = color;
     }
 
     slice(start, end) {
@@ -60,8 +61,8 @@ export default class Chunk {
 
         const sliceStart = start <= this.timestep ? 0 : start - this.timestep;
         const sliceEnd = end >= this.last ? this.last : this.last - this.timestep;
-
         return new Chunk(
+            this.id,
             start > this.timestep ? start : this.timestep,
             end < this.last ? end : this.last,
             this.firstID,
@@ -69,8 +70,7 @@ export default class Chunk {
             this.cluster,
             this.sequence.slice(sliceStart, sliceEnd),
             this.selected,
-            this.characteristicState,
-            this.trajectory
+            this.characteristicState
         );
     }
 
@@ -197,10 +197,6 @@ export default class Chunk {
      *
      * @returns {String} Hexadecimal color code of the chunk.
      */
-    get color() {
-        const { colors } = this.trajectory;
-        return colors[this.cluster];
-    }
 
     toString() {
         return `<b>Timesteps</b>: ${this.timestep} - ${this.last}<br><b>Length</b>: ${this.size}<br><b>ID</b>: ${this.id}`;
