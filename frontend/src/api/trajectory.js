@@ -1,8 +1,4 @@
 class Trajectory {
-    idToTimestep = new Map();
-
-    feasible_clusters;
-
     current_clustering;
 
     colors = [];
@@ -14,8 +10,6 @@ class Trajectory {
     chunks = new Map();
 
     chunkingThreshold;
-
-    occurrenceMap = new Map();
 
     extents;
 
@@ -40,28 +34,6 @@ class Trajectory {
         }
         // set extents here
         this.extents = [0, this.length];
-    }
-
-    /**
-     * Gets the chunk ids in the trajectory in temporal order
-     *
-     * @param {Number} type - which function to use
-     * @returns {Array<Chunk>} The chunks in order.
-     */
-    chunkOrder(type) {
-        let filterFunc;
-        switch (type) {
-            case 0: // not important
-                filterFunc = (d) => !d.hasParent && !d.important;
-                break;
-            case 1: // important
-                filterFunc = (d) => !d.hasParent && d.important;
-                break;
-            default: // both
-                filterFunc = (d) => !d.hasParent;
-        }
-
-        return this.chunkList.filter(filterFunc).map((d) => d.id);
     }
 
     /**

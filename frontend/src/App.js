@@ -9,7 +9,6 @@ import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
 import MenuIcon from '@mui/icons-material/Menu';
 import { withSnackbar } from 'notistack';
-import Chunk from './api/chunk';
 
 import AjaxMenu from './components/AjaxMenu';
 import LoadRunModal from './modals/LoadRunModal';
@@ -26,7 +25,7 @@ import { createUUID } from './api/math/random';
 import { getNeighbors } from './api/myutils';
 
 import { calculateGlobalUniqueStates, addProperties } from './api/states';
-import { addChunks } from './api/chunks';
+import { addTrajectory } from './api/trajectories';
 
 import { wsConnect } from './api/websocketmiddleware';
 
@@ -153,55 +152,33 @@ class App extends React.Component {
 
         apiLoadTrajectory(run, mMin, mMax, chunkingThreshold)
             .then((data) => {
-                const newTraj = new Trajectory();
-                // newTraj.uniqueStates = data.uniqueStates;
-                newTraj.name = run;
-                newTraj.id = createUUID();
-                // newTraj.feasible_clusters = data.feasible_clusters;
-                newTraj.chunkingThreshold = chunkingThreshold;
-                newTraj.current_clustering = data.current_clustering;
+                const { current_clustering: currentClustering, simplified, uniqueStates } = data;
 
-                const { trajectories, colors } = this.state;
+                const { colors } = this.state;
 
                 dispatch(
                     calculateGlobalUniqueStates({
-                        newUniqueStates: data.uniqueStates,
+                        newUniqueStates: uniqueStates,
                         run,
                     })
                 );
 
-                const createChunkObjects = (simplifiedSet, trajectory) => {
-                    const chunks = [];
-                    for (const chunk of simplifiedSet) {
-                        const newChunk = new Chunk(
-                            chunk.timestep,
-                            chunk.last,
-                            chunk.firstID,
-                            chunk.important,
-                            chunk.cluster,
-                            chunk.sequence,
-                            chunk.selected,
-                            chunk.characteristicState,
-                            trajectory
-                        );
-                        chunks.push(newChunk);
-                    }
-                    return chunks;
-                };
+                const trajColors = colors.request_colors(currentClustering);
 
-                const chunks = createChunkObjects(data.simplified, newTraj);
-
-                dispatch(addChunks({ chunks }));
-                newTraj.simplifySet(chunks);
-
-                const trajColors = colors.request_colors(newTraj.current_clustering);
-                newTraj.add_colors(trajColors);
-                newTraj.position = Object.keys(trajectories).length;
+                dispatch(
+                    addTrajectory({
+                        name: run,
+                        id: createUUID(),
+                        chunkingThreshold,
+                        currentClustering,
+                        newChunks: simplified,
+                        colors: trajColors,
+                    })
+                );
 
                 WebSocketManager.addKey(run);
                 this.setState(
                     {
-                        trajectories: { ...trajectories, [run]: newTraj },
                         colors,
                     },
                     () => {
@@ -222,25 +199,6 @@ class App extends React.Component {
 
         enqueueSnackbar(`Re-simplifying trajectory ${run}...`);
         apiModifyTrajectory(run, newTraj.current_clustering, threshold).then((data) => {
-            const createChunkObjects = (simplifiedSet, trajectory) => {
-                const chunks = [];
-                for (const chunk of simplifiedSet) {
-                    const newChunk = new Chunk(
-                        chunk.timestep,
-                        chunk.last,
-                        chunk.firstID,
-                        chunk.important,
-                        chunk.cluster,
-                        chunk.sequence,
-                        chunk.selected,
-                        chunk.characteristicState,
-                        trajectory
-                    );
-                    chunks.push(newChunk);
-                }
-                return chunks;
-            };
-
             const chunks = createChunkObjects(data.simplified, newTraj);
 
             newTraj.simplifySet(chunks);
@@ -383,8 +341,8 @@ class App extends React.Component {
     };
 
     render() {
-        const { trajectories, properties, drawerOpen, showRunList, currentModal, run, visScripts } =
-            this.state;
+        const { trajectories, trajectoryNames } = this.props;
+        const { properties, drawerOpen, showRunList, currentModal, run, visScripts } = this.state;
         return (
             <Box sx={{ display: 'flex', flexDirection: 'column' }}>
                 <Toolbar
@@ -421,7 +379,7 @@ class App extends React.Component {
                     )}
                 </Toolbar>
                 <VisArea
-                    trajectories={trajectories}
+                    trajectories={trajectoryNames}
                     swapPositions={this.swapPositions}
                     expand={this.expand}
                     properties={properties}
@@ -481,4 +439,7 @@ class App extends React.Component {
     }
 }
 
-export default connect()(withSnackbar(App));
+export default connect((state) => ({
+    trajectories: state.trajectories.values,
+    trajectoryNames: state.trajectories.names,
+}))(withSnackbar(App));

@@ -13,7 +13,6 @@ import { Provider } from 'react-redux';
 import { enableMapSet } from 'immer';
 import store from './store';
 import App from './App';
-import { wsConnect } from './api/websocketmiddleware';
 
 const theme = createTheme({
     palette: {

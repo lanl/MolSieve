@@ -156,14 +156,6 @@ export default function VisArea({
      *
      * @returns {Array<Chunk>} All chunks visible on the screen
      */
-    const getAllVisibleChunks = () => {
-        let visible = [];
-        for (const trajectory of Object.values(trajectories)) {
-            const { iChunks, uChunks } = trajectory.getVisibleChunks();
-            visible = [...visible, ...iChunks, ...uChunks];
-        }
-        return visible;
-    };
 
     useEffect(() => {
         if (toolTipList.length > 0) {
@@ -409,33 +401,28 @@ export default function VisArea({
                         </Box>
 
                         <Stack direction="column" spacing={2}>
-                            {Object.values(trajectories)
-                                .sort((a, b) => a.position > b.position)
-                                .map((trajectory) => {
-                                    return (
-                                        <TrajectoryChart
-                                            key={trajectory.id}
-                                            width={width}
-                                            height={(showTop + propertyCombos.length) * 50 + 50}
-                                            scatterplotHeight={50}
-                                            trajectory={trajectory}
-                                            extents={trajectory.extents}
-                                            currentClustering={trajectory.current_clustering}
-                                            chunkingThreshold={trajectory.chunkingThreshold}
-                                            setStateHovered={setActiveState}
-                                            properties={properties}
-                                            propertyCombos={propertyCombos}
-                                            chunkSelectionMode={selectionMode}
-                                            selectObject={selectObjectCallback}
-                                            addSelection={addSelectionCallback}
-                                            selectedObjects={selectedObjects}
-                                            selections={selections}
-                                            showTop={showTop}
-                                            expand={expand}
-                                            setZoom={setZoom}
-                                        />
-                                    );
-                                })}
+                            {trajectories.map((trajectory) => {
+                                return (
+                                    <TrajectoryChart
+                                        key={trajectory}
+                                        width={width}
+                                        height={(showTop + propertyCombos.length) * 50 + 50}
+                                        scatterplotHeight={50}
+                                        trajectoryName={trajectory}
+                                        setStateHovered={setActiveState}
+                                        properties={properties}
+                                        propertyCombos={propertyCombos}
+                                        chunkSelectionMode={selectionMode}
+                                        selectObject={selectObjectCallback}
+                                        addSelection={addSelectionCallback}
+                                        selectedObjects={selectedObjects}
+                                        selections={selections}
+                                        showTop={showTop}
+                                        expand={expand}
+                                        setZoom={setZoom}
+                                    />
+                                );
+                            })}
                         </Stack>
                     </>
                 )}
@@ -466,7 +453,7 @@ export default function VisArea({
                         const timesteps = extent.map((d) => d.timestep);
 
                         // check if start and end timesteps are at least within some chunk of the trajectory
-                        const t = trajectories[trajectoryName];
+                        // const t = trajectories[trajectoryName];
                         // const disabled = t.isTimestepsWithinChunks(timesteps);
 
                         return (
