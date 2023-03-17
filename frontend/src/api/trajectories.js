@@ -302,7 +302,6 @@ export const trajectories = createSlice({
     extraReducers: (builder) => {
         builder.addCase(simplifySet.fulfilled, (state, action) => {
             const { name, simplified, threshold } = action.payload;
-            console.log(name, simplified, threshold);
             trajectories.caseReducers.setChunks(state, {
                 payload: {
                     newChunks: simplified,

@@ -1,4 +1,4 @@
-import { React, useState, useEffect, memo, useMemo, useCallback } from 'react';
+import { React, useState, useEffect, memo, useMemo, useCallback, useDeferredValue } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 
 import * as d3 from 'd3';
@@ -138,7 +138,7 @@ function ChunkWrapper({
         return { mva, stats };
     }, [mvaPeriod, numLoaded, chunk.timestep, chunk.last]);
 
-    const { stats, mva } = calculations;
+    const { stats, mva } = useDeferredValue(calculations);
 
     useEffect(() => {
         setProgress(numLoaded / states.length);

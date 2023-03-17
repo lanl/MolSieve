@@ -1,4 +1,4 @@
-import { React, useState, useEffect, memo, useMemo } from 'react';
+import { React, useState, useEffect, memo, useMemo, useDeferredValue } from 'react';
 
 import LinearProgress from '@mui/material/LinearProgress';
 import Box from '@mui/material/Box';
@@ -35,7 +35,7 @@ function ViolinPlotWrapper({
     const states = useSelector((state) => getStates(state, chunk.selected));
     const numLoaded = getNumberLoaded(states);
 
-    const boxStats = useMemo(() => {
+    const boxS = useMemo(() => {
         const bpStatDict = {};
         for (const prop of properties) {
             const vals = states.map((d) => d[prop]);
@@ -44,6 +44,8 @@ function ViolinPlotWrapper({
         }
         return bpStatDict;
     }, [numLoaded]);
+
+    const boxStats = useDeferredValue(boxS);
 
     useEffect(() => {
         setProgress(numLoaded / states.length);
