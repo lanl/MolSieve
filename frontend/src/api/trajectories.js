@@ -90,6 +90,7 @@ export const simplifySet = createAsyncThunk('trajectories/simplifySet', async (a
             run: name,
         })
     );
+    dispatch(wsConnect(`${WS_URL}/api/load_properties_for_subset`));
     return { simplified: data.simplified, name, threshold };
 });
 
