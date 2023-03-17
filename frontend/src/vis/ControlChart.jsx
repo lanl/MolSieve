@@ -152,7 +152,7 @@ function ControlChart({
                     ttInstance = undefined;
                 });
         },
-        [yAttributeList.filter((d) => d).length, width, height]
+        [JSON.stringify(yAttributeList), width, height]
     );
 
     return (
