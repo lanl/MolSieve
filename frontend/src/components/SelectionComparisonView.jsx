@@ -77,7 +77,7 @@ function SelectionComparisonView({
         <RemovableBox deleteFunc={deleteFunc} height={475} alignItems="center">
             <Stack>
                 {selections.map((selection) => {
-                    const states = selection.extent.map((d) => stateData.get(d.id));
+                    const states = selection.extent.map((d) => stateData[d.id]);
                     return (
                         <Box
                             onMouseEnter={() =>
@@ -91,7 +91,7 @@ function SelectionComparisonView({
                                 width={205}
                                 height={50}
                                 colorFunc={(d) => {
-                                    const state = stateData.get(d.y);
+                                    const state = stateData[d.y];
                                     return state.color;
                                 }}
                                 margin={{ top: 3, bottom: 2, left: 3, right: 3 }}

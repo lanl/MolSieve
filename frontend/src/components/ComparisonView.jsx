@@ -21,7 +21,7 @@ function ComparisonView({
     const data = selection.map((chunk) => ({
         color: chunk.color,
         id: chunk.id,
-        values: chunk.selected.map((id) => states.get(id)),
+        values: chunk.selected.map((id) => states[id]),
     }));
 
     return (
