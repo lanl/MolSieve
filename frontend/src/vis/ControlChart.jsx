@@ -174,4 +174,4 @@ function ControlChart({
     );
 }
 
-export default memo(ControlChart);
+export default ControlChart;

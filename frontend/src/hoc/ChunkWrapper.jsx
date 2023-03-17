@@ -1,5 +1,5 @@
 import { React, useState, useEffect, memo, useMemo, useCallback } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
+import { useSelector, useDispatch, shallowEqual } from 'react-redux';
 
 import * as d3 from 'd3';
 import { create, all } from 'mathjs';
@@ -374,4 +374,4 @@ function ChunkWrapper({
     );
 }
 
-export default memo(ChunkWrapper);
+export default ChunkWrapper;

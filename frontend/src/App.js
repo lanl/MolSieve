@@ -14,22 +14,16 @@ import AjaxMenu from './components/AjaxMenu';
 import LoadRunModal from './modals/LoadRunModal';
 
 import VisArea from './components/VisArea';
-import {
-    apiLoadTrajectory,
-    apiModifyTrajectory,
-    apiGetScriptProperties,
-    apiGetVisScripts,
-} from './api/ajax';
+import { apiLoadTrajectory, apiGetScriptProperties, apiGetVisScripts } from './api/ajax';
 import ControlDrawer from './components/ControlDrawer';
 import { createUUID } from './api/math/random';
 
 import { calculateGlobalUniqueStates, addProperties } from './api/states';
-import { addTrajectory, simplifySet } from './api/trajectories';
+import { addTrajectory, simplifySet, recluster } from './api/trajectories';
 
 import { wsConnect } from './api/websocketmiddleware';
 
 import WebSocketManager from './api/websocketmanager';
-import ColorManager from './api/colormanager';
 
 import { WS_URL, API_URL } from './api/constants';
 
@@ -47,7 +41,6 @@ class App extends React.Component {
             drawerOpen: false,
             run: null,
             trajectories: {},
-            colors: new ColorManager(),
             properties: [],
             visScripts: [],
         };
@@ -91,37 +84,20 @@ class App extends React.Component {
      *  @param {string} run - Run to recalculate the clustering for
      *  @param {number} clusters - Number of clusters to split the trajectory into.
      */
-    recalculate_clustering = (run, clusters) =>
-        // first check if the state has that clustering already calculated
-        new Promise((resolve, reject) => {
-            const { trajectories, colors } = this.state;
-            const { chunkingThreshold } = trajectories[run];
-            WebSocketManager.clear(run);
-
-            const { enqueueSnackbar } = this.props;
-            enqueueSnackbar(`Recalculating clustering for trajectory ${run}...`);
-
-            apiModifyTrajectory(run, clusters, chunkingThreshold)
-                .then((data) => {
-                    const currentTraj = trajectories[run];
-                    const newColors = colors.request_colors(
-                        clusters - currentTraj.current_clustering
-                    );
-                    currentTraj.current_clustering = clusters;
-                    currentTraj.simplifySet(data.simplified);
-                    currentTraj.add_colors(newColors);
-                    this.setState(
-                        { trajectories: { ...trajectories, [run]: currentTraj }, colors },
-                        () => {
-                            enqueueSnackbar(`Clustering recalculated for trajectory ${run}...`);
-                            resolve();
-                        }
-                    );
-                })
+    recalculate_clustering = (name, clusters) => {
+        return new Promise((_, reject) => {
+            const { enqueueSnackbar, dispatch } = this.props;
+            enqueueSnackbar(`Recalculating clustering for trajectory ${name}...`);
+            dispatch(recluster({ name, clusters }))
+                .unwrap()
                 .catch((e) => {
+                    enqueueSnackbar(`Reclustering trajectory ${name} failed: ${e.message}`, {
+                        variant: 'error',
+                    });
                     reject(e);
                 });
         });
+    };
 
     /**
      *  Creates a new trajectory object and populates it with data from the database
@@ -139,16 +115,12 @@ class App extends React.Component {
             .then((data) => {
                 const { current_clustering: currentClustering, simplified, uniqueStates } = data;
 
-                const { colors } = this.state;
-
                 dispatch(
                     calculateGlobalUniqueStates({
                         newUniqueStates: uniqueStates,
                         run,
                     })
                 );
-
-                const trajColors = colors.request_colors(currentClustering);
 
                 dispatch(
                     addTrajectory({
@@ -157,34 +129,21 @@ class App extends React.Component {
                         chunkingThreshold,
                         currentClustering,
                         newChunks: simplified,
-                        colors: trajColors,
                     })
                 );
 
-                WebSocketManager.addKey(run);
-                this.setState(
-                    {
-                        colors,
-                    },
-                    () => {
-                        dispatch(wsConnect(`${WS_URL}/api/load_properties_for_subset`));
-                        enqueueSnackbar(`Trajectory ${run} successfully loaded.`);
-                    }
-                );
+                dispatch(wsConnect(`${WS_URL}/api/load_properties_for_subset`));
+                enqueueSnackbar(`Trajectory ${run} successfully loaded.`);
             })
             .catch((e) => alert(`${e}`));
     };
 
     simplifySet = (run, threshold) => {
-        // WebSocketManager.clear(run);
-
         const { enqueueSnackbar, dispatch } = this.props;
 
         enqueueSnackbar(`Re-simplifying trajectory ${run}...`);
-
         dispatch(simplifySet({ name: run, threshold }));
         enqueueSnackbar(`Sequence re-simplified for trajectory ${run}.`);
-        dispatch(wsConnect(`${WS_URL}/api/load_properties_for_subset`));
     };
 
     toggleDrawer = () => {

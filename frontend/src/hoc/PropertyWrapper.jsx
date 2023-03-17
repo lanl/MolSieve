@@ -1,4 +1,4 @@
-import { React, memo } from 'react';
+import { React } from 'react';
 import { useSelector } from 'react-redux';
 
 import { getGlobalScale } from '../api/states';
@@ -15,4 +15,4 @@ function PropertyWrapper({ property, children }) {
     return <>{children(min, max)}</>;
 }
 
-export default memo(PropertyWrapper);
+export default PropertyWrapper;

@@ -14,7 +14,7 @@ import Divider from '@mui/material/Divider';
 import Typography from '@mui/material/Typography';
 import Slider from '@mui/material/Slider';
 
-export default function TrajectoryControls({ name, simplifySet }) {
+export default function TrajectoryControls({ name, simplifySet, recalculateClustering }) {
     const initThreshold = useSelector((state) => state.trajectories.values[name].chunkingThreshold);
     const initClustering = useSelector(
         (state) => state.trajectories.values[name].currentClustering
@@ -22,6 +22,7 @@ export default function TrajectoryControls({ name, simplifySet }) {
     const [chunkingThreshold, setChunkingThreshold] = useState(initThreshold);
     const [currentClustering, setCurrentClustering] = useState(initClustering);
 
+    // recalculate clustering should reset on failure
     return (
         <Accordion disableGutters key={name}>
             <AccordionSummary expandIcon={<ExpandMoreIcon />}>
@@ -41,7 +42,9 @@ export default function TrajectoryControls({ name, simplifySet }) {
                             min={2}
                             max={20}
                             onChangeCommitted={(_, v) => {
-                                thisRecalculateClustering(run, v);
+                                recalculateClustering(name, v).catch(() =>
+                                    setCurrentClustering(initClustering)
+                                );
                             }}
                             valueLabelDisplay="auto"
                             onChange={(e) => {

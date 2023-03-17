@@ -1,10 +1,13 @@
 import { createSlice, createAsyncThunk, createSelector } from '@reduxjs/toolkit';
+import * as d3 from 'd3';
 import Chunk from './chunk';
 import { calculateGlobalUniqueStates } from './states';
 import { apiModifyTrajectory } from './ajax';
 import { getNeighbors } from './myutils';
 import { WS_URL } from './constants';
 import { wsConnect } from './websocketmiddleware';
+
+const clusterColors = [...d3.schemeTableau10, ...d3.schemeAccent];
 
 // functions that you can call on the trajectories dictionary
 // no trajectories object because that would make it harder for react to diff
@@ -82,8 +85,8 @@ export const simplifySet = createAsyncThunk('trajectories/simplifySet', async (a
     const { getState, dispatch } = thunkAPI;
     const state = getState();
 
-    const trajectory = state.trajectories.values[name];
-    const data = await apiModifyTrajectory(name, trajectory.currentClustering, threshold);
+    const trajectory = state.trajectories.values[name].currentClustering;
+    const data = await apiModifyTrajectory(name, trajectory, threshold);
     dispatch(
         calculateGlobalUniqueStates({
             newUniqueStates: data.uniqueStates,
@@ -92,6 +95,24 @@ export const simplifySet = createAsyncThunk('trajectories/simplifySet', async (a
     );
     dispatch(wsConnect(`${WS_URL}/api/load_properties_for_subset`));
     return { simplified: data.simplified, name, threshold };
+});
+
+export const recluster = createAsyncThunk('trajectories/recluster', async (args, thunkAPI) => {
+    const { name, clusters } = args;
+    const { getState, dispatch } = thunkAPI;
+
+    const state = getState();
+    const threshold = state.trajectories.values[name].chunkingThreshold;
+
+    const data = await apiModifyTrajectory(name, clusters, threshold);
+    dispatch(
+        calculateGlobalUniqueStates({
+            newUniqueStates: data.uniqueStates,
+            run: name,
+        })
+    );
+    dispatch(wsConnect(`${WS_URL}/api/load_properties_for_subset`));
+    return { simplified: data.simplfied, name, currentClustering: clusters };
 });
 
 export const expand = createAsyncThunk('trajectories/expand', async (args, thunkAPI) => {
@@ -163,14 +184,14 @@ export const trajectories = createSlice({
     },
     reducers: {
         addTrajectory: (state, action) => {
-            const { name, id, chunkingThreshold, currentClustering, newChunks, colors } =
-                action.payload;
+            const { name, id, chunkingThreshold, currentClustering, newChunks } = action.payload;
+
+            const colors = clusterColors.splice(0, currentClustering);
             const { values, names } = state;
             names.push(name);
             values[name] = {
                 id,
                 name,
-                currentClustering,
                 colors,
                 chunkList: [],
             };
@@ -179,6 +200,7 @@ export const trajectories = createSlice({
                     newChunks,
                     trajectoryName: name,
                     chunkingThreshold,
+                    currentClustering,
                 },
             });
         },
@@ -191,7 +213,8 @@ export const trajectories = createSlice({
             names[bIdx] = a;
         },
         setChunks: (state, action) => {
-            const { newChunks, trajectoryName, chunkingThreshold } = action.payload;
+            const { newChunks, trajectoryName, chunkingThreshold, currentClustering } =
+                action.payload;
             const { chunks, values } = state;
             const trajectory = values[trajectoryName];
             const chunkList = [];
@@ -215,7 +238,12 @@ export const trajectories = createSlice({
             }
             values[trajectoryName].length = lastTimestep;
             values[trajectoryName].extents = [0, lastTimestep];
-            values[trajectoryName].chunkingThreshold = chunkingThreshold;
+            if (chunkingThreshold !== undefined && chunkingThreshold !== null) {
+                values[trajectoryName].chunkingThreshold = chunkingThreshold;
+            }
+            if (currentClustering !== undefined && currentClustering !== null) {
+                values[trajectoryName].currentClustering = currentClustering;
+            }
             values[trajectoryName].chunkList = chunkList;
         },
         setZoom: (state, action) => {
@@ -232,6 +260,19 @@ export const trajectories = createSlice({
                     newChunks: simplified,
                     trajectoryName: name,
                     chunkingThreshold: threshold,
+                },
+            });
+        });
+        builder.addCase(recluster.fulfilled, (state, action) => {
+            const { name, simplified, clusters } = action.payload;
+            const { values } = state;
+            const colors = clusterColors.splice(0, clusters);
+            values[name].colors = [...values[name].colors, colors];
+            trajectories.caseReducers.setChunks(state, {
+                payload: {
+                    newChunks: simplified,
+                    trajectoryName: name,
+                    currentClustering: clusters,
                 },
             });
         });

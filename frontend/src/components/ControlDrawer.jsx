@@ -34,15 +34,6 @@ function ControlDrawer({
         setRuns({ ...runs, [name]: run });
     };
 
-    const thisRecalculateClustering = async (run, value) => {
-        try {
-            await recalculateClustering(run, value);
-        } catch (e) {
-            updateRun(run, 'current_clustering', trajectories[run].current_clustering);
-            alert(e);
-        }
-    };
-
     // we want persistent because it doesn't draw a backdrop & its state is saved between opening and closing it
     return (
         <Drawer
@@ -77,7 +68,11 @@ function ControlDrawer({
                     }}
                 </ChartBox>
                 {trajectoryNames.map((name) => (
-                    <TrajectoryControls name={name} simplifySet={simplifySet} />
+                    <TrajectoryControls
+                        name={name}
+                        simplifySet={simplifySet}
+                        recalculateClustering={recalculateClustering}
+                    />
                 ))}
             </Container>
         </Drawer>
