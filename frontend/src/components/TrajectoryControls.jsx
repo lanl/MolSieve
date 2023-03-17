@@ -1,4 +1,5 @@
 import { React, useState } from 'react';
+import { useSelector } from 'react-redux';
 
 import List from '@mui/material/List';
 
@@ -14,8 +15,12 @@ import Typography from '@mui/material/Typography';
 import Slider from '@mui/material/Slider';
 
 export default function TrajectoryControls({ name, simplifySet }) {
-    const [chunkingThreshold, setChunkingThreshold] = useState(0.75);
-    const [currentClustering, setCurrentClustering] = useState(2);
+    const initThreshold = useSelector((state) => state.trajectories.values[name].chunkingThreshold);
+    const initClustering = useSelector(
+        (state) => state.trajectories.values[name].currentClustering
+    );
+    const [chunkingThreshold, setChunkingThreshold] = useState(initThreshold);
+    const [currentClustering, setCurrentClustering] = useState(initClustering);
 
     return (
         <Accordion disableGutters key={name}>
