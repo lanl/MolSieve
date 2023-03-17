@@ -1,5 +1,5 @@
 import { React, useState, useEffect, memo, useMemo, useCallback } from 'react';
-import { useSelector, useDispatch, shallowEqual } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 
 import * as d3 from 'd3';
 import { create, all } from 'mathjs';
@@ -136,7 +136,7 @@ function ChunkWrapper({
             stats[prop] = { std, mean };
         }
         return { mva, stats };
-    }, [mvaPeriod, numLoaded, chunk.timestep, chunk.last, JSON.stringify(states)]);
+    }, [mvaPeriod, numLoaded, chunk.timestep, chunk.last]);
 
     const { stats, mva } = calculations;
 
@@ -189,7 +189,7 @@ function ChunkWrapper({
             }
             setTDict(combos);
         }
-    }, [JSON.stringify(propertyCombos), JSON.stringify(stats)]);
+    }, [propertyCombos.length]);
 
     const controlChartHeight =
         (height - scatterplotHeight) / (ranks.length + Object.keys(tDict).length);
@@ -227,30 +227,33 @@ function ChunkWrapper({
         [startExtent, endExtent, width]
     );
 
-    const chartControls = useMemo(() => (
-        <Box width={width} display="flex" alignItems="center" gap={1}>
-            <Tooltip title="Zoom into region">
-                <IconButton onClick={() => setZoom([chunk.timestep, chunk.last])}>
-                    <ZoomInMapIcon />
-                </IconButton>
-            </Tooltip>
-            <Slider
-                min={2}
-                defaultValue={Math.min(Math.trunc(chunk.sequence.length / 4), 100)}
-                max={Math.trunc(chunk.sequence.length / 4)}
-                step={1}
-                size="small"
-                onChangeCommitted={(_, v) => setMvaPeriod(v)}
-            />
-            <Tooltip title="Moving average period" arrow>
-                <Typography variant="caption">{mvaPeriod}</Typography>
-            </Tooltip>
-        </Box>
-    ));
+    const chartControls = useMemo(
+        () => (
+            <Box width={width} display="flex" alignItems="center" gap={1}>
+                <Tooltip title="Zoom into region">
+                    <IconButton onClick={() => setZoom([chunk.timestep, chunk.last])}>
+                        <ZoomInMapIcon />
+                    </IconButton>
+                </Tooltip>
+                <Slider
+                    min={2}
+                    defaultValue={Math.min(Math.trunc(chunk.sequence.length / 4), 100)}
+                    max={Math.trunc(chunk.sequence.length / 4)}
+                    step={1}
+                    size="small"
+                    onChangeCommitted={(_, v) => setMvaPeriod(v)}
+                />
+                <Tooltip title="Moving average period" arrow>
+                    <Typography variant="caption">{mvaPeriod}</Typography>
+                </Tooltip>
+            </Box>
+        ),
+        []
+    );
 
     const colorFunc = useCallback(
         (d) => stateMap[d],
-        [colorByStateCluster, chunk.timestep, chunk.last, JSON.stringify(stateMap)]
+        [colorByStateCluster, chunk.timestep, chunk.last]
     );
 
     return (

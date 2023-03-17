@@ -43,28 +43,20 @@ function ControlChart({
         [globalScaleMin, globalScaleMax, height]
     );
 
-    const colorPath = (svg, line, color, filterFunc) => {
+    const colorPath = (svg, color, filterFunc) => {
+        const area = d3
+            .area()
+            .x((_, i) => scaleX(i))
+            .y0(scaleY(globalScaleMin))
+            .y1((d) => scaleY(d))
+            .defined((d) => filterFunc(d));
+
         svg.append('path')
             .datum(yAttributeList)
-            .attr('d', line)
             .attr('stroke', color)
             .attr('fill', color)
-            .attr(
-                'd',
-                d3
-                    .area()
-                    .x((_, i) => scaleX(i))
-                    .y0(scaleY(globalScaleMin))
-                    .y1((d) => scaleY(d))
-                    .defined((d) => filterFunc(d))
-            );
+            .attr('d', area);
     };
-
-    const line = d3
-        .line()
-        .x((_, i) => scaleX(i))
-        .y((d) => scaleY(d))
-        .curve(d3.curveCatmullRom.alpha(0.5));
 
     const ref = useTrajectoryChartRender(
         (svg) => {
@@ -88,17 +80,17 @@ function ControlChart({
             const { posDiff, negDiff, noDiff } = colors;
 
             if (ucl && !lcl) {
-                colorPath(svg, line, posDiff, (d) => ucl <= d);
-                colorPath(svg, line, noDiff, (d) => ucl > d);
+                colorPath(svg, posDiff, (d) => ucl <= d);
+                colorPath(svg, noDiff, (d) => ucl > d);
             } else if (lcl && !ucl) {
-                colorPath(svg, line, negDiff, (d) => lcl >= d);
-                colorPath(svg, line, noDiff, (d) => lcl < d);
+                colorPath(svg, negDiff, (d) => lcl >= d);
+                colorPath(svg, noDiff, (d) => lcl < d);
             } else if (ucl && lcl) {
-                colorPath(svg, line, noDiff, (d) => lcl < d && ucl > d);
-                colorPath(svg, line, posDiff, (d) => ucl <= d);
-                colorPath(svg, line, negDiff, (d) => lcl >= d);
+                colorPath(svg, noDiff, (d) => lcl < d && ucl > d);
+                colorPath(svg, posDiff, (d) => ucl <= d);
+                colorPath(svg, negDiff, (d) => lcl >= d);
             } else {
-                colorPath(svg, line, noDiff, () => true);
+                colorPath(svg, noDiff, () => true);
             }
 
             if (showMedian) {
