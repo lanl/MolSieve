@@ -191,7 +191,7 @@ class Trajectory:
                 selected = [*top, *random_selection]
                 characteristic_state = top[0]
                 if not important:
-                    sequence = selected
+                    sequence = []
 
                 chunk = {
                     "timestep": first,

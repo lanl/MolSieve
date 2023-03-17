@@ -146,7 +146,7 @@ export const states = createSlice({
             }
 
             for (const property of properties) {
-                if (prop[property]) {
+                if (prop[property] !== undefined && prop[property] !== null) {
                     globalScale[property] = {
                         min: Math.min(globalScale[property].min, prop[property]),
                         max: Math.max(globalScale[property].max, prop[property]),
