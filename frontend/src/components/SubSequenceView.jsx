@@ -51,10 +51,7 @@ function SubSequenceView({
 
     const ws = useRef(null);
 
-    const states = useSelector(
-        (state) => getStates(state, stateIDs)
-        // (oldStates, newStates) => getNumberLoaded(oldStates) === getNumberLoaded(newStates)
-    );
+    const states = useSelector((state) => getStates(state, stateIDs));
     const globalScale = useSelector((state) => state.states.globalScale);
 
     const stateMap = useMemo(
@@ -247,6 +244,7 @@ function SubSequenceView({
                     id: d,
                     timestep: timesteps[i],
                 }))}
+                stateMap={stateMap}
                 submit={addNEB}
             />
         </>

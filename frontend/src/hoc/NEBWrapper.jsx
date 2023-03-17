@@ -1,4 +1,5 @@
 import { React, useEffect, useReducer } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 
 import { useSnackbar } from 'notistack';
 import * as d3 from 'd3';
@@ -6,9 +7,10 @@ import Scatterplot from '../vis/Scatterplot';
 import { apiCalculateNEB, onMessageHandler } from '../api/ajax';
 import { WS_URL } from '../api/constants';
 
+import { calculateGlobalUniqueStates } from '../api/states';
+
 export default function NEBWrapper({
     trajectoryName,
-    // stateIDs,
     start,
     end,
     interpolate,
@@ -18,13 +20,15 @@ export default function NEBWrapper({
     setActiveState,
 }) {
     const { enqueueSnackbar } = useSnackbar();
+    const dispatch = useDispatch();
+    const states = useSelector((state) => state.states.values);
 
     const [results, reduceResults] = useReducer(
         (state, action) => {
             switch (action.type) {
                 case 'update': {
                     const { id, energy, timestep } = action.payload;
-                    States.calculateGlobalUniqueStates([id], 'NEB');
+                    dispatch(calculateGlobalUniqueStates({ newUniqueStates: [id], run: 'NEB' }));
                     return { values: [...state.values, { id, energy, timestep }] };
                 }
                 case 'clear': {
@@ -82,7 +86,7 @@ export default function NEBWrapper({
             }}
             colorFunc={(d) => {
                 if (d.id) {
-                    const state = States.get(d.id);
+                    const state = states[d.id];
                     return state.color;
                 }
                 return 'black';

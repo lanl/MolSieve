@@ -15,10 +15,9 @@ import * as d3 from 'd3';
 import '../css/App.css';
 import Scatterplot from '../vis/Scatterplot';
 
-import { onEntityMouseOver } from '../api/myutils';
 /* import { onMessageHandler, apiCalculateNEB } from '../api/ajax'; */
 
-export default function NEBModal({ states, close, open, submit }) {
+export default function NEBModal({ states, stateMap, close, open, submit }) {
     const [interpolate, setInterpolate] = useState(3);
     const [maxSteps, setMaxSteps] = useState(250);
     const [fmax, setFMax] = useState(0.1);
@@ -34,12 +33,8 @@ export default function NEBModal({ states, close, open, submit }) {
                         width={375}
                         height={200}
                         colorFunc={(d) => {
-                            const state = States.get(d.y);
+                            const state = stateMap[d.y];
                             return state.color;
-                        }}
-                        onElementMouseOver={(node, d) => {
-                            const state = States.get(d.y);
-                            onEntityMouseOver(node, state);
                         }}
                         xAttributeList={[...Array(states.length).keys()]}
                         yAttributeList={states.map((d) => d.id)}
