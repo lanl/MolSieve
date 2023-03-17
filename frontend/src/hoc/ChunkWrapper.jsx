@@ -227,30 +227,26 @@ function ChunkWrapper({
         [startExtent, endExtent, width]
     );
 
-    // seems off
-    const chartControls = useMemo(
-        () => (
-            <Box width={width} display="flex" alignItems="center" gap={1}>
-                <Tooltip title="Zoom into region">
-                    <IconButton onClick={() => setZoom([chunk.timestep, chunk.last])}>
-                        <ZoomInMapIcon />
-                    </IconButton>
-                </Tooltip>
-                <Slider
-                    min={2}
-                    defaultValue={Math.min(Math.trunc(slicedChunk.sequence.length / 4), 100)}
-                    max={Math.trunc(slicedChunk.sequence.length / 4)}
-                    step={1}
-                    size="small"
-                    onChangeCommitted={(_, v) => setMvaPeriod(v)}
-                />
-                <Tooltip title="Moving average period" arrow>
-                    <Typography variant="caption">{mvaPeriod}</Typography>
-                </Tooltip>
-            </Box>
-        ),
-        [slicedChunk.timestep, slicedChunk.last, mvaPeriod]
-    );
+    const chartControls = useMemo(() => (
+        <Box width={width} display="flex" alignItems="center" gap={1}>
+            <Tooltip title="Zoom into region">
+                <IconButton onClick={() => setZoom([chunk.timestep, chunk.last])}>
+                    <ZoomInMapIcon />
+                </IconButton>
+            </Tooltip>
+            <Slider
+                min={2}
+                defaultValue={Math.min(Math.trunc(chunk.sequence.length / 4), 100)}
+                max={Math.trunc(chunk.sequence.length / 4)}
+                step={1}
+                size="small"
+                onChangeCommitted={(_, v) => setMvaPeriod(v)}
+            />
+            <Tooltip title="Moving average period" arrow>
+                <Typography variant="caption">{mvaPeriod}</Typography>
+            </Tooltip>
+        </Box>
+    ));
 
     const colorFunc = useCallback(
         (d) => stateMap[d],
@@ -374,4 +370,4 @@ function ChunkWrapper({
     );
 }
 
-export default ChunkWrapper;
+export default memo(ChunkWrapper);
