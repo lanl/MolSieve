@@ -1,19 +1,12 @@
-import { React, useEffect, memo, useMemo, startTransition } from 'react';
+import { React, useEffect, memo, useMemo } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import * as d3 from 'd3';
-import {
-    selectTrajectory,
-    getVisibleChunks,
-    setZoom,
-    expand,
-    getUnimportantChunkList,
-} from '../api/trajectories';
+import { selectTrajectory, getVisibleChunks, setZoom, expand } from '../api/trajectories';
 
 import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
 import ChunkWrapper from '../hoc/ChunkWrapper';
 import ViolinPlotWrapper from '../hoc/ViolinPlotWrapper';
 
-import useRanks from '../hooks/useRanks';
 import { abbreviate } from '../api/myutils';
 import '../css/vis.css';
 
@@ -42,13 +35,10 @@ function TrajectoryChart({
     scatterplotHeight = 50,
 }) {
     const trajectory = useSelector((state) => selectTrajectory(state, trajectoryName));
-    const uChunkIDList = useSelector((state) =>
-        getUnimportantChunkList(state, trajectoryName).map((d) => d.id)
-    );
     const dispatch = useDispatch();
     const setZoomCallback = (extents) => dispatch(setZoom({ name: trajectoryName, extents }));
 
-    const { extents } = trajectory;
+    const { extents, ranks } = trajectory;
     const topChunkList = useSelector((state) => getVisibleChunks(state, trajectoryName));
 
     const ref = useTrajectoryChartRender((svg) => {
@@ -59,12 +49,6 @@ function TrajectoryChart({
         }
     }, []);
 
-    const { ranks, reduceRanks } = useRanks(properties, uChunkIDList);
-
-    const updateRanks = (values, id) => {
-        reduceRanks({ type: 'updateValues', payload: { values, id } });
-    };
-
     useEffect(() => {
         if (ref) {
             d3.select(ref.current).select('.rankList').remove();
@@ -73,7 +57,7 @@ function TrajectoryChart({
             const propertyComboText = propertyCombos.map((combo) => combo.properties.join('+'));
             const textRanks = rankList
                 .selectAll('text')
-                .data([...ranks.ordered.slice(0, showTop), ...propertyComboText]);
+                .data([...ranks.slice(0, showTop), ...propertyComboText]);
 
             const controlChartHeight =
                 (height - scatterplotHeight) / (propertyCombos.length + showTop);
@@ -89,7 +73,7 @@ function TrajectoryChart({
 
             textRanks.exit().remove();
         }
-    }, [JSON.stringify(ranks.ordered), ref, showTop, JSON.stringify(propertyCombos), height]);
+    }, [JSON.stringify(ranks), ref, showTop, JSON.stringify(propertyCombos), height]);
 
     const scales = useMemo(() => {
         const iChunks = topChunkList.filter((d) => d.important);
@@ -137,10 +121,7 @@ function TrajectoryChart({
     }, [JSON.stringify(topChunkList), width]);
 
     // here we can filter out the un-rendered charts right away since we only care about rendering here
-    const cutRanks = useMemo(
-        () => ranks.ordered.slice(0, showTop),
-        [showTop, JSON.stringify(ranks.ordered)]
-    );
+    const cutRanks = useMemo(() => ranks.slice(0, showTop), [showTop, JSON.stringify(ranks)]);
 
     return (
         <svg
@@ -202,7 +183,6 @@ function TrajectoryChart({
                                 chunk={chunk}
                                 width={chartW}
                                 height={h} // to accomodate for no scatterplot
-                                updateRanks={updateRanks}
                                 selectObject={selectObject}
                                 selectedObjects={selectedObjects}
                                 chunkSelectionMode={chunkSelectionMode}

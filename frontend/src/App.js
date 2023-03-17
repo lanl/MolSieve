@@ -113,6 +113,7 @@ class App extends React.Component {
 
         apiLoadTrajectory(run, mMin, mMax, chunkingThreshold)
             .then((data) => {
+                const { properties } = this.state;
                 const { current_clustering: currentClustering, simplified, uniqueStates } = data;
 
                 dispatch(
@@ -129,6 +130,7 @@ class App extends React.Component {
                         chunkingThreshold,
                         currentClustering,
                         newChunks: simplified,
+                        properties,
                     })
                 );
 

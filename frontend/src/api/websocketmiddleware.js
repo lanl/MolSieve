@@ -1,4 +1,5 @@
 import { addPropToStates } from './states';
+import { updateRanks } from './trajectories';
 
 export const wsConnect = (host) => ({ type: 'WS_CONNECT', host });
 export const wsConnecting = (host) => ({ type: 'WS_CONNECTING', host });
@@ -43,6 +44,10 @@ const socketMiddleware = () => {
     const onMessage = (store) => (event) => {
         const payload = JSON.parse(event.data);
         store.dispatch(addPropToStates(payload));
+
+        const state = store.getState();
+        const { values } = state.states;
+        store.dispatch(updateRanks({states : values}));
     };
 
     // the middleware part of this function

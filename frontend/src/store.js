@@ -13,6 +13,7 @@ export default configureStore({
         websocketmiddleware,
         ...getDefaultMiddleware({
             serializableCheck: {
+                ignoredActions: ['trajectories/updateRanks'],
                 ignoredPaths: ['states.values', 'trajectories.values', 'trajectories.chunks'],
             },
         }),

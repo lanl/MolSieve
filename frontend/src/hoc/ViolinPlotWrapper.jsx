@@ -1,4 +1,4 @@
-import { React, useState, useEffect, memo, useMemo, startTransition } from 'react';
+import { React, useState, useEffect, memo, useMemo } from 'react';
 
 import LinearProgress from '@mui/material/LinearProgress';
 import Box from '@mui/material/Box';
@@ -22,7 +22,6 @@ function ViolinPlotWrapper({
     height,
     width,
     properties,
-    updateRanks,
     selectObject,
     ranks,
     chunkSelectionMode,
@@ -36,21 +35,15 @@ function ViolinPlotWrapper({
     const states = useSelector((state) => getStates(state, chunk.selected));
     const numLoaded = getNumberLoaded(states);
 
-    const { boxStats, rankDict } = useMemo(() => {
+    const boxStats = useMemo(() => {
         const bpStatDict = {};
-        const rd = {};
         for (const prop of properties) {
             const vals = states.map((d) => d[prop]);
             const bpStats = boxPlotStats(vals);
             bpStatDict[prop] = bpStats;
-            rd[prop] = vals;
         }
-        return { boxStats: bpStatDict, rankDict: rd };
+        return bpStatDict;
     }, [numLoaded]);
-
-    useEffect(() => {
-        startTransition(() => updateRanks(rankDict, chunk.id));
-    }, [JSON.stringify(rankDict)]);
 
     useEffect(() => {
         setProgress(numLoaded / states.length);

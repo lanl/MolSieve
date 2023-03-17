@@ -3,7 +3,9 @@ import * as d3 from 'd3';
 import Chunk from './chunk';
 import { calculateGlobalUniqueStates } from './states';
 import { apiModifyTrajectory } from './ajax';
-import { getNeighbors } from './myutils';
+import { getNeighbors, buildDictFromArray, normalizeDict } from './myutils';
+import { zTest } from './math/stats';
+
 import { WS_URL } from './constants';
 import { wsConnect } from './websocketmiddleware';
 
@@ -197,7 +199,8 @@ export const trajectories = createSlice({
     },
     reducers: {
         addTrajectory: (state, action) => {
-            const { name, id, chunkingThreshold, currentClustering, newChunks } = action.payload;
+            const { name, id, chunkingThreshold, currentClustering, newChunks, properties } =
+                action.payload;
 
             const colors = clusterColors.splice(0, currentClustering);
             const { values, names } = state;
@@ -207,6 +210,7 @@ export const trajectories = createSlice({
                 name,
                 colors,
                 chunkList: [],
+                ranks: [...properties],
             };
             trajectories.caseReducers.setChunks(state, {
                 payload: {
@@ -264,10 +268,41 @@ export const trajectories = createSlice({
             const { values } = state;
             values[name].extents = extents;
         },
+        updateRanks: (state, action) => {
+            // pass in entire chunkList
+            const { states } = action.payload;
+            const { values, chunks } = state;
+
+            for (const trajectory of Object.values(values)) {
+                const { ranks, chunkList } = trajectory;
+                const uChunks = chunkList.map((id) => chunks[id]).filter((c) => !c.important);
+                const zScores = buildDictFromArray(ranks, []);
+                for (let i = 0; i < uChunks.length - 1; i++) {
+                    const curr = uChunks[i];
+                    const next = uChunks[i + 1];
+                    for (const prop of ranks) {
+                        const currValues = curr.selected.map((d) => states[d]).map((d) => d[prop]);
+                        const nextValues = next.selected.map((d) => states[d]).map((d) => d[prop]);
+                        zScores[prop] = [...zScores[prop], Math.abs(zTest(currValues, nextValues))];
+                    }
+                }
+                // for each property, calculate the zScore
+                const newRanks = Object.keys(zScores)
+                    .map((prop) => ({
+                        [prop]: zScores[prop].reduce((acc, v) => acc + v, 0),
+                    }))
+                    .reduce((acc, arr) => ({ ...acc, ...arr }), {});
+
+                trajectory.ranks = Object.entries(normalizeDict(newRanks, [0, 1]))
+                    .sort((a, b) => a[1] < b[1])
+                    .map((d) => d[0]);
+            }
+        },
     },
     extraReducers: (builder) => {
         builder.addCase(simplifySet.fulfilled, (state, action) => {
             const { name, simplified, threshold } = action.payload;
+            console.log(name, simplified, threshold);
             trajectories.caseReducers.setChunks(state, {
                 payload: {
                     newChunks: simplified,
@@ -336,6 +371,7 @@ export const trajectories = createSlice({
     },
 });
 
-export const { addTrajectory, setChunks, setZoom, swapPositions } = trajectories.actions;
+export const { addTrajectory, setChunks, setZoom, swapPositions, updateRanks } =
+    trajectories.actions;
 
 export default trajectories.reducer;
