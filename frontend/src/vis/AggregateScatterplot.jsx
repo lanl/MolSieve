@@ -1,4 +1,4 @@
-import { React, useState, useEffect, memo } from 'react';
+import { React, useState, useEffect, memo, startTransition } from 'react';
 
 import * as d3 from 'd3';
 import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
@@ -16,26 +16,28 @@ function AggregateScatterplot({
     const [data, setData] = useState(null);
 
     useEffect(() => {
-        const chunkSize = yAttributeList.length / 10;
-        const chunks = [];
+        startTransition(() => {
+            const chunkSize = yAttributeList.length / 10;
+            const chunks = [];
 
-        for (let i = 0; i < yAttributeList.length; i += chunkSize) {
-            const chunk = yAttributeList.slice(i, i + chunkSize);
-            const dist = distributionDict(chunk);
+            for (let i = 0; i < yAttributeList.length; i += chunkSize) {
+                const chunk = yAttributeList.slice(i, i + chunkSize);
+                const dist = distributionDict(chunk);
 
-            const uniqueStates = [...new Set(chunk)];
-            const threshold = 1 / uniqueStates.length;
+                const uniqueStates = [...new Set(chunk)];
+                const threshold = 1 / uniqueStates.length;
 
-            const majority = [];
-            for (const e of Object.keys(dist)) {
-                if (dist[e] > threshold) {
-                    majority.push(parseInt(e, 10));
+                const majority = [];
+                for (const e of Object.keys(dist)) {
+                    if (dist[e] > threshold) {
+                        majority.push(parseInt(e, 10));
+                    }
                 }
+                chunks.push(majority.sort());
             }
-            chunks.push(majority.sort());
-        }
 
-        setData(chunks);
+            setData(chunks);
+        });
     }, [JSON.stringify(xAttributeList), JSON.stringify(yAttributeList)]);
 
     const ref = useTrajectoryChartRender(

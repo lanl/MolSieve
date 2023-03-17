@@ -29,11 +29,7 @@ export function hashStringToColor(str) {
 }
 
 export function occurrenceDict(arr) {
-    return arr.reduce((a, c) => {
-        const d = { ...a };
-        d[c] = (d[c] || 0) + 1;
-        return d;
-    }, {});
+    return arr.reduce((a, c) => ((a[c] = (a[c] || 0) + 1), a), {});
 }
 
 export function distributionDict(arr) {
