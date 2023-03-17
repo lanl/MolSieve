@@ -50,12 +50,10 @@ function TrajectoryChart({
         }
     }, []);
 
-    const { ranks, reduceRanks } = useRanks(properties, topChunkList);
+    const { ranks, reduceRanks } = useRanks(properties, trajectory.chunkList);
 
     const updateRanks = (values, id) => {
-        startTransition(() => {
-            reduceRanks({ type: 'updateValues', payload: { values, id } });
-        });
+        reduceRanks({ type: 'updateValues', payload: { values, id } });
     };
 
     useEffect(() => {
