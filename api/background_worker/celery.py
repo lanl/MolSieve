@@ -238,7 +238,7 @@ def subset_connectivity_difference(stateIDs: List[int]):
         result = calculator.max_connectivity_difference(
             connectivity_list[0][1], connectivity_list[1:]
         )
-        if result["id"] is not None and result["id"] not in maximum_difference and result["id"] not in stateIDs:
+        if result["id"] is not None and result["id"] not in maximum_difference:
             maximum_difference.append(result["id"])
 
             current_task.update_state(state="PROGRESS")
