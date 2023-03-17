@@ -60,7 +60,7 @@ function SubSequenceView({
     const stateMap = useMemo(
         () =>
             states.reduce((acc, v) => {
-                acc[v.id] = { individualColor: v.individualColor };
+                acc[v.id] = { color: v.color };
                 return acc;
             }, {}),
         []
@@ -68,7 +68,7 @@ function SubSequenceView({
 
     const colorFunc = useCallback((d) => {
         const state = stateMap[d.y];
-        return state.individualColor;
+        return state.color;
     }, []);
 
     useEffect(() => {

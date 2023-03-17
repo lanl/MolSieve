@@ -77,12 +77,12 @@ export const ensureSubsetHasProperty = (state, property, subset) => {
 };
 
 const selectStateStore = (state) => state.states.values;
-export const getState = (state, id) => state.states.values.get(id);
+export const getState = (state, id) => state.states.values[id];
 export const getGlobalScale = (state, property) => state.states.globalScale[property];
 
 export const getStates = createSelector(
     [selectStateStore, (_, stateIDList) => stateIDList],
-    (values, stateIDList) => stateIDList.map((id) => values.get(id))
+    (values, stateIDList) => stateIDList.map((id) => values[id])
 );
 
 export const getPropList = (state, stateList, property, range) => {
@@ -91,16 +91,14 @@ export const getPropList = (state, stateList, property, range) => {
         usedStates = stateList.slice(range[0], range[1]);
     }
 
-    const stateSequence = usedStates.map((id) => state.values.get(id));
+    const stateSequence = usedStates.map((id) => state.values[id]);
     return stateSequence.map((d) => d[property]);
 };
 
-// immutable.js if need map
-// should have globalScale as part of it
 export const states = createSlice({
     name: 'states',
     initialState: {
-        values: new Map(),
+        values: {},
         properties: [],
         globalScale: {},
         colorByStateCluster: false,
@@ -140,11 +138,11 @@ export const states = createSlice({
                 throw new Error('Property missing id.');
             }
 
-            if (values.has(id)) {
-                const previous = values.get(id);
-                values.set(id, Object.assign(previous, prop));
+            if (values[id]) {
+                const previous = values[id];
+                values[id] = Object.assign(previous, prop);
             } else {
-                values.set(id, prop);
+                values[id] = prop;
             }
 
             for (const property of properties) {
@@ -165,10 +163,10 @@ export const states = createSlice({
         removePropFromStates: (state, action) => {
             const { values } = state;
             const { prop } = action.payload;
-            for (const s of state.values.values()) {
+            for (const s of Object.values(values)) {
                 if (s[prop] !== undefined && s[prop] !== null) {
                     delete s[prop];
-                    values.set(s.id, s);
+                    values[s.id] = s;
                 }
             }
         },
@@ -176,14 +174,14 @@ export const states = createSlice({
             const { newUniqueStates, run } = action.payload;
             const { values } = state;
             for (const s of newUniqueStates) {
-                if (values.has(s)) {
-                    const previous = values.get(s);
+                if (values[s]) {
+                    const previous = values[s];
                     previous.seenIn = [...new Set([...previous.seenIn, run])];
-                    values.set(s, previous);
+                    values[s] = previous;
                 } else {
                     const newState = new State(s);
                     newState.seenIn = [run];
-                    values.set(newState.id, newState);
+                    values[newState.id] = newState;
                 }
             }
         },
@@ -191,7 +189,7 @@ export const states = createSlice({
             const { values } = state;
             for (const [id, s] of values.entries()) {
                 s.stateCluster = undefined;
-                values.set(id, s);
+                values[id] = s;
             }
             return { ...state, values, colorByStateCluster: !state.colorByStateCluster };
         },
@@ -214,9 +212,9 @@ export const states = createSlice({
                 const { values, colorByStateCluster } = state;
                 for (const [id, clusterID] of Object.entries(action.payload)) {
                     const intID = parseInt(id, 10);
-                    const previous = values.get(intID);
+                    const previous = values[intID];
                     previous.stateCluster = parseInt(clusterID, 10);
-                    values.set(intID, previous);
+                    values[intID] = previous;
                     // state.caseReducers.toggleStateClustering();
                 }
                 return { ...state, values, colorByStateCluster: !colorByStateCluster };

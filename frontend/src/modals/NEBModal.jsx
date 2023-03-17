@@ -35,7 +35,7 @@ export default function NEBModal({ states, close, open, submit }) {
                         height={200}
                         colorFunc={(d) => {
                             const state = States.get(d.y);
-                            return state.individualColor;
+                            return state.color;
                         }}
                         onElementMouseOver={(node, d) => {
                             const state = States.get(d.y);

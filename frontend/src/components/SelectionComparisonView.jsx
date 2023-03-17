@@ -92,7 +92,7 @@ function SelectionComparisonView({
                                 height={50}
                                 colorFunc={(d) => {
                                     const state = stateData.get(d.y);
-                                    return state.individualColor;
+                                    return state.color;
                                 }}
                                 margin={{ top: 3, bottom: 2, left: 3, right: 3 }}
                                 xAttributeList={[...Array(states.length).keys()]}

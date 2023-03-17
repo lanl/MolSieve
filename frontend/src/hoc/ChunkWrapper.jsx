@@ -108,7 +108,7 @@ function ChunkWrapper({
     const stateMap = useMemo(
         () =>
             states.reduce((acc, v) => {
-                const color = colorByStateCluster ? v.stateClusteringColor : v.individualColor;
+                const color = colorByStateCluster ? v.stateClusteringColor : v.color;
                 acc[v.id] = color;
                 return acc;
             }, {}),

@@ -83,7 +83,7 @@ export default function NEBWrapper({
             colorFunc={(d) => {
                 if (d.id) {
                     const state = States.get(d.id);
-                    return state.individualColor;
+                    return state.color;
                 }
                 return 'black';
             }}

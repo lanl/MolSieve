@@ -14,7 +14,7 @@ const socketMiddleware = () => {
         const state = store.getState();
         const { properties, values } = state.states;
         // try to load 10% of the dataset at a time
-        const stateIds = Array.from(values.values())
+        const stateIds = Array.from(Object.values(values))
             .filter((d) => d.loaded !== true)
             .map((d) => d.id);
 
