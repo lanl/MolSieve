@@ -160,9 +160,18 @@ export const expand = createAsyncThunk('trajectories/expand', async (args, thunk
 
     const { lData, rData } = await loadNeighbors(left, right);
     // update global states with any new data
+    let toSend = [];
+
+    if (lData) {
+        toSend = [...lData];
+    }
+
+    if (rData) {
+        toSend = [...toSend, ...rData];
+    }
     dispatch(
         calculateGlobalUniqueStates({
-            newUniqueStates: [...lData, ...rData],
+            newUniqueStates: toSend,
             run: name,
         })
     );
