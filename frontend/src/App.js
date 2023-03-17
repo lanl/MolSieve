@@ -192,7 +192,7 @@ class App extends React.Component {
                     }}
                 >
                     <Typography sx={{ flexGrow: 1 }} color="primary" variant="h6">
-                        NeoMDWeb
+                        MolSieve
                     </Typography>
                     <Button
                         color="primary"
