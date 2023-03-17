@@ -28,9 +28,9 @@ function AggregateScatterplot({
                 const threshold = 1 / uniqueStates.length;
 
                 const majority = [];
-                for (const e of Object.keys(dist)) {
-                    if (dist[e] > threshold) {
-                        majority.push(parseInt(e, 10));
+                for (const [e, v] of Object.entries(dist)) {
+                    if (v > threshold) {
+                        majority.push(e);
                     }
                 }
                 chunks.push(majority.sort());
