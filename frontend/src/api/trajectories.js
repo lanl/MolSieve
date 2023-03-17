@@ -195,12 +195,13 @@ export const trajectories = createSlice({
         setChunks: (state, action) => {
             const { newChunks, trajectoryName, chunkingThreshold } = action.payload;
             const { chunks, values } = state;
+            let { counter } = state;
             const trajectory = values[trajectoryName];
             const chunkList = [];
             let lastTimestep = 0;
             for (const chunk of newChunks) {
                 const newChunk = new Chunk(
-                    Object.keys(chunks).length,
+                    counter,
                     chunk.timestep,
                     chunk.last,
                     chunk.firstID,
@@ -214,6 +215,7 @@ export const trajectories = createSlice({
                 chunks[newChunk.id] = newChunk;
                 chunkList.push(newChunk.id);
                 lastTimestep = Math.max(lastTimestep, chunk.last);
+                counter++;
             }
             values[trajectoryName].length = lastTimestep;
             values[trajectoryName].extents = [0, lastTimestep];
@@ -238,38 +240,48 @@ export const trajectories = createSlice({
             });
         });
         builder.addCase(expand.fulfilled, (state, action) => {
-            const { chunks, values } = state;
+            const { chunks: oldChunks, values } = state;
+            const chunks = { ...oldChunks };
             const { left, lData, rData, right, id, sliceSize, name } = action.payload;
             const chunk = chunks[id];
-            let { chunkList } = values[name];
+            const chunkList = [...values[name].chunkList];
 
             if (left) {
-                left.sequence = lData;
+                if (!left.loaded && !left.important) {
+                    left.sequence = lData;
+                    left.loaded = true;
+                }
                 const leftVals = left.takeFromSequence(sliceSize, 'back');
                 chunk.addToSequence(leftVals, 'front');
-                chunks[left.id] = left;
                 if (!left.sequence.length) {
                     delete chunks[left.id];
-                    chunkList = chunkList.filter((d) => d.id !== left.id);
-                    // need to update trajectory array then
+                    chunkList.splice(chunkList.indexOf(left.id), 1);
+                } else {
+                    chunks[left.id] = left;
                 }
             }
 
             if (right) {
-                right.sequence = rData;
+                if (!right.loaded && !right.important) {
+                    right.sequence = rData;
+                    right.loaded = true;
+                }
                 const rightVals = right.takeFromSequence(sliceSize, 'front');
                 chunk.addToSequence(rightVals, 'back');
-                chunks[right.id] = right;
                 if (!right.sequence.length) {
                     delete chunks[right.id];
-                    chunkList = chunkList.filter((d) => d.id !== right.id);
+                    chunkList.splice(chunkList.indexOf(right.id), 1);
+                } else {
+                    chunks[right.id] = right;
                 }
             }
 
-            values[name].chunkList = chunkList;
-            console.log(left, chunk, right);
             chunks[chunk.id] = chunk;
-            return { ...state, chunks };
+            return {
+                ...state,
+                chunks,
+                values: { ...values, [name]: { ...values[name], chunkList } },
+            };
         });
     },
 });

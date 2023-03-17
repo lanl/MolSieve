@@ -113,11 +113,15 @@ export default class Chunk {
 
     loadSequence(name) {
         return new Promise((resolve, reject) => {
-            apiGetSequence(name, [this.timestep, this.last])
-                .then((data) => {
-                    resolve(data);
-                })
-                .catch((e) => reject(e));
+            if (!this.loaded && !this.important) {
+                apiGetSequence(name, [this.timestep, this.last])
+                    .then((data) => {
+                        resolve(data);
+                    })
+                    .catch((e) => reject(e));
+            } else {
+                resolve([]);
+            }
         });
     }
 
@@ -225,8 +229,8 @@ export default class Chunk {
      * @param {[TODO:type]} direction - [TODO:description]
      */
     takeFromSequence(sliceSize, direction) {
-        const where = direction === 'front' ? 0 : this.sequence.length - sliceSize;
-        if (this.sequence.length > 0) {
+        if (this.sequence.length >= sliceSize) {
+            const where = direction === 'front' ? 0 : this.sequence.length - sliceSize;
             const deleted = this.sequence.splice(where, sliceSize);
 
             // update timestep, last, firstID
@@ -239,8 +243,7 @@ export default class Chunk {
 
             return deleted;
         }
-
-        return [];
+        return this.sequence.splice(0, this.sequence.length);
     }
 
     addToSequence(values, direction) {

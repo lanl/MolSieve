@@ -34,7 +34,7 @@ function ViolinPlotWrapper({
     const [progress, setProgress] = useState(0.0);
 
     const states = useSelector(
-        (state) => getStates(state, chunk.sequence)
+        (state) => getStates(state, chunk.selected)
         // (oldStates, newStates) => getNumberLoaded(oldStates) === getNumberLoaded(newStates)
     );
     const numLoaded = getNumberLoaded(states);
