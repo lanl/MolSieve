@@ -36,6 +36,10 @@ export const getChunkList = createSelector(
 export const getImportantChunkList = createSelector([getChunkList], (chunkList) =>
     chunkList.filter((c) => c.important)
 );
+
+export const getUnimportantChunkList = createSelector([getChunkList], (chunkList) =>
+    chunkList.filter((c) => !c.important)
+);
 // could be more flexible if chunkList gets passed in
 export const isTimestepsWithinChunks = createSelector(
     [getImportantChunkList, (_, timesteps) => timesteps],

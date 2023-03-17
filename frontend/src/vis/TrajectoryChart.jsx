@@ -1,7 +1,13 @@
 import { React, useEffect, memo, useMemo, startTransition } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import * as d3 from 'd3';
-import { selectTrajectory, getVisibleChunks, setZoom, expand } from '../api/trajectories';
+import {
+    selectTrajectory,
+    getVisibleChunks,
+    setZoom,
+    expand,
+    getUnimportantChunkList,
+} from '../api/trajectories';
 
 import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
 import ChunkWrapper from '../hoc/ChunkWrapper';
@@ -36,6 +42,9 @@ function TrajectoryChart({
     scatterplotHeight = 50,
 }) {
     const trajectory = useSelector((state) => selectTrajectory(state, trajectoryName));
+    const uChunkIDList = useSelector((state) =>
+        getUnimportantChunkList(state, trajectoryName).map((d) => d.id)
+    );
     const dispatch = useDispatch();
     const setZoomCallback = (extents) => dispatch(setZoom({ name: trajectoryName, extents }));
 
@@ -50,7 +59,7 @@ function TrajectoryChart({
         }
     }, []);
 
-    const { ranks, reduceRanks } = useRanks(properties, trajectory.chunkList);
+    const { ranks, reduceRanks } = useRanks(properties, uChunkIDList);
 
     const updateRanks = (values, id) => {
         reduceRanks({ type: 'updateValues', payload: { values, id } });
