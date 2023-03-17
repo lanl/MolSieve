@@ -254,7 +254,9 @@ export const trajectories = createSlice({
                 lastTimestep = Math.max(lastTimestep, chunk.last);
             }
             values[trajectoryName].length = lastTimestep;
-            values[trajectoryName].extents = [0, lastTimestep];
+            if (!values[trajectoryName].extents) {
+                values[trajectoryName].extents = [0, lastTimestep];
+            }
             if (chunkingThreshold !== undefined && chunkingThreshold !== null) {
                 values[trajectoryName].chunkingThreshold = chunkingThreshold;
             }
