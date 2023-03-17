@@ -187,7 +187,7 @@ export const states = createSlice({
         },
         clearClusterStates: (state) => {
             const { values } = state;
-            for (const [id, s] of values.entries()) {
+            for (const [id, s] of Object.entries(values)) {
                 s.stateCluster = undefined;
                 values[id] = s;
             }
