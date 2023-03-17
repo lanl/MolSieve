@@ -1,7 +1,4 @@
-import Timestep from './timestep';
 import { apiGetSequence } from './ajax';
-
-const CHUNK = 0;
 
 export default class Chunk {
     timestep;
@@ -16,18 +13,13 @@ export default class Chunk {
 
     cluster;
 
-    childSize;
-
-    children;
-
-    dataType = CHUNK;
-
-    // chunk states are guaranteed to have these properties
-    properties = ['timestep', 'id'];
-
     sequence = [];
 
+    selected = [];
+
     characteristicState;
+
+    color;
 
     constructor(
         id,
@@ -77,21 +69,6 @@ export default class Chunk {
         return this.last - this.timestep + 1;
     }
 
-    get hasParent() {
-        return this.parentID !== undefined;
-    }
-
-    // returns an array of the chunk's children
-    // might want to change this later to be less confusing
-    // i.e just returns either undefined for no children, or the chunk children
-    getChildren() {
-        if (this.childSize) {
-            return this.children;
-        }
-
-        return this.timesteps;
-    }
-
     // returns an array of the underlying timesteps within the chunk, ordered temporally
     get timesteps() {
         const timesteps = [];
@@ -103,7 +80,7 @@ export default class Chunk {
 
     // returns an array of unique state ids within a chunk
     get states() {
-        return [...new Set(this.sequence)];
+        return [...this.statesSet];
     }
 
     // returns a Set of unique states id within a chunk
@@ -123,16 +100,6 @@ export default class Chunk {
                 resolve([]);
             }
         });
-    }
-
-    // gets the states within the sequence as Timestep objects, useful for rendering
-    get timestepSequence() {
-        const { timesteps } = this;
-        const t = [];
-        for (let i = 0; i < timesteps.length; i++) {
-            t.push(new Timestep(timesteps[i], this.sequence[i]));
-        }
-        return t;
     }
 
     /**
@@ -171,49 +138,9 @@ export default class Chunk {
         return stateRatios;
     }
 
-    /**
-     * Calculates the moving average for the given property within the chunk.
-     *
-     * @param {String} property - The property to calculate the moving average for.
-     * @param {Int} n - The length of the moving average period.
-     * @param {Function} mf - A function that takes (data, n) and returns an array of moving averages.
-     * @param {Array} range - Optional, if specified, calculates the moving average only for the given timestep range
-     * @returns {Array} Array of moving averages.
-     */
-    calculateMovingAverage(property, n, mf, range) {
-        const propertyList = this.getPropList(property, range);
-        return mf(propertyList, n);
-    }
-
-    /**
-     * Depending on if the chunk is important or not, returns either this.sequence or this.selected.
-     *
-     * @returns {Array<Number>} Array of IDs to use for whatever calculation you need them for.
-     */
-    getMainValues() {
-        return this.important ? this.sequence : this.selected;
-    }
-
-    /**
-     * Gets the color of the current chunk.
-     *
-     * @returns {String} Hexadecimal color code of the chunk.
-     */
-
     toString() {
         return `<b>Timesteps</b>: ${this.timestep} - ${this.last}<br><b>Length</b>: ${this.size}<br><b>ID</b>: ${this.id}`;
     }
-
-    /**
-     * Calculates box plot stats for the given chunk.
-     *
-     * @returns {Object} Contains q1, median, q3, IQR, and max / min thresholds.
-     */
-    /* calculateStats(property) {
-        const data = this.selected ? this.selected : this.states;
-        const states = data.map((id) => States.get(id)[property]);
-        return boxPlotStats(states);
-    } */
 
     containsSequence(timesteps) {
         const start = Math.min(...timesteps);

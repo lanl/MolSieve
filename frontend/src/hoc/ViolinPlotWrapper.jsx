@@ -33,10 +33,7 @@ function ViolinPlotWrapper({
     const [isInitialized, setIsInitialized] = useState(false);
     const [progress, setProgress] = useState(0.0);
 
-    const states = useSelector(
-        (state) => getStates(state, chunk.selected)
-        // (oldStates, newStates) => getNumberLoaded(oldStates) === getNumberLoaded(newStates)
-    );
+    const states = useSelector((state) => getStates(state, chunk.selected));
     const numLoaded = getNumberLoaded(states);
 
     const { boxStats, rankDict } = useMemo(() => {

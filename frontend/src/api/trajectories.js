@@ -151,7 +151,6 @@ export const trajectories = createSlice({
         names: [],
         values: {},
         chunks: {},
-        counter: 0,
         /*
         extents: {},
         current_clustering: {},
@@ -190,18 +189,15 @@ export const trajectories = createSlice({
             names[aIdx] = b;
             names[bIdx] = a;
         },
-        // swap position?
-        // overwrites chunks entirely
         setChunks: (state, action) => {
             const { newChunks, trajectoryName, chunkingThreshold } = action.payload;
             const { chunks, values } = state;
-            let { counter } = state;
             const trajectory = values[trajectoryName];
             const chunkList = [];
             let lastTimestep = 0;
             for (const chunk of newChunks) {
                 const newChunk = new Chunk(
-                    counter,
+                    Object.keys(chunks).length,
                     chunk.timestep,
                     chunk.last,
                     chunk.firstID,
@@ -215,7 +211,6 @@ export const trajectories = createSlice({
                 chunks[newChunk.id] = newChunk;
                 chunkList.push(newChunk.id);
                 lastTimestep = Math.max(lastTimestep, chunk.last);
-                counter++;
             }
             values[trajectoryName].length = lastTimestep;
             values[trajectoryName].extents = [0, lastTimestep];

@@ -52,7 +52,6 @@ function ChunkWrapper({
     const [startExtent, endExtent] = extents;
 
     const [startSlice, endSlice] = useMemo(() => {
-        console.log('chunk changed');
         const { timestep, last } = chunk;
         const sliceStart = startExtent <= timestep ? 0 : startExtent - timestep;
         const sliceEnd = endExtent >= last ? last : endExtent;
@@ -66,6 +65,7 @@ function ChunkWrapper({
     const dispatch = useDispatch();
 
     const states = useSelector((state) => getStates(state, chunk.sequence));
+    const numLoaded = getNumberLoaded(states);
 
     const colorByStateCluster = useSelector((state) => state.states.colorByStateCluster);
 
@@ -115,8 +115,6 @@ function ChunkWrapper({
         [colorByStateCluster, chunk.timestep, chunk.last]
     );
 
-    const numLoaded = getNumberLoaded(states);
-
     const [mvaPeriod, setMvaPeriod] = useState(Math.min(chunk.sequence.length / 4, 100));
     const [tDict, setTDict] = useState({});
 
@@ -138,7 +136,7 @@ function ChunkWrapper({
             stats[prop] = { std, mean };
         }
         return { mva, stats };
-    }, [mvaPeriod, numLoaded, chunk.timestep, chunk.last]);
+    }, [mvaPeriod, numLoaded, chunk.timestep, chunk.last, JSON.stringify(states)]);
 
     const { stats, mva } = calculations;
 

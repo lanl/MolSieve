@@ -1,5 +1,5 @@
 import { React, useEffect, memo, useMemo, startTransition } from 'react';
-import { useSelector, useDispatch, shallowEqual } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import * as d3 from 'd3';
 import { selectTrajectory, getVisibleChunks, setZoom, expand } from '../api/trajectories';
 
@@ -41,8 +41,6 @@ function TrajectoryChart({
 
     const { extents } = trajectory;
     const topChunkList = useSelector((state) => getVisibleChunks(state, trajectoryName));
-
-    console.log(topChunkList);
 
     const ref = useTrajectoryChartRender((svg) => {
         // clear so we don't draw over-top and cause insane lag

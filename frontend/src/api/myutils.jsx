@@ -176,15 +176,6 @@ export function range(start, end) {
     return [...Array(end - start + 1)].map((_, i) => i + start);
 }
 
-/* Returns an array of a chunk's children */
-export function getChildren(chunk) {
-    if (chunk.childSize) {
-        return chunk.children;
-    }
-    // use this to splice into sequence array?
-    return [chunk.timestep, chunk.last];
-}
-
 /**
  * Returns the difference between two sets as a set; i.e
  * only the items that are present in A alone without B.

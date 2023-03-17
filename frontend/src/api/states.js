@@ -76,19 +76,13 @@ export const ensureSubsetHasProperty = (state, property, subset) => {
     return ensureSubsetHasProperties(state, [property], subset);
 };
 
+const selectStateStore = (state) => state.states.values;
+export const getState = (state, id) => state.states.values.get(id);
+export const getGlobalScale = (state, property) => state.states.globalScale[property];
+
 export const getStates = createSelector(
-    [(state) => state.states.values, (_, stateIDList) => stateIDList],
+    [selectStateStore, (_, stateIDList) => stateIDList],
     (values, stateIDList) => stateIDList.map((id) => values.get(id))
-);
-
-export const getState = createSelector(
-    [(state) => state.states.values, (_, id) => id],
-    (values, id) => values.get(id)
-);
-
-export const getGlobalScale = createSelector(
-    [(state) => state.states.globalScale, (_, property) => property],
-    (globalScale, property) => globalScale[property]
 );
 
 export const getPropList = (state, stateList, property, range) => {
