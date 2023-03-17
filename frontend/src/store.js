@@ -9,5 +9,12 @@ export default configureStore({
         states: statesReducer,
         trajectories: trajectoriesReducer,
     },
-    middleware: [websocketmiddleware, ...getDefaultMiddleware()],
+    middleware: [
+        websocketmiddleware,
+        ...getDefaultMiddleware({
+            serializableCheck: {
+                ignoredPaths: ['states.values', 'trajectories.values', 'trajectories.chunks'],
+            },
+        }),
+    ],
 });

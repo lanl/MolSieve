@@ -269,7 +269,7 @@ class App extends React.Component {
                 {trajectoryNames.length > 0 && (
                     <ControlDrawer
                         sx={{ width: '300px', boxSizing: 'border-box' }}
-                        trajectories={trajectoryNames}
+                        trajectoryNames={trajectoryNames}
                         recalculateClustering={this.recalculate_clustering}
                         simplifySet={this.simplifySet}
                         drawerOpen={drawerOpen}

@@ -10,8 +10,8 @@ import { wsConnect } from './websocketmiddleware';
 // no trajectories object because that would make it harder for react to diff
 //
 // https://redux.js.org/usage/deriving-data-selectors
-const selectTrajectories = (state) => state.trajectories.values;
-const selectChunks = (state) => state.trajectories.chunks;
+export const selectTrajectories = (state) => state.trajectories.values;
+export const selectChunks = (state) => state.trajectories.chunks;
 export const selectTrajectory = (state, name) => state.trajectories.values[name];
 export const selectChunk = (state, id) => state.trajectories.chunks[id];
 
