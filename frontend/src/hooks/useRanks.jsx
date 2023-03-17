@@ -40,7 +40,6 @@ export default function useRanks(keys, chunkOrder) {
                         .sort((a, b) => a[1] < b[1])
                         .map((d) => d[0]);
 
-                    console.log(ordered, state.chunkValues, chunkOrder);
                     return {
                         ordered,
                         chunkValues: { ...state.chunkValues, [id]: values },

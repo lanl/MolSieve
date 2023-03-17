@@ -37,7 +37,7 @@ function Timeline({ trajectoryName, width, height }) {
             const scaleX = d3
                 .scaleLinear()
                 .range([margin.left, width - margin.right])
-                .domain([0, 16527]);
+                .domain([0, trajectory.length]);
 
             trajG
                 .selectAll('rect')
