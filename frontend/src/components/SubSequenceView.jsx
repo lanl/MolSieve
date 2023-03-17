@@ -13,14 +13,14 @@ import { WS_URL } from '../api/constants';
 
 import RemovableBox from './RemovableBox';
 import SingleStateViewer from './SingleStateViewer';
-import RadarChart from '../vis/RadarChart';
+// import RadarChart from '../vis/RadarChart';
 import NEBModal from '../modals/NEBModal';
 import NEBWrapper from '../hoc/NEBWrapper';
 import Scatterplot from '../vis/Scatterplot';
 
 import '../css/App.css';
 
-import { oneShotTooltip } from '../api/myutils';
+// import { oneShotTooltip } from '../api/myutils';
 import { apiSubsetConnectivityDifference } from '../api/ajax';
 import { getStates } from '../api/states';
 
@@ -28,7 +28,7 @@ function SubSequenceView({
     stateIDs,
     timesteps,
     trajectoryName,
-    properties,
+    //   properties,
     visScript,
     sx = {},
     disabled = false,
@@ -167,7 +167,7 @@ function SubSequenceView({
                         />
                     ))}
 
-                    <RadarChart
+                    {/* <RadarChart
                         data={states}
                         properties={properties}
                         width={200}
@@ -177,7 +177,7 @@ function SubSequenceView({
                             oneShotTooltip(node, `${d.value}`);
                         }}
                         // renderSingle={States.get(activeState)}
-                    />
+                    /> */}
                 </Stack>
                 <Divider />
                 <Stack
@@ -193,7 +193,7 @@ function SubSequenceView({
                 >
                     <Scatterplot
                         id={`scatterplot-${id}`}
-                        width={interestingStates.length * 100 + 220}
+                        width={interestingStates.length * 100}
                         height={30}
                         colorFunc={colorFunc}
                         xAttributeList={timesteps}
