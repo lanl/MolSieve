@@ -11,8 +11,6 @@ import { abbreviate } from '../api/myutils';
 import '../css/vis.css';
 
 const MARGIN = {
-    top: 30,
-    bottom: 20,
     left: 5,
     right: 75,
 };
@@ -142,7 +140,9 @@ function TrajectoryChart({
                 const chartW = scaleX(getWidthScale(chunk));
 
                 const chunkIndex = topChunkList.indexOf(chunk);
-                const h = chunk.important ? height : height - scatterplotHeight;
+                const h = chunk.important
+                    ? height
+                    : height - scatterplotHeight - propertyCombos.length * controlChartHeight;
 
                 return (
                     <foreignObject
@@ -150,7 +150,7 @@ function TrajectoryChart({
                         x={getX(chunkIndex, 0, topChunkList, scaleX, getWidthScale) + MARGIN.right}
                         y={0}
                         width={chartW}
-                        height={h}
+                        height={height}
                     >
                         {chunk.important ? (
                             <ChunkWrapper
@@ -184,7 +184,7 @@ function TrajectoryChart({
                             <ViolinPlotWrapper
                                 chunk={chunk}
                                 width={chartW}
-                                height={h - propertyCombos.length * controlChartHeight} // to accomodate for no scatterplot
+                                height={h}
                                 selectObject={selectObject}
                                 selectedObjects={selectedObjects}
                                 chunkSelectionMode={chunkSelectionMode}

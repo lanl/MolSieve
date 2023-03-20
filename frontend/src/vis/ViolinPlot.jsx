@@ -52,7 +52,7 @@ function ViolinPlot({
             svg.append('rect')
                 .attr('x', 0)
                 .attr('y', 0)
-                .attr('height', height + 1)
+                .attr('height', height)
                 .attr('width', width)
                 .attr('fill', color)
                 .classed('unimportant', true);
@@ -64,6 +64,8 @@ function ViolinPlot({
                 .attr('y2', 0)
                 .attr('stroke', color)
                 .attr('stroke-width', 1);
+
+            svg.classed('clickable', true);
 
             svg.append('path')
                 .datum(bins)

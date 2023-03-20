@@ -15,14 +15,17 @@ export default function EmbeddedChart({
     children,
     height,
     width,
-    margin,
-    color,
     onChartClick,
     selected,
     id,
     brush,
     selections,
     controls,
+    color = 'black',
+    margin = {
+        top: 3,
+        left: 3,
+    },
 }) {
     const ref = createRef();
     const [isHovered, setIsHovered] = useState(false);
@@ -76,11 +79,13 @@ export default function EmbeddedChart({
 
     const h = height - margin.top;
     const w = width - margin.left;
+
+    // svg is what makes the brush interactions possible
     return (
         <Box
             id={id}
             width={w}
-            height={h}
+            height={height}
             sx={{ display: 'flex', border: borderStyle, borderColor: color }}
             className="embeddedChart"
             onClick={onChartClick}
@@ -106,7 +111,6 @@ export default function EmbeddedChart({
                 ) : null}
                 {controls}
             </Box>
-
             <svg ref={ref} width={w} height={h}>
                 <foreignObject x={0} y={0} width={w} height={h}>
                     {children(w, h)}
@@ -115,11 +119,3 @@ export default function EmbeddedChart({
         </Box>
     );
 }
-EmbeddedChart.defaultProps = {
-    margin: {
-        top: 3,
-        left: 3,
-    },
-    color: 'black',
-    showBrush: true,
-};
