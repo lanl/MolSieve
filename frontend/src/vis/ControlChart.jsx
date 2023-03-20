@@ -18,9 +18,9 @@ function ControlChart({
     lcl,
     margin = { top: 3, bottom: 2, left: 0, right: 5 },
     colors = {
-        posDiff: '#277C3E',
-        negDiff: '#A61E11',
-        noDiff: '#A3A3A3',
+        posDiff: '#67A9CF',
+        negDiff: '#EF8A62',
+        noDiff: '#C6C6C6',
     },
     showMedian = false,
     onClick = () => {},
@@ -49,7 +49,7 @@ function ControlChart({
             .x((_, i) => scaleX(i))
             .y0(scaleY(globalScaleMin))
             .y1((d) => scaleY(d))
-            .defined((d) => filterFunc(d));
+            .defined((d) => d !== undefined && d !== null && filterFunc(d));
 
         svg.append('path')
             .datum(yAttributeList)
@@ -78,7 +78,6 @@ function ControlChart({
             }
 
             const { posDiff, negDiff, noDiff } = colors;
-
             if (ucl && !lcl) {
                 colorPath(svg, posDiff, (d) => ucl <= d);
                 colorPath(svg, noDiff, (d) => ucl > d);
