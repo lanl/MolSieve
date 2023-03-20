@@ -68,6 +68,7 @@ function TrajectoryChart({
                 .attr('font-size', '10px')
                 .attr('font-family', 'Arial')
                 .attr('text-anchor', 'middle')
+                .attr('fill', '#394043')
                 .attr('font-weight', 700)
                 .text((d) => abbreviate(d));
 
