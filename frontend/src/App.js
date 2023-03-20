@@ -90,6 +90,7 @@ class App extends React.Component {
             enqueueSnackbar(`Recalculating clustering for trajectory ${name}...`);
             dispatch(recluster({ name, clusters }))
                 .unwrap()
+                .then(() => enqueueSnackbar(`Reclustered trajectory ${name}`))
                 .catch((e) => {
                     enqueueSnackbar(`Reclustering trajectory ${name} failed: ${e.message}`, {
                         variant: 'error',
@@ -144,8 +145,9 @@ class App extends React.Component {
         const { enqueueSnackbar, dispatch } = this.props;
 
         enqueueSnackbar(`Re-simplifying trajectory ${run}...`);
-        dispatch(simplifySet({ name: run, threshold }));
-        enqueueSnackbar(`Sequence re-simplified for trajectory ${run}.`);
+        dispatch(simplifySet({ name: run, threshold })).then(() =>
+            enqueueSnackbar(`Sequence re-simplified for trajectory ${run}.`)
+        );
     };
 
     toggleDrawer = () => {

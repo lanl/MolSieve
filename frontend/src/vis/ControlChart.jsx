@@ -49,7 +49,7 @@ function ControlChart({
             .x((_, i) => scaleX(i))
             .y0(scaleY(globalScaleMin))
             .y1((d) => scaleY(d))
-            .defined((d) => d !== undefined && d !== null && filterFunc(d));
+            .defined((d) => !Number.isNaN(d) && filterFunc(d));
 
         svg.append('path')
             .datum(yAttributeList)
