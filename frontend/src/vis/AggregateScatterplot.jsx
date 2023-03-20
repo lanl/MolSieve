@@ -10,7 +10,7 @@ function AggregateScatterplot({
     width,
     height,
     colorFunc = () => 'black',
-    margin = { top: 0, bottom: 3, left: 0, right: 0 },
+    margin = { top: 0, bottom: 4, left: 0, right: 0 },
     onElementClick = () => {},
 }) {
     const [data, setData] = useState(null);

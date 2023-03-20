@@ -13,7 +13,7 @@ import LoadingBox from '../components/LoadingBox';
 import PropertyWrapper from './PropertyWrapper';
 
 import { getStates } from '../api/states';
-import { getNumberLoaded } from '../api/myutils';
+import { getNumberLoaded, abbreviate } from '../api/myutils';
 
 import EmbeddedChart from '../vis/EmbeddedChart';
 
@@ -93,12 +93,12 @@ function ViolinPlotWrapper({
                                                 color={chunk.color}
                                                 property={property}
                                                 width={ww}
-                                                mouseOverText={`${chunk.toString()}<br/>
-                            <em>${property}</em><br/> 
-                            <b>Q1</b>: ${q1}</br> 
-                            <b>Median</b>: ${median}</br> 
-                            <b>Q3</b>: ${q3}</br>
-                            <b>IQR</b>: ${iqr} <br/>`}
+                                                mouseOverText={`<b>${abbreviate(property)}</b><br/> 
+                                                    ${chunk.toString()}<br/>
+                            <em>Q1:</em> ${q1}</br> 
+                            <em>Median:</em> ${median}</br> 
+                            <em>Q3:</em> ${q3}</br>
+                            <em>IQR:</em> ${iqr} <br/>`}
                                                 height={boxPlotHeight}
                                                 globalScaleMin={min}
                                                 globalScaleMax={max}

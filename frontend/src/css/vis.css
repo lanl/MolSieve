@@ -61,7 +61,6 @@
     stroke: black;
     stroke-dasharray: 2;
     stroke-dashoffset: 25%;
-    color: white;
 }
 
 .important:hover {
