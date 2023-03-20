@@ -49,26 +49,28 @@ function TrajectoryChart({
         }
     }, []);
 
+    const controlChartHeight = (height - scatterplotHeight) / (propertyCombos.length + showTop);
+
     useEffect(() => {
         if (ref) {
             d3.select(ref.current).select('.rankList').remove();
 
             const rankList = d3.select(ref.current).append('g').classed('rankList', true);
-            const propertyComboText = propertyCombos.map((combo) => combo.properties.join('+'));
+            const propertyComboText = propertyCombos.map((combo, idx) => `MV ${idx + 1}`);
             const textRanks = rankList
                 .selectAll('text')
                 .data([...ranks.slice(0, showTop), ...propertyComboText]);
 
-            const controlChartHeight =
-                (height - scatterplotHeight) / (propertyCombos.length + showTop);
-
             textRanks
                 .enter()
                 .append('text')
-                .attr('x', MARGIN.left)
+                .attr('x', 35)
                 // dependent on spark chart height
-                .attr('y', (_, i) => (i + 1) * controlChartHeight - controlChartHeight / 2)
+                .attr('y', (_, i) => (i + 1) * controlChartHeight - controlChartHeight / 2 + 7)
                 .attr('font-size', '10px')
+                .attr('font-family', 'Arial')
+                .attr('text-anchor', 'middle')
+                .attr('font-weight', 700)
                 .text((d) => abbreviate(d));
 
             textRanks.exit().remove();
@@ -182,13 +184,12 @@ function TrajectoryChart({
                             <ViolinPlotWrapper
                                 chunk={chunk}
                                 width={chartW}
-                                height={h} // to accomodate for no scatterplot
+                                height={h - propertyCombos.length * controlChartHeight} // to accomodate for no scatterplot
                                 selectObject={selectObject}
                                 selectedObjects={selectedObjects}
                                 chunkSelectionMode={chunkSelectionMode}
                                 ranks={cutRanks}
                                 properties={properties}
-                                propertyCombos={propertyCombos}
                                 onClick={() => setStateHovered(chunk.characteristicState)}
                             />
                         )}

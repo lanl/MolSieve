@@ -26,7 +26,6 @@ function ViolinPlotWrapper({
     ranks,
     chunkSelectionMode,
     selectedObjects,
-    propertyCombos,
     onClick,
 }) {
     const [isInitialized, setIsInitialized] = useState(false);
@@ -52,7 +51,7 @@ function ViolinPlotWrapper({
         setIsInitialized(true);
     }, [numLoaded]);
 
-    const boxPlotHeight = height / (ranks.length + propertyCombos.length);
+    const boxPlotHeight = height / ranks.length;
 
     return (
         <EmbeddedChart
