@@ -19,6 +19,7 @@ function Timeline({ trajectoryName, width, height }) {
     const chunkList = useSelector((state) => getChunkList(state, trajectoryName));
 
     const [sBrush, setBrush] = useState(null);
+    const [xScale, setXScale] = useState(null);
     const ref = useTrajectoryChartRender(
         (svg) => {
             if (!svg.empty()) {
@@ -64,8 +65,8 @@ function Timeline({ trajectoryName, width, height }) {
             const brush = d3
                 .brushX()
                 .extent([
-                    [margin.left, 0],
-                    [width - margin.right, height],
+                    [0, height * 0.4],
+                    [width, height * 0.7],
                 ])
                 .on('end', function ({ selection, sourceEvent }) {
                     if (!sourceEvent) return;
@@ -83,6 +84,7 @@ function Timeline({ trajectoryName, width, height }) {
                             })
                             .attr('width', (d) => scaleX(d.last) - scaleX(d.timestep));
                         brushG.call(brush).call(brush.move, [scaleX(start), scaleX(end)]);
+                        setXScale(() => scaleX);
                     });
                 });
 
@@ -94,6 +96,7 @@ function Timeline({ trajectoryName, width, height }) {
                 .attr('fill', 'lightgray')
                 .on('click', () => {
                     scaleX.domain([0, trajectory.length]);
+                    setXScale(() => scaleX);
                     trajG
                         .selectAll('rect')
                         .attr('x', (d) => {
@@ -106,6 +109,7 @@ function Timeline({ trajectoryName, width, height }) {
 
             brushG.call(brush).call(brush.move, defaultSelection);
             setBrush(() => brush);
+            setXScale(() => scaleX);
         },
         [JSON.stringify(chunkList), width, height]
     );
@@ -114,15 +118,10 @@ function Timeline({ trajectoryName, width, height }) {
         if (ref.current && sBrush) {
             const { extents } = trajectory;
             const [start, stop] = extents;
-            const scaleX = d3
-                .scaleLinear()
-                .range([margin.left, width - margin.right])
-                .domain([0, trajectory.length]);
-
             d3.select(ref.current)
                 .select('.brushG')
                 .call(sBrush)
-                .call(sBrush.move, [scaleX(start), scaleX(stop)]);
+                .call(sBrush.move, [xScale(start), xScale(stop)]);
         }
     }, [JSON.stringify(trajectory.extents)]);
 
