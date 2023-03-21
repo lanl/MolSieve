@@ -89,12 +89,12 @@ function SelectionComparisonView({
                         >
                             <Scatterplot
                                 width={205}
-                                height={50}
+                                height={55}
                                 colorFunc={(d) => {
                                     const state = stateData[d.y];
                                     return state.color;
                                 }}
-                                margin={{ top: 3, bottom: 2, left: 3, right: 3 }}
+                                margin={{ top: 3, bottom: 5, left: 3, right: 3 }}
                                 xAttributeList={[...Array(states.length).keys()]}
                                 yAttributeList={states.map((d) => d.id)}
                                 brush={d3.brushX().on('end', (e) => {

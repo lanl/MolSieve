@@ -47,7 +47,7 @@ function ControlChart({
         const area = d3
             .area()
             .x((_, i) => scaleX(i))
-            .y0(scaleY(globalScaleMin))
+            .y0(height)
             .y1((d) => scaleY(d))
             .defined((d) => !Number.isNaN(d) && filterFunc(d));
 
@@ -120,7 +120,7 @@ function ControlChart({
 
                 tooltipCircle
                     .attr('cx', scaleX(i))
-                    .attr('cy', scaleY(yVal))
+                    .attr('cy', scaleY(yVal)) // - 2
                     .attr('stroke', 'gray')
                     .attr('fill', 'black')
                     .attr('r', 3);

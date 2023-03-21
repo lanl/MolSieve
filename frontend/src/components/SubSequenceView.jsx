@@ -52,7 +52,6 @@ function SubSequenceView({
     const ws = useRef(null);
 
     const states = useSelector((state) => getStates(state, stateIDs));
-    const globalScale = useSelector((state) => state.states.globalScale);
 
     const stateMap = useMemo(
         () =>
@@ -184,7 +183,7 @@ function SubSequenceView({
                     direction="row"
                     spacing={0.5}
                     sx={{
-                        maxWidth: `${interestingStates.length * 100 + 220}px`,
+                        maxWidth: `${interestingStates.length * 100}px`,
                         overflow: 'scroll',
                         minHeight: '30px',
                         maxHeight: '30px',
@@ -229,6 +228,7 @@ function SubSequenceView({
                                         maxSteps={maxSteps}
                                         fmax={fmax}
                                         saveResults={saveResults}
+                                        width={(interestingStates.length * 100) / nebPlots.length}
                                         setActiveState={(stateID) => setActiveState(stateID)}
                                     />
                                 );
