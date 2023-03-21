@@ -11,6 +11,7 @@ import { calculateGlobalUniqueStates } from '../api/states';
 
 export default function NEBWrapper({
     trajectoryName,
+    width,
     start,
     end,
     interpolate,
@@ -71,13 +72,14 @@ export default function NEBWrapper({
 
     return (
         <Scatterplot
-            width={250}
+            width={width}
             height={200}
             xAttributeList={results.values.map((d) => d.timestep)}
             yAttributeList={results.values.map((d) => d.energy)}
             additionalAttributes={results.values.map((d) => ({
                 id: d.id,
             }))}
+            showLine
             margin={{ top: 5, bottom: 10, left: 50, right: 7.5 }}
             onElementClick={(node, d) => {
                 d3.selectAll('.clicked').classed('clicked', false);

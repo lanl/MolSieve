@@ -19,6 +19,7 @@ function Scatterplot({
     onElementMouseOver = () => {},
     onElementMouseOut = () => {},
     margin = { top: 5, bottom: 10, left: 0, right: 7.5 },
+    showLine = false,
     showYAxis = false,
     id = '',
 }) {
@@ -125,6 +126,22 @@ function Scatterplot({
                     .scale(scaleY)
                     .ticks(height / 30);
                 svg.append('g').attr('transform', `translate(${margin.left},0)`).call(yAxis);
+            }
+
+            if (showLine) {
+                const line = d3
+                    .line()
+                    .x((d) => scaleX(d.x))
+                    .y((d) => scaleY(d.y) + 2.5)
+                    .curve(d3.curveBumpX);
+
+                svg.append('path')
+                    .datum(data)
+                    .attr('d', (d) => {
+                        return line(d);
+                    })
+                    .attr('stroke', '#C6C6C6')
+                    .attr('fill', 'none');
             }
 
             if (brush) {
