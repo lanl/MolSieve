@@ -8,7 +8,7 @@ import { zTest } from './math/stats';
 
 import { WS_URL } from './constants';
 import { wsConnect } from './websocketmiddleware';
-import { startListening } from '../../app/listenerMiddleware';
+import { startListening } from './listenerMiddleware';
 
 const clusterColors = [...d3.schemeTableau10, ...d3.schemeAccent];
 
@@ -279,38 +279,43 @@ export const trajectories = createSlice({
                 values[name].extents = [0, values[name].length];
             }
         },
-        updateRanks: (state, action) => {
-            const { states, extents } = action.payload;
+        updateRank: (state, action) => {
+            const { states, name } = action.payload;
             const { values, chunks } = state;
 
-            for (const trajectory of Object.values(values)) {
-                const { ranks, chunkList } = trajectory;
-                const uChunks = chunkList
-                    .map((id) => chunks[id])
-                    .filter((c) => !c.important)
-                    .filter((c) =>
-                        extents ? c.timestep >= extents[0] && c.last <= extents[1] : true
-                    );
-                const zScores = buildDictFromArray(ranks, []);
-                for (let i = 0; i < uChunks.length - 1; i++) {
-                    const curr = uChunks[i];
-                    const next = uChunks[i + 1];
-                    for (const prop of ranks) {
-                        const currValues = curr.selected.map((d) => states[d]).map((d) => d[prop]);
-                        const nextValues = next.selected.map((d) => states[d]).map((d) => d[prop]);
-                        zScores[prop] = [...zScores[prop], Math.abs(zTest(currValues, nextValues))];
-                    }
-                }
-                // for each property, calculate the zScore
-                const newRanks = Object.keys(zScores)
-                    .map((prop) => ({
-                        [prop]: zScores[prop].reduce((acc, v) => acc + v, 0),
-                    }))
-                    .reduce((acc, arr) => ({ ...acc, ...arr }), {});
+            const trajectory = values[name];
+            const { ranks, chunkList, extents } = trajectory;
+            const uChunks = chunkList
+                .map((id) => chunks[id])
+                .filter((c) => !c.important)
+                .filter((c) => c.timestep >= extents[0] && c.last <= extents[1]);
 
-                trajectory.ranks = Object.entries(normalizeDict(newRanks, [0, 1]))
-                    .sort((a, b) => a[1] < b[1])
-                    .map((d) => d[0]);
+            const zScores = buildDictFromArray(ranks, []);
+            for (let i = 0; i < uChunks.length - 1; i++) {
+                const curr = uChunks[i];
+                const next = uChunks[i + 1];
+                for (const prop of ranks) {
+                    const currValues = curr.selected.map((d) => states[d]).map((d) => d[prop]);
+                    const nextValues = next.selected.map((d) => states[d]).map((d) => d[prop]);
+                    zScores[prop] = [...zScores[prop], Math.abs(zTest(currValues, nextValues))];
+                }
+            }
+            // for each property, calculate the zScore
+            const newRanks = Object.keys(zScores)
+                .map((prop) => ({
+                    [prop]: zScores[prop].reduce((acc, v) => acc + v, 0),
+                }))
+                .reduce((acc, arr) => ({ ...acc, ...arr }), {});
+
+            trajectory.ranks = Object.entries(normalizeDict(newRanks, [0, 1]))
+                .sort((a, b) => a[1] < b[1])
+                .map((d) => d[0]);
+        },
+        updateRanks: (state, action) => {
+            const { states } = action.payload;
+            const { values } = state;
+            for (const name of Object.keys(values)) {
+                trajectories.caseReducers.updateRank(state, { payload: { states, name } });
             }
         },
     },
@@ -382,7 +387,18 @@ export const trajectories = createSlice({
     },
 });
 
-export const { addTrajectory, setChunks, setZoom, swapPositions, updateRanks } =
+export const { addTrajectory, setChunks, setZoom, swapPositions, updateRanks, updateRank } =
     trajectories.actions;
 
 export default trajectories.reducer;
+
+startListening({
+    actionCreator: setZoom,
+    effect: async (action, listenerAPI) => {
+        const { name } = action.payload;
+        const { getState, dispatch } = listenerAPI;
+        const state = getState();
+        const { values } = state.states;
+        dispatch(updateRank({ states: values, name }));
+    },
+});

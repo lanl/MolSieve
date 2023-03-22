@@ -1,7 +1,7 @@
 import { configureStore, getDefaultMiddleware } from '@reduxjs/toolkit';
 import statesReducer from './api/states';
 import trajectoriesReducer from './api/trajectories';
-
+import { listenerMiddleware } from './api/listenerMiddleware';
 import websocketmiddleware from './api/websocketmiddleware';
 
 export default configureStore({
@@ -13,9 +13,9 @@ export default configureStore({
         websocketmiddleware,
         ...getDefaultMiddleware({
             serializableCheck: {
-                ignoredActions: ['trajectories/updateRanks'],
+                ignoredActions: ['trajectories/updateRanks', 'trajectories/updateRank'],
                 ignoredPaths: ['states.values', 'trajectories.values', 'trajectories.chunks'],
             },
-        }),
+        }).prepend(listenerMiddleware.middleware),
     ],
 });
