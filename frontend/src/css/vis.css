@@ -77,6 +77,11 @@
     stroke-dashoffset: none;
 }
 
+.important.clicked {
+    stroke-dasharray: none;
+    stroke-dashoffset: none;
+}
+
 .important.highlightedState {
     stroke-dasharray: none;
     stroke-dashoffset: none;
@@ -90,7 +95,14 @@
 .unimportant {
     opacity: 0.6;
 }
+.unimportant.blurry {
+    filter: blur(2px);
+    opacity: 1.0;
+}
 
+.unimportant.blurry.clicked {
+    filter: none;
+}
 .unimportant:hover {
     stroke: black;
 }
@@ -102,7 +114,7 @@
 
 rect.selection {
     fill: none;
-    stroke: black;
+    stroke: gray;
 }
 
 .arrowed {    

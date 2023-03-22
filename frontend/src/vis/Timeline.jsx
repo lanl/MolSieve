@@ -10,7 +10,8 @@ function Timeline({
     trajectoryName,
     width,
     height,
-    margin = { top: 5, bottom: 0, left: 25, right: 25 },
+    margin = { top: 5, bottom: 5, left: 25, right: 25 },
+    brushMargin = { top: 3, bottom: 3, left: 0, right: 0 },
 }) {
     const dispatch = useDispatch();
     const trajectory = useSelector((state) => selectTrajectory(state, trajectoryName));
@@ -37,12 +38,7 @@ function Timeline({
             }
             const { extents } = trajectory;
 
-            const trajG = svg
-                .append('g')
-                .classed(trajectoryName, true)
-                .attr('mask', `url(#satMask_${trajectoryName})`);
-
-            const adjustedHeight = height - margin.top - margin.bottom;
+            const adjustedHeight = height - margin.top - margin.bottom - brushMargin.bottom;
 
             const defs = svg.append('defs');
             const filter = defs.append('filter').attr('id', 'brushBrightness');
@@ -51,7 +47,7 @@ function Timeline({
                 .attr('in', `unSatMask_${trajectoryName}`)
                 .attr('result', 'A')
                 .attr('type', 'saturate')
-                .attr('values', 0.5);
+                .attr('values', 0.25);
             filter
                 .append('feComposite')
                 .attr('operator', 'in')
@@ -62,46 +58,37 @@ function Timeline({
             saturatedMask
                 .append('rect')
                 .attr('id', 'satMaskRect')
-                .attr('x', 0)
-                .attr('y', margin.top)
                 .attr('width', width)
                 .attr('fill', 'white')
-                .attr('height', adjustedHeight);
+                .attr('height', height);
 
             const unSaturatedMask = defs.append('mask').attr('id', `unSatMask_${trajectoryName}`);
             unSaturatedMask.append('rect').attr('id', `unSatMaskRect_0`);
             unSaturatedMask.append('rect').attr('id', `unSatMaskRect_1`);
 
-            trajG
-                .selectAll('rect')
-                .data(chunkList)
-                .enter()
-                .append('rect')
-                .attr('x', (d) => scaleX(d.timestep))
-                .attr('y', margin.top)
-                .attr('height', adjustedHeight)
-                .attr('width', (d) => scaleX(d.last) - scaleX(d.timestep))
-                .attr('fill', (d) => d.color)
-                .classed('unimportant', (d) => !d.important)
-                .classed('important', (d) => d.important);
+            // two copies of the same group for the mask trick to work
+            svg.append('g')
+                .classed(trajectoryName, true)
+                .attr('mask', `url(#satMask_${trajectoryName})`);
 
-            const unSatTrajG = svg
-                .append('g')
+            svg.append('g')
                 .classed(trajectoryName, true)
                 .attr('mask', `url(#unSatMask_${trajectoryName})`)
                 .attr('filter', 'url(#brushBrightness)');
 
-            unSatTrajG
+            svg.selectAll(`.${trajectoryName}`)
                 .selectAll('rect')
                 .data(chunkList)
                 .enter()
                 .append('rect')
                 .attr('x', (d) => scaleX(d.timestep))
-                .attr('y', margin.top)
-                .attr('height', adjustedHeight)
+                .attr('id', (d) => `chunk_${d.id}`)
+                .attr('y', margin.top + brushMargin.top)
+                .attr('height', adjustedHeight - brushMargin.bottom)
                 .attr('width', (d) => scaleX(d.last) - scaleX(d.timestep))
                 .attr('fill', (d) => d.color)
                 .classed('unimportant', (d) => !d.important)
+                .classed('blurry', (d) => !d.important)
                 .classed('important', (d) => d.important);
 
             const defaultSelection = [scaleX(extents[0]), scaleX(extents[1])];
@@ -125,31 +112,28 @@ function Timeline({
             const brush = d3
                 .brushX()
                 .extent([
-                    [margin.left, margin.top],
-                    [width, adjustedHeight * 0.99],
+                    [margin.left, 0],
+                    [width, height - 1],
                 ])
                 .on('brush', function ({ selection }) {
                     const [start, end] = selection;
                     svg.select('#satMaskRect')
                         .attr('x', start)
-                        .attr('y', margin.top)
                         .attr('width', end - start)
                         .attr('fill', 'white')
-                        .attr('height', adjustedHeight);
+                        .attr('height', height);
 
                     svg.select('#unSatMaskRect_0')
                         .attr('x', 0)
-                        .attr('y', margin.top)
                         .attr('width', start)
                         .attr('fill', 'white')
-                        .attr('height', adjustedHeight);
+                        .attr('height', height);
 
                     svg.select('#unSatMaskRect_1')
                         .attr('x', end)
-                        .attr('y', margin.top)
                         .attr('width', width - end)
                         .attr('fill', 'white')
-                        .attr('height', adjustedHeight);
+                        .attr('height', height);
                 })
                 .on('end', function ({ selection, sourceEvent }) {
                     if (!sourceEvent) return;

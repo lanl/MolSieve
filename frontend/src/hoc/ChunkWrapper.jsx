@@ -46,6 +46,8 @@ function ChunkWrapper({
     setStateHovered,
     trajectory,
     setZoom,
+    onMouseEnter,
+    onMouseLeave,
 }) {
     const [isInitialized, setIsInitialized] = useState(false);
     const [progress, setProgress] = useState(0.0);
@@ -236,7 +238,7 @@ function ChunkWrapper({
             </Tooltip>
             <Slider
                 min={2}
-                defaultValue={Math.min(Math.trunc(chunk.sequence.length / 4), 100)}
+                defaultValue={Math.min(Math.trunc(chunk.sequence.length / 10), 100)}
                 max={Math.trunc(chunk.sequence.length / 4)}
                 step={1}
                 size="small"
@@ -280,6 +282,12 @@ function ChunkWrapper({
                             if (e.detail === 2) {
                                 doubleClickAction();
                             }
+                        }}
+                        onMouseEnter={() => {
+                            onMouseEnter(chunk);
+                        }}
+                        onMouseLeave={() => {
+                            onMouseLeave(chunk);
                         }}
                     >
                         {progress < 1.0 ? (

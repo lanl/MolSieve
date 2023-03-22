@@ -125,6 +125,15 @@ function TrajectoryChart({
     // here we can filter out the un-rendered charts right away since we only care about rendering here
     const cutRanks = useMemo(() => ranks.slice(0, showTop), [showTop, JSON.stringify(ranks)]);
 
+    const highlight = (chunk) => {
+        d3.select(`.${trajectory.name}`).selectAll('.clicked').classed('clicked', false);
+        d3.select(`.${trajectory.name}`).select(`#chunk_${chunk.id}`).classed('clicked', true);
+    };
+
+    const unhighlightTimeline = () => {
+        d3.select(`.${trajectory.name}`).selectAll('.clicked').classed('clicked', false);
+    };
+
     return (
         <Box
             border={selectedObjects.map((d) => d.id).includes(trajectory.id) ? 1.0 : 0.0}
@@ -208,6 +217,8 @@ function TrajectoryChart({
                                     extents={extents}
                                     scatterplotHeight={scatterplotHeight}
                                     setZoom={setZoomCallback}
+                                    onMouseEnter={highlight}
+                                    onMouseLeave={unhighlightTimeline}
                                 />
                             ) : (
                                 <ViolinPlotWrapper
@@ -219,6 +230,8 @@ function TrajectoryChart({
                                     chunkSelectionMode={chunkSelectionMode}
                                     ranks={cutRanks}
                                     properties={properties}
+                                    onMouseEnter={highlight}
+                                    onMouseLeave={unhighlightTimeline}
                                     onClick={() => setStateHovered(chunk.characteristicState)}
                                 />
                             )}

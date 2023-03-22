@@ -27,6 +27,8 @@ function ViolinPlotWrapper({
     chunkSelectionMode,
     selectedObjects,
     onClick,
+    onMouseEnter,
+    onMouseLeave,
 }) {
     const [isInitialized, setIsInitialized] = useState(false);
     const [progress, setProgress] = useState(0.0);
@@ -66,7 +68,15 @@ function ViolinPlotWrapper({
         >
             {(ww) =>
                 isInitialized ? (
-                    <Box onClick={onClick}>
+                    <Box
+                        onClick={onClick}
+                        onMouseEnter={() => {
+                            onMouseEnter(chunk);
+                        }}
+                        onMouseLeave={() => {
+                            onMouseLeave(chunk);
+                        }}
+                    >
                         {progress < 1.0 ? (
                             <LinearProgress
                                 variant="determinate"
