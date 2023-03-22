@@ -36,12 +36,13 @@ function Timeline({ trajectoryName, width, height }) {
             const trajG = svg
                 .append('g')
                 .classed(trajectoryName, true)
-                .attr('mask', 'url(#satMask)');
+                .attr('mask', `url(#satMask_${trajectoryName})`);
+
             const defs = svg.append('defs');
             const filter = defs.append('filter').attr('id', 'brushBrightness');
             filter
                 .append('feColorMatrix')
-                .attr('in', 'unSatMask')
+                .attr('in', `unSatMask_${trajectoryName}`)
                 .attr('result', 'A')
                 .attr('type', 'saturate')
                 .attr('values', 0.5);
@@ -51,7 +52,7 @@ function Timeline({ trajectoryName, width, height }) {
                 .attr('in', 'A')
                 .attr('in2', 'SourceGraphic');
 
-            const saturatedMask = defs.append('mask').attr('id', 'satMask');
+            const saturatedMask = defs.append('mask').attr('id', `satMask_${trajectoryName}`);
             saturatedMask
                 .append('rect')
                 .attr('id', 'satMaskRect')
@@ -61,7 +62,7 @@ function Timeline({ trajectoryName, width, height }) {
                 .attr('fill', 'white')
                 .attr('height', height / 2);
 
-            const unSaturatedMask = defs.append('mask').attr('id', 'unSatMask');
+            const unSaturatedMask = defs.append('mask').attr('id', `unSatMask_${trajectoryName}`);
             unSaturatedMask.append('rect').attr('id', `unSatMaskRect_0`);
             unSaturatedMask.append('rect').attr('id', `unSatMaskRect_1`);
 
@@ -85,7 +86,7 @@ function Timeline({ trajectoryName, width, height }) {
 
             const unSatTrajG = svg
                 .append('g')
-                .attr('mask', 'url(#unSatMask)')
+                .attr('mask', `url(#unSatMask_${trajectoryName})`)
                 .attr('filter', 'url(#brushBrightness)');
 
             unSatTrajG
