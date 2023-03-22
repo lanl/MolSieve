@@ -6,14 +6,9 @@ import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
 import ChunkWrapper from '../hoc/ChunkWrapper';
 import ViolinPlotWrapper from '../hoc/ViolinPlotWrapper';
 import Timeline from './Timeline';
-
+import TrajectoryControls from '../components/TrajectoryControls';
 import { abbreviate } from '../api/myutils';
 import '../css/vis.css';
-
-const MARGIN = {
-    left: 5,
-    right: 75,
-};
 
 const minimumChartWidth = 200;
 
@@ -30,7 +25,10 @@ function TrajectoryChart({
     addSelection,
     showTop,
     propertyCombos,
+    recalculateClustering,
+    simplifySet,
     scatterplotHeight = 50,
+    margin = { left: 75, right: 10, top: 0, bottom: 5 },
 }) {
     const trajectory = useSelector((state) => selectTrajectory(state, trajectoryName));
     const dispatch = useDispatch();
@@ -76,11 +74,12 @@ function TrajectoryChart({
         }
     }, [JSON.stringify(ranks), ref, showTop, JSON.stringify(propertyCombos), height]);
 
+    const adjWidth = width - margin.left - margin.right;
+
     const scales = useMemo(() => {
         const iChunks = topChunkList.filter((d) => d.important);
         const uChunks = topChunkList.filter((d) => !d.important);
-        const unimportantWidthExtent =
-            iChunks.length > 0 ? (width - MARGIN.right) * 0.1 : width - MARGIN.right;
+        const unimportantWidthExtent = iChunks.length > 0 ? adjWidth * 0.1 : adjWidth;
 
         const unimportantWidthScale = d3
             .scaleLinear()
@@ -89,7 +88,7 @@ function TrajectoryChart({
 
         const importantWidthScale = d3
             .scaleLinear()
-            .range([minimumChartWidth, width - MARGIN.right])
+            .range([minimumChartWidth, adjWidth])
             .domain([0, d3.max(iChunks, (d) => d.slice(extents[0], extents[1]).size)]);
 
         const getWidthScale = (data) => {
@@ -107,7 +106,7 @@ function TrajectoryChart({
         const scaleX = (w) => {
             // given a width, scale it down so that it will fit within 1 screen
             const per = w / totalSum;
-            return per * (width - MARGIN.right);
+            return per * adjWidth;
         };
 
         const getX = (i, w) => {
@@ -126,12 +125,27 @@ function TrajectoryChart({
 
     return (
         <>
+            <TrajectoryControls
+                name={trajectory.name}
+                simplifySet={simplifySet}
+                recalculateClustering={recalculateClustering}
+                sx={{
+                    marginLeft: '75px',
+                    marginRight: '10px',
+                    marginBottom: '0px',
+                    marginTop: '0px',
+                    alignItems: 'center',
+                    maxWidth: '75%',
+                    display: 'flex',
+                }}
+            />
             <Timeline
                 key={trajectory.name}
                 width={width}
                 setZoom={setZoom}
-                height={50}
+                height={25}
                 trajectoryName={trajectory.name}
+                margin={{ left: 75, right: 10, top: 0, bottom: 0 }}
             />
             <svg
                 className="vis"
@@ -158,7 +172,7 @@ function TrajectoryChart({
                             key={chunk.id}
                             x={
                                 getX(chunkIndex, 0, topChunkList, scaleX, getWidthScale) +
-                                MARGIN.right
+                                margin.left
                             }
                             y={0}
                             width={chartW}

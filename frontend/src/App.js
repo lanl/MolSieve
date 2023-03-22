@@ -7,7 +7,6 @@ import Box from '@mui/material/Box';
 import Toolbar from '@mui/material/Toolbar';
 import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
-import MenuIcon from '@mui/icons-material/Menu';
 import { withSnackbar } from 'notistack';
 
 import AjaxMenu from './components/AjaxMenu';
@@ -15,7 +14,6 @@ import LoadRunModal from './modals/LoadRunModal';
 
 import VisArea from './components/VisArea';
 import { apiLoadTrajectory, apiGetScriptProperties, apiGetVisScripts } from './api/ajax';
-import ControlDrawer from './components/ControlDrawer';
 import { createUUID } from './api/math/random';
 
 import { calculateGlobalUniqueStates, addProperties } from './api/states';
@@ -38,7 +36,6 @@ class App extends React.Component {
         this.state = {
             currentModal: null,
             showRunList: false,
-            drawerOpen: false,
             run: null,
             trajectories: {},
             properties: [],
@@ -150,10 +147,6 @@ class App extends React.Component {
         );
     };
 
-    toggleDrawer = () => {
-        this.setState((prevState) => ({ drawerOpen: !prevState.drawerOpen }));
-    };
-
     toggleModal = (key) => {
         const { currentModal } = this.state;
         if (currentModal) {
@@ -166,25 +159,9 @@ class App extends React.Component {
         this.setState({ currentModal: key });
     };
 
-    propagateChange = (filter) => {
-        const { runs } = this.state;
-        const thisFilter = runs[filter.run].filters[filter.id];
-
-        if (filter.options) {
-            thisFilter.options = filter.options;
-        }
-
-        thisFilter.enabledFor = filter.enabledFor;
-
-        thisFilter.enabled = filter.enabled;
-
-        runs[filter.run].filters[filter.id] = thisFilter;
-        this.setState({ runs: { ...runs } });
-    };
-
     render() {
         const { trajectoryNames } = this.props;
-        const { properties, drawerOpen, showRunList, currentModal, run, visScripts } = this.state;
+        const { properties, showRunList, currentModal, run, visScripts } = this.state;
         return (
             <Box sx={{ display: 'flex', flexDirection: 'column' }}>
                 <Toolbar
@@ -209,39 +186,14 @@ class App extends React.Component {
                     >
                         Manage trajectories
                     </Button>
-                    {trajectoryNames.length > 0 && (
-                        <Button
-                            color="primary"
-                            onClick={() => {
-                                this.toggleDrawer();
-                            }}
-                        >
-                            <MenuIcon />
-                        </Button>
-                    )}
                 </Toolbar>
                 <VisArea
                     trajectories={trajectoryNames}
+                    recalculateClustering={this.recalculate_clustering}
+                    simplifySet={this.simplifySet}
                     properties={properties}
                     visScripts={visScripts}
-                    sx={{
-                        width: drawerOpen ? `calc(100% - 300px)` : `100%`,
-                    }}
                 />
-
-                {trajectoryNames.length > 0 && (
-                    <ControlDrawer
-                        sx={{ width: '300px', boxSizing: 'border-box' }}
-                        trajectoryNames={trajectoryNames}
-                        recalculateClustering={this.recalculate_clustering}
-                        simplifySet={this.simplifySet}
-                        drawerOpen={drawerOpen}
-                        setZoom={this.setZoomProp}
-                        toggleDrawer={this.toggleDrawer}
-                        addFilter={this.addFilter}
-                        propagateChange={this.propagateChange}
-                    />
-                )}
 
                 <AjaxMenu
                     anchorEl={this.runListButton.current}
