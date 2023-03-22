@@ -2,10 +2,10 @@ import { React, useEffect, memo, useMemo } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import * as d3 from 'd3';
 import { selectTrajectory, getVisibleChunks, setZoom, expand } from '../api/trajectories';
-
 import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
 import ChunkWrapper from '../hoc/ChunkWrapper';
 import ViolinPlotWrapper from '../hoc/ViolinPlotWrapper';
+import Timeline from './Timeline';
 
 import { abbreviate } from '../api/myutils';
 import '../css/vis.css';
@@ -125,89 +125,101 @@ function TrajectoryChart({
     const cutRanks = useMemo(() => ranks.slice(0, showTop), [showTop, JSON.stringify(ranks)]);
 
     return (
-        <svg
-            className="vis"
-            id={`${trajectory.name}_sequence`}
-            ref={ref}
-            viewBox={[0, 0, width, height]}
-            onClick={() => {
-                if (chunkSelectionMode === 3) {
-                    selectObject(trajectory);
-                }
-            }}
-        >
-            {topChunkList.map((chunk) => {
-                const { scaleX, getWidthScale, getX } = scales;
-                const chartW = scaleX(getWidthScale(chunk));
-
-                const chunkIndex = topChunkList.indexOf(chunk);
-                const h = chunk.important
-                    ? height
-                    : height - scatterplotHeight - propertyCombos.length * controlChartHeight;
-
-                return (
-                    <foreignObject
-                        key={chunk.id}
-                        x={getX(chunkIndex, 0, topChunkList, scaleX, getWidthScale) + MARGIN.right}
-                        y={0}
-                        width={chartW}
-                        height={height}
-                    >
-                        {chunk.important ? (
-                            <ChunkWrapper
-                                chunk={chunk}
-                                width={chartW}
-                                height={h}
-                                setStateHovered={setStateHovered}
-                                properties={properties}
-                                trajectory={trajectory}
-                                ranks={cutRanks}
-                                selections={selections}
-                                addSelection={addSelection}
-                                selectObject={selectObject}
-                                selectedObjects={selectedObjects}
-                                chunkSelectionMode={chunkSelectionMode}
-                                doubleClickAction={() =>
-                                    dispatch(
-                                        expand({
-                                            id: chunk.id,
-                                            sliceSize: 100,
-                                            name: trajectoryName,
-                                        })
-                                    )
-                                }
-                                propertyCombos={propertyCombos}
-                                extents={extents}
-                                scatterplotHeight={scatterplotHeight}
-                                setZoom={setZoomCallback}
-                            />
-                        ) : (
-                            <ViolinPlotWrapper
-                                chunk={chunk}
-                                width={chartW}
-                                height={h}
-                                selectObject={selectObject}
-                                selectedObjects={selectedObjects}
-                                chunkSelectionMode={chunkSelectionMode}
-                                ranks={cutRanks}
-                                properties={properties}
-                                onClick={() => setStateHovered(chunk.characteristicState)}
-                            />
-                        )}
-                    </foreignObject>
-                );
-            })}
-            <rect
-                x={0}
-                y={0}
+        <>
+            <Timeline
+                key={trajectory.name}
                 width={width}
-                height={height}
-                stroke="gray"
-                fill="none"
-                strokeWidth={2}
-                opacity={selectedObjects.map((d) => d.id).includes(trajectory.id) ? 1.0 : 0.0}
+                setZoom={setZoom}
+                height={50}
+                trajectoryName={trajectory.name}
             />
-        </svg>
+            <svg
+                className="vis"
+                id={`${trajectory.name}_sequence`}
+                ref={ref}
+                viewBox={[0, 0, width, height]}
+                onClick={() => {
+                    if (chunkSelectionMode === 3) {
+                        selectObject(trajectory);
+                    }
+                }}
+            >
+                {topChunkList.map((chunk) => {
+                    const { scaleX, getWidthScale, getX } = scales;
+                    const chartW = scaleX(getWidthScale(chunk));
+
+                    const chunkIndex = topChunkList.indexOf(chunk);
+                    const h = chunk.important
+                        ? height
+                        : height - scatterplotHeight - propertyCombos.length * controlChartHeight;
+
+                    return (
+                        <foreignObject
+                            key={chunk.id}
+                            x={
+                                getX(chunkIndex, 0, topChunkList, scaleX, getWidthScale) +
+                                MARGIN.right
+                            }
+                            y={0}
+                            width={chartW}
+                            height={height}
+                        >
+                            {chunk.important ? (
+                                <ChunkWrapper
+                                    chunk={chunk}
+                                    width={chartW}
+                                    height={h}
+                                    setStateHovered={setStateHovered}
+                                    properties={properties}
+                                    trajectory={trajectory}
+                                    ranks={cutRanks}
+                                    selections={selections}
+                                    addSelection={addSelection}
+                                    selectObject={selectObject}
+                                    selectedObjects={selectedObjects}
+                                    chunkSelectionMode={chunkSelectionMode}
+                                    doubleClickAction={() =>
+                                        dispatch(
+                                            expand({
+                                                id: chunk.id,
+                                                sliceSize: 100,
+                                                name: trajectoryName,
+                                            })
+                                        )
+                                    }
+                                    propertyCombos={propertyCombos}
+                                    extents={extents}
+                                    scatterplotHeight={scatterplotHeight}
+                                    setZoom={setZoomCallback}
+                                />
+                            ) : (
+                                <ViolinPlotWrapper
+                                    chunk={chunk}
+                                    width={chartW}
+                                    height={h}
+                                    selectObject={selectObject}
+                                    selectedObjects={selectedObjects}
+                                    chunkSelectionMode={chunkSelectionMode}
+                                    ranks={cutRanks}
+                                    properties={properties}
+                                    onClick={() => setStateHovered(chunk.characteristicState)}
+                                />
+                            )}
+                        </foreignObject>
+                    );
+                })}
+                <rect
+                    x={0}
+                    y={0}
+                    width={width}
+                    height={height}
+                    stroke="gray"
+                    fill="none"
+                    strokeWidth={2}
+                    opacity={selectedObjects.map((d) => d.id).includes(trajectory.id) ? 1.0 : 0.0}
+                />
+            </svg>
+        </>
     );
 }
 export default memo(TrajectoryChart);

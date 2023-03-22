@@ -29,6 +29,7 @@ export function hashStringToColor(str) {
 }
 
 export function occurrenceDict(arr) {
+    /* eslint-disable-next-line */
     return arr.reduce((a, c) => ((a[c] = (a[c] || 0) + 1), a), {});
 }
 
@@ -206,7 +207,8 @@ export function withinExtent(d, extent) {
     return (
         (d.timestep >= start && d.last <= end) ||
         (d.last >= start && d.last <= end) ||
-        (d.timestep >= start && d.timestep <= end)
+        (d.timestep >= start && d.timestep <= end) ||
+        (d.timestep <= start && d.last >= end) // the extent is inside of the chunk
     );
 }
 

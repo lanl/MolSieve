@@ -14,8 +14,12 @@
   opacity: 1.0;
 }
 
-.selectedExtent {
-    border: 1px solid black;
+.outsideExtent {
+    filter: brightness(0.5);
+}
+
+.outsideExtent.unimportant {
+    filter: brightness(0.65);
 }
 
 .clickable {
@@ -24,6 +28,11 @@
 
 .clickable:hover {
     stroke: black;
+}
+
+.icon.clickable:hover {
+    fill: black;
+    stroke: none;
 }
 
 .highlightedStates {
@@ -79,7 +88,7 @@
 }
 
 .unimportant {
-    opacity: 0.6;
+    opacity: 0.7;
 }
 
 .unimportant:hover {
@@ -89,6 +98,11 @@
 .ribbon:hover {
   stroke: black;
   opacity: 1;
+}
+
+rect.selection {
+    fill: none;
+    stroke: black;
 }
 
 .arrowed {    

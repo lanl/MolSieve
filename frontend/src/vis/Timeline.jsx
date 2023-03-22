@@ -1,8 +1,9 @@
 import { React, useState, useEffect, memo } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import * as d3 from 'd3';
-import { getChunkList, selectTrajectory, setZoom } from '../api/trajectories';
 
+import { getChunkList, selectTrajectory, setZoom } from '../api/trajectories';
+import { withinExtent } from '../api/myutils';
 import '../css/vis.css';
 import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
 
@@ -23,7 +24,7 @@ function Timeline({ trajectoryName, width, height }) {
     const ref = useTrajectoryChartRender(
         (svg) => {
             if (!svg.empty()) {
-                svg.selectAll('*').remove();
+                svg.selectAll('*:not(.icon)').remove();
             }
 
             if (width === undefined || height === undefined) {
@@ -47,7 +48,7 @@ function Timeline({ trajectoryName, width, height }) {
                 .append('rect')
                 .attr('x', (d) => scaleX(d.timestep))
                 .attr('y', height / 2)
-                .attr('height', 5)
+                .attr('height', height / 2)
                 .attr('width', (d) => scaleX(d.last) - scaleX(d.timestep))
                 .attr('fill', (d) => d.color)
                 .classed('unimportant', (d) => !d.important)
@@ -61,48 +62,52 @@ function Timeline({ trajectoryName, width, height }) {
 
             const defaultSelection = [scaleX(extents[0]), scaleX(extents[1])];
 
+            const updateScale = (start, end) => {
+                scaleX.domain([start, end]);
+                setXScale(() => scaleX);
+
+                trajG
+                    .selectAll('rect')
+                    .attr('x', (d) => {
+                        return scaleX(d.timestep);
+                    })
+                    .attr('width', (d) => scaleX(d.last) - scaleX(d.timestep));
+            };
+
             const brushG = svg.append('g').classed('brushG', true);
             const brush = d3
                 .brushX()
                 .extent([
-                    [0, height * 0.4],
-                    [width, height * 0.7],
+                    [0, height * 0.5],
+                    [width, height * 0.99],
                 ])
                 .on('end', function ({ selection, sourceEvent }) {
                     if (!sourceEvent) return;
                     const start = Math.trunc(scaleX.invert(selection[0]));
                     const end = Math.trunc(scaleX.invert(selection[1]));
                     dispatch(setZoom({ name: trajectoryName, extents: [start, end] }));
+                    trajG.selectAll('.outsideExtent').classed('outsideExtent', false);
+
+                    trajG
+                        .selectAll('rect')
+                        .filter((d) => !withinExtent(d, [start, end]))
+                        .classed('outsideExtent', true);
 
                     // if user double clicks, the timeline will be redrawn
                     svg.on('dblclick', () => {
-                        scaleX.domain([start, end]);
-                        trajG
-                            .selectAll('rect')
-                            .attr('x', (d) => {
-                                return scaleX(d.timestep);
-                            })
-                            .attr('width', (d) => scaleX(d.last) - scaleX(d.timestep));
+                        updateScale(start, end);
                         brushG.call(brush).call(brush.move, [scaleX(start), scaleX(end)]);
-                        setXScale(() => scaleX);
                     });
                 });
 
-            g.append('text')
-                .attr('x', 0)
-                .attr('y', height * 0.35)
-                .text('Reset')
+            svg.select('.icon')
                 .classed('clickable', true)
                 .attr('fill', 'lightgray')
+                .attr('transform', `translate(${scaleX(0)}, 0)`)
                 .on('click', () => {
-                    scaleX.domain([0, trajectory.length]);
-                    setXScale(() => scaleX);
-                    trajG
-                        .selectAll('rect')
-                        .attr('x', (d) => {
-                            return scaleX(d.timestep);
-                        })
-                        .attr('width', (d) => scaleX(d.last) - scaleX(d.timestep));
+                    updateScale(0, trajectory.length);
+                    trajG.selectAll('.outsideExtent').classed('outsideExtent', false);
+
                     brushG.call(brush).call(brush.move, [scaleX(0), scaleX(trajectory.length)]);
                     dispatch(setZoom({ name: trajectoryName, extents: [0, trajectory.length] }));
                 });
@@ -125,7 +130,15 @@ function Timeline({ trajectoryName, width, height }) {
         }
     }, [JSON.stringify(trajectory.extents)]);
 
-    return <svg ref={ref} viewBox={[0, 0, width, height]} />;
+    // stupid hack but it works
+    return (
+        <svg ref={ref} viewBox={[0, 0, width, height]}>
+            <path
+                className="icon"
+                d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14zM7 9h5v1H7z"
+            />
+        </svg>
+    );
 }
 
 export default memo(Timeline);
