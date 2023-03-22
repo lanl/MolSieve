@@ -1,4 +1,4 @@
-import { React, useState, useEffect, memo } from 'react';
+import { React, useState, useEffect, memo, useMemo } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import * as d3 from 'd3';
 
@@ -17,7 +17,14 @@ function Timeline({
     const chunkList = useSelector((state) => getChunkList(state, trajectoryName));
 
     const [sBrush, setBrush] = useState(null);
-    const [xScale, setXScale] = useState(null);
+    const scaleX = useMemo(
+        () =>
+            d3
+                .scaleLinear()
+                .range([margin.left, width - margin.right])
+                .domain([0, trajectory.length]),
+        [trajectory.length, width]
+    );
 
     const ref = useTrajectoryChartRender(
         (svg) => {
@@ -65,11 +72,6 @@ function Timeline({
             unSaturatedMask.append('rect').attr('id', `unSatMaskRect_0`);
             unSaturatedMask.append('rect').attr('id', `unSatMaskRect_1`);
 
-            const scaleX = d3
-                .scaleLinear()
-                .range([margin.left, width - margin.right])
-                .domain([0, trajectory.length]);
-
             trajG
                 .selectAll('rect')
                 .data(chunkList)
@@ -104,17 +106,21 @@ function Timeline({
 
             const defaultSelection = [scaleX(extents[0]), scaleX(extents[1])];
 
+            // TODO: get rid of this duplicate
             const updateScale = (start, end) => {
-                scaleX.domain([start, end]);
-                setXScale(() => scaleX);
+                if (ref) {
+                    scaleX.domain([start, end]);
 
-                svg.selectAll(`.${trajectoryName}`)
-                    .selectAll('rect')
-                    .attr('x', (d) => {
-                        return scaleX(d.timestep);
-                    })
-                    .attr('width', (d) => scaleX(d.last) - scaleX(d.timestep));
+                    d3.select(ref.current)
+                        .selectAll(`.${trajectoryName}`)
+                        .selectAll('rect')
+                        .attr('x', (d) => {
+                            return scaleX(d.timestep);
+                        })
+                        .attr('width', (d) => scaleX(d.last) - scaleX(d.timestep));
+                }
             };
+
             const brushG = svg.append('g').classed('brushG', true);
             const brush = d3
                 .brushX()
@@ -159,36 +165,39 @@ function Timeline({
                 });
 
             brushG.call(brush).call(brush.move, defaultSelection);
-            // stupid hack but it works
-            svg.append('path')
-                .attr(
-                    'd',
-                    'M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14zM7 9h5v1H7z'
-                )
-                .classed('icon', true)
-                .classed('clickable', true)
-                .attr('fill', 'lightgray')
-                .attr('transform', `translate(${margin.left - 25}, ${margin.top})`)
-                .on('click', () => {
-                    updateScale(0, trajectory.length);
-                    brushG.call(brush).call(brush.move, [scaleX(0), scaleX(trajectory.length)]);
-                    dispatch(setZoom({ name: trajectoryName, extents: [0, trajectory.length] }));
-                });
 
             setBrush(() => brush);
-            setXScale(() => scaleX);
         },
         [JSON.stringify(chunkList), width, height]
     );
+
+    const updateScale = (start, end) => {
+        if (ref.current) {
+            scaleX.domain([start, end]);
+
+            d3.select(ref.current)
+                .selectAll(`.${trajectoryName}`)
+                .selectAll('rect')
+                .attr('x', (d) => {
+                    return scaleX(d.timestep);
+                })
+                .attr('width', (d) => scaleX(d.last) - scaleX(d.timestep));
+        }
+    };
 
     useEffect(() => {
         if (ref.current && sBrush) {
             const { extents } = trajectory;
             const [start, stop] = extents;
+
+            if (start === 0 && stop === trajectory.length) {
+                updateScale(start, stop);
+            }
+
             d3.select(ref.current)
                 .select('.brushG')
                 .call(sBrush)
-                .call(sBrush.move, [xScale(start), xScale(stop)]);
+                .call(sBrush.move, [scaleX(start), scaleX(stop)]);
         }
     }, [JSON.stringify(trajectory.extents)]);
 

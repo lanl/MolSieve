@@ -1,10 +1,13 @@
 import { React, useState } from 'react';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Slider from '@mui/material/Slider';
 import '../css/App.css';
+import IconButton from '@mui/material/IconButton';
+import ZoomOutIcon from '@mui/icons-material/ZoomOut';
+import { setZoom } from '../api/trajectories';
 
 export default function TrajectoryControls({ name, simplifySet, recalculateClustering, sx }) {
     const initThreshold = useSelector((state) => state.trajectories.values[name].chunkingThreshold);
@@ -14,9 +17,14 @@ export default function TrajectoryControls({ name, simplifySet, recalculateClust
     const [chunkingThreshold, setChunkingThreshold] = useState(initThreshold);
     const [currentClustering, setCurrentClustering] = useState(initClustering);
 
+    const dispatch = useDispatch();
+
     return (
         <Box sx={sx} className="hideUntilHoverTrigger">
             <Typography>{name.toUpperCase()}</Typography>
+            <IconButton onClick={() => dispatch(setZoom({ name }))}>
+                <ZoomOutIcon />
+            </IconButton>
             <Box sx={{ m: 2 }} />
             <Box gap={2} className="hideUntilHover">
                 <Typography>PCCA clusters</Typography>
