@@ -1,5 +1,4 @@
-import { React, useState, useEffect } from 'react';
-import { useSelector } from 'react-redux';
+import { React } from 'react';
 
 import Toolbar from '@mui/material/Toolbar';
 
@@ -10,30 +9,16 @@ import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import Container from '@mui/material/Container';
 import TrajectoryControls from './TrajectoryControls';
 
-import ChartBox from './ChartBox';
 // import FilterComponent from './FilterComponent';
-import Timeline from '../vis/Timeline';
-
-import { selectTrajectories } from '../api/trajectories';
 
 function ControlDrawer({
     trajectoryNames,
     recalculateClustering,
-    setZoom,
     simplifySet,
     drawerOpen,
     toggleDrawer,
     sx,
 }) {
-    const [runs, setRuns] = useState({});
-    const trajectories = useSelector((state) => selectTrajectories(state));
-
-    const updateRun = (name, property, value) => {
-        const run = runs[name];
-        run[property] = value;
-        setRuns({ ...runs, [name]: run });
-    };
-
     // we want persistent because it doesn't draw a backdrop & its state is saved between opening and closing it
     return (
         <Drawer
@@ -52,21 +37,6 @@ function ControlDrawer({
                 </IconButton>
             </Toolbar>
             <Container maxWidth="xs">
-                <ChartBox>
-                    {(width) => {
-                        // 50px per trajectory
-                        const h = trajectoryNames.length * 50;
-                        return trajectoryNames.map((name) => (
-                            <Timeline
-                                key={name}
-                                width={width}
-                                setZoom={setZoom}
-                                height={h}
-                                trajectoryName={name}
-                            />
-                        ));
-                    }}
-                </ChartBox>
                 {trajectoryNames.map((name) => (
                     <TrajectoryControls
                         name={name}

@@ -3,7 +3,6 @@ import { useSelector, useDispatch } from 'react-redux';
 import * as d3 from 'd3';
 
 import { getChunkList, selectTrajectory, setZoom } from '../api/trajectories';
-import { withinExtent } from '../api/myutils';
 import '../css/vis.css';
 import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
 
@@ -34,7 +33,37 @@ function Timeline({ trajectoryName, width, height }) {
 
             const g = svg.append('g');
 
-            const trajG = svg.append('g').classed(trajectoryName, true);
+            const trajG = svg
+                .append('g')
+                .classed(trajectoryName, true)
+                .attr('mask', 'url(#satMask)');
+            const defs = svg.append('defs');
+            const filter = defs.append('filter').attr('id', 'brushBrightness');
+            filter
+                .append('feColorMatrix')
+                .attr('in', 'unSatMask')
+                .attr('result', 'A')
+                .attr('type', 'saturate')
+                .attr('values', 0.5);
+            filter
+                .append('feComposite')
+                .attr('operator', 'in')
+                .attr('in', 'A')
+                .attr('in2', 'SourceGraphic');
+
+            const saturatedMask = defs.append('mask').attr('id', 'satMask');
+            saturatedMask
+                .append('rect')
+                .attr('id', 'satMaskRect')
+                .attr('x', 0)
+                .attr('y', height / 2)
+                .attr('width', width)
+                .attr('fill', 'white')
+                .attr('height', height / 2);
+
+            const unSaturatedMask = defs.append('mask').attr('id', 'unSatMask');
+            unSaturatedMask.append('rect').attr('id', `unSatMaskRect_0`);
+            unSaturatedMask.append('rect').attr('id', `unSatMaskRect_1`);
 
             const scaleX = d3
                 .scaleLinear()
@@ -42,6 +71,24 @@ function Timeline({ trajectoryName, width, height }) {
                 .domain([0, trajectory.length]);
 
             trajG
+                .selectAll('rect')
+                .data(chunkList)
+                .enter()
+                .append('rect')
+                .attr('x', (d) => scaleX(d.timestep))
+                .attr('y', height / 2)
+                .attr('height', height / 2)
+                .attr('width', (d) => scaleX(d.last) - scaleX(d.timestep))
+                .attr('fill', (d) => d.color)
+                .classed('unimportant', (d) => !d.important)
+                .classed('important', (d) => d.important);
+
+            const unSatTrajG = svg
+                .append('g')
+                .attr('mask', 'url(#unSatMask)')
+                .attr('filter', 'url(#brushBrightness)');
+
+            unSatTrajG
                 .selectAll('rect')
                 .data(chunkList)
                 .enter()
@@ -72,6 +119,13 @@ function Timeline({ trajectoryName, width, height }) {
                         return scaleX(d.timestep);
                     })
                     .attr('width', (d) => scaleX(d.last) - scaleX(d.timestep));
+
+                unSatTrajG
+                    .selectAll('rect')
+                    .attr('x', (d) => {
+                        return scaleX(d.timestep);
+                    })
+                    .attr('width', (d) => scaleX(d.last) - scaleX(d.timestep));
             };
 
             const brushG = svg.append('g').classed('brushG', true);
@@ -81,17 +135,34 @@ function Timeline({ trajectoryName, width, height }) {
                     [0, height * 0.5],
                     [width, height * 0.99],
                 ])
+                .on('brush', function ({ selection }) {
+                    const [start, end] = selection;
+                    svg.select('#satMaskRect')
+                        .attr('x', start)
+                        .attr('y', height / 2)
+                        .attr('width', end - start)
+                        .attr('fill', 'white')
+                        .attr('height', height / 2);
+
+                    svg.select('#unSatMaskRect_0')
+                        .attr('x', 0)
+                        .attr('y', height / 2)
+                        .attr('width', start)
+                        .attr('fill', 'white')
+                        .attr('height', height / 2);
+
+                    svg.select('#unSatMaskRect_1')
+                        .attr('x', end)
+                        .attr('y', height / 2)
+                        .attr('width', width - end)
+                        .attr('fill', 'white')
+                        .attr('height', height / 2);
+                })
                 .on('end', function ({ selection, sourceEvent }) {
                     if (!sourceEvent) return;
                     const start = Math.trunc(scaleX.invert(selection[0]));
                     const end = Math.trunc(scaleX.invert(selection[1]));
                     dispatch(setZoom({ name: trajectoryName, extents: [start, end] }));
-                    trajG.selectAll('.outsideExtent').classed('outsideExtent', false);
-
-                    trajG
-                        .selectAll('rect')
-                        .filter((d) => !withinExtent(d, [start, end]))
-                        .classed('outsideExtent', true);
 
                     // if user double clicks, the timeline will be redrawn
                     svg.on('dblclick', () => {
