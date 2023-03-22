@@ -130,12 +130,10 @@ function TrajectoryChart({
                 simplifySet={simplifySet}
                 recalculateClustering={recalculateClustering}
                 sx={{
-                    marginLeft: '75px',
-                    marginRight: '10px',
-                    marginBottom: '0px',
                     marginTop: '0px',
+                    marginBottom: '0px',
+                    marginLeft: '75px',
                     alignItems: 'center',
-                    maxWidth: '75%',
                     display: 'flex',
                 }}
             />

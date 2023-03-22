@@ -15,14 +15,6 @@ img {
   right: 5px;
 }
 
-.hideUntilHover {
-    display: none;
-}
-
-.hideUntilHoverTrigger:hover .hideUntilHover {
-    display: block;
-}
-
 .embeddedChart {
 }
 
