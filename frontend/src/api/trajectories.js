@@ -268,7 +268,11 @@ export const trajectories = createSlice({
         setZoom: (state, action) => {
             const { name, extents } = action.payload;
             const { values } = state;
-            values[name].extents = extents;
+            if (extents) {
+                values[name].extents = extents;
+            } else {
+                values[name].extents = [0, values[name].length];
+            }
         },
         updateRanks: (state, action) => {
             // pass in entire chunkList

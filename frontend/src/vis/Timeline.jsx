@@ -6,20 +6,19 @@ import { getChunkList, selectTrajectory, setZoom } from '../api/trajectories';
 import '../css/vis.css';
 import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
 
-const margin = {
-    top: 25,
-    bottom: 20,
-    left: 25,
-    right: 25,
-};
-
-function Timeline({ trajectoryName, width, height }) {
+function Timeline({
+    trajectoryName,
+    width,
+    height,
+    margin = { top: 5, bottom: 0, left: 25, right: 25 },
+}) {
     const dispatch = useDispatch();
     const trajectory = useSelector((state) => selectTrajectory(state, trajectoryName));
     const chunkList = useSelector((state) => getChunkList(state, trajectoryName));
 
     const [sBrush, setBrush] = useState(null);
     const [xScale, setXScale] = useState(null);
+
     const ref = useTrajectoryChartRender(
         (svg) => {
             if (!svg.empty()) {
@@ -31,12 +30,12 @@ function Timeline({ trajectoryName, width, height }) {
             }
             const { extents } = trajectory;
 
-            const g = svg.append('g');
-
             const trajG = svg
                 .append('g')
                 .classed(trajectoryName, true)
                 .attr('mask', `url(#satMask_${trajectoryName})`);
+
+            const adjustedHeight = height - margin.top - margin.bottom;
 
             const defs = svg.append('defs');
             const filter = defs.append('filter').attr('id', 'brushBrightness');
@@ -57,10 +56,10 @@ function Timeline({ trajectoryName, width, height }) {
                 .append('rect')
                 .attr('id', 'satMaskRect')
                 .attr('x', 0)
-                .attr('y', height / 2)
+                .attr('y', margin.top)
                 .attr('width', width)
                 .attr('fill', 'white')
-                .attr('height', height / 2);
+                .attr('height', adjustedHeight);
 
             const unSaturatedMask = defs.append('mask').attr('id', `unSatMask_${trajectoryName}`);
             unSaturatedMask.append('rect').attr('id', `unSatMaskRect_0`);
@@ -77,8 +76,8 @@ function Timeline({ trajectoryName, width, height }) {
                 .enter()
                 .append('rect')
                 .attr('x', (d) => scaleX(d.timestep))
-                .attr('y', height / 2)
-                .attr('height', height / 2)
+                .attr('y', margin.top)
+                .attr('height', adjustedHeight)
                 .attr('width', (d) => scaleX(d.last) - scaleX(d.timestep))
                 .attr('fill', (d) => d.color)
                 .classed('unimportant', (d) => !d.important)
@@ -86,6 +85,7 @@ function Timeline({ trajectoryName, width, height }) {
 
             const unSatTrajG = svg
                 .append('g')
+                .classed(trajectoryName, true)
                 .attr('mask', `url(#unSatMask_${trajectoryName})`)
                 .attr('filter', 'url(#brushBrightness)');
 
@@ -95,18 +95,12 @@ function Timeline({ trajectoryName, width, height }) {
                 .enter()
                 .append('rect')
                 .attr('x', (d) => scaleX(d.timestep))
-                .attr('y', height / 2)
-                .attr('height', height / 2)
+                .attr('y', margin.top)
+                .attr('height', adjustedHeight)
                 .attr('width', (d) => scaleX(d.last) - scaleX(d.timestep))
                 .attr('fill', (d) => d.color)
                 .classed('unimportant', (d) => !d.important)
                 .classed('important', (d) => d.important);
-
-            g.append('text')
-                .attr('x', width / 2)
-                .attr('y', height / 2 - 5)
-                .attr('text-anchor', 'middle')
-                .text(trajectoryName);
 
             const defaultSelection = [scaleX(extents[0]), scaleX(extents[1])];
 
@@ -114,50 +108,42 @@ function Timeline({ trajectoryName, width, height }) {
                 scaleX.domain([start, end]);
                 setXScale(() => scaleX);
 
-                trajG
-                    .selectAll('rect')
-                    .attr('x', (d) => {
-                        return scaleX(d.timestep);
-                    })
-                    .attr('width', (d) => scaleX(d.last) - scaleX(d.timestep));
-
-                unSatTrajG
+                svg.selectAll(`.${trajectoryName}`)
                     .selectAll('rect')
                     .attr('x', (d) => {
                         return scaleX(d.timestep);
                     })
                     .attr('width', (d) => scaleX(d.last) - scaleX(d.timestep));
             };
-
             const brushG = svg.append('g').classed('brushG', true);
             const brush = d3
                 .brushX()
                 .extent([
-                    [0, height * 0.5],
-                    [width, height * 0.99],
+                    [margin.left, margin.top],
+                    [width, adjustedHeight * 0.99],
                 ])
                 .on('brush', function ({ selection }) {
                     const [start, end] = selection;
                     svg.select('#satMaskRect')
                         .attr('x', start)
-                        .attr('y', height / 2)
+                        .attr('y', margin.top)
                         .attr('width', end - start)
                         .attr('fill', 'white')
-                        .attr('height', height / 2);
+                        .attr('height', adjustedHeight);
 
                     svg.select('#unSatMaskRect_0')
                         .attr('x', 0)
-                        .attr('y', height / 2)
+                        .attr('y', margin.top)
                         .attr('width', start)
                         .attr('fill', 'white')
-                        .attr('height', height / 2);
+                        .attr('height', adjustedHeight);
 
                     svg.select('#unSatMaskRect_1')
                         .attr('x', end)
-                        .attr('y', height / 2)
+                        .attr('y', margin.top)
                         .attr('width', width - end)
                         .attr('fill', 'white')
-                        .attr('height', height / 2);
+                        .attr('height', adjustedHeight);
                 })
                 .on('end', function ({ selection, sourceEvent }) {
                     if (!sourceEvent) return;
@@ -172,19 +158,23 @@ function Timeline({ trajectoryName, width, height }) {
                     });
                 });
 
-            svg.select('.icon')
+            brushG.call(brush).call(brush.move, defaultSelection);
+            // stupid hack but it works
+            svg.append('path')
+                .attr(
+                    'd',
+                    'M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14zM7 9h5v1H7z'
+                )
+                .classed('icon', true)
                 .classed('clickable', true)
                 .attr('fill', 'lightgray')
-                .attr('transform', `translate(${scaleX(0)}, 0)`)
+                .attr('transform', `translate(${margin.left - 25}, ${margin.top})`)
                 .on('click', () => {
                     updateScale(0, trajectory.length);
-                    trajG.selectAll('.outsideExtent').classed('outsideExtent', false);
-
                     brushG.call(brush).call(brush.move, [scaleX(0), scaleX(trajectory.length)]);
                     dispatch(setZoom({ name: trajectoryName, extents: [0, trajectory.length] }));
                 });
 
-            brushG.call(brush).call(brush.move, defaultSelection);
             setBrush(() => brush);
             setXScale(() => scaleX);
         },
@@ -202,15 +192,7 @@ function Timeline({ trajectoryName, width, height }) {
         }
     }, [JSON.stringify(trajectory.extents)]);
 
-    // stupid hack but it works
-    return (
-        <svg ref={ref} viewBox={[0, 0, width, height]}>
-            <path
-                className="icon"
-                d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14zM7 9h5v1H7z"
-            />
-        </svg>
-    );
+    return <svg ref={ref} viewBox={[0, 0, width, height]} />;
 }
 
 export default memo(Timeline);
