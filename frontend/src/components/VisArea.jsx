@@ -548,6 +548,7 @@ export default function VisArea({
             >
                 {visScripts.map((vs) => (
                     <MenuItem
+                        key={vs}
                         onClick={() => {
                             setVisScript(vs);
                             setAnchorEl(null);

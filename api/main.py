@@ -677,7 +677,8 @@ def get_run_list():
             runs = []
             for r in result.values():
                 for record in r:
-                    runs.append(record)
+                    if record not in runs:
+                        runs.append(record)
             j = runs
         except neo4j.exceptions.ServiceUnavailable as exception:
             raise exception
