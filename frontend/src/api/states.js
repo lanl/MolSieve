@@ -1,6 +1,11 @@
 import { createSlice, createAsyncThunk, createSelector } from '@reduxjs/toolkit';
 import State from './state';
 import { loadPropertiesForSubset, apiClusterStates } from './ajax';
+import { wsConnect } from './websocketmiddleware';
+import { startListening } from './listenerMiddleware';
+
+import { WS_URL } from './constants';
+
 /**
  * Given a list of stateIDs, find the states that don't have the property loaded.
  *
@@ -199,15 +204,9 @@ export const states = createSlice({
     },
     extraReducers: (builder) => {
         builder
-            .addCase(ensureSubsetHasProperties.pending, (state) => {
-                state.status = 'fetchingProps';
-            })
             .addCase(ensureSubsetHasProperties.fulfilled, (state, action) =>
                 state.caseReducers.addPropToState(action.payload)
             )
-            .addCase(clusterStates.rejected, (state, action) => {
-                // should have a failure case, since it can sometimes fail to cluster
-            })
             .addCase(clusterStates.fulfilled, (state, action) => {
                 const { values, colorByStateCluster } = state;
                 for (const [id, clusterID] of Object.entries(action.payload)) {
@@ -233,4 +232,11 @@ export const {
     toggleStateClustering,
 } = states.actions;
 
+startListening({
+    actionCreator: calculateGlobalUniqueStates,
+    effect: (_, listenerAPI) => {
+        const { dispatch } = listenerAPI;
+        dispatch(wsConnect(`${WS_URL}/api/load_properties_for_subset`));
+    },
+});
 export default states.reducer;

@@ -19,11 +19,9 @@ import { createUUID } from './api/math/random';
 import { calculateGlobalUniqueStates, addProperties } from './api/states';
 import { addTrajectory, simplifySet, recluster } from './api/trajectories';
 
-import { wsConnect } from './api/websocketmiddleware';
-
 import WebSocketManager from './api/websocketmanager';
 
-import { WS_URL, API_URL } from './api/constants';
+import { API_URL } from './api/constants';
 
 const RUN_MODAL = 'run_modal';
 
@@ -132,7 +130,6 @@ class App extends React.Component {
                     })
                 );
 
-                dispatch(wsConnect(`${WS_URL}/api/load_properties_for_subset`));
                 enqueueSnackbar(`Trajectory ${run} successfully loaded.`);
             })
             .catch((e) => alert(`${e}`));

@@ -6,8 +6,6 @@ import { apiModifyTrajectory } from './ajax';
 import { getNeighbors, buildDictFromArray, normalizeDict } from './myutils';
 import { zTest } from './math/stats';
 
-import { WS_URL } from './constants';
-import { wsConnect } from './websocketmiddleware';
 import { startListening } from './listenerMiddleware';
 
 const clusterColors = [...d3.schemeTableau10, ...d3.schemeAccent];
@@ -100,7 +98,6 @@ export const simplifySet = createAsyncThunk('trajectories/simplifySet', async (a
             run: name,
         })
     );
-    dispatch(wsConnect(`${WS_URL}/api/load_properties_for_subset`));
     return { simplified: data.simplified, name, threshold };
 });
 
@@ -118,7 +115,6 @@ export const recluster = createAsyncThunk('trajectories/recluster', async (args,
             run: name,
         })
     );
-    dispatch(wsConnect(`${WS_URL}/api/load_properties_for_subset`));
     return { simplified: data.simplified, name, currentClustering: clusters };
 });
 
@@ -178,7 +174,6 @@ export const expand = createAsyncThunk('trajectories/expand', async (args, thunk
             run: name,
         })
     );
-    dispatch(wsConnect(`${WS_URL}/api/load_properties_for_subset`));
 
     return { left, lData, rData, right, sliceSize, id, name };
 });
