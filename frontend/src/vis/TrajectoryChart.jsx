@@ -1,11 +1,13 @@
 import { React, useEffect, memo, useMemo } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import * as d3 from 'd3';
+import Box from '@mui/material/Box';
 import { selectTrajectory, getVisibleChunks, setZoom, expand } from '../api/trajectories';
 import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
 import ChunkWrapper from '../hoc/ChunkWrapper';
 import ViolinPlotWrapper from '../hoc/ViolinPlotWrapper';
 import Timeline from './Timeline';
+
 import TrajectoryControls from '../components/TrajectoryControls';
 import { abbreviate } from '../api/myutils';
 import '../css/vis.css';
@@ -124,7 +126,14 @@ function TrajectoryChart({
     const cutRanks = useMemo(() => ranks.slice(0, showTop), [showTop, JSON.stringify(ranks)]);
 
     return (
-        <>
+        <Box
+            border={selectedObjects.map((d) => d.id).includes(trajectory.id) ? 1.0 : 0.0}
+            onClick={() => {
+                if (chunkSelectionMode === 3) {
+                    selectObject(trajectory);
+                }
+            }}
+        >
             <TrajectoryControls
                 name={trajectory.name}
                 simplifySet={simplifySet}
@@ -133,6 +142,7 @@ function TrajectoryChart({
                     marginTop: '0px',
                     marginBottom: '0px',
                     marginLeft: '75px',
+                    marginRight: '10px',
                     alignItems: 'center',
                     display: 'flex',
                 }}
@@ -150,11 +160,6 @@ function TrajectoryChart({
                 id={`${trajectory.name}_sequence`}
                 ref={ref}
                 viewBox={[0, 0, width, height]}
-                onClick={() => {
-                    if (chunkSelectionMode === 3) {
-                        selectObject(trajectory);
-                    }
-                }}
             >
                 {topChunkList.map((chunk) => {
                     const { scaleX, getWidthScale, getX } = scales;
@@ -220,18 +225,8 @@ function TrajectoryChart({
                         </foreignObject>
                     );
                 })}
-                <rect
-                    x={0}
-                    y={0}
-                    width={width}
-                    height={height}
-                    stroke="gray"
-                    fill="none"
-                    strokeWidth={2}
-                    opacity={selectedObjects.map((d) => d.id).includes(trajectory.id) ? 1.0 : 0.0}
-                />
             </svg>
-        </>
+        </Box>
     );
 }
 export default memo(TrajectoryChart);

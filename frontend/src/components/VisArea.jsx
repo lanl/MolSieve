@@ -268,7 +268,7 @@ export default function VisArea({
     return (
         <Box id="c" sx={sx}>
             <CssBaseline />
-            <ChartBox sx={{ marginBottom: 5 }}>
+            <ChartBox sx={{ marginBottom: '5px' }}>
                 {(width) => (
                     <>
                         <Box display="flex">
@@ -407,7 +407,7 @@ export default function VisArea({
                             </Tooltip>
                         </Box>
 
-                        <Stack direction="column" spacing={2}>
+                        <Stack direction="column" spacing={1}>
                             {trajectories.map((trajectory) => {
                                 return (
                                     <TrajectoryChart

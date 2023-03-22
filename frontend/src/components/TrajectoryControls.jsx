@@ -29,14 +29,14 @@ export default function TrajectoryControls({ name, simplifySet, recalculateClust
     return (
         <Box sx={sx}>
             <Typography>{name.toUpperCase()}</Typography>
-            <Tooltip title="Reset timeline to full length">
+            <Tooltip title="Reset timeline to full length" arrow>
                 <IconButton onClick={() => dispatch(setZoom({ name }))}>
                     <ZoomOutIcon />
                 </IconButton>
             </Tooltip>
-            <Tooltip title="Configure trajectory parameters">
-                <IconButton edge="start">
-                    <TuneIcon onClick={(e) => setAnchor(e.currentTarget)} />
+            <Tooltip title="Configure trajectory parameters" arrow>
+                <IconButton onClick={(e) => setAnchor(e.currentTarget)} edge="start">
+                    <TuneIcon />
                 </IconButton>
             </Tooltip>
             <Menu anchorEl={anchor} open={open} onClose={() => setAnchor(null)}>
