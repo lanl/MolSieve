@@ -45,24 +45,20 @@ class Trajectory:
         )
         gpcca = gp.GPCCA(m, z="LM", method="krylov")
 
-        return self._single_pcca(gpcca, idx_to_id, numClusters)
+        self._single_pcca(gpcca, idx_to_id, numClusters)
 
     def _single_pcca(self, gpcca, idx_to_id, num_clusters: int):
-
         r = loadTestPickle(self.name, f"{self.name}_pcca_cluster_{num_clusters}")
         if r is not None:
             self.clusterings[num_clusters] = r["clusters"]
             self.fuzzy_memberships[num_clusters] = r["fuzzy_memberships"]
             return
         try:
-            # need to run minChi before clustering
-            min_chi_min_clusters = num_clusters if 2 != num_clusters else 3
-            gpcca.minChi(2, min_chi_min_clusters)
+            gpcca.minChi(2, 20)
             gpcca.optimize(num_clusters)
         except Exception as exception:
             raise exception
         self.save_membership_info(gpcca, idx_to_id, num_clusters)
-
         saveTestPickle(
             self.name,
             f"{self.name}_pcca_cluster_{num_clusters}",
@@ -74,7 +70,6 @@ class Trajectory:
 
     def pcca(self, m_min: int, m_max: int, driver):
         # attempt to re-hydrate from JSON file before running PCCA
-        
         r = loadTestPickle(self.name, f"optimal_pcca_{m_min}_{m_max}")
         if r is not None:
             self.clusterings = r["clusterings"]
@@ -83,7 +78,6 @@ class Trajectory:
             self.feasible_clusters = r["feasible_clusters"]
             self.min_chi = r["min_chi"]
             return
-
         t0 = time.time()
         m, idx_to_id = calculator.calculate_transition_matrix(
             driver, run=self.name, discrete=True
@@ -94,21 +88,25 @@ class Trajectory:
         gpcca = gp.GPCCA(m, z="LM", method="krylov")
         try:
             mc = gpcca.minChi(m_min, m_max)
-            self.optimal_value = mc.index(max(mc)) + m_min
-            self.current_clustering = self.optimal_value
-            gpcca.optimize(self.optimal_value)
+            self.min_chi = mc
+            if gpcca.n_m is not None:
+                self.optimal_value = gpcca.n_m
+                self.current_clustering = self.optimal_value
+            else:
+                self.optimal_value = mc.index(max(mc)) + m_min
+                self.current_clustering = self.optimal_value
+
             feasible_clusters = [self.optimal_value]
             t0 = time.time()
             self._single_pcca(gpcca, idx_to_id, self.optimal_value)
             t1 = time.time()
             logging.info(
-                f"Clustering into {self.optimal_value} clusters took {t1-t0} seconds total"
+                f"Clustering into {self.optimal_value} clusters took {t1-t0} seconds total."
             )
             self.feasible_clusters = feasible_clusters
         except Exception as e:
             raise e
 
-        self.min_chi = mc
         saveTestPickle(
             self.name,
             f"optimal_pcca_{m_min}_{m_max}",
@@ -124,9 +122,9 @@ class Trajectory:
     def save_membership_info(self, gpcca, idx_to_id, num_clusters):
         clusters = []
         fuzzy_memberships = {}
-        for set in gpcca.macrostate_sets:
+        for s in gpcca.macrostate_sets:
             idList = []
-            for stateID in set:
+            for stateID in s:
                 idList.append(idx_to_id[stateID])
             clusters.append(idList)
             for idx, mem in enumerate(gpcca.memberships.tolist()):

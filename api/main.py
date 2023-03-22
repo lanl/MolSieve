@@ -716,6 +716,7 @@ def modify_trajectory(run: str, chunkingThreshold: float, numClusters: int):
         "current_clustering": trajectory.current_clustering,
     }
 
+
 @router.get("/load_trajectory")
 def load_trajectory(run: str, mMin: int, mMax: int, chunkingThreshold: float):
     """

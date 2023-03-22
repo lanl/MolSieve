@@ -8,6 +8,7 @@ import { zTest } from './math/stats';
 
 import { WS_URL } from './constants';
 import { wsConnect } from './websocketmiddleware';
+import { startListening } from '../../app/listenerMiddleware';
 
 const clusterColors = [...d3.schemeTableau10, ...d3.schemeAccent];
 
@@ -118,7 +119,7 @@ export const recluster = createAsyncThunk('trajectories/recluster', async (args,
         })
     );
     dispatch(wsConnect(`${WS_URL}/api/load_properties_for_subset`));
-    return { simplified: data.simplfied, name, currentClustering: clusters };
+    return { simplified: data.simplified, name, currentClustering: clusters };
 });
 
 export const expand = createAsyncThunk('trajectories/expand', async (args, thunkAPI) => {
@@ -188,14 +189,6 @@ export const trajectories = createSlice({
         names: [],
         values: {},
         chunks: {},
-        /*
-        extents: {},
-        current_clustering: {},
-        colors: {},
-        raw: {},
-        LAMMPSBootstrapScript: {},
-        chunkingThreshold: {},
-        chunks: {}, */
     },
     reducers: {
         addTrajectory: (state, action) => {
@@ -234,6 +227,24 @@ export const trajectories = createSlice({
                 action.payload;
             const { chunks, values } = state;
             const trajectory = values[trajectoryName];
+
+            if (chunkingThreshold !== undefined && chunkingThreshold !== null) {
+                values[trajectoryName].chunkingThreshold = chunkingThreshold;
+            }
+            if (currentClustering !== undefined && currentClustering !== null) {
+                if (values[trajectoryName].currentClustering < currentClustering) {
+                    const colors = clusterColors.splice(
+                        0,
+                        currentClustering - values[trajectoryName].currentClustering
+                    );
+
+                    for (const color of colors) {
+                        values[trajectoryName].colors.push(color);
+                    }
+                }
+                values[trajectoryName].currentClustering = currentClustering;
+            }
+
             const chunkList = [];
             let lastTimestep = 0;
             for (const chunk of newChunks) {
@@ -257,12 +268,6 @@ export const trajectories = createSlice({
             if (!values[trajectoryName].extents) {
                 values[trajectoryName].extents = [0, lastTimestep];
             }
-            if (chunkingThreshold !== undefined && chunkingThreshold !== null) {
-                values[trajectoryName].chunkingThreshold = chunkingThreshold;
-            }
-            if (currentClustering !== undefined && currentClustering !== null) {
-                values[trajectoryName].currentClustering = currentClustering;
-            }
             values[trajectoryName].chunkList = chunkList;
         },
         setZoom: (state, action) => {
@@ -275,13 +280,17 @@ export const trajectories = createSlice({
             }
         },
         updateRanks: (state, action) => {
-            // pass in entire chunkList
-            const { states } = action.payload;
+            const { states, extents } = action.payload;
             const { values, chunks } = state;
 
             for (const trajectory of Object.values(values)) {
                 const { ranks, chunkList } = trajectory;
-                const uChunks = chunkList.map((id) => chunks[id]).filter((c) => !c.important);
+                const uChunks = chunkList
+                    .map((id) => chunks[id])
+                    .filter((c) => !c.important)
+                    .filter((c) =>
+                        extents ? c.timestep >= extents[0] && c.last <= extents[1] : true
+                    );
                 const zScores = buildDictFromArray(ranks, []);
                 for (let i = 0; i < uChunks.length - 1; i++) {
                     const curr = uChunks[i];
@@ -317,15 +326,12 @@ export const trajectories = createSlice({
             });
         });
         builder.addCase(recluster.fulfilled, (state, action) => {
-            const { name, simplified, clusters } = action.payload;
-            const { values } = state;
-            const colors = clusterColors.splice(0, clusters);
-            values[name].colors = [...values[name].colors, colors];
+            const { name, simplified, currentClustering } = action.payload;
             trajectories.caseReducers.setChunks(state, {
                 payload: {
                     newChunks: simplified,
                     trajectoryName: name,
-                    currentClustering: clusters,
+                    currentClustering,
                 },
             });
         });
