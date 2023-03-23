@@ -63,7 +63,7 @@ export function boxPlotStats(data) {
 }
 
 function stderr(data) {
-    return d3.deviation(data) / Math.sqrt(data.length);
+    return d3.deviation(data) ** 2 / data.length;
 }
 
 /**
@@ -80,7 +80,7 @@ export function zTest(s1, s2) {
     const stderr1 = stderr(s1);
     const stderr2 = stderr(s2);
 
-    return (x1 - x2) / Math.sqrt(stderr1 ** 2 + stderr2 ** 2);
+    return (x1 - x2) / Math.sqrt(stderr1 + stderr2);
 }
 
 /**
