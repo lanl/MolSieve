@@ -36,7 +36,6 @@ function Timeline({
             if (width === undefined || height === undefined) {
                 return;
             }
-            const { extents } = trajectory;
 
             const adjustedHeight = height - margin.top - margin.bottom - brushMargin.bottom;
 
@@ -91,7 +90,8 @@ function Timeline({
                 .classed('blurry', (d) => !d.important)
                 .classed('important', (d) => d.important);
 
-            const defaultSelection = [scaleX(extents[0]), scaleX(extents[1])];
+            const [iStart, iEnd] = scaleX.domain();
+            const defaultSelection = [scaleX(iStart), scaleX(iEnd)];
 
             // TODO: get rid of this duplicate
             const updateScale = (start, end) => {
@@ -112,8 +112,8 @@ function Timeline({
             const brush = d3
                 .brushX()
                 .extent([
-                    [margin.left, 0],
-                    [width, height - 1],
+                    [margin.left, 1],
+                    [width - 1, height * 0.99],
                 ])
                 .on('brush', function ({ selection }) {
                     const [start, end] = selection;

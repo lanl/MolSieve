@@ -151,19 +151,20 @@ function TrajectoryChart({
                     marginTop: '0px',
                     marginBottom: '0px',
                     marginLeft: '75px',
-                    marginRight: '10px',
+                    marginRight: '12px',
                     alignItems: 'center',
                     display: 'flex',
                 }}
-            />
-            <Timeline
-                key={trajectory.name}
-                width={width}
-                setZoom={setZoom}
-                height={25}
-                trajectoryName={trajectory.name}
-                margin={{ left: 75, right: 10, top: 0, bottom: 0 }}
-            />
+            >
+                <Timeline
+                    key={trajectory.name}
+                    width={width}
+                    setZoom={setZoom}
+                    height={30}
+                    trajectoryName={trajectory.name}
+                    margin={{ left: 5, right: 0, top: 0, bottom: 0 }}
+                />
+            </TrajectoryControls>
             <svg
                 className="vis"
                 id={`${trajectory.name}_sequence`}
