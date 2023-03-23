@@ -4,10 +4,10 @@ import Button from '@mui/material/Button';
 import DialogTitle from '@mui/material/DialogTitle';
 import Dialog from '@mui/material/Dialog';
 import DialogActions from '@mui/material/DialogActions';
-import DialogContentText from '@mui/material/DialogContentText';
 import DialogContent from '@mui/material/DialogContent';
 import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
+import Typography from '@mui/material/Typography';
 
 const domain = [2, 100];
 const defaultValues = [2, 20];
@@ -23,12 +23,10 @@ export default function LoadRunModal({ closeFunc, runFunc, run, isOpen }) {
 
     return (
         <Dialog onBackdropClick={() => closeFunc()} open={isOpen}>
-            <DialogTitle>{run}</DialogTitle>
+            <DialogTitle>Load {run}</DialogTitle>
             <DialogContent>
-                <DialogContentText>
-                    Select the cluster sizes that PCCA will try to cluster the data into.
-                </DialogContentText>
                 <Stack spacing={2} alignItems="center" justifyContent="center">
+                    <Typography>PCCA cluster range</Typography>
                     <Slider
                         step={1}
                         min={domain[0]}
@@ -42,7 +40,7 @@ export default function LoadRunModal({ closeFunc, runFunc, run, isOpen }) {
                     <b>{values.toString().replace(',', ' - ')} clusters</b>
                     <TextField
                         fullWidth
-                        label="Chunk Threshold"
+                        label="Simplification Threshold"
                         type="number"
                         inputProps={{
                             inputMode: 'numeric',
