@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk, createSelector } from '@reduxjs/toolkit';
-import * as d3 from 'd3';
+// import * as d3 from 'd3';
 import Chunk from './chunk';
+/* eslint-disable-next-line */
 import { calculateGlobalUniqueStates } from './states';
 import { apiModifyTrajectory } from './ajax';
 import { getNeighbors, buildDictFromArray, normalizeDict } from './myutils';
@@ -8,7 +9,18 @@ import { zTest } from './math/stats';
 
 import { startListening } from './listenerMiddleware';
 
-const clusterColors = [...d3.schemeTableau10, ...d3.schemeAccent];
+const clusterColors = [
+    '#4e79a7',
+    '#f28e2c',
+    '#e15759',
+    '#76b7b2',
+    '#59a14f',
+    '#edc949',
+    '#af7aa1',
+    '#ff9da7',
+    '#9c755f',
+    '#bab0ab',
+];
 
 // functions that you can call on the trajectories dictionary
 // no trajectories object because that would make it harder for react to diff
@@ -224,20 +236,22 @@ export const trajectories = createSlice({
             const trajectory = values[trajectoryName];
 
             if (chunkingThreshold !== undefined && chunkingThreshold !== null) {
-                values[trajectoryName].chunkingThreshold = chunkingThreshold;
+                trajectory.chunkingThreshold = chunkingThreshold;
             }
+
             if (currentClustering !== undefined && currentClustering !== null) {
-                if (values[trajectoryName].currentClustering < currentClustering) {
+                // will be false if trajectory.currentClustering is undefined
+                if (trajectory.currentClustering < currentClustering) {
                     const colors = clusterColors.splice(
                         0,
-                        currentClustering - values[trajectoryName].currentClustering
+                        currentClustering - trajectory.currentClustering
                     );
 
                     for (const color of colors) {
-                        values[trajectoryName].colors.push(color);
+                        trajectory.colors.push(color);
                     }
                 }
-                values[trajectoryName].currentClustering = currentClustering;
+                trajectory.currentClustering = currentClustering;
             }
 
             const chunkList = [];
@@ -259,11 +273,11 @@ export const trajectories = createSlice({
                 chunkList.push(newChunk.id);
                 lastTimestep = Math.max(lastTimestep, chunk.last);
             }
-            values[trajectoryName].length = lastTimestep;
+            trajectory.length = lastTimestep;
             if (!values[trajectoryName].extents) {
-                values[trajectoryName].extents = [0, lastTimestep];
+                trajectory.extents = [0, lastTimestep];
             }
-            values[trajectoryName].chunkList = chunkList;
+            trajectory.chunkList = chunkList;
         },
         setZoom: (state, action) => {
             const { name, extents } = action.payload;

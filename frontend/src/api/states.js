@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk, createSelector } from '@reduxjs/toolkit';
 import State from './state';
 import { loadPropertiesForSubset, apiClusterStates } from './ajax';
+/* eslint-disable-next-line */
 import { wsConnect } from './websocketmiddleware';
 import { startListening } from './listenerMiddleware';
 
@@ -133,6 +134,13 @@ export const states = createSlice({
                 min: Math.min(globalScale[property].min, Math.min(...values)),
                 max: Math.max(globalScale[property].max, Math.max(...values)),
             };
+        },
+        resetGlobalScaleProperty: (state, action) => {
+            const { globalScale } = state;
+            const { property } = action.payload;
+
+            delete globalScale[property];
+            states.caseReducers.addPropertyToGlobalScale(state, { payload: { property } });
         },
         addPropToState: (state, action) => {
             const { prop } = action.payload;
