@@ -142,8 +142,13 @@ export default function VisArea({
         switch (action.type) {
             case 'create': {
                 const id = createUUID();
-                //            updateGlobalScale({ type: 'create', payload: id });
                 return [...state, { id, properties: action.payload }];
+            }
+            case 'delete': {
+                return state.filter((d) => d.id !== action.payload);
+            }
+            case 'pop': {
+                return state.slice(1);
             }
             default:
                 throw new Error('Unknown action');
@@ -241,23 +246,31 @@ export default function VisArea({
 
         const v = visible.filter((d) => d.id !== selected.id && d.important);
         const similarities = {};
+        //  let minS = Number.MAX_SAFE_INTEGER;
+        //   let maxS = Number.MIN_SAFE_INTEGER;
         for (const vc of v) {
             const sim = chunkSimilarityFunc(selected, vc);
-            similarities[`ec_${vc.id}`] = sim;
+            similarities[`chunk_${vc.id}`] = sim;
+            // minS = Math.min(minS, sim);
+            //    maxS = Math.max(maxS, sim);
         }
 
-        const charts = document.querySelectorAll('.embeddedChart');
+        const charts = document.querySelectorAll('rect.important');
         const ttList = [];
-        for (const chart of charts) {
+        // const oScale = d3.scaleLinear().domain([minS, maxS]).range([0, 1]);
+        for (let i = 0; i < charts.length; i++) {
+            const chart = charts[i];
             if (similarities[chart.id] !== undefined) {
-                // chart.style.opacity = `${similarities[chart.id]}`;
-                const tt = tooltip(chart, formatFunc(similarities[chart.id]), {
-                    allowHTML: true,
-                    arrow: true,
-                    theme: 'translucent',
-                    placement: 'top',
-                });
-                ttList.push(tt);
+                // chart.style.opacity = `${oScale(similarities[chart.id])}`;
+                if (similarities[chart.id] > 0.05) {
+                    const tt = tooltip(chart, formatFunc(similarities[chart.id]), {
+                        allowHTML: true,
+                        arrow: true,
+                        theme: 'translucent',
+                        placement: 'top',
+                    });
+                    ttList.push(tt);
+                }
             }
         }
 
@@ -282,6 +295,7 @@ export default function VisArea({
                                     <ViewListIcon />
                                 </IconButton>
                             </Tooltip>
+                            {/* <Box onClick={() => reducePropertyCombos({ type: 'pop' })}>X</Box> */}
                             <Tooltip title="Compare chunks / selections" arrow>
                                 <IconButton
                                     size="small"

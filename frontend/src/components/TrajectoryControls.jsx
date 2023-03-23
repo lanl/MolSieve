@@ -14,7 +14,13 @@ import ZoomOutIcon from '@mui/icons-material/ZoomOut';
 import TuneIcon from '@mui/icons-material/Tune';
 import { setZoom } from '../api/trajectories';
 
-export default function TrajectoryControls({ name, simplifySet, recalculateClustering, sx }) {
+export default function TrajectoryControls({
+    name,
+    simplifySet,
+    recalculateClustering,
+    sx,
+    children,
+}) {
     const initThreshold = useSelector((state) => state.trajectories.values[name].chunkingThreshold);
     const initClustering = useSelector(
         (state) => state.trajectories.values[name].currentClustering
@@ -39,6 +45,7 @@ export default function TrajectoryControls({ name, simplifySet, recalculateClust
                     <TuneIcon />
                 </IconButton>
             </Tooltip>
+            {children}
             <Menu anchorEl={anchor} open={open} onClose={() => setAnchor(null)}>
                 <MenuItem dense divider>
                     <Box gap={2} width="100%">
