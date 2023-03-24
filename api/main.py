@@ -785,30 +785,23 @@ def subset_connectivity_difference(stateIDs: List[int] = Body([])):
     return task_id
 
 @router.post("/selection_distance")
-def selection_distance(stateIDPairs: List[List[int]] = Body([])):
+def selection_distance(stateSet1: List[int] = Body([]),
+                       stateSet2: List[int] = Body([])):
     driver = GraphDriver()
 
-    # flattens 2D array
-    stateIDs = list(chain.from_iterable(stateIDPairs))
+    # get all states without duplicates
+    stateIDs = list(set(stateSet1 + stateSet2))
     qb = querybuilder.Neo4jQueryBuilder([("Atom", "PART_OF", "State", "MANY-TO-ONE")])
     q = qb.generate_get_node_list("State", stateIDs, "PART_OF")
     state_atom_dict = converter.query_to_ASE(driver, q)
 
-    pairs = [(x[0], x[1]) for x in stateIDPairs]
-    seen = {}
-    distances = []
-    for pair in pairs:
-        if pair in seen:
-            distances.append(seen[pair])
-        else:
-            id1, id2 = pair
-            s1 = state_atom_dict[id1]
+    m = {id : {id2: 0 for id2 in stateSet2} for id in stateSet1}
+    for id1 in stateSet1:
+        s1 = state_atom_dict[id1]
+        for id2 in stateSet2:
             s2 = state_atom_dict[id2]
             dist = ase.geometry.distance(s1, s2)
-            distances.append(dist)
-            seen[pair] = dist
-
-    return distances
-
+            m[id1][id2] = dist
+    return m
 
 app.include_router(router)
