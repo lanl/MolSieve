@@ -17,7 +17,7 @@ import Scatterplot from '../vis/Scatterplot';
 
 /* import { onMessageHandler, apiCalculateNEB } from '../api/ajax'; */
 
-export default function NEBModal({ states, stateMap, close, open, submit }) {
+export default function NEBModal({ states, colorFunc, close, open, submit }) {
     const [interpolate, setInterpolate] = useState(3);
     const [maxSteps, setMaxSteps] = useState(250);
     const [fmax, setFMax] = useState(0.1);
@@ -32,10 +32,7 @@ export default function NEBModal({ states, stateMap, close, open, submit }) {
                     <Scatterplot
                         width={375}
                         height={200}
-                        colorFunc={(d) => {
-                            const state = stateMap[d.y];
-                            return state.color;
-                        }}
+                        colorFunc={(d) => colorFunc(d.y)}
                         xAttributeList={[...Array(states.length).keys()]}
                         yAttributeList={states.map((d) => d.id)}
                         brush={d3.brushX().on('end', (e) => {

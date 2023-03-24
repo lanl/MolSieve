@@ -4,8 +4,7 @@ import { loadPropertiesForSubset, apiClusterStates } from './ajax';
 /* eslint-disable-next-line */
 import { wsConnect } from './websocketmiddleware';
 import { startListening } from './listenerMiddleware';
-
-import { WS_URL } from './constants';
+import { mpn65, WS_URL } from './constants';
 
 /**
  * Given a list of stateIDs, find the states that don't have the property loaded.
@@ -101,13 +100,27 @@ export const getPropList = (state, stateList, property, range) => {
     return stateSequence.map((d) => d[property]);
 };
 
+// some super fun functional programming
+// a function that returns a function that returns a color
+// the first layer can use the redux state to do things
+// the second does something based on that information
+const USE_MPN = 0;
+const USE_CLUSTERING = 1;
+const withMpn = () => (id) => mpn65[id % mpn65.length];
+const withClustering = (state) => {
+    const { stateClustering } = state.states;
+    return (id) => (id !== -1 ? withMpn()(stateClustering[id]) : 'black');
+};
+const colorMethods = [withMpn, withClustering];
+export const getStateColoringMethod = (state) => colorMethods[state.states.colorState](state);
+
 export const states = createSlice({
     name: 'states',
     initialState: {
         values: {},
         properties: [],
         globalScale: {},
-        colorByStateCluster: false,
+        colorState: USE_MPN,
     },
     reducers: {
         addProperties: (state, action) => {
@@ -199,15 +212,7 @@ export const states = createSlice({
             }
         },
         clearClusterStates: (state) => {
-            const { values } = state;
-            for (const [id, s] of Object.entries(values)) {
-                s.stateCluster = undefined;
-                values[id] = s;
-            }
-            return { ...state, values, colorByStateCluster: !state.colorByStateCluster };
-        },
-        toggleStateClustering: (state) => {
-            return { ...state, colorByStateCluster: !state.colorByStateCluster };
+            return { ...state, colorState: USE_MPN, stateClustering: null };
         },
     },
     extraReducers: (builder) => {
@@ -216,15 +221,7 @@ export const states = createSlice({
                 state.caseReducers.addPropToState(action.payload)
             )
             .addCase(clusterStates.fulfilled, (state, action) => {
-                const { values, colorByStateCluster } = state;
-                for (const [id, clusterID] of Object.entries(action.payload)) {
-                    const intID = parseInt(id, 10);
-                    const previous = values[intID];
-                    previous.stateCluster = parseInt(clusterID, 10);
-                    values[intID] = previous;
-                    // state.caseReducers.toggleStateClustering();
-                }
-                return { ...state, values, colorByStateCluster: !colorByStateCluster };
+                return { ...state, stateClustering: action.payload, colorState: USE_CLUSTERING };
             });
     },
 });

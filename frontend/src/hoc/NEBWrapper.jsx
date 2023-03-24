@@ -7,7 +7,7 @@ import Scatterplot from '../vis/Scatterplot';
 import { apiCalculateNEB, onMessageHandler } from '../api/ajax';
 import { WS_URL } from '../api/constants';
 
-import { calculateGlobalUniqueStates } from '../api/states';
+import { calculateGlobalUniqueStates, getStateColoringMethod } from '../api/states';
 
 export default function NEBWrapper({
     trajectoryName,
@@ -22,7 +22,7 @@ export default function NEBWrapper({
 }) {
     const { enqueueSnackbar } = useSnackbar();
     const dispatch = useDispatch();
-    const states = useSelector((state) => state.states.values);
+    const colorState = useSelector((state) => getStateColoringMethod(state));
 
     const [results, reduceResults] = useReducer(
         (state, action) => {
@@ -86,13 +86,7 @@ export default function NEBWrapper({
                 setActiveState(d.id);
                 d3.select(node).classed('clicked', true);
             }}
-            colorFunc={(d) => {
-                if (d.id) {
-                    const state = states[d.id];
-                    return state.color;
-                }
-                return 'black';
-            }}
+            colorFunc={(d) => colorState(d.id)}
             showYAxis
         />
     );

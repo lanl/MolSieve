@@ -1,4 +1,3 @@
-import { mpn65 } from './constants';
 import { abbreviate } from './myutils';
 
 const IGNORE_PROPS = ['img', 'loaded', 'color'];
@@ -9,12 +8,6 @@ export default class State {
 
     constructor(id) {
         this.id = id;
-        this.color = mpn65[this.id % mpn65.length];
-    }
-
-    // -1 stateCluster is noise / unclustered
-    get stateClusteringColor() {
-        return this.stateCluster !== -1 ? mpn65[this.stateCluster % mpn65.length] : 'black';
     }
 
     /**

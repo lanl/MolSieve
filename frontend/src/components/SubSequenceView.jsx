@@ -1,4 +1,4 @@
-import { React, useState, useEffect, memo, useCallback, useMemo, useRef } from 'react';
+import { React, useState, useEffect, memo, useRef } from 'react';
 import { useSelector } from 'react-redux';
 
 import Stack from '@mui/material/Stack';
@@ -22,7 +22,7 @@ import '../css/App.css';
 
 // import { oneShotTooltip } from '../api/myutils';
 import { apiSubsetConnectivityDifference } from '../api/ajax';
-import { getStates } from '../api/states';
+import { getStateColoringMethod } from '../api/states';
 
 function SubSequenceView({
     stateIDs,
@@ -51,22 +51,7 @@ function SubSequenceView({
 
     const ws = useRef(null);
 
-    const states = useSelector((state) => getStates(state, stateIDs));
-
-    const stateMap = useMemo(
-        () =>
-            states.reduce((acc, v) => {
-                acc[v.id] = { color: v.color };
-                return acc;
-            }, {}),
-        []
-    );
-
-    const colorFunc = useCallback((d) => {
-        const state = stateMap[d.y];
-        return state.color;
-    }, []);
-
+    const colorFunc = useSelector((state) => getStateColoringMethod(state));
     useEffect(() => {
         if (ws.current) {
             ws.current.close();
@@ -83,12 +68,14 @@ function SubSequenceView({
                     const parsedData = JSON.parse(e.data);
                     const { data, type } = parsedData;
                     if (type === 'TASK_PROGRESS') {
-                        setInterestingStates((prev) => [
-                            ...prev.slice(0, insertAt),
-                            data,
-                            ...prev.slice(insertAt),
-                        ]);
-                        insertAt++;
+                        if (interestingStates[insertAt - 1] !== data) {
+                            setInterestingStates((prev) => [
+                                ...prev.slice(0, insertAt),
+                                data,
+                                ...prev.slice(insertAt),
+                            ]);
+                            insertAt++;
+                        }
                     }
 
                     if (type === 'TASK_COMPLETE') {
@@ -152,6 +139,7 @@ function SubSequenceView({
                 <Stack direction="row" spacing={0.5}>
                     {interestingStates.map((stateID) => (
                         <SingleStateViewer
+                            key={stateID}
                             stateID={stateID}
                             visScript={visScript}
                             onClick={(e) => {
@@ -165,18 +153,6 @@ function SubSequenceView({
                             }}
                         />
                     ))}
-
-                    {/* <RadarChart
-                        data={states}
-                        properties={properties}
-                        width={200}
-                        height={200}
-                        globalScale={globalScale}
-                        onElementMouseOver={(node, d) => {
-                            oneShotTooltip(node, `${d.value}`);
-                        }}
-                        // renderSingle={States.get(activeState)}
-                    /> */}
                 </Stack>
                 <Divider />
                 <Stack
@@ -194,7 +170,7 @@ function SubSequenceView({
                         id={`scatterplot-${id}`}
                         width={interestingStates.length * 100}
                         height={30}
-                        colorFunc={colorFunc}
+                        colorFunc={(d) => colorFunc(d.y)}
                         xAttributeList={timesteps}
                         yAttributeList={stateIDs}
                         onElementClick={(node, d) => {
@@ -244,7 +220,7 @@ function SubSequenceView({
                     id: d,
                     timestep: timesteps[i],
                 }))}
-                stateMap={stateMap}
+                colorFunc={colorFunc}
                 submit={addNEB}
             />
         </>

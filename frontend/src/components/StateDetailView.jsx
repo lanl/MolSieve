@@ -5,14 +5,15 @@ import { DataGrid } from '@mui/x-data-grid';
 
 import { useSelector } from 'react-redux';
 import SingleStateViewer from './SingleStateViewer';
-import { getState } from '../api/states';
+import { getState, getStateColoringMethod } from '../api/states';
 
 export default function StateDetailView({ stateID, visScript }) {
     const state = useSelector((states) => getState(states, stateID));
+    const colorState = useSelector((states) => getStateColoringMethod(states));
     return (
         <Paper>
             <SingleStateViewer stateID={state.id} visScript={visScript} />
-            <Box height={5} width={190} sx={{ backgroundColor: state.color }} />
+            <Box height={5} width={190} sx={{ backgroundColor: colorState(stateID) }} />
             <DataGrid
                 sx={{ width: '190px' }}
                 autoHeight

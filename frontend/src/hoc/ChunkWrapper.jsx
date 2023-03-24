@@ -26,7 +26,7 @@ import LoadingBox from '../components/LoadingBox';
 import EmbeddedChart from '../vis/EmbeddedChart';
 import PropertyWrapper from './PropertyWrapper';
 
-import { getStates, updateGlobalScale } from '../api/states';
+import { getStates, getStateColoringMethod, updateGlobalScale } from '../api/states';
 
 function ChunkWrapper({
     chunk,
@@ -69,7 +69,7 @@ function ChunkWrapper({
     const states = useSelector((state) => getStates(state, chunk.sequence));
     const numLoaded = getNumberLoaded(states);
 
-    const colorByStateCluster = useSelector((state) => state.states.colorByStateCluster);
+    const colorState = useSelector((state) => getStateColoringMethod(state));
 
     const chartSel = useMemo(
         () =>
@@ -105,16 +105,6 @@ function ChunkWrapper({
             startExtent,
             endExtent,
         ]
-    );
-
-    const stateMap = useMemo(
-        () =>
-            states.reduce((acc, v) => {
-                const color = colorByStateCluster ? v.stateClusteringColor : v.color;
-                acc[v.id] = color;
-                return acc;
-            }, {}),
-        [colorByStateCluster, chunk.timestep, chunk.last]
     );
 
     const [mvaPeriod, setMvaPeriod] = useState(Math.min(chunk.sequence.length / 4, 100));
@@ -250,11 +240,6 @@ function ChunkWrapper({
         </Box>
     );
 
-    const colorFunc = useCallback(
-        (d) => stateMap[d],
-        [colorByStateCluster, chunk.timestep, chunk.last]
-    );
-
     return (
         <EmbeddedChart
             height={height}
@@ -361,8 +346,7 @@ function ChunkWrapper({
                             yAttributeList={slicedChunk.sequence}
                             width={width}
                             height={scatterplotHeight}
-                            coloring={colorByStateCluster}
-                            colorFunc={colorFunc}
+                            colorFunc={colorState}
                             onElementClick={(node, d) => {
                                 d3.selectAll('.clicked').classed('clicked', false);
                                 setStateHovered(d);

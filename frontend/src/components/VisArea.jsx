@@ -76,7 +76,7 @@ export default function VisArea({
     const [selectedObjects, setSelectedObjects] = useState([]);
 
     const [anchorEl, setAnchorEl] = useState(null);
-    const showStateClustering = useSelector((state) => state.states.colorByStateCluster);
+    const colorState = useSelector((state) => state.states.colorState);
 
     const [toolTipList, setToolTipList] = useState([]);
     const oldToolTipList = usePrevious(toolTipList);
@@ -368,9 +368,9 @@ export default function VisArea({
                             </Tooltip>
                             <Tooltip
                                 title={
-                                    showStateClustering
-                                        ? 'Color states by ID'
-                                        : 'Color states by structural properties'
+                                    colorState
+                                        ? 'Color states by structural properties'
+                                        : 'Color states by ID'
                                 }
                                 arrow
                             >
@@ -378,7 +378,7 @@ export default function VisArea({
                                     color="secondary"
                                     size="small"
                                     onClick={() =>
-                                        !showStateClustering
+                                        !colorState
                                             ? dispatch(
                                                   clusterStates({
                                                       properties,
