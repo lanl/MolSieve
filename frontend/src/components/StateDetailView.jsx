@@ -13,7 +13,7 @@ export default function StateDetailView({ stateID, visScript }) {
     return (
         <Paper>
             <SingleStateViewer stateID={state.id} visScript={visScript} />
-            <Box height={5} width={190} sx={{ backgroundColor: colorState(stateID) }} />
+            <Box height={5} width="100%" sx={{ backgroundColor: colorState(stateID) }} />
             <DataGrid
                 sx={{ width: '190px' }}
                 autoHeight

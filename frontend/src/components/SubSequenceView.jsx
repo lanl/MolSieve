@@ -1,4 +1,4 @@
-import { React, useState, useEffect, memo, useRef } from 'react';
+import { React, useState, useEffect, memo, useCallback, useRef } from 'react';
 import { useSelector } from 'react-redux';
 
 import Stack from '@mui/material/Stack';
@@ -111,7 +111,15 @@ function SubSequenceView({
 
     useEffect(() => {
         onElementClick(activeState);
+        d3.select(`#scatterplot-${id}`).selectAll(`.y-${activeState}`).classed('clicked', true);
     }, [activeState]);
+
+    const onScatterplotElementClick = useCallback(
+        (_, d) => {
+            setActiveState(d.y);
+        },
+        [setActiveState]
+    );
 
     return (
         <>
@@ -146,9 +154,6 @@ function SubSequenceView({
                                 d3.selectAll('.clicked').classed('clicked', false);
                                 setActiveState(stateID);
                                 // select matching state in scatterplot
-                                d3.select(`#scatterplot-${id}`)
-                                    .selectAll(`.y-${stateID}`)
-                                    .classed('clicked', true);
                                 d3.select(e.target).classed('clicked', true);
                             }}
                         />
@@ -173,11 +178,7 @@ function SubSequenceView({
                         colorFunc={(d) => colorFunc(d.y)}
                         xAttributeList={timesteps}
                         yAttributeList={stateIDs}
-                        onElementClick={(node, d) => {
-                            d3.selectAll('.clicked').classed('clicked', false);
-                            setActiveState(d.y);
-                            d3.select(node).classed('clicked', true);
-                        }}
+                        onElementClick={onScatterplotElementClick}
                     />
                 </Stack>
                 {nebPlots !== null && (

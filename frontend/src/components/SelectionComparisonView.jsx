@@ -16,9 +16,6 @@ function SelectionComparisonView({
     onStateClick = () => {},
     deleteFunc = () => {},
 }) {
-    // const stateData = useSelector((state) => state.states.values);
-    console.log(selections);
-
     const [selection1, selection2] = selections;
 
     const getIDs = (selection) => [...new Set(selection.extent.map((d) => d.id))];

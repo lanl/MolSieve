@@ -109,6 +109,7 @@ rect.selection {
 .clicked {
     stroke: black;
 }
+
 .unimportant.clicked {
     opacity: 0.6;
 }

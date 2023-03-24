@@ -46,7 +46,7 @@ function ViolinPlot({
 
             const xScale = d3
                 .scaleLinear()
-                .range([margin.left, width - margin.left])
+                .range([margin.left, width - margin.right])
                 .domain([-data.length, data.length]);
 
             svg.append('rect')

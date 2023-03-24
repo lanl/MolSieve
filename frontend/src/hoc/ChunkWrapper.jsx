@@ -330,7 +330,7 @@ function ChunkWrapper({
                                                 globalScaleMax={max}
                                                 ucl={ucl}
                                                 height={controlChartHeight}
-                                                width={width}
+                                                width={ww}
                                                 yAttributeList={values.slice(startSlice, endSlice)}
                                                 xAttributeList={slicedChunk.timesteps}
                                                 lineColor={chunk.color}
@@ -344,7 +344,7 @@ function ChunkWrapper({
                             key={`${chunk.id}-aggregate-scatterplot`}
                             xAttributeList={slicedChunk.timesteps}
                             yAttributeList={slicedChunk.sequence}
-                            width={width}
+                            width={ww}
                             height={scatterplotHeight}
                             colorFunc={colorState}
                             onElementClick={(node, d) => {

@@ -1,4 +1,4 @@
-import { React, useEffect, memo, useMemo } from 'react';
+import { React, useEffect, memo, useMemo, useCallback } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import * as d3 from 'd3';
 import Box from '@mui/material/Box';
@@ -34,7 +34,10 @@ function TrajectoryChart({
 }) {
     const trajectory = useSelector((state) => selectTrajectory(state, trajectoryName));
     const dispatch = useDispatch();
-    const setZoomCallback = (extents) => dispatch(setZoom({ name: trajectoryName, extents }));
+    const setZoomCallback = useCallback(
+        (extents) => dispatch(setZoom({ name: trajectoryName, extents })),
+        [trajectoryName]
+    );
 
     const { extents, ranks } = trajectory;
     const topChunkList = useSelector((state) => getVisibleChunks(state, trajectoryName));
@@ -125,14 +128,17 @@ function TrajectoryChart({
     // here we can filter out the un-rendered charts right away since we only care about rendering here
     const cutRanks = useMemo(() => ranks.slice(0, showTop), [showTop, JSON.stringify(ranks)]);
 
-    const highlight = (chunk) => {
-        d3.select(`.${trajectory.name}`).selectAll('.clicked').classed('clicked', false);
-        d3.select(`.${trajectory.name}`).select(`#chunk_${chunk.id}`).classed('clicked', true);
-    };
+    const highlight = useCallback(
+        (chunk) => {
+            d3.select(`.${trajectory.name}`).selectAll('.clicked').classed('clicked', false);
+            d3.select(`.${trajectory.name}`).select(`#chunk_${chunk.id}`).classed('clicked', true);
+        },
+        [trajectory.name]
+    );
 
-    const unhighlightTimeline = () => {
+    const unhighlightTimeline = useCallback(() => {
         d3.select(`.${trajectory.name}`).selectAll('.clicked').classed('clicked', false);
-    };
+    }, [trajectory.name]);
 
     return (
         <Box

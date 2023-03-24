@@ -1,7 +1,8 @@
 import { React, useEffect, useState } from 'react';
-
+import { useSelector } from 'react-redux';
 import Box from '@mui/material/Box';
 import LinearProgress from '@mui/material/LinearProgress';
+import { getStateColoringMethod } from '../api/states';
 
 import ImageViewer from './ImageViewer';
 
@@ -13,6 +14,7 @@ export default function SingleStateViewer({ stateID, visScript, onClick }) {
     const [img, setImg] = useState(undefined);
     const [isLoading, setIsLoading] = useState(false);
     // const dispatch = useDispatch();
+    const colorFunc = useSelector((state) => getStateColoringMethod(state));
 
     useEffect(() => {
         const controller = new AbortController();
@@ -31,6 +33,7 @@ export default function SingleStateViewer({ stateID, visScript, onClick }) {
         <Box onClick={onClick}>
             {isLoading && <LinearProgress variant="indeterminate" />}
             <ImageViewer img={img} />
+            <Box height="5px" width="100%" sx={{ backgroundColor: colorFunc(stateID) }} />
         </Box>
     );
 }
