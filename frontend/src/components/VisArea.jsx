@@ -449,7 +449,7 @@ export default function VisArea({
                 )}
             </ChartBox>
             <Stack direction="row" gap={1}>
-                <Box marginLeft={5} minWidth="225px">
+                <Box marginLeft={5} minWidth="190px">
                     {activeState !== null && activeState !== undefined && (
                         <StateDetailView stateID={activeState} visScript={visScript} />
                     )}
