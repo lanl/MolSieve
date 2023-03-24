@@ -14,7 +14,7 @@ function HeatMap({
     onElementClick = () => {},
     onElementMouseOver = () => {},
     onElementMouseOut = () => {},
-    colorRange = ['white', '#69b3a2'],
+    colorRange = ['#69b3a2', 'white'],
 }) {
     const scaleX = useMemo(
         () =>
@@ -69,8 +69,11 @@ function HeatMap({
                 .attr('height', scaleY.bandwidth())
                 .attr('fill', (d) => colorScale(d.value))
                 .classed('clickable', true)
-                .on('click', function (_, d) {
+                .on('click', function (e, d) {
+                    svg.selectAll('.clicked').classed('clicked', false);
                     onElementClick(this, d);
+                    /* eslint-disable-next-line */
+                    d3.select(e.currentTarget).classed('clicked', true);
                 })
                 .on('mouseover', function (_, d) {
                     onElementMouseOver(this, d);

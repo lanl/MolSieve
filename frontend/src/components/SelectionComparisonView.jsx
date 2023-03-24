@@ -30,15 +30,16 @@ function SelectionComparisonView({
     const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
-        setIsLoading(true);
-        apiSelectionDistance(s1, s2).then((data) => {
-            setIsLoading(false);
-            setComparisonData(data);
-        });
+        if (!comparisonData) {
+            setIsLoading(true);
+            apiSelectionDistance(s1, s2).then((data) => {
+                setIsLoading(false);
+                setComparisonData(data);
+            });
+        }
     }, []);
 
     useEffect(() => {
-        console.log(comparisonData);
         setActiveStates([]);
     }, [JSON.stringify(comparisonData)]);
 
@@ -51,8 +52,8 @@ function SelectionComparisonView({
         <RemovableBox deleteFunc={deleteFunc} alignItems="center">
             {isLoading && <LinearProgress color="primary" variant="indeterminate" />}
             <HeatMap
-                width={200}
-                height={200}
+                width={207}
+                height={207}
                 xList={s1}
                 yList={s2}
                 data={comparisonData}
