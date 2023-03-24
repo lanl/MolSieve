@@ -7,7 +7,7 @@ import { apiModifyTrajectory } from './ajax';
 import { getNeighbors, buildDictFromArray, normalizeDict } from './myutils';
 import { zTest } from './math/stats';
 
-import { startListening } from './listenerMiddleware';
+// import { startListening } from './listenerMiddleware';
 
 const clusterColors = [
     '#4e79a7',
@@ -293,11 +293,9 @@ export const trajectories = createSlice({
             const { values, chunks } = state;
 
             const trajectory = values[name];
-            const { ranks, chunkList, extents } = trajectory;
-            const uChunks = chunkList
-                .map((id) => chunks[id])
-                .filter((c) => !c.important)
-                .filter((c) => c.timestep >= extents[0] && c.last <= extents[1]);
+            const { ranks, chunkList } = trajectory;
+            const uChunks = chunkList.map((id) => chunks[id]).filter((c) => !c.important);
+            // .filter((c) => c.timestep >= extents[0] && c.last <= extents[1]);
 
             const zScores = buildDictFromArray(ranks, []);
             for (let i = 0; i < uChunks.length - 1; i++) {
@@ -401,6 +399,7 @@ export const { addTrajectory, setChunks, setZoom, swapPositions, updateRanks, up
 
 export default trajectories.reducer;
 
+/* updates ranks whenever extents change, cool idea but laggy
 startListening({
     actionCreator: setZoom,
     effect: async (action, listenerAPI) => {
@@ -410,4 +409,4 @@ startListening({
         const { values } = state.states;
         dispatch(updateRank({ states: values, name }));
     },
-});
+}); */
