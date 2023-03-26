@@ -37,6 +37,11 @@ function Timeline({
                 return;
             }
 
+            // this is so if the trajectory does re-render, we don't move the timeline view
+            // this should just be set once, but this will get fixed later
+            const { extents } = trajectory;
+            const defaultSelection = [scaleX(extents[0]), scaleX(extents[1])];
+
             const adjustedHeight = height - margin.top - margin.bottom - brushMargin.bottom;
 
             const defs = svg.append('defs');
@@ -89,9 +94,6 @@ function Timeline({
                 .classed('unimportant', (d) => !d.important)
                 .classed('blurry', (d) => !d.important)
                 .classed('important', (d) => d.important);
-
-            const [iStart, iEnd] = scaleX.domain();
-            const defaultSelection = [scaleX(iStart), scaleX(iEnd)];
 
             // TODO: get rid of this duplicate
             const updateScale = (start, end) => {
