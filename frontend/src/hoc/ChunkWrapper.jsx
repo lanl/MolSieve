@@ -265,7 +265,7 @@ function ChunkWrapper({
                     <Box
                         onClick={(e) => {
                             if (e.detail === 2) {
-                                doubleClickAction();
+                                doubleClickAction(chunk);
                             }
                         }}
                         onMouseEnter={() => {

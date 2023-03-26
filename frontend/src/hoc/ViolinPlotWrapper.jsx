@@ -69,7 +69,7 @@ function ViolinPlotWrapper({
             {(ww) =>
                 isInitialized ? (
                     <Box
-                        onClick={onClick}
+                        onClick={() => onClick(chunk)}
                         onMouseEnter={() => {
                             onMouseEnter(chunk);
                         }}

@@ -1,9 +1,8 @@
-import { React, useEffect, memo, useMemo, useCallback } from 'react';
+import { React, useEffect, memo, useMemo, useCallback, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import * as d3 from 'd3';
 import Box from '@mui/material/Box';
 import { selectTrajectory, getVisibleChunks, setZoom, expand } from '../api/trajectories';
-import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
 import ChunkWrapper from '../hoc/ChunkWrapper';
 import ViolinPlotWrapper from '../hoc/ViolinPlotWrapper';
 import Timeline from './Timeline';
@@ -42,13 +41,7 @@ function TrajectoryChart({
     const { extents, ranks } = trajectory;
     const topChunkList = useSelector((state) => getVisibleChunks(state, trajectoryName));
 
-    const ref = useTrajectoryChartRender((svg) => {
-        // clear so we don't draw over-top and cause insane lag
-        if (!svg.empty()) {
-            // NOTE: deletes all g elements, even ones inside foreignObjects!
-            svg.selectAll('g:not(.brush, .rankList)').remove();
-        }
-    }, []);
+    const ref = useRef();
 
     const controlChartHeight = (height - scatterplotHeight) / (propertyCombos.length + showTop);
 
@@ -140,6 +133,20 @@ function TrajectoryChart({
         d3.select(`.${trajectory.name}`).selectAll('.clicked').classed('clicked', false);
     }, [trajectory.name]);
 
+    const showCharacteristicState = useCallback(
+        (chunk) => setStateHovered(chunk.characteristicState),
+        []
+    );
+    const dispatchExpansion = useCallback((chunk) =>
+        dispatch(
+            expand({
+                id: chunk.id,
+                sliceSize: 100,
+                name: trajectoryName,
+            })
+        )
+    );
+
     return (
         <Box
             border={selectedObjects.map((d) => d.id).includes(trajectory.id) ? 1.0 : 0.0}
@@ -211,15 +218,7 @@ function TrajectoryChart({
                                     selectObject={selectObject}
                                     selectedObjects={selectedObjects}
                                     chunkSelectionMode={chunkSelectionMode}
-                                    doubleClickAction={() =>
-                                        dispatch(
-                                            expand({
-                                                id: chunk.id,
-                                                sliceSize: 100,
-                                                name: trajectoryName,
-                                            })
-                                        )
-                                    }
+                                    doubleClickAction={dispatchExpansion}
                                     propertyCombos={propertyCombos}
                                     extents={extents}
                                     scatterplotHeight={scatterplotHeight}
@@ -239,7 +238,7 @@ function TrajectoryChart({
                                     properties={properties}
                                     onMouseEnter={highlight}
                                     onMouseLeave={unhighlightTimeline}
-                                    onClick={() => setStateHovered(chunk.characteristicState)}
+                                    onClick={showCharacteristicState}
                                 />
                             )}
                         </foreignObject>
