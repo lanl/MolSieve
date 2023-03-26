@@ -5,8 +5,6 @@ import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
 
 import { tooltip } from '../api/myutils';
 
-let ttInstance;
-
 function ControlChart({
     globalScaleMin,
     globalScaleMax,
@@ -60,6 +58,8 @@ function ControlChart({
 
     const ref = useTrajectoryChartRender(
         (svg) => {
+            let ttInstance;
+
             if (!svg.empty()) {
                 // clean up listeners
                 if (ttInstance) {
@@ -108,9 +108,13 @@ function ControlChart({
             }
 
             const tooltipCircle = svg.selectAll('circle').data([0]).enter().append('circle');
+            if (!ttInstance) {
+                ttInstance = tooltip(tooltipCircle.node(), '');
+            }
 
             // add value tooltip
-            svg.on('mousemove', (event) => {
+            svg.on('mouseenter mousemove', (event) => {
+                tooltipCircle.attr('visibility', 'visible');
                 const i = d3.bisectCenter(
                     [...Array(yAttributeList.length).keys()],
                     scaleX.invert(d3.pointer(event)[0])
@@ -125,9 +129,6 @@ function ControlChart({
                     .attr('fill', 'black')
                     .attr('r', 3);
 
-                if (!ttInstance) {
-                    ttInstance = tooltip(tooltipCircle.node(), '');
-                }
                 ttInstance.setContent(`<b>X</b>: ${xVal}<br/><b>Y</b>:${yVal.toFixed(2)} <br/>`);
                 ttInstance.show();
             })
@@ -140,15 +141,9 @@ function ControlChart({
                     const yVal = yAttributeList[i];
                     onClick(xVal, yVal);
                 })
-                .on('mouseenter', () => {
-                    tooltipCircle.attr('visibility', 'visible');
-                })
                 .on('mouseleave', () => {
                     tooltipCircle.attr('visibility', 'hidden');
-                    if (ttInstance) {
-                        ttInstance.destroy();
-                    }
-                    ttInstance = undefined;
+                    ttInstance.hide();
                 });
         },
         [JSON.stringify(yAttributeList), width, height]

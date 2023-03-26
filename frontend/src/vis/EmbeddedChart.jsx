@@ -71,9 +71,9 @@ export default function EmbeddedChart({
 
     useEffect(() => {
         if (selected) {
-            setBorderStyle(3);
+            setBorderStyle(4);
         } else {
-            setBorderStyle(2);
+            setBorderStyle(3);
         }
     }, [selected]);
 
@@ -86,7 +86,7 @@ export default function EmbeddedChart({
             id={id}
             width={w}
             height={height}
-            sx={{ display: 'flex', border: borderStyle, borderColor: color }}
+            sx={{ display: 'flex' }}
             className="embeddedChart"
             onClick={onChartClick}
             onMouseEnter={() => setIsHovered(true)}
@@ -111,10 +111,19 @@ export default function EmbeddedChart({
                 ) : null}
                 {controls}
             </Box>
-            <svg ref={ref} width={w} height={h}>
+            <svg ref={ref} width={width} height={height}>
                 <foreignObject x={0} y={0} width={w} height={h}>
                     {children(w, h)}
                 </foreignObject>
+                <rect
+                    x={0}
+                    y={0}
+                    width={w}
+                    height={h}
+                    fill="none"
+                    stroke={color}
+                    strokeWidth={borderStyle}
+                />
             </svg>
         </Box>
     );

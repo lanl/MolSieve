@@ -123,7 +123,7 @@ function TrajectoryChart({
             return w;
         };
         return { getX, getWidthScale, scaleX };
-    }, [JSON.stringify(topChunkList), width]);
+    }, [extents[0], extents[1], JSON.stringify(topChunkList), width]);
 
     // here we can filter out the un-rendered charts right away since we only care about rendering here
     const cutRanks = useMemo(() => ranks.slice(0, showTop), [showTop, JSON.stringify(ranks)]);

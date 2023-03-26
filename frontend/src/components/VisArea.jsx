@@ -296,7 +296,7 @@ export default function VisArea({
                                 </IconButton>
                             </Tooltip>
                             {/* <Box onClick={() => reducePropertyCombos({ type: 'pop' })}>X</Box> */}
-                            <Tooltip title="Compare chunks / selections" arrow>
+                            <Tooltip title="Compare regions / sub-regions" arrow>
                                 <IconButton
                                     size="small"
                                     color={selectionMode !== CHUNK_SELECT ? 'secondary' : 'default'}

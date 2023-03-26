@@ -302,6 +302,7 @@ function ChunkWrapper({
                                                     startSlice,
                                                     endSlice
                                                 )}
+                                                margin={{ top: 3, bottom: 2, left: 0, right: 0 }}
                                                 /* .filter(
                                                         (d) => !Number.isNaN(d) && d !== undefined
                                                     )} */
@@ -331,6 +332,7 @@ function ChunkWrapper({
                                                 ucl={ucl}
                                                 height={controlChartHeight}
                                                 width={ww}
+                                                margin={{ top: 3, bottom: 2, left: 2, right: 2 }}
                                                 yAttributeList={values.slice(startSlice, endSlice)}
                                                 xAttributeList={slicedChunk.timesteps}
                                                 lineColor={chunk.color}
@@ -352,6 +354,7 @@ function ChunkWrapper({
                                 setStateHovered(d);
                                 d3.select(node).classed('clicked', true);
                             }}
+                            margin={{ top: 0, bottom: 4, left: 0, right: 0 }}
                         />
                     </Box>
                 ) : (

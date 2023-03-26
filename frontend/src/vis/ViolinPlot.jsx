@@ -17,7 +17,7 @@ function ViolinPlot({
     mouseOverText,
     color = 'black',
     showYAxis = true,
-    margin = { top: 3, bottom: 3, left: 0, right: 0 },
+    margin = { top: 3, bottom: 3, left: 3, right: 3 },
 }) {
     const ref = useTrajectoryChartRender(
         (svg) => {
