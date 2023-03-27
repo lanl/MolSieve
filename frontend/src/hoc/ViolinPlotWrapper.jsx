@@ -13,7 +13,7 @@ import LoadingBox from '../components/LoadingBox';
 import PropertyWrapper from './PropertyWrapper';
 
 import { makeGetStates } from '../api/states';
-import { getNumberLoaded, abbreviate, tooltip } from '../api/myutils';
+import { abbreviate, tooltip } from '../api/myutils';
 
 import EmbeddedChart from '../vis/EmbeddedChart';
 
@@ -34,21 +34,23 @@ function ViolinPlotWrapper({
 
     const getStates = makeGetStates();
 
-    const states = useSelector((state) => getStates(state, chunk.selected));
-    const numLoaded = getNumberLoaded(states);
+    const states = useSelector(
+        (state) => getStates(state, chunk.selected).filter((d) => d.loaded),
+        (prevState, currState) => prevState.length === currState.length
+    );
 
     const calcStats = useCallback(
         (vals, property) => {
             const data = vals.map((d) => d[property]).filter((d) => d !== undefined);
             return { data, stats: boxPlotStats(data) };
         },
-        [numLoaded]
+        [states.length]
     );
 
     useEffect(() => {
-        setProgress(numLoaded / states.length);
+        setProgress(states.length / chunk.selected.length);
         setIsInitialized(true);
-    }, [numLoaded]);
+    }, [states.length]);
 
     const boxPlotHeight = height / ranks.length;
 
