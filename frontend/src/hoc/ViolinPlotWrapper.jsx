@@ -13,7 +13,7 @@ import LoadingBox from '../components/LoadingBox';
 import PropertyWrapper from './PropertyWrapper';
 
 import { makeGetStates } from '../api/states';
-import { getNumberLoaded, abbreviate } from '../api/myutils';
+import { getNumberLoaded, abbreviate, tooltip } from '../api/myutils';
 
 import EmbeddedChart from '../vis/EmbeddedChart';
 
@@ -37,10 +37,13 @@ function ViolinPlotWrapper({
     const states = useSelector((state) => getStates(state, chunk.selected));
     const numLoaded = getNumberLoaded(states);
 
-    const calcStats = useCallback((vals, property) => {
-        const data = vals.map((d) => d[property]).filter((d) => d !== undefined);
-        return { data, stats: boxPlotStats(data) };
-    }, []);
+    const calcStats = useCallback(
+        (vals, property) => {
+            const data = vals.map((d) => d[property]).filter((d) => d !== undefined);
+            return { data, stats: boxPlotStats(data) };
+        },
+        [numLoaded]
+    );
 
     useEffect(() => {
         setProgress(numLoaded / states.length);
@@ -96,12 +99,24 @@ function ViolinPlotWrapper({
                                                 color={chunk.color}
                                                 property={property}
                                                 width={ww}
-                                                mouseOverText={`<b>${abbreviate(property)}</b><br/> 
+                                                onMouseEnter={(node) => {
+                                                    /* eslint-disable-next-line */
+                                                    let instance = node._tippy;
+                                                    const content = `<b>${abbreviate(
+                                                        property
+                                                    )}</b><br/> 
                                                     ${chunk.toString()}<br/>
                             <em>Q1:</em> ${values.stats.q1}</br> 
                             <em>Median:</em> ${values.stats.median}</br> 
                             <em>Q3:</em> ${values.stats.q3}</br>
-                            <em>IQR:</em> ${values.stats.iqr} <br/>`}
+                            <em>IQR:</em> ${values.stats.iqr} <br/>`;
+                                                    if (!instance) {
+                                                        instance = tooltip(node, content);
+                                                    } else {
+                                                        instance.setContent(content);
+                                                    }
+                                                    instance.show();
+                                                }}
                                                 height={boxPlotHeight}
                                                 globalScaleMin={min}
                                                 globalScaleMax={max}

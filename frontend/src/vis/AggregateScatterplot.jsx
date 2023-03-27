@@ -89,6 +89,7 @@ function AggregateScatterplot({
                 .attr('fill', (d) => colorFunc(d));
         }
     }, [ref, colorFunc]);
+
     return (
         <svg
             ref={ref}

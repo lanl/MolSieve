@@ -6,7 +6,6 @@ import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
 
 function ViolinPlot({
     data,
-    property,
     width,
     height,
     globalScaleMin,
@@ -64,7 +63,7 @@ function ViolinPlot({
                 onMouseLeave(svg.node());
             });
         },
-        [property, data.length, color, globalScaleMin, globalScaleMax, width, height]
+        [data.length, color, globalScaleMin, globalScaleMax, width, height]
     );
 
     return (
