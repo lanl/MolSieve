@@ -1,4 +1,4 @@
-import { React, useState, useEffect, useReducer, useCallback } from 'react';
+import { React, useState, useEffect, useReducer, useCallback, startTransition } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 
 import Box from '@mui/material/Box';
@@ -646,7 +646,7 @@ export default function VisArea({
                         focused
                         value={showTop}
                         onChange={(e) => {
-                            setShowTop(parseInt(e.target.value, 10));
+                            startTransition(() => setShowTop(parseInt(e.target.value, 10)));
                         }}
                         label={`Show top ${showTop} properties`}
                     />

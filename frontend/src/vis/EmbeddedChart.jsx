@@ -1,4 +1,4 @@
-import { React, createRef, useState, useEffect } from 'react';
+import { React, createRef, useState, useEffect, memo } from 'react';
 
 import Box from '@mui/material/Box';
 import Tooltip from '@mui/material/Tooltip';
@@ -11,7 +11,7 @@ import * as d3 from 'd3';
 
 /* This component is intended to allow embedding svgs within svgs as React components */
 // essentially the same as a ChartBox, just with a border
-export default function EmbeddedChart({
+function EmbeddedChart({
     children,
     height,
     width,
@@ -128,3 +128,4 @@ export default function EmbeddedChart({
         </Box>
     );
 }
+export default memo(EmbeddedChart);

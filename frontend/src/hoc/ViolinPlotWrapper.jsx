@@ -1,4 +1,4 @@
-import { React, useState, useEffect, memo, useMemo } from 'react';
+import { React, useState, useEffect, memo, useCallback } from 'react';
 
 import LinearProgress from '@mui/material/LinearProgress';
 import Box from '@mui/material/Box';
@@ -12,7 +12,7 @@ import ViolinPlot from '../vis/ViolinPlot';
 import LoadingBox from '../components/LoadingBox';
 import PropertyWrapper from './PropertyWrapper';
 
-import { getStates } from '../api/states';
+import { makeGetStates } from '../api/states';
 import { getNumberLoaded, abbreviate } from '../api/myutils';
 
 import EmbeddedChart from '../vis/EmbeddedChart';
@@ -21,7 +21,6 @@ function ViolinPlotWrapper({
     chunk,
     height,
     width,
-    properties,
     selectObject,
     ranks,
     chunkSelectionMode,
@@ -33,18 +32,15 @@ function ViolinPlotWrapper({
     const [isInitialized, setIsInitialized] = useState(false);
     const [progress, setProgress] = useState(0.0);
 
+    const getStates = makeGetStates();
+
     const states = useSelector((state) => getStates(state, chunk.selected));
     const numLoaded = getNumberLoaded(states);
 
-    const boxStats = useMemo(() => {
-        const bpStatDict = {};
-        for (const prop of properties) {
-            const vals = states.map((d) => d[prop]);
-            const bpStats = boxPlotStats(vals);
-            bpStatDict[prop] = bpStats;
-        }
-        return bpStatDict;
-    }, [numLoaded]);
+    const calcStats = useCallback((vals, property) => {
+        const data = vals.map((d) => d[property]).filter((d) => d !== undefined);
+        return { data, stats: boxPlotStats(data) };
+    }, []);
 
     useEffect(() => {
         setProgress(numLoaded / states.length);
@@ -86,29 +82,26 @@ function ViolinPlotWrapper({
                         ) : null}
                         <Stack direction="column">
                             {ranks.map((property) => {
-                                const { q1, q3, median, iqr } = boxStats[property];
-                                const propertyList = states
-                                    .map((d) => d[property])
-                                    .filter((d) => d !== undefined);
-
                                 return (
                                     <PropertyWrapper
                                         key={`${chunk.id}-${property}`}
                                         property={property}
+                                        data={states}
+                                        calculateValues={calcStats}
                                     >
-                                        {(min, max) => (
+                                        {(min, max, values) => (
                                             <ViolinPlot
                                                 showYAxis={false}
-                                                data={propertyList}
+                                                data={values.data}
                                                 color={chunk.color}
                                                 property={property}
                                                 width={ww}
                                                 mouseOverText={`<b>${abbreviate(property)}</b><br/> 
                                                     ${chunk.toString()}<br/>
-                            <em>Q1:</em> ${q1}</br> 
-                            <em>Median:</em> ${median}</br> 
-                            <em>Q3:</em> ${q3}</br>
-                            <em>IQR:</em> ${iqr} <br/>`}
+                            <em>Q1:</em> ${values.stats.q1}</br> 
+                            <em>Median:</em> ${values.stats.median}</br> 
+                            <em>Q3:</em> ${values.stats.q3}</br>
+                            <em>IQR:</em> ${values.stats.iqr} <br/>`}
                                                 height={boxPlotHeight}
                                                 globalScaleMin={min}
                                                 globalScaleMax={max}

@@ -1,3 +1,4 @@
+/* eslint-disable-next-line */
 import { addPropToStates } from './states';
 import { updateRanks } from './trajectories';
 
@@ -42,6 +43,7 @@ const socketMiddleware = () => {
     };
 
     const onMessage = (store) => (event) => {
+        // would have to query here to find out if everyone is finished rendering
         const payload = JSON.parse(event.data);
         store.dispatch(addPropToStates(payload));
 

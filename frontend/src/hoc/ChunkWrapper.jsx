@@ -1,4 +1,4 @@
-import { React, useState, useEffect, memo, useMemo, useCallback } from 'react';
+import { React, useState, useEffect, memo, useMemo, useCallback, startTransition } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 
 import * as d3 from 'd3';
@@ -26,11 +26,10 @@ import LoadingBox from '../components/LoadingBox';
 import EmbeddedChart from '../vis/EmbeddedChart';
 import PropertyWrapper from './PropertyWrapper';
 
-import { getStates, getStateColoringMethod, updateGlobalScale } from '../api/states';
+import { makeGetStates, getStateColoringMethod, updateGlobalScale } from '../api/states';
 
 function ChunkWrapper({
     chunk,
-    properties,
     height,
     addSelection,
     width,
@@ -66,6 +65,7 @@ function ChunkWrapper({
 
     const dispatch = useDispatch();
 
+    const getStates = makeGetStates();
     const states = useSelector((state) => getStates(state, chunk.sequence));
     const numLoaded = getNumberLoaded(states);
 
@@ -110,27 +110,17 @@ function ChunkWrapper({
     const [mvaPeriod, setMvaPeriod] = useState(Math.min(chunk.sequence.length / 4, 100));
     const [tDict, setTDict] = useState({});
 
-    const calculations = useMemo(() => {
-        const mva = {};
-        // const rDict = {};
-        const stats = {};
+    const calculateControlChart = useCallback(
+        (vals, property) => {
+            const data = vals.map((d) => d[property]);
+            const std = d3.deviation(data);
+            const mva = exponentialMovingAverage(data, mvaPeriod);
+            const mean = d3.mean(data);
 
-        for (const prop of properties) {
-            const propList = states.map((d) => d[prop]);
-
-            const std = d3.deviation(propList);
-            const m = exponentialMovingAverage(propList, mvaPeriod);
-            const mean = d3.mean(propList);
-            // const diffXtent = d3.extent(differentiate(m));
-
-            mva[prop] = m;
-            // rDict[prop] = diffXtent.reduce((acc, cv) => acc + Math.abs(cv), 0);
-            stats[prop] = { std, mean };
-        }
-        return { mva, stats };
-    }, [mvaPeriod, numLoaded, chunk.timestep, chunk.last]);
-
-    const { stats, mva } = calculations;
+            return { mva, std, mean };
+        },
+        [mvaPeriod]
+    );
 
     useEffect(() => {
         setProgress(numLoaded / states.length);
@@ -139,47 +129,53 @@ function ChunkWrapper({
 
     useEffect(() => {
         if (propertyCombos) {
-            const math = create(all, {});
+            startTransition(() => {
+                const math = create(all, {});
 
-            const combos = {};
-            for (const combo of propertyCombos) {
-                const t2 = [];
-                for (let i = 0; i < states.length - 1; i++) {
-                    const md = [];
-                    const ma = [];
+                const combos = {};
+                for (const combo of propertyCombos) {
+                    const t2 = [];
+                    const means = {};
                     for (const prop of combo.properties) {
-                        const { mean } = stats[prop];
-                        md.push(states[i][prop] - mean);
-                        ma.push(states[i + 1][prop] - states[i][prop]);
+                        means[prop] = d3.mean(states, (d) => d[prop]);
                     }
-                    // calculate S
-                    const vv = math.multiply(math.transpose(ma), ma);
-                    const s = math.divide(vv, 2 * (states.length - 1));
-                    const t = math.multiply(math.transpose(md), math.inv(s), md);
-                    if (t !== Infinity && !Number.isNaN(t)) {
-                        t2.push(t);
-                    } else {
-                        t2.push(0);
+                    for (let i = 0; i < states.length - 1; i++) {
+                        const md = [];
+                        const ma = [];
+
+                        for (const prop of combo.properties) {
+                            md.push(states[i][prop] - means[prop]);
+                            ma.push(states[i + 1][prop] - states[i][prop]);
+                        }
+                        // calculate S
+                        const vv = math.multiply(math.transpose(ma), ma);
+                        const s = math.divide(vv, 2 * (states.length - 1));
+                        const t = math.multiply(math.transpose(md), math.inv(s), md);
+                        if (t !== Infinity && !Number.isNaN(t)) {
+                            t2.push(t);
+                        } else {
+                            t2.push(0);
+                        }
                     }
+
+                    // calculate UCL
+                    const m = states.length;
+                    const p = combo.properties.length;
+                    const q = (2 * (m - 1) ** 2) / (3 * m - 4);
+
+                    // determine best value for alpha
+                    const ucl = ((m - 1) ** 2 / m) * betaPDF(0.005, p / 2, (q - p - 1) / 2);
+
+                    dispatch(
+                        updateGlobalScale({
+                            property: combo.id,
+                            values: t2,
+                        })
+                    );
+                    combos[combo.id] = { ucl, values: t2, property: combo.id };
                 }
-
-                // calculate UCL
-                const m = states.length;
-                const p = combo.properties.length;
-                const q = (2 * (m - 1) ** 2) / (3 * m - 4);
-
-                // determine best value for alpha
-                const ucl = ((m - 1) ** 2 / m) * betaPDF(0.005, p / 2, (q - p - 1) / 2);
-
-                dispatch(
-                    updateGlobalScale({
-                        property: combo.id,
-                        values: t2,
-                    })
-                );
-                combos[combo.id] = { ucl, values: t2, property: combo.id };
-            }
-            setTDict(combos);
+                setTDict(combos);
+            });
         }
     }, [propertyCombos.length]);
 
@@ -196,10 +192,10 @@ function ChunkWrapper({
         const startTimestep = x.invert(selection[0]);
         const endTimestep = x.invert(selection[1]);
 
-        const selectedStates = states
+        const selectedStates = chunk.sequence
             .map((s, i) => ({
                 timestep: chunk.timestep + i,
-                id: s.id,
+                id: s,
             }))
             .filter(
                 (d) =>
@@ -232,7 +228,7 @@ function ChunkWrapper({
                 max={Math.trunc(chunk.sequence.length / 4)}
                 step={1}
                 size="small"
-                onChangeCommitted={(_, v) => setMvaPeriod(v)}
+                onChangeCommitted={(_, v) => startTransition(() => setMvaPeriod(v))}
             />
             <Tooltip title="Moving average period" arrow>
                 <Typography variant="caption">{mvaPeriod}</Typography>
@@ -284,21 +280,22 @@ function ChunkWrapper({
                         ) : null}
                         <Stack direction="column">
                             {ranks.map((property) => {
-                                const { std, mean } = stats[property];
                                 return (
                                     <PropertyWrapper
                                         key={`${chunk.id}-${property}`}
                                         property={property}
+                                        calculateValues={calculateControlChart}
+                                        data={states}
                                     >
-                                        {(min, max) => (
+                                        {(min, max, values) => (
                                             <ControlChart
                                                 globalScaleMin={min}
                                                 globalScaleMax={max}
-                                                ucl={mean + std}
-                                                lcl={mean - std}
+                                                ucl={values.mean + values.std}
+                                                lcl={values.mean - values.std}
                                                 height={controlChartHeight}
                                                 width={ww}
-                                                yAttributeList={mva[property].slice(
+                                                yAttributeList={values.mva.slice(
                                                     startSlice,
                                                     endSlice
                                                 )}

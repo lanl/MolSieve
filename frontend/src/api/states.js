@@ -85,19 +85,13 @@ const selectStateStore = (state) => state.states.values;
 export const getState = (state, id) => state.states.values[id];
 export const getGlobalScale = (state, property) => state.states.globalScale[property];
 
-export const getStates = createSelector(
-    [selectStateStore, (_, stateIDList) => stateIDList],
-    (values, stateIDList) => stateIDList.map((id) => values[id])
-);
+// all selectors with arguments need factory functions
 
-export const getPropList = (state, stateList, property, range) => {
-    let usedStates = stateList;
-    if (range) {
-        usedStates = stateList.slice(range[0], range[1]);
-    }
-
-    const stateSequence = usedStates.map((id) => state.values[id]);
-    return stateSequence.map((d) => d[property]);
+export const makeGetStates = () => {
+    return createSelector(
+        [selectStateStore, (_, stateIDList) => stateIDList],
+        (values, stateIDList) => stateIDList.map((id) => values[id])
+    );
 };
 
 // some super fun functional programming

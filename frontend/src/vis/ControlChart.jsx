@@ -2,7 +2,7 @@ import { React, useMemo, memo } from 'react';
 import * as d3 from 'd3';
 
 import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
-
+// definitely contributes to slowness
 function ControlChart({
     globalScaleMin,
     globalScaleMax,
@@ -117,6 +117,7 @@ function ControlChart({
             <path className="ucl" stroke={pos} fill={pos} />
             <path className="lcl" stroke={neg} fill={neg} />
             <path className="norm" stroke={norm} fill={norm} />
+            <circle className="tooltipCircle" />
         </svg>
     );
 }
