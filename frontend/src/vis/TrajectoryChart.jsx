@@ -35,7 +35,7 @@ function TrajectoryChart({
     const dispatch = useDispatch();
     const setZoomCallback = useCallback(
         (extents) => dispatch(setZoom({ name: trajectoryName, extents })),
-        [trajectoryName]
+        []
     );
 
     const { extents, ranks } = trajectory;
@@ -137,24 +137,28 @@ function TrajectoryChart({
         (chunk) => setStateHovered(chunk.characteristicState),
         []
     );
-    const dispatchExpansion = useCallback((chunk) =>
-        dispatch(
-            expand({
-                id: chunk.id,
-                sliceSize: 100,
-                name: trajectoryName,
-            })
-        )
+    const dispatchExpansion = useCallback(
+        (chunk) =>
+            dispatch(
+                expand({
+                    id: chunk.id,
+                    sliceSize: 100,
+                    name: trajectoryName,
+                })
+            ),
+        []
     );
+
+    const selectTrajectoryToSwap = useCallback(() => {
+        if (chunkSelectionMode === 3) {
+            selectObject(trajectory);
+        }
+    }, [chunkSelectionMode]);
 
     return (
         <Box
             border={selectedObjects.map((d) => d.id).includes(trajectory.id) ? 1.0 : 0.0}
-            onClick={() => {
-                if (chunkSelectionMode === 3) {
-                    selectObject(trajectory);
-                }
-            }}
+            onClick={selectTrajectoryToSwap}
         >
             <TrajectoryControls
                 name={trajectory.name}
