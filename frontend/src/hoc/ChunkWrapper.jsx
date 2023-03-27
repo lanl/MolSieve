@@ -214,26 +214,35 @@ function ChunkWrapper({
         [startExtent, endExtent, width]
     );
 
-    const chartControls = (
-        <Box width={width} display="flex" alignItems="center" gap={1}>
-            <Tooltip title="Zoom into region">
-                <IconButton onClick={() => setZoom([chunk.timestep, chunk.last])}>
-                    <ZoomInMapIcon />
-                </IconButton>
-            </Tooltip>
-            <Slider
-                min={2}
-                defaultValue={Math.min(Math.trunc(chunk.sequence.length / 10), 100)}
-                max={Math.trunc(chunk.sequence.length / 4)}
-                step={1}
-                size="small"
-                onChangeCommitted={(_, v) => startTransition(() => setMvaPeriod(v))}
-            />
-            <Tooltip title="Moving average period" arrow>
-                <Typography variant="caption">{mvaPeriod}</Typography>
-            </Tooltip>
-        </Box>
+    const chartControls = useMemo(
+        () => (
+            <Box width={width} display="flex" alignItems="center" gap={1}>
+                <Tooltip title="Zoom into region">
+                    <IconButton onClick={() => setZoom([chunk.timestep, chunk.last])}>
+                        <ZoomInMapIcon />
+                    </IconButton>
+                </Tooltip>
+                <Slider
+                    min={2}
+                    defaultValue={Math.min(Math.trunc(chunk.sequence.length / 10), 100)}
+                    max={Math.trunc(chunk.sequence.length / 4)}
+                    step={1}
+                    size="small"
+                    onChangeCommitted={(_, v) => startTransition(() => setMvaPeriod(v))}
+                />
+                <Tooltip title="Moving average period" arrow>
+                    <Typography variant="caption">{mvaPeriod}</Typography>
+                </Tooltip>
+            </Box>
+        ),
+        [mvaPeriod, width]
     );
+
+    const selectChunk = useCallback(() => {
+        if (chunkSelectionMode === 1 || chunkSelectionMode === 4) {
+            selectObject(chunk);
+        }
+    }, [chunkSelectionMode]);
 
     return (
         <EmbeddedChart
@@ -242,11 +251,7 @@ function ChunkWrapper({
             color={chunk.color}
             brush={brush}
             controls={chartControls}
-            onChartClick={() => {
-                if (chunkSelectionMode === 1 || chunkSelectionMode === 4) {
-                    selectObject(chunk);
-                }
-            }}
+            onChartClick={selectChunk}
             id={`ec_${chunk.id}`}
             selected={
                 chunkSelectionMode !== 0 &&

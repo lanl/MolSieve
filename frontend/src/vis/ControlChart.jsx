@@ -114,7 +114,7 @@ function ControlChart({
             renderCallback();
         },
         [
-            JSON.stringify(yAttributeList),
+            JSON.stringify(yAttributeList), // this slows it down considerably
             globalScaleMin,
             globalScaleMax,
             width,

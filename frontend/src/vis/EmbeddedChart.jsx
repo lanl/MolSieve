@@ -28,7 +28,6 @@ function EmbeddedChart({
     },
 }) {
     const ref = createRef();
-    const [isHovered, setIsHovered] = useState(false);
     const [selectionMode, setSelectionMode] = useState(false);
     const [borderStyle, setBorderStyle] = useState(2);
 
@@ -89,14 +88,8 @@ function EmbeddedChart({
             sx={{ display: 'flex' }}
             className="embeddedChart"
             onClick={onChartClick}
-            onMouseEnter={() => setIsHovered(true)}
-            onMouseLeave={() => setIsHovered(false)}
         >
-            <Box
-                className="floatingToolBar"
-                width={w}
-                sx={{ visibility: isHovered ? 'visible' : 'hidden' }}
-            >
+            <Box className="floatingToolBar" width={w}>
                 {brush !== undefined ? (
                     <Tooltip title="Select sub-region" arrow>
                         <IconButton
