@@ -3,8 +3,6 @@ import * as d3 from 'd3';
 
 import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
 
-import { tooltip } from '../api/myutils';
-
 function ControlChart({
     globalScaleMin,
     globalScaleMax,
@@ -16,12 +14,13 @@ function ControlChart({
     lcl,
     margin = { top: 3, bottom: 2, left: 0, right: 5 },
     colors = {
-        posDiff: '#67A9CF',
-        negDiff: '#EF8A62',
-        noDiff: '#C6C6C6',
+        pos: '#67A9CF',
+        neg: '#EF8A62',
+        norm: '#C6C6C6',
     },
-    showMedian = false,
     onClick = () => {},
+    onMouseOver = () => {},
+    renderCallback = () => {},
 }) {
     const scaleX = useMemo(
         () =>
@@ -48,77 +47,35 @@ function ControlChart({
             .y0(height)
             .y1((d) => scaleY(d))
             .defined((d) => !Number.isNaN(d) && filterFunc(d));
-
-        svg.append('path')
-            .datum(yAttributeList)
-            .attr('stroke', color)
-            .attr('fill', color)
-            .attr('d', area);
+        svg.select(`.${color}`).datum(yAttributeList).attr('d', area);
     };
 
     const ref = useTrajectoryChartRender(
         (svg) => {
-            let ttInstance;
-
-            if (!svg.empty()) {
-                // clean up listeners
-                if (ttInstance) {
-                    ttInstance.hide();
-                    ttInstance.destroy();
-                    ttInstance = undefined;
-                }
-                svg.on('mouseenter', null);
-                svg.on('mousemove', null);
-                svg.on('mouseleave', null);
-                svg.selectAll('*:not(.brush)').remove();
-            }
-
             if (!yAttributeList) {
                 return;
             }
 
-            const { posDiff, negDiff, noDiff } = colors;
             if (ucl && !lcl) {
-                colorPath(svg, posDiff, (d) => ucl <= d);
-                colorPath(svg, noDiff, (d) => ucl > d);
+                colorPath(svg, 'ucl', (d) => ucl <= d);
+                colorPath(svg, 'norm', (d) => ucl > d);
             } else if (lcl && !ucl) {
-                colorPath(svg, negDiff, (d) => lcl >= d);
-                colorPath(svg, noDiff, (d) => lcl < d);
+                colorPath(svg, 'lcl', (d) => lcl >= d);
+                colorPath(svg, 'norm', (d) => lcl < d);
             } else if (ucl && lcl) {
-                colorPath(svg, noDiff, (d) => lcl < d && ucl > d);
-                colorPath(svg, posDiff, (d) => ucl <= d);
-                colorPath(svg, negDiff, (d) => lcl >= d);
+                colorPath(svg, 'norm', (d) => lcl < d && ucl > d);
+                colorPath(svg, 'ucl', (d) => ucl <= d);
+                colorPath(svg, 'lcl', (d) => lcl >= d);
             } else {
-                colorPath(svg, noDiff, () => true);
+                colorPath(svg, 'norm', () => true);
             }
 
-            if (showMedian) {
-                const median = d3.median(yAttributeList);
-                svg.selectAll('median')
-                    .data([median])
-                    .enter()
-                    .append('line')
-                    .attr('x1', scaleX(0))
-                    .attr('x2', width)
-                    .attr('y1', (d) => scaleY(d))
-                    .attr('y2', (d) => scaleY(d))
-                    .attr('stroke-width', 2)
-                    .attr('stroke-dasharray', 4)
-                    .attr('stroke', 'red');
-            }
-
-            const tooltipCircle = svg.selectAll('circle').data([0]).enter().append('circle');
-            if (!ttInstance) {
-                ttInstance = tooltip(tooltipCircle.node(), '');
-            }
-
+            const tooltipCircle = svg.select('.tooltipCircle');
             // add value tooltip
             svg.on('mouseenter mousemove', (event) => {
                 tooltipCircle.attr('visibility', 'visible');
-                const i = d3.bisectCenter(
-                    [...Array(yAttributeList.length).keys()],
-                    scaleX.invert(d3.pointer(event)[0])
-                );
+                const i = Math.trunc(scaleX.invert(d3.pointer(event)[0]));
+
                 const xVal = xAttributeList ? xAttributeList[i] : i;
                 const yVal = yAttributeList[i];
 
@@ -128,27 +85,27 @@ function ControlChart({
                     .attr('stroke', 'gray')
                     .attr('fill', 'black')
                     .attr('r', 3);
-
-                ttInstance.setContent(`<b>X</b>: ${xVal}<br/><b>Y</b>:${yVal.toFixed(2)} <br/>`);
-                ttInstance.show();
+                onMouseOver(tooltipCircle, [xVal, yVal]);
+                // ttInstance.setContent(`<b>X</b>: ${xVal}<br/><b>Y</b>:${yVal.toFixed(2)} <br/>`);
+                // ttInstance.show();
             })
-                .on('click', (e) => {
-                    const i = d3.bisectCenter(
-                        [...Array(yAttributeList.length).keys()],
-                        scaleX.invert(d3.pointer(e)[0])
-                    );
+                .on('click', (event) => {
+                    const i = Math.trunc(scaleX.invert(d3.pointer(event)[0]));
                     const xVal = xAttributeList ? xAttributeList[i] : i;
                     const yVal = yAttributeList[i];
                     onClick(xVal, yVal);
                 })
                 .on('mouseleave', () => {
                     tooltipCircle.attr('visibility', 'hidden');
-                    ttInstance.hide();
+                    // ttInstance.hide();
                 });
+
+            renderCallback();
         },
         [JSON.stringify(yAttributeList), width, height]
     );
 
+    const { pos, neg, norm } = colors;
     return (
         <svg
             ref={ref}
@@ -156,7 +113,11 @@ function ControlChart({
             viewBox={[0, 0, width, height]}
             width={width}
             height={height}
-        />
+        >
+            <path className="ucl" stroke={pos} fill={pos} />
+            <path className="lcl" stroke={neg} fill={neg} />
+            <path className="norm" stroke={norm} fill={norm} />
+        </svg>
     );
 }
 
