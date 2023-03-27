@@ -13,7 +13,7 @@ import LoadingBox from '../components/LoadingBox';
 import PropertyWrapper from './PropertyWrapper';
 
 import { makeGetStates } from '../api/states';
-import { abbreviate, tooltip } from '../api/myutils';
+import { abbreviate, showToolTip } from '../api/myutils';
 
 import EmbeddedChart from '../vis/EmbeddedChart';
 
@@ -53,7 +53,15 @@ function ViolinPlotWrapper({
     }, [states.length]);
 
     const boxPlotHeight = height / ranks.length;
-
+    const violinPlotTooltip = (property, values) => (node) => {
+        const content = `<b>${abbreviate(property)}</b><br/> 
+        ${chunk.toString()}<br/>
+        <em>Q1:</em> ${values.stats.q1}</br> 
+        <em>Median:</em> ${values.stats.median}</br> 
+        <em>Q3:</em> ${values.stats.q3}</br>
+        <em>IQR:</em> ${values.stats.iqr} <br/>`;
+        showToolTip(node, content);
+    };
     return (
         <EmbeddedChart
             height={height}
@@ -101,24 +109,7 @@ function ViolinPlotWrapper({
                                                 color={chunk.color}
                                                 property={property}
                                                 width={ww}
-                                                onMouseEnter={(node) => {
-                                                    /* eslint-disable-next-line */
-                                                    let instance = node._tippy;
-                                                    const content = `<b>${abbreviate(
-                                                        property
-                                                    )}</b><br/> 
-                                                    ${chunk.toString()}<br/>
-                            <em>Q1:</em> ${values.stats.q1}</br> 
-                            <em>Median:</em> ${values.stats.median}</br> 
-                            <em>Q3:</em> ${values.stats.q3}</br>
-                            <em>IQR:</em> ${values.stats.iqr} <br/>`;
-                                                    if (!instance) {
-                                                        instance = tooltip(node, content);
-                                                    } else {
-                                                        instance.setContent(content);
-                                                    }
-                                                    instance.show();
-                                                }}
+                                                onMouseEnter={violinPlotTooltip(property, values)}
                                                 height={boxPlotHeight}
                                                 globalScaleMin={min}
                                                 globalScaleMax={max}

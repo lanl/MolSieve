@@ -19,7 +19,7 @@ import ControlChart from '../vis/ControlChart';
 import AggregateScatterplot from '../vis/AggregateScatterplot';
 
 import { exponentialMovingAverage, betaPDF } from '../api/math/stats';
-import { abbreviate, tooltip } from '../api/myutils';
+import { abbreviate, showToolTip, destroyToolTip } from '../api/myutils';
 
 import LoadingBox from '../components/LoadingBox';
 
@@ -244,6 +244,19 @@ function ChunkWrapper({
         }
     }, [chunkSelectionMode]);
 
+    const controlChartTooltip = useCallback(
+        (property) => (node, coords) => {
+            const [x, y] = coords;
+            const content = `<b>Timestep:</b> ${chunk.timestep + x} <br/><b>${abbreviate(
+                property
+            )}:</b> ${y.toFixed(2)}`;
+            showToolTip(node, content);
+        },
+        [chunk.timestep]
+    );
+
+    const controlChartExtents = [startSlice, valCount];
+
     return (
         <EmbeddedChart
             height={height}
@@ -301,33 +314,13 @@ function ChunkWrapper({
                                                 width={ww}
                                                 finalLength={chunk.sequence.length}
                                                 yAttributeList={values.mva}
-                                                extents={[startSlice, valCount]}
+                                                extents={controlChartExtents}
                                                 margin={{ top: 3, bottom: 2, left: 0, right: 0 }}
                                                 lineColor={chunk.color}
                                                 title={`${abbreviate(property)}`}
-                                                onMouseOver={(node, coords) => {
-                                                    const [x, y] = coords;
-                                                    const content = `<b>Timestep:</b> ${
-                                                        chunk.timestep + x
-                                                    } <br/><b>${abbreviate(
-                                                        property
-                                                    )}:</b> ${y.toFixed(2)}`;
-                                                    /* eslint-disable-next-line */
-                                                    let instance = node._tippy;
-                                                    if (!instance) {
-                                                        instance = tooltip(node, content);
-                                                    } else {
-                                                        instance.setContent(content);
-                                                    }
-                                                    instance.show();
-                                                }}
-                                                onMouseOut={(node) => {
-                                                    /* eslint-disable-next-line */
-                                                    const instance = node._tippy;
-                                                    if (instance) {
-                                                        instance.destroy();
-                                                    }
-                                                }}
+                                                onMouseOver={controlChartTooltip(property)}
+                                                // still causes re-render - property wrapper can inject its values
+                                                onMouseOut={destroyToolTip}
                                             />
                                         )}
                                     </PropertyWrapper>
@@ -351,7 +344,7 @@ function ChunkWrapper({
                                                 ucl={ucl}
                                                 height={controlChartHeight}
                                                 width={ww}
-                                                extents={[startSlice, valCount]}
+                                                extents={controlChartExtents}
                                                 margin={{ top: 3, bottom: 2, left: 2, right: 2 }}
                                                 yAttributeList={values}
                                                 xAttributeList={chunk.timesteps}

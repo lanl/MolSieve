@@ -78,6 +78,25 @@ export function oneShotTooltip(node, content) {
     tippy(node, settings);
 }
 
+export const destroyToolTip = (node) => {
+    /* eslint-disable-next-line */
+    const instance = node._tippy;
+    if (instance) {
+        instance.destroy();
+    }
+};
+
+export const showToolTip = (node, content) => {
+    /* eslint-disable-next-line */
+    let instance = node._tippy;
+    if (!instance) {
+        instance = tooltip(node, content);
+    } else {
+        instance.setContent(content);
+    }
+    instance.show();
+};
+
 export function onEntityMouseOver(node, d, text) {
     // https://atomiks.github.io/tippyjs/v6/addons/#singleton
     // can improve performance further
