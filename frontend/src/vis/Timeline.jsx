@@ -11,7 +11,7 @@ function Timeline({
     width,
     height,
     margin = { top: 5, bottom: 5, left: 25, right: 25 },
-    brushMargin = { top: 3, bottom: 3, left: 0, right: 0 },
+    brushMargin = { top: 3, bottom: 4, left: 0, right: 0 },
 }) {
     const dispatch = useDispatch();
     const trajectory = useSelector((state) => selectTrajectory(state, trajectoryName));
@@ -22,7 +22,7 @@ function Timeline({
         () =>
             d3
                 .scaleLinear()
-                .range([margin.left, width - margin.right])
+                .range([margin.left + brushMargin.right, width - margin.right - brushMargin.right])
                 .domain([0, trajectory.length]),
         [trajectory.length, width]
     );
@@ -114,8 +114,8 @@ function Timeline({
             const brush = d3
                 .brushX()
                 .extent([
-                    [margin.left, 1],
-                    [width - 1, height * 0.99],
+                    [brushMargin.left, 1],
+                    [width - margin.right, height - 2],
                 ])
                 .on('brush', function ({ selection }) {
                     const [start, end] = selection;

@@ -175,7 +175,7 @@ function TrajectoryChart({
                     setZoom={setZoom}
                     height={30}
                     trajectoryName={trajectory.name}
-                    margin={{ left: 5, right: 0, top: 0, bottom: 0 }}
+                    margin={{ left: 5, right: 5, top: 0, bottom: 0 }}
                 />
             </TrajectoryControls>
             <svg
