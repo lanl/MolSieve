@@ -21,6 +21,7 @@ function ControlChart({
     onClick = () => {},
     onMouseOver = () => {},
     renderCallback = () => {},
+    extents = [0, yAttributeList.length],
 }) {
     const scaleX = useMemo(
         () =>
@@ -28,7 +29,7 @@ function ControlChart({
                 .scaleLinear()
                 .domain([0, yAttributeList.length - 1])
                 .range([margin.left, width - margin.right]),
-        [yAttributeList.length, width]
+        []
     );
 
     const scaleY = useMemo(
@@ -37,7 +38,7 @@ function ControlChart({
                 .scaleLinear()
                 .domain([globalScaleMin, globalScaleMax])
                 .range([height - margin.bottom, margin.top]),
-        [globalScaleMin, globalScaleMax, height]
+        []
     );
 
     const colorPath = (svg, color, filterFunc) => {
@@ -55,6 +56,11 @@ function ControlChart({
             if (!yAttributeList) {
                 return;
             }
+            scaleX.domain([extents[0], extents[1]]).range([margin.left, width - margin.right]);
+
+            scaleY
+                .domain([globalScaleMin, globalScaleMax])
+                .range([height - margin.bottom, margin.top]);
 
             if (ucl && !lcl) {
                 colorPath(svg, 'ucl', (d) => ucl <= d);
@@ -102,7 +108,15 @@ function ControlChart({
 
             renderCallback();
         },
-        [JSON.stringify(yAttributeList), width, height]
+        [
+            JSON.stringify(yAttributeList),
+            globalScaleMin,
+            globalScaleMax,
+            width,
+            height,
+            extents[0],
+            extents[1],
+        ]
     );
 
     const { pos, neg, norm } = colors;
