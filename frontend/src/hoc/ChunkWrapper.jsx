@@ -19,7 +19,7 @@ import ControlChart from '../vis/ControlChart';
 import AggregateScatterplot from '../vis/AggregateScatterplot';
 
 import { exponentialMovingAverage, betaPDF } from '../api/math/stats';
-import { abbreviate, getNumberLoaded, tooltip } from '../api/myutils';
+import { abbreviate, tooltip } from '../api/myutils';
 
 import LoadingBox from '../components/LoadingBox';
 
@@ -66,8 +66,7 @@ function ChunkWrapper({
     const dispatch = useDispatch();
 
     const getStates = makeGetStates();
-    const states = useSelector((state) => getStates(state, chunk.sequence));
-    const numLoaded = getNumberLoaded(states);
+    const states = useSelector((state) => getStates(state, chunk.sequence).filter((d) => d.loaded));
 
     const colorState = useSelector((state) => getStateColoringMethod(state));
 
@@ -123,9 +122,9 @@ function ChunkWrapper({
     );
 
     useEffect(() => {
-        setProgress(numLoaded / states.length);
+        setProgress(states.length / chunk.sequence.length);
         setIsInitialized(true);
-    }, [numLoaded]);
+    }, [states.length]);
 
     useEffect(() => {
         if (propertyCombos) {
@@ -295,15 +294,17 @@ function ChunkWrapper({
                                                 lcl={values.mean - values.std}
                                                 height={controlChartHeight}
                                                 width={ww}
+                                                finalLength={chunk.sequence.length}
                                                 yAttributeList={values.mva}
                                                 extents={[startSlice, valCount]}
                                                 margin={{ top: 3, bottom: 2, left: 0, right: 0 }}
-                                                xAttributeList={chunk.timesteps}
                                                 lineColor={chunk.color}
                                                 title={`${abbreviate(property)}`}
                                                 onMouseOver={(node, coords) => {
                                                     const [x, y] = coords;
-                                                    const content = `<b>Timestep:</b> ${x} <br/><b>${abbreviate(
+                                                    const content = `<b>Timestep:</b> ${
+                                                        chunk.timestep + x
+                                                    } <br/><b>${abbreviate(
                                                         property
                                                     )}:</b> ${y.toFixed(2)}`;
                                                     /* eslint-disable-next-line */

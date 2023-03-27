@@ -214,7 +214,10 @@ export default function VisArea({
         }
     };
 
-    const selectObjectCallback = useCallback(selectObject, [selectionMode, selectedObjects.length]);
+    const selectObjectCallback = useCallback(
+        (o) => selectObject(o),
+        [selectionMode, selectedObjects.length]
+    );
 
     const startSelection = (selectedMode, action) => {
         // the button was clicked again, finish the selection

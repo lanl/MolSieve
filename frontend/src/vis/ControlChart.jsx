@@ -23,12 +23,13 @@ function ControlChart({
     onMouseOut = () => {},
     renderCallback = () => {},
     extents = [0, yAttributeList.length],
+    finalLength = yAttributeList.length - 1,
 }) {
     const scaleX = useMemo(
         () =>
             d3
                 .scaleLinear()
-                .domain([0, yAttributeList.length - 1])
+                .domain([0, finalLength])
                 .range([margin.left, width - margin.right]),
         []
     );
@@ -48,7 +49,7 @@ function ControlChart({
             .x((_, i) => scaleX(i))
             .y0(height)
             .y1((d) => scaleY(d))
-            .defined((d) => !Number.isNaN(d) && filterFunc(d));
+            .defined((d) => filterFunc(d));
         svg.select(`.${color}`).datum(yAttributeList).attr('d', area);
     };
 
@@ -92,7 +93,9 @@ function ControlChart({
                     .attr('stroke', 'gray')
                     .attr('fill', 'black')
                     .attr('r', 3);
-                onMouseOver(tooltipCircle.node(), [xVal, yVal]);
+                if (yVal && xVal) {
+                    onMouseOver(tooltipCircle.node(), [xVal, yVal]);
+                }
                 // ttInstance.setContent(`<b>X</b>: ${xVal}<br/><b>Y</b>:${yVal.toFixed(2)} <br/>`);
                 // ttInstance.show();
             })
