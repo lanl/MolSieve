@@ -19,7 +19,7 @@ import ControlChart from '../vis/ControlChart';
 import AggregateScatterplot from '../vis/AggregateScatterplot';
 
 import { exponentialMovingAverage, betaPDF } from '../api/math/stats';
-import { abbreviate, getNumberLoaded } from '../api/myutils';
+import { abbreviate, getNumberLoaded, tooltip } from '../api/myutils';
 
 import LoadingBox from '../components/LoadingBox';
 
@@ -52,12 +52,12 @@ function ChunkWrapper({
     const [progress, setProgress] = useState(0.0);
     const [startExtent, endExtent] = extents;
 
-    const [startSlice, endSlice] = useMemo(() => {
+    const [startSlice, endSlice, valCount] = useMemo(() => {
         const { timestep, last } = chunk;
         const sliceStart = startExtent <= timestep ? 0 : startExtent - timestep;
         const sliceEnd = endExtent >= last ? last : endExtent;
 
-        return [sliceStart, sliceEnd];
+        return [sliceStart, sliceEnd, sliceEnd - timestep];
     }, [startExtent, endExtent, chunk.timestep, chunk.last]);
 
     // With useSelector(), returning a new object every time will always force a re-render by default.
@@ -295,17 +295,33 @@ function ChunkWrapper({
                                                 lcl={values.mean - values.std}
                                                 height={controlChartHeight}
                                                 width={ww}
-                                                yAttributeList={values.mva.slice(
-                                                    startSlice,
-                                                    endSlice
-                                                )}
+                                                yAttributeList={values.mva}
+                                                extents={[startSlice, valCount]}
                                                 margin={{ top: 3, bottom: 2, left: 0, right: 0 }}
-                                                /* .filter(
-                                                        (d) => !Number.isNaN(d) && d !== undefined
-                                                    )} */
-                                                xAttributeList={slicedChunk.timesteps}
+                                                xAttributeList={chunk.timesteps}
                                                 lineColor={chunk.color}
                                                 title={`${abbreviate(property)}`}
+                                                onMouseOver={(node, coords) => {
+                                                    const [x, y] = coords;
+                                                    const content = `<b>Timestep:</b> ${x} <br/><b>${abbreviate(
+                                                        property
+                                                    )}:</b> ${y.toFixed(2)}`;
+                                                    /* eslint-disable-next-line */
+                                                    let instance = node._tippy;
+                                                    if (!instance) {
+                                                        instance = tooltip(node, content);
+                                                    } else {
+                                                        instance.setContent(content);
+                                                    }
+                                                    instance.show();
+                                                }}
+                                                onMouseOut={(node) => {
+                                                    /* eslint-disable-next-line */
+                                                    const instance = node._tippy;
+                                                    if (instance) {
+                                                        instance.destroy();
+                                                    }
+                                                }}
                                             />
                                         )}
                                     </PropertyWrapper>
@@ -329,9 +345,10 @@ function ChunkWrapper({
                                                 ucl={ucl}
                                                 height={controlChartHeight}
                                                 width={ww}
+                                                extents={[startSlice, valCount]}
                                                 margin={{ top: 3, bottom: 2, left: 2, right: 2 }}
-                                                yAttributeList={values.slice(startSlice, endSlice)}
-                                                xAttributeList={slicedChunk.timesteps}
+                                                yAttributeList={values}
+                                                xAttributeList={chunk.timesteps}
                                                 lineColor={chunk.color}
                                             />
                                         )}

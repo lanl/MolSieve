@@ -20,6 +20,7 @@ function ControlChart({
     },
     onClick = () => {},
     onMouseOver = () => {},
+    onMouseOut = () => {},
     renderCallback = () => {},
     extents = [0, yAttributeList.length],
 }) {
@@ -91,7 +92,7 @@ function ControlChart({
                     .attr('stroke', 'gray')
                     .attr('fill', 'black')
                     .attr('r', 3);
-                onMouseOver(tooltipCircle, [xVal, yVal]);
+                onMouseOver(tooltipCircle.node(), [xVal, yVal]);
                 // ttInstance.setContent(`<b>X</b>: ${xVal}<br/><b>Y</b>:${yVal.toFixed(2)} <br/>`);
                 // ttInstance.show();
             })
@@ -103,6 +104,7 @@ function ControlChart({
                 })
                 .on('mouseleave', () => {
                     tooltipCircle.attr('visibility', 'hidden');
+                    onMouseOut(tooltipCircle.node());
                     // ttInstance.hide();
                 });
 
