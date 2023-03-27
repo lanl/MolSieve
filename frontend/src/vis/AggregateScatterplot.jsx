@@ -1,4 +1,4 @@
-import { React, useState, useEffect, memo, startTransition } from 'react';
+import { React, memo, useMemo, useEffect } from 'react';
 
 import * as d3 from 'd3';
 import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
@@ -13,32 +13,28 @@ function AggregateScatterplot({
     margin = { top: 0, bottom: 4, left: 0, right: 0 },
     onElementClick = () => {},
 }) {
-    const [data, setData] = useState(null);
+    const data = useMemo(() => {
+        const chunkSize = yAttributeList.length / 10;
+        const chunks = [];
 
-    useEffect(() => {
-        startTransition(() => {
-            const chunkSize = yAttributeList.length / 10;
-            const chunks = [];
+        for (let i = 0; i < yAttributeList.length; i += chunkSize) {
+            const chunk = yAttributeList.slice(i, i + chunkSize);
+            const dist = distributionDict(chunk);
 
-            for (let i = 0; i < yAttributeList.length; i += chunkSize) {
-                const chunk = yAttributeList.slice(i, i + chunkSize);
-                const dist = distributionDict(chunk);
+            const uniqueStates = [...new Set(chunk)];
+            const threshold = 1 / uniqueStates.length;
 
-                const uniqueStates = [...new Set(chunk)];
-                const threshold = 1 / uniqueStates.length;
-
-                const majority = [];
-                for (const [e, v] of Object.entries(dist)) {
-                    if (v > threshold) {
-                        majority.push(e);
-                    }
+            const majority = [];
+            for (const [e, v] of Object.entries(dist)) {
+                if (v > threshold) {
+                    majority.push(e);
                 }
-                chunks.push(majority.sort());
             }
+            chunks.push(majority.sort());
+        }
 
-            setData(chunks);
-        });
-    }, [JSON.stringify(xAttributeList), JSON.stringify(yAttributeList)]);
+        return chunks;
+    }, [xAttributeList.length, yAttributeList.length]);
 
     const ref = useTrajectoryChartRender(
         (svg) => {
@@ -83,8 +79,16 @@ function AggregateScatterplot({
                     .classed('clickable', true);
             }
         },
-        [JSON.stringify(data), width, height, colorFunc]
+        [xAttributeList.length, yAttributeList.length, width, height]
     );
+
+    useEffect(() => {
+        if (ref.current) {
+            d3.select(ref.current)
+                .selectAll('rect')
+                .attr('fill', (d) => colorFunc(d));
+        }
+    }, [ref, colorFunc]);
     return (
         <svg
             ref={ref}
