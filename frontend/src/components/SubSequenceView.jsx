@@ -223,6 +223,7 @@ function SubSequenceView({
                 }))}
                 colorFunc={colorFunc}
                 submit={addNEB}
+                id={id}
             />
         </>
     );
