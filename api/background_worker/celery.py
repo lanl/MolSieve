@@ -341,14 +341,14 @@ def calculate_neb_on_path(
 
         res = session.run(q)
         for r in res:
-            path.update({r["timestep"]: (r["first"], r["second"], r["second"])})
+            path.update({r["timestep"]: (r["first"], r["second"], r["first"])})
 
         # get their canonical representations - this is a seperate query
         q = f"""OPTIONAL MATCH (n:{run})-[r:canon_rep_{run}]->(n2:State)
             WHERE r.timestep >= {start} AND r.timestep <= {end} AND n.id IN ["""
         count = 0
         for relation in path.values():
-            q += str(relation[1])
+            q += str(relation[0])
             if count != len(path.items()) - 1:
                 q += ","
             count += 1
@@ -358,8 +358,7 @@ def calculate_neb_on_path(
             if r["timestep"] in path:
                 curr_tuple = path[r["timestep"]]
                 path[r["timestep"]] = (curr_tuple[0], r["sym_state"], curr_tuple[1])
-
-
+                
         for relation in path.values():
             if relation[0] not in allStates:
                 allStates.append(relation[0])
@@ -385,11 +384,16 @@ def calculate_neb_on_path(
     stateIDCounter = getStateIDCounter()
     idx = 0
 
+    #from ase.io import lammpsdata 
+
     for timestep, relation in path.items():
         s1, s2, old_state = relation
         s1_atoms = full_atom_dict[s1]
         s2_atoms = full_atom_dict[s2]
 
+        #lammpsdata.write_lammps_data(f'{s1}.dat', s1_atoms, velocities=True)
+        #lammpsdata.write_lammps_data(f'{s2}.dat', s2_atoms, velocities=True)
+        
         images = calculator.calculate_neb_for_pair(
             s1_atoms,
             s2_atoms,
@@ -409,7 +413,7 @@ def calculate_neb_on_path(
                     {
                         "type": TASK_PROGRESS,
                         "progress": f"{idx+1/len(path)}",
-                        "data": {'id': relation[0], 'energy': s1_atoms.get_potential_energy(), 'timestep': idx},
+                        "data": {'id': old_state, 'energy': s1_atoms.get_potential_energy(), 'timestep': idx},
                     },
                 )
             idx += 1 
@@ -486,7 +490,7 @@ def calculate_neb_on_path(
                         "type": TASK_PROGRESS,
                         "message": f"Image {idx + 1} processed.",
                         "progress": f"{idx+1/len(path)}",
-                        "data": {'id': old_state, 'energy': s2_atoms.get_potential_energy(), 'timestep': idx },
+                        "data": {'id': s2, 'energy': s2_atoms.get_potential_energy(), 'timestep': idx },
                     },
                 )
             
