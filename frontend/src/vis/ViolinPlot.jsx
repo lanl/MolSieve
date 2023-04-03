@@ -3,29 +3,22 @@ import { React, memo } from 'react';
 import * as d3 from 'd3';
 
 import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
-import { tooltip } from '../api/myutils';
-
-let ttInstance;
 
 function ViolinPlot({
     data,
-    property,
     width,
     height,
     globalScaleMin,
     globalScaleMax,
-    mouseOverText,
     color = 'black',
     showYAxis = true,
-    margin = { top: 3, bottom: 3, left: 0, right: 0 },
+    margin = { top: 3, bottom: 3, left: 3, right: 3 },
+    onMouseEnter = () => {},
+    onMouseLeave = () => {},
 }) {
     const ref = useTrajectoryChartRender(
         (svg) => {
-            if (!svg.empty()) {
-                svg.selectAll('*').remove();
-            }
-
-            if (!data) {
+            if (!data || !data.length) {
                 return;
             }
 
@@ -34,37 +27,25 @@ function ViolinPlot({
                 .domain([globalScaleMin, globalScaleMax])
                 .range([height - margin.bottom, margin.top]);
 
-            const bins = d3.bin().domain(yScale.domain())(data);
-
+            let bins = null;
+            try {
+                bins = d3.bin().domain(yScale.domain())(data);
+            } catch (error) {
+                return;
+            }
             if (showYAxis) {
                 svg.call(d3.axisRight(yScale));
             }
 
             const xScale = d3
                 .scaleLinear()
-                .range([margin.left, width - margin.left])
+                .range([margin.left, width - margin.right])
                 .domain([-data.length, data.length]);
 
-            svg.append('rect')
-                .attr('x', 0)
-                .attr('y', 0)
-                .attr('height', height + 1)
-                .attr('width', width)
-                .attr('fill', color)
-                .classed('unimportant', true);
+            svg.classed('clickable', true);
 
-            svg.append('line')
-                .attr('x1', 0)
-                .attr('y1', 0)
-                .attr('x2', width)
-                .attr('y2', 0)
-                .attr('stroke', color)
-                .attr('stroke-width', 1);
-
-            svg.append('path')
+            svg.select('path')
                 .datum(bins)
-                .attr('fill', color)
-                .attr('stroke', 'black')
                 .attr(
                     'd',
                     d3
@@ -75,20 +56,14 @@ function ViolinPlot({
                         .curve(d3.curveCatmullRom)
                 );
 
-            svg.on('mouseover', () => {
-                if (!ttInstance) {
-                    ttInstance = tooltip(svg.node(), mouseOverText);
-                }
-                ttInstance.show();
+            svg.on('mouseenter', () => {
+                onMouseEnter(svg.node());
             });
             svg.on('mouseleave', () => {
-                if (ttInstance) {
-                    ttInstance.destroy();
-                }
-                ttInstance = undefined;
+                onMouseLeave(svg.node());
             });
         },
-        [property, JSON.stringify(data), color, globalScaleMin, globalScaleMax, width, height]
+        [data.length, color, globalScaleMin, globalScaleMax, width, height]
     );
 
     return (
@@ -98,7 +73,11 @@ function ViolinPlot({
             viewBox={[0, 0, width, height]}
             width={width}
             height={height}
-        />
+        >
+            <rect x={0} y={0} height={height} width={width} fill={color} className="unimportant" />
+            <line x1={0} y1={0} x2={width} y2={0} stroke={color} strokeWidth={1} />
+            <path fill={color} stroke="black" />
+        </svg>
     );
 }
 

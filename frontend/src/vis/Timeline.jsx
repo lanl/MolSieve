@@ -1,126 +1,193 @@
-import { React, useState, useEffect, memo } from 'react';
+import { React, useState, useEffect, memo, useMemo } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
 import * as d3 from 'd3';
+
+import { getChunkList, selectTrajectory, setZoom } from '../api/trajectories';
 import '../css/vis.css';
 import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
 
-const margin = {
-    top: 25,
-    bottom: 20,
-    left: 25,
-    right: 25,
-};
+function Timeline({
+    trajectoryName,
+    width,
+    height,
+    margin = { top: 5, bottom: 5, left: 25, right: 25 },
+    brushMargin = { top: 3, bottom: 4, left: 0, right: 0 },
+}) {
+    const dispatch = useDispatch();
+    const trajectory = useSelector((state) => selectTrajectory(state, trajectoryName));
+    const chunkList = useSelector((state) => getChunkList(state, trajectoryName));
 
-function Timeline({ trajectory, width, height, setZoom, extents }) {
     const [sBrush, setBrush] = useState(null);
+    const scaleX = useMemo(
+        () =>
+            d3
+                .scaleLinear()
+                .range([margin.left + brushMargin.right, width - margin.right - brushMargin.right])
+                .domain([0, trajectory.length]),
+        [trajectory.length, width]
+    );
+
     const ref = useTrajectoryChartRender(
         (svg) => {
             if (!svg.empty()) {
-                svg.selectAll('*').remove();
+                svg.selectAll('*:not(.icon)').remove();
             }
 
             if (width === undefined || height === undefined) {
                 return;
             }
 
-            const g = svg.append('g');
-            const { chunkList, name } = trajectory;
-
-            const topChunkList = chunkList.filter((d) => !d.hasParent);
-            const trajG = svg.append('g').classed(name, true);
-
-            const scaleX = d3
-                .scaleLinear()
-                .range([margin.left, width - margin.right])
-                .domain([0, trajectory.length]);
-
-            trajG
-                .selectAll('rect')
-                .data(topChunkList)
-                .enter()
-                .append('rect')
-                .attr('x', (d) => {
-                    return scaleX(d.timestep);
-                })
-                .attr('y', height / 2)
-                .attr('height', 5)
-                .attr('width', (d) => scaleX(d.last) - scaleX(d.timestep))
-                .attr('fill', (d) => trajectory.colorByCluster(d))
-                .classed('unimportant', (d) => !d.important)
-                .classed('important', (d) => d.important);
-
-            g.append('text')
-                .attr('x', width / 2)
-                .attr('y', height / 2 - 5)
-                .attr('text-anchor', 'middle')
-                .text(name);
-
+            // this is so if the trajectory does re-render, we don't move the timeline view
+            // this should just be set once, but this will get fixed later
+            const { extents } = trajectory;
             const defaultSelection = [scaleX(extents[0]), scaleX(extents[1])];
 
-            const brushG = svg.append('g').classed('brushG', true);
-            const brush = d3
-                .brushX()
-                .extent([
-                    [margin.left, 0],
-                    [width - margin.right, height],
-                ])
-                .on('end', function ({ selection, sourceEvent }) {
-                    if (!sourceEvent) return;
-                    const start = Math.trunc(scaleX.invert(selection[0]));
-                    const end = Math.trunc(scaleX.invert(selection[1]));
-                    setZoom(name, [start, end]);
+            const adjustedHeight = height - margin.top - margin.bottom - brushMargin.bottom;
 
-                    // if user double clicks, the timeline will be redrawn
-                    svg.on('dblclick', () => {
-                        scaleX.domain([start, end]);
-                        trajG
-                            .selectAll('rect')
-                            .attr('x', (d) => {
-                                return scaleX(d.timestep);
-                            })
-                            .attr('width', (d) => scaleX(d.last) - scaleX(d.timestep));
-                        brushG.call(brush).call(brush.move, [scaleX(start), scaleX(end)]);
-                    });
-                });
+            const defs = svg.append('defs');
+            const filter = defs.append('filter').attr('id', 'brushBrightness');
+            filter
+                .append('feColorMatrix')
+                .attr('in', `unSatMask_${trajectoryName}`)
+                .attr('result', 'A')
+                .attr('type', 'saturate')
+                .attr('values', 0.25);
+            filter
+                .append('feComposite')
+                .attr('operator', 'in')
+                .attr('in', 'A')
+                .attr('in2', 'SourceGraphic');
 
-            g.append('text')
-                .attr('x', 0)
-                .attr('y', height * 0.35)
-                .text('Reset')
-                .classed('clickable', true)
-                .attr('fill', 'lightgray')
-                .on('click', () => {
-                    scaleX.domain([0, trajectory.length]);
-                    trajG
+            const saturatedMask = defs.append('mask').attr('id', `satMask_${trajectoryName}`);
+            saturatedMask
+                .append('rect')
+                .attr('id', 'satMaskRect')
+                .attr('width', width)
+                .attr('fill', 'white')
+                .attr('height', height);
+
+            const unSaturatedMask = defs.append('mask').attr('id', `unSatMask_${trajectoryName}`);
+            unSaturatedMask.append('rect').attr('id', `unSatMaskRect_0`);
+            unSaturatedMask.append('rect').attr('id', `unSatMaskRect_1`);
+
+            // two copies of the same group for the mask trick to work
+            svg.append('g')
+                .classed(trajectoryName, true)
+                .attr('mask', `url(#satMask_${trajectoryName})`);
+
+            svg.append('g')
+                .classed(trajectoryName, true)
+                .attr('mask', `url(#unSatMask_${trajectoryName})`)
+                .attr('filter', 'url(#brushBrightness)');
+
+            svg.selectAll(`.${trajectoryName}`)
+                .selectAll('rect')
+                .data(chunkList)
+                .enter()
+                .append('rect')
+                .attr('x', (d) => scaleX(d.timestep))
+                .attr('id', (d) => `chunk_${d.id}`)
+                .attr('y', margin.top + brushMargin.top)
+                .attr('height', adjustedHeight - brushMargin.bottom)
+                .attr('width', (d) => scaleX(d.last) - scaleX(d.timestep))
+                .attr('fill', (d) => d.color)
+                .classed('unimportant', (d) => !d.important)
+                .classed('blurry', (d) => !d.important)
+                .classed('important', (d) => d.important);
+
+            // TODO: get rid of this duplicate
+            const updateScale = (start, end) => {
+                if (ref) {
+                    scaleX.domain([start, end]);
+
+                    d3.select(ref.current)
+                        .selectAll(`.${trajectoryName}`)
                         .selectAll('rect')
                         .attr('x', (d) => {
                             return scaleX(d.timestep);
                         })
                         .attr('width', (d) => scaleX(d.last) - scaleX(d.timestep));
-                    brushG.call(brush).call(brush.move, [scaleX(0), scaleX(trajectory.length)]);
-                    setZoom(name, [0, trajectory.length]);
+                }
+            };
+
+            const brushG = svg.append('g').classed('brushG', true);
+            const brush = d3
+                .brushX()
+                .extent([
+                    [brushMargin.left, 1],
+                    [width - margin.right, height - 2],
+                ])
+                .on('brush', function ({ selection }) {
+                    const [start, end] = selection;
+                    svg.select('#satMaskRect')
+                        .attr('x', start)
+                        .attr('width', end - start)
+                        .attr('fill', 'white')
+                        .attr('height', height);
+
+                    svg.select('#unSatMaskRect_0')
+                        .attr('x', 0)
+                        .attr('width', start)
+                        .attr('fill', 'white')
+                        .attr('height', height);
+
+                    svg.select('#unSatMaskRect_1')
+                        .attr('x', end)
+                        .attr('width', width - end)
+                        .attr('fill', 'white')
+                        .attr('height', height);
+                })
+                .on('end', function ({ selection, sourceEvent }) {
+                    if (!sourceEvent) return;
+                    const start = Math.trunc(scaleX.invert(selection[0]));
+                    const end = Math.trunc(scaleX.invert(selection[1]));
+                    dispatch(setZoom({ name: trajectoryName, extents: [start, end] }));
+
+                    // if user double clicks, the timeline will be redrawn
+                    svg.on('dblclick', () => {
+                        updateScale(start, end);
+                        brushG.call(brush).call(brush.move, [scaleX(start), scaleX(end)]);
+                    });
                 });
 
             brushG.call(brush).call(brush.move, defaultSelection);
+
             setBrush(() => brush);
         },
-        [JSON.stringify(trajectory.chunkList), width, height]
+        [JSON.stringify(chunkList), width, height]
     );
+
+    const updateScale = (start, end) => {
+        if (ref.current) {
+            scaleX.domain([start, end]);
+
+            d3.select(ref.current)
+                .selectAll(`.${trajectoryName}`)
+                .selectAll('rect')
+                .attr('x', (d) => {
+                    return scaleX(d.timestep);
+                })
+                .attr('width', (d) => scaleX(d.last) - scaleX(d.timestep));
+        }
+    };
 
     useEffect(() => {
         if (ref.current && sBrush) {
-            const scaleX = d3
-                .scaleLinear()
-                .range([margin.left, width - margin.right])
-                .domain([0, trajectory.length]);
+            const { extents } = trajectory;
+            const [start, stop] = extents;
+
+            if (start === 0 && stop === trajectory.length) {
+                updateScale(start, stop);
+            }
 
             d3.select(ref.current)
                 .select('.brushG')
                 .call(sBrush)
-                .call(sBrush.move, [scaleX(extents[0]), scaleX(extents[1])]);
+                .call(sBrush.move, [scaleX(start), scaleX(stop)]);
         }
-    }, [JSON.stringify(extents)]);
+    }, [JSON.stringify(trajectory.extents)]);
 
-    return <svg id={`timeline_${trajectory.name}`} ref={ref} viewBox={[0, 0, width, height]} />;
+    return <svg ref={ref} viewBox={[0, 0, width, height]} />;
 }
 
 export default memo(Timeline);

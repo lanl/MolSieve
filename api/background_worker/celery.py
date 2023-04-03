@@ -215,6 +215,48 @@ def load_property_task(prop: str):
 """
 
 
+@celery.task(name="subset_connectivity_difference", base=PostingTask)
+def subset_connectivity_difference(stateIDs: List[int]):
+    driver = neo4j.GraphDatabase.driver(
+        "bolt://127.0.0.1:7687", auth=("neo4j", "secret")
+    )
+    task_id = current_task.request.id
+
+
+    qb = querybuilder.Neo4jQueryBuilder([("Atom", "PART_OF", "State", "MANY-TO-ONE")])
+    q = qb.generate_get_node_list("State", stateIDs, "PART_OF")
+    state_atom_dict = converter.query_to_ASE(driver, q)
+
+    connectivity_list = []  # all connectivity matrices in order
+    for stateID in stateIDs:
+        atoms = state_atom_dict[stateID]
+        connectivity_list.append((stateID, atoms))
+
+    maximum_difference = []
+    iter = 0
+    while iter < 3:
+        result = calculator.max_connectivity_difference(
+            connectivity_list[0][1], connectivity_list[1:]
+        )
+        if result["id"] is not None and result["id"] not in maximum_difference:
+            maximum_difference.append(result["id"])
+
+            current_task.update_state(state="PROGRESS")
+            send_update(
+                    task_id,
+                    {
+                        "type": TASK_PROGRESS,
+                        "data": result['id'],
+                    },
+                )
+      
+            connectivity_list = connectivity_list[result["index"] :]
+        else:
+            break
+        iter += 1
+
+    return '' 
+
 @celery.task(name="perform_KS_Test", base=PostingTask)
 def perform_KSTest(data: dict):
     cdf = data["cdf"]
@@ -315,8 +357,8 @@ def calculate_neb_on_path(
         for r in res:
             if r["timestep"] in path:
                 curr_tuple = path[r["timestep"]]
-                path[r["timestep"]] = (r["sym_state"], curr_tuple[1], curr_tuple[0])
-
+                path[r["timestep"]] = (curr_tuple[0], r["sym_state"], curr_tuple[1])
+                
         for relation in path.values():
             if relation[0] not in allStates:
                 allStates.append(relation[0])

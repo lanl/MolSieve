@@ -15,7 +15,12 @@ img {
   right: 5px;
 }
 
-.embeddedChart {
+.embeddedChart .floatingToolBar {
+    visibility: hidden;
+}
+
+.embeddedChart:hover .floatingToolBar {
+    visibility: visible;
 }
 
 .unfocused {

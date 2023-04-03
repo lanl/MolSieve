@@ -91,8 +91,9 @@ async def update_task(task_id: str, data: dict):
             if result.ready():
                 data = result.get()
                 await cm.send(
-                    task_id, {"type": TASK_COMPLETE, "data": json.loads(data)}
+                    task_id, {"type": TASK_COMPLETE}
                 )
+                await cm.disconnect(task_id)
         else:
             await cm.send(task_id, data)
 
@@ -292,7 +293,6 @@ async def ws_load_properties_for_subset(websocket: WebSocket):
         qb = querybuilder.Neo4jQueryBuilder()
         driver = GraphDriver()
 
-        # also potential bottleneck
         q = qb.generate_get_node_list(
             "State", idAttributeList=data["stateIds"], attributeList=data["props"]
         )
@@ -305,8 +305,7 @@ async def ws_load_properties_for_subset(websocket: WebSocket):
         def split(arr, chunk_size):
             for i in range(0, len(arr), chunk_size):
                 yield arr[i : i + chunk_size]
-
-        chunks = list(split(stateList, 100))
+        chunks = list(split(stateList, data["chunkSize"]))
 
         for chunk in chunks:
             await websocket.send_json(await load_properties_for_subset(chunk))
@@ -678,7 +677,8 @@ def get_run_list():
             runs = []
             for r in result.values():
                 for record in r:
-                    runs.append(record)
+                    if record not in runs:
+                        runs.append(record)
             j = runs
         except neo4j.exceptions.ServiceUnavailable as exception:
             raise exception
@@ -711,8 +711,8 @@ def modify_trajectory(run: str, chunkingThreshold: float, numClusters: int):
     mem_client.set(run, trajectory)
 
     return {
+        "uniqueStates": trajectory.simplified_unique_states,
         "simplified": trajectory.chunks,
-        "idToCluster": trajectory.idToCluster,
         "current_clustering": trajectory.current_clustering,
     }
 
@@ -753,20 +753,16 @@ def load_trajectory(run: str, mMin: int, mMax: int, chunkingThreshold: float):
     t1 = time.time()
     logging.info(f"Simplification took {t1-t0} seconds total.")
 
-    trajectory.calculate_id_to_timestep(driver)
+    # trajectory.calculate_id_to_timestep(driver)
 
     mem_client = PooledClient("localhost", max_pool_size=1, serde=serde.pickle_serde)
     mem_client.set(run, trajectory)
 
-    # TODO: reduce state list to only important
-
     # only return current clustering?
     # feasible may not be necessary at all
     return {
-        "uniqueStates": set(trajectory.sequence),
-        "idToTimestep": trajectory.id_to_timestep,
+        "uniqueStates": trajectory.simplified_unique_states,
         "simplified": trajectory.chunks,
-        "idToCluster": trajectory.idToCluster,
         "feasible_clusters": trajectory.feasible_clusters,
         "current_clustering": trajectory.current_clustering,
     }
@@ -774,56 +770,38 @@ def load_trajectory(run: str, mMin: int, mMax: int, chunkingThreshold: float):
 
 @router.post("/subset_connectivity_difference")
 def subset_connectivity_difference(stateIDs: List[int] = Body([])):
-    driver = GraphDriver()
-    qb = querybuilder.Neo4jQueryBuilder([("Atom", "PART_OF", "State", "MANY-TO-ONE")])
-    q = qb.generate_get_node_list("State", stateIDs, "PART_OF")
-    state_atom_dict = converter.query_to_ASE(driver, q)
+    task_id = uuid()
+    unprocessed.update(
+        {
+            task_id: {
+                "name": "subset_connectivity_difference",
+                "params": {
+                    "stateIDs": stateIDs,
+                },
+            }
+        }
+    )
 
-    connectivity_list = []  # all connectivity matrices in order
-    for stateID in stateIDs:
-        atoms = state_atom_dict[stateID]
-        connectivity_list.append((stateID, atoms))
-
-    maximum_difference = []
-    iter = 0
-    while iter < 3:
-        result = calculator.max_connectivity_difference(
-            connectivity_list[0][1], connectivity_list[1:]
-        )
-        if result["id"] is not None:
-            maximum_difference.append(result["id"])
-            connectivity_list = connectivity_list[result["index"] :]
-        else:
-            break
-        iter += 1
-
-    return maximum_difference
-
+    return task_id
 
 @router.post("/selection_distance")
-def selection_distance(stateIDPairs: List[List[int]] = Body([])):
+def selection_distance(stateSet1: List[int] = Body([]),
+                       stateSet2: List[int] = Body([])):
     driver = GraphDriver()
 
-    # flattens 2D array
-    stateIDs = list(chain.from_iterable(stateIDPairs))
+    # get all states without duplicates
+    stateIDs = list(set(stateSet1 + stateSet2))
     qb = querybuilder.Neo4jQueryBuilder([("Atom", "PART_OF", "State", "MANY-TO-ONE")])
     q = qb.generate_get_node_list("State", stateIDs, "PART_OF")
     state_atom_dict = converter.query_to_ASE(driver, q)
 
-    seen = {}
-    distances = []
-    for pair in stateIDPairs:
-        if pair in seen:
-            distances.append(seen[pair])
-        else:
-            id1, id2 = pair
-            s1 = state_atom_dict[id1]
+    m = {id : {id2: 0 for id2 in stateSet2} for id in stateSet1}
+    for id1 in stateSet1:
+        s1 = state_atom_dict[id1]
+        for id2 in stateSet2:
             s2 = state_atom_dict[id2]
             dist = ase.geometry.distance(s1, s2)
-            distances.append(dist)
-            seen[pair] = dist
-
-    return distances
-
+            m[id1][id2] = dist
+    return m
 
 app.include_router(router)

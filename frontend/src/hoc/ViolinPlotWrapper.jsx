@@ -1,18 +1,19 @@
-import { React, useState, useEffect, useRef, memo } from 'react';
+import { React, useState, useEffect, memo, useCallback } from 'react';
 
-import * as d3 from 'd3';
 import LinearProgress from '@mui/material/LinearProgress';
 import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
 import '../css/App.css';
 
+import { useSelector } from 'react-redux';
 import { boxPlotStats } from '../api/math/stats';
-import loadChart from '../api/websocketmethods';
-import { LOADING_CHUNK_SIZE } from '../api/constants';
 
 import ViolinPlot from '../vis/ViolinPlot';
-import GlobalStates from '../api/globalStates';
 import LoadingBox from '../components/LoadingBox';
+import PropertyWrapper from './PropertyWrapper';
+
+import { makeGetStates } from '../api/states';
+import { abbreviate, showToolTip } from '../api/myutils';
 
 import EmbeddedChart from '../vis/EmbeddedChart';
 
@@ -20,95 +21,48 @@ function ViolinPlotWrapper({
     chunk,
     height,
     width,
-    properties,
-    updateRanks,
     selectObject,
     ranks,
     chunkSelectionMode,
     selectedObjects,
-    globalScale,
-    updateGlobalScale,
-    propertyCombos,
     onClick,
+    onMouseEnter,
+    onMouseLeave,
 }) {
-    const [boxStats, setBoxStats] = useState({});
     const [isInitialized, setIsInitialized] = useState(false);
-    const [isInterrupted, setIsInterrupted] = useState(false);
     const [progress, setProgress] = useState(0.0);
-    const ws = useRef(null);
 
-    const render = () => {
-        const bpStatDict = {};
-        const rd = {};
-        for (const prop of properties) {
-            const vals = chunk.getPropList(prop);
-            const bpStats = boxPlotStats(vals);
-            bpStatDict[prop] = bpStats;
-            rd[prop] = vals;
-        }
-        setBoxStats(bpStatDict);
-        updateRanks(rd, chunk.id);
-    };
+    const getStates = makeGetStates();
 
-    const updateGS = (states) => {
-        const propDict = {};
-        for (const prop of properties) {
-            const vals = states.map((d) => d[prop]);
-            propDict[prop] = { min: d3.min(vals), max: d3.max(vals) };
-        }
-        updateGlobalScale({ type: 'update', payload: propDict });
-    };
+    const states = useSelector(
+        (state) => getStates(state, chunk.selected).filter((d) => d.loaded),
+        (prevState, currState) => prevState.length === currState.length
+    );
 
-    /* useEffect(() => {
-        render();
-    }, [globalScaleMin, globalScaleMax, width, height]); */
+    const calcStats = useCallback(
+        (vals, property) => {
+            const data = vals.map((d) => d[property]).filter((d) => d !== undefined);
+            return { data, stats: boxPlotStats(data) };
+        },
+        [states.length]
+    );
 
     useEffect(() => {
-        if (ws.current) {
-            ws.current.close();
-            ws.current = null;
-        }
+        setProgress(states.length / chunk.selected.length);
+        setIsInitialized(true);
+    }, [states.length]);
 
-        setIsInitialized(false);
-        const { hasProperties, missingProperties } = GlobalStates.subsetHasProperties(
-            properties,
-            chunk.selected
-        );
-
-        if (!hasProperties) {
-            loadChart(
-                missingProperties,
-                ws,
-                chunk.trajectory.name,
-                properties,
-                setProgress,
-                setIsInterrupted,
-                updateGS,
-                render,
-                setIsInitialized,
-                LOADING_CHUNK_SIZE
-            );
-        } else {
-            setIsInitialized(true);
-            setProgress(1.0);
-            render();
-        }
-
-        return () => {
-            if (ws.current) {
-                ws.current.close();
-                ws.current = null;
-            }
-        };
-    }, [JSON.stringify(chunk)]);
-
-    if (isInterrupted) {
-        return <div>Loading interrupted</div>;
-    }
-
-    const boxPlotHeight = height / (ranks.length + propertyCombos.length);
-
-    return isInitialized ? (
+    const boxPlotHeight = height / ranks.length;
+    const violinPlotTooltip = (property, values) => (node) => {
+        const content = `<b>${abbreviate(property)}</b><br/> 
+        ${chunk.toString()}<br/>
+        <em>Q1:</em> ${values.stats.q1}</br> 
+        <em>Median:</em> ${values.stats.median}</br> 
+        <em>Q3:</em> ${values.stats.q3}</br>
+        <em>IQR:</em> ${values.stats.iqr} <br/>`;
+        showToolTip(node, content);
+    };
+    return (
         <EmbeddedChart
             height={height}
             width={width}
@@ -121,46 +75,56 @@ function ViolinPlotWrapper({
                 selectedObjects.map((d) => d.id).includes(chunk.id)
             }
         >
-            {(ww) => (
-                <Box onClick={onClick}>
-                    {progress < 1.0 ? (
-                        <LinearProgress
-                            variant="determinate"
-                            value={progress * 100}
-                            className="bar"
-                        />
-                    ) : null}
-                    <Stack direction="column">
-                        {ranks.map((property) => {
-                            const { min, max } = globalScale[property];
-                            const { q1, q3, median, iqr } = boxStats[property];
-
-                            return (
-                                <ViolinPlot
-                                    key={`${chunk.id}-${property}`}
-                                    showYAxis={false}
-                                    data={chunk.getPropList(property)}
-                                    color={chunk.color}
-                                    property={property}
-                                    width={ww}
-                                    mouseOverText={`${chunk.toString()}<br/>
-                            <em>${property}</em><br/> 
-                            <b>Q1</b>: ${q1}</br> 
-                            <b>Median</b>: ${median}</br> 
-                            <b>Q3</b>: ${q3}</br>
-                            <b>IQR</b>: ${iqr} <br/>`}
-                                    height={boxPlotHeight}
-                                    globalScaleMin={min}
-                                    globalScaleMax={max}
-                                />
-                            );
-                        })}
-                    </Stack>
-                </Box>
-            )}
+            {(ww) =>
+                isInitialized ? (
+                    <Box
+                        onClick={() => onClick(chunk)}
+                        onMouseEnter={() => {
+                            onMouseEnter(chunk);
+                        }}
+                        onMouseLeave={() => {
+                            onMouseLeave(chunk);
+                        }}
+                    >
+                        {progress < 1.0 ? (
+                            <LinearProgress
+                                variant="determinate"
+                                value={progress * 100}
+                                className="bar"
+                            />
+                        ) : null}
+                        <Stack direction="column">
+                            {ranks.map((property) => {
+                                return (
+                                    <PropertyWrapper
+                                        key={`${chunk.id}-${property}`}
+                                        property={property}
+                                        data={states}
+                                        calculateValues={calcStats}
+                                    >
+                                        {(min, max, values) => (
+                                            <ViolinPlot
+                                                showYAxis={false}
+                                                data={values.data}
+                                                color={chunk.color}
+                                                property={property}
+                                                width={ww}
+                                                onMouseEnter={violinPlotTooltip(property, values)}
+                                                height={boxPlotHeight}
+                                                globalScaleMin={min}
+                                                globalScaleMax={max}
+                                            />
+                                        )}
+                                    </PropertyWrapper>
+                                );
+                            })}
+                        </Stack>
+                    </Box>
+                ) : (
+                    <LoadingBox />
+                )
+            }
         </EmbeddedChart>
-    ) : (
-        <LoadingBox />
     );
 }
 

@@ -1,12 +1,8 @@
-import { React, useEffect, useState, memo } from 'react';
+import { React, useMemo, memo } from 'react';
 import * as d3 from 'd3';
 
 import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
-
-import { tooltip } from '../api/myutils';
-
-let ttInstance;
-
+// definitely contributes to slowness
 function ControlChart({
     globalScaleMin,
     globalScaleMax,
@@ -18,161 +14,117 @@ function ControlChart({
     lcl,
     margin = { top: 3, bottom: 2, left: 0, right: 5 },
     colors = {
-        posDiff: '#277C3E',
-        negDiff: '#A61E11',
-        noDiff: '#A3A3A3',
+        pos: '#67A9CF',
+        neg: '#EF8A62',
+        norm: '#C6C6C6',
     },
-    showMedian = false,
     onClick = () => {},
+    onMouseOver = () => {},
+    onMouseOut = () => {},
+    renderCallback = () => {},
+    extents = [0, yAttributeList.length],
+    finalLength = yAttributeList.length - 1,
 }) {
-    const buildScaleX = () => {
-        return () =>
+    const scaleX = useMemo(
+        () =>
             d3
                 .scaleLinear()
-                .domain([0, yAttributeList.length - 1])
-                .range([margin.left, width - margin.right]);
-    };
+                .domain([0, finalLength])
+                .range([margin.left, width - margin.right]),
+        []
+    );
 
-    const buildScaleY = () => {
-        return () =>
+    const scaleY = useMemo(
+        () =>
             d3
                 .scaleLinear()
                 .domain([globalScaleMin, globalScaleMax])
-                .range([height - margin.bottom, margin.top]);
+                .range([height - margin.bottom, margin.top]),
+        []
+    );
+
+    const colorPath = (svg, color, filterFunc) => {
+        const area = d3
+            .area()
+            .x((_, i) => scaleX(i))
+            .y0(height)
+            .y1((d) => scaleY(d))
+            .defined((d) => filterFunc(d));
+        svg.select(`.${color}`).datum(yAttributeList).attr('d', area);
     };
-
-    const [scaleX, setScaleX] = useState(buildScaleX());
-
-    useEffect(() => {
-        setScaleX(buildScaleX());
-    }, [JSON.stringify(yAttributeList), width]);
-
-    const [scaleY, setScaleY] = useState(buildScaleY());
-
-    useEffect(() => {
-        setScaleY(buildScaleY());
-    }, [globalScaleMin, globalScaleMax, height]);
-
-    const colorPath = (svg, line, color, filterFunc) => {
-        svg.append('path')
-            .datum(yAttributeList)
-            .attr('d', line)
-            .attr('stroke', color)
-            .attr('fill', color)
-            .attr(
-                'd',
-                d3
-                    .area()
-                    .x((_, i) => scaleX(i))
-                    .y0(scaleY(globalScaleMin))
-                    .y1((d) => scaleY(d))
-                    .defined((d) => filterFunc(d))
-            );
-    };
-
-    const line = d3
-        .line()
-        .x((_, i) => scaleX(i))
-        .y((d) => scaleY(d))
-        .curve(d3.curveCatmullRom.alpha(0.5));
 
     const ref = useTrajectoryChartRender(
         (svg) => {
-            if (!svg.empty()) {
-                // clean up listeners
-                if (ttInstance) {
-                    ttInstance.hide();
-                    ttInstance.destroy();
-                    ttInstance = undefined;
-                }
-                svg.on('mouseenter', null);
-                svg.on('mousemove', null);
-                svg.on('mouseleave', null);
-                svg.selectAll('*:not(.brush)').remove();
-            }
-
             if (!yAttributeList) {
                 return;
             }
+            scaleX.domain([extents[0], extents[1]]).range([margin.left, width - margin.right]);
 
-            const { posDiff, negDiff, noDiff } = colors;
+            scaleY
+                .domain([globalScaleMin, globalScaleMax])
+                .range([height - margin.bottom, margin.top]);
 
             if (ucl && !lcl) {
-                colorPath(svg, line, posDiff, (d) => ucl <= d);
-                colorPath(svg, line, noDiff, (d) => ucl > d);
+                colorPath(svg, 'ucl', (d) => ucl <= d);
+                colorPath(svg, 'norm', (d) => ucl > d);
             } else if (lcl && !ucl) {
-                colorPath(svg, line, negDiff, (d) => lcl >= d);
-                colorPath(svg, line, noDiff, (d) => lcl < d);
+                colorPath(svg, 'lcl', (d) => lcl >= d);
+                colorPath(svg, 'norm', (d) => lcl < d);
             } else if (ucl && lcl) {
-                colorPath(svg, line, noDiff, (d) => lcl < d && ucl > d);
-                colorPath(svg, line, posDiff, (d) => ucl <= d);
-                colorPath(svg, line, negDiff, (d) => lcl >= d);
+                colorPath(svg, 'norm', (d) => lcl < d && ucl > d);
+                colorPath(svg, 'ucl', (d) => ucl <= d);
+                colorPath(svg, 'lcl', (d) => lcl >= d);
             } else {
-                colorPath(svg, line, noDiff, () => true);
+                colorPath(svg, 'norm', () => true);
             }
 
-            if (showMedian) {
-                const median = d3.median(yAttributeList);
-                svg.selectAll('median')
-                    .data([median])
-                    .enter()
-                    .append('line')
-                    .attr('x1', scaleX(0))
-                    .attr('x2', width)
-                    .attr('y1', (d) => scaleY(d))
-                    .attr('y2', (d) => scaleY(d))
-                    .attr('stroke-width', 2)
-                    .attr('stroke-dasharray', 4)
-                    .attr('stroke', 'red');
-            }
-
-            const tooltipCircle = svg.selectAll('circle').data([0]).enter().append('circle');
-
+            const tooltipCircle = svg.select('.tooltipCircle');
             // add value tooltip
-            svg.on('mousemove', (event) => {
-                const i = d3.bisectCenter(
-                    [...Array(yAttributeList.length).keys()],
-                    scaleX.invert(d3.pointer(event)[0])
-                );
+            svg.on('mouseenter mousemove', (event) => {
+                tooltipCircle.attr('visibility', 'visible');
+                const i = Math.trunc(scaleX.invert(d3.pointer(event)[0]));
+
                 const xVal = xAttributeList ? xAttributeList[i] : i;
                 const yVal = yAttributeList[i];
 
                 tooltipCircle
                     .attr('cx', scaleX(i))
-                    .attr('cy', scaleY(yVal))
+                    .attr('cy', scaleY(yVal)) // - 2
                     .attr('stroke', 'gray')
                     .attr('fill', 'black')
                     .attr('r', 3);
-
-                if (!ttInstance) {
-                    ttInstance = tooltip(tooltipCircle.node(), '');
+                if (yVal && xVal) {
+                    onMouseOver(tooltipCircle.node(), [xVal, yVal]);
                 }
-                ttInstance.setContent(`<b>X</b>: ${xVal}<br/><b>Y</b>:${yVal.toFixed(2)} <br/>`);
-                ttInstance.show();
+                // ttInstance.setContent(`<b>X</b>: ${xVal}<br/><b>Y</b>:${yVal.toFixed(2)} <br/>`);
+                // ttInstance.show();
             })
-                .on('click', (e) => {
-                    const i = d3.bisectCenter(
-                        [...Array(yAttributeList.length).keys()],
-                        scaleX.invert(d3.pointer(e)[0])
-                    );
+                .on('click', (event) => {
+                    const i = Math.trunc(scaleX.invert(d3.pointer(event)[0]));
                     const xVal = xAttributeList ? xAttributeList[i] : i;
                     const yVal = yAttributeList[i];
                     onClick(xVal, yVal);
                 })
-                .on('mouseenter', () => {
-                    tooltipCircle.attr('visibility', 'visible');
-                })
                 .on('mouseleave', () => {
                     tooltipCircle.attr('visibility', 'hidden');
-                    if (ttInstance) {
-                        ttInstance.destroy();
-                    }
-                    ttInstance = undefined;
+                    onMouseOut(tooltipCircle.node());
+                    // ttInstance.hide();
                 });
+
+            renderCallback();
         },
-        [scaleX, scaleY]
+        [
+            JSON.stringify(yAttributeList), // this slows it down considerably
+            globalScaleMin,
+            globalScaleMax,
+            width,
+            height,
+            extents[0],
+            extents[1],
+        ]
     );
 
+    const { pos, neg, norm } = colors;
     return (
         <svg
             ref={ref}
@@ -180,7 +132,12 @@ function ControlChart({
             viewBox={[0, 0, width, height]}
             width={width}
             height={height}
-        />
+        >
+            <path className="ucl" stroke={pos} fill={pos} />
+            <path className="lcl" stroke={neg} fill={neg} />
+            <path className="norm" stroke={norm} fill={norm} />
+            <circle className="tooltipCircle" />
+        </svg>
     );
 }
 

@@ -1,4 +1,4 @@
-import { React, createRef, useState, useEffect } from 'react';
+import { React, createRef, useState, useEffect, memo } from 'react';
 
 import Box from '@mui/material/Box';
 import Tooltip from '@mui/material/Tooltip';
@@ -11,22 +11,25 @@ import * as d3 from 'd3';
 
 /* This component is intended to allow embedding svgs within svgs as React components */
 // essentially the same as a ChartBox, just with a border
-export default function EmbeddedChart({
+function EmbeddedChart({
     children,
     height,
     width,
-    margin,
-    color,
     onChartClick,
     selected,
     id,
     brush,
     selections,
     controls,
+    color = 'black',
+    margin = {
+        top: 3,
+        left: 3,
+    },
 }) {
     const ref = createRef();
-    const [isHovered, setIsHovered] = useState(false);
     const [selectionMode, setSelectionMode] = useState(false);
+    const [borderStyle, setBorderStyle] = useState(2);
 
     useEffect(() => {
         if (ref.current && brush !== undefined) {
@@ -65,27 +68,28 @@ export default function EmbeddedChart({
         };
     }, [JSON.stringify(selections), width, height]);
 
-    const borderStyle = selected ? 3 : 2;
+    useEffect(() => {
+        if (selected) {
+            setBorderStyle(4);
+        } else {
+            setBorderStyle(3);
+        }
+    }, [selected]);
+
     const h = height - margin.top;
     const w = width - margin.left;
+
+    // svg is what makes the brush interactions possible
     return (
         <Box
             id={id}
             width={w}
-            height={h}
+            height={height}
             sx={{ display: 'flex' }}
             className="embeddedChart"
-            border={borderStyle}
-            borderColor={color}
             onClick={onChartClick}
-            onMouseEnter={() => setIsHovered(true)}
-            onMouseLeave={() => setIsHovered(false)}
         >
-            <Box
-                className="floatingToolBar"
-                width={w}
-                sx={{ visibility: isHovered ? 'visible' : 'hidden' }}
-            >
+            <Box className="floatingToolBar" width={w}>
                 {brush !== undefined ? (
                     <Tooltip title="Select sub-region" arrow>
                         <IconButton
@@ -100,20 +104,21 @@ export default function EmbeddedChart({
                 ) : null}
                 {controls}
             </Box>
-
-            <svg ref={ref} width={w} height={h}>
+            <svg ref={ref} width={width} height={height}>
                 <foreignObject x={0} y={0} width={w} height={h}>
                     {children(w, h)}
                 </foreignObject>
+                <rect
+                    x={0}
+                    y={0}
+                    width={w}
+                    height={h}
+                    fill="none"
+                    stroke={color}
+                    strokeWidth={borderStyle}
+                />
             </svg>
         </Box>
     );
 }
-EmbeddedChart.defaultProps = {
-    margin: {
-        top: 3,
-        left: 3,
-    },
-    color: 'black',
-    showBrush: true,
-};
+export default memo(EmbeddedChart);

@@ -1,32 +1,34 @@
-import { React, useState, useEffect, memo, useCallback } from 'react';
+import { React, useState, useEffect, memo, useCallback, useRef } from 'react';
+import { useSelector } from 'react-redux';
+
 import Stack from '@mui/material/Stack';
 import IconButton from '@mui/material/IconButton';
 import Divider from '@mui/material/Divider';
 import LinearProgress from '@mui/material/LinearProgress';
 import ScienceIcon from '@mui/icons-material/Science';
 import Tooltip from '@mui/material/Tooltip';
-
 import * as d3 from 'd3';
+import WebSocketManager from '../api/websocketmanager';
+import { WS_URL } from '../api/constants';
 
 import RemovableBox from './RemovableBox';
 import SingleStateViewer from './SingleStateViewer';
-import RadarChart from '../vis/RadarChart';
+// import RadarChart from '../vis/RadarChart';
 import NEBModal from '../modals/NEBModal';
 import NEBWrapper from '../hoc/NEBWrapper';
 import Scatterplot from '../vis/Scatterplot';
 
 import '../css/App.css';
 
-import GlobalStates from '../api/globalStates';
-import { oneShotTooltip } from '../api/myutils';
+// import { oneShotTooltip } from '../api/myutils';
 import { apiSubsetConnectivityDifference } from '../api/ajax';
+import { getStateColoringMethod } from '../api/states';
 
 function SubSequenceView({
     stateIDs,
     timesteps,
     trajectoryName,
-    properties,
-    globalScale,
+    //   properties,
     visScript,
     sx = {},
     disabled = false,
@@ -38,7 +40,6 @@ function SubSequenceView({
     className = '',
     id = '',
 }) {
-    const [data, setData] = useState([]);
     const [activeState, setActiveState] = useState(stateIDs[0]);
     const [isLoaded, setIsLoaded] = useState(false);
     const [interestingStates, setInterestingStates] = useState([
@@ -48,54 +49,77 @@ function SubSequenceView({
     const [openModal, setOpenModal] = useState(false);
     const [nebPlots, setNEBPlots] = useState(null);
 
-    const colorFunc = useCallback((d) => {
-        const state = GlobalStates.get(d.y);
-        return state.individualColor;
-    }, []);
+    const ws = useRef(null);
 
+    const colorFunc = useSelector((state) => getStateColoringMethod(state));
     useEffect(() => {
-        const controller = new AbortController();
+        if (ws.current) {
+            ws.current.close();
+            ws.current = null;
+        }
         // find interesting states
-        apiSubsetConnectivityDifference(stateIDs, controller).then((d) => {
-            // remove duplicates if they are next to each other
-            const states = [stateIDs[0], ...d, stateIDs[stateIDs.length - 1]].reduce(
-                (acc, val, idx, arr) => {
-                    if (idx > 0) {
-                        if (acc[acc.length - 1] !== arr[idx]) {
-                            return [...acc, val];
+        if (!isLoaded) {
+            apiSubsetConnectivityDifference(stateIDs).then((taskID) => {
+                // open web socket
+                ws.current = WebSocketManager.connect(`${WS_URL}/api/ws/${taskID}`, 'selections');
+
+                let insertAt = 1;
+                ws.current.addEventListener('message', (e) => {
+                    const parsedData = JSON.parse(e.data);
+                    const { data, type } = parsedData;
+                    if (type === 'TASK_PROGRESS') {
+                        if (interestingStates[insertAt - 1] !== data) {
+                            setInterestingStates((prev) => [
+                                ...prev.slice(0, insertAt),
+                                data,
+                                ...prev.slice(insertAt),
+                            ]);
+                            insertAt++;
                         }
-                        return acc;
                     }
-                    return [val];
-                },
-                []
-            );
-            setIsLoaded(true);
-            setInterestingStates(states);
-        });
-        return () => controller.abort();
+
+                    if (type === 'TASK_COMPLETE') {
+                        ws.current.close();
+                    }
+                });
+
+                ws.current.addEventListener('close', () => {
+                    setIsLoaded(true);
+                });
+                // setInterestingStates(iStates);
+            });
+        }
+
+        return () => {
+            if (ws.current) {
+                ws.current.close();
+                ws.current = null;
+            }
+        };
     }, [JSON.stringify(stateIDs)]);
 
-    const addNEB = (states, start, end, interpolate, maxSteps, fmax, saveResults) => {
+    const addNEB = (nebStates, start, end, interpolate, maxSteps, fmax, saveResults) => {
         if (!nebPlots) {
-            setNEBPlots([{ states, start, end, interpolate, maxSteps, fmax, saveResults }]);
+            setNEBPlots([{ nebStates, start, end, interpolate, maxSteps, fmax, saveResults }]);
         } else {
             setNEBPlots([
                 ...nebPlots,
-                { states, start, end, interpolate, maxSteps, fmax, saveResults },
+                { nebStates, start, end, interpolate, maxSteps, fmax, saveResults },
             ]);
         }
     };
-    useEffect(() => {
-        GlobalStates.ensureSubsetHasProperties(properties, stateIDs).then(() => {
-            const states = stateIDs.map((stateID) => GlobalStates.get(stateID));
-            setData(states);
-        });
-    }, []);
 
     useEffect(() => {
         onElementClick(activeState);
+        d3.select(`#scatterplot-${id}`).selectAll(`.y-${activeState}`).classed('clicked', true);
     }, [activeState]);
+
+    const onScatterplotElementClick = useCallback(
+        (_, d) => {
+            setActiveState(d.y);
+        },
+        [setActiveState]
+    );
 
     return (
         <>
@@ -123,38 +147,24 @@ function SubSequenceView({
                 <Stack direction="row" spacing={0.5}>
                     {interestingStates.map((stateID) => (
                         <SingleStateViewer
+                            key={stateID}
                             stateID={stateID}
                             visScript={visScript}
                             onClick={(e) => {
                                 d3.selectAll('.clicked').classed('clicked', false);
                                 setActiveState(stateID);
                                 // select matching state in scatterplot
-                                d3.select(`#scatterplot-${id}`)
-                                    .selectAll(`.y-${stateID}`)
-                                    .classed('clicked', true);
                                 d3.select(e.target).classed('clicked', true);
                             }}
                         />
                     ))}
-
-                    <RadarChart
-                        data={data}
-                        properties={properties}
-                        width={200}
-                        height={200}
-                        globalScale={globalScale}
-                        onElementMouseOver={(node, d) => {
-                            oneShotTooltip(node, `${d.value}`);
-                        }}
-                        renderSingle={GlobalStates.get(activeState)}
-                    />
                 </Stack>
                 <Divider />
                 <Stack
                     direction="row"
                     spacing={0.5}
                     sx={{
-                        maxWidth: `${interestingStates.length * 100 + 220}px`,
+                        maxWidth: `${interestingStates.length * 100}px`,
                         overflow: 'scroll',
                         minHeight: '30px',
                         maxHeight: '30px',
@@ -163,16 +173,12 @@ function SubSequenceView({
                 >
                     <Scatterplot
                         id={`scatterplot-${id}`}
-                        width={interestingStates.length * 100 + 220}
+                        width={interestingStates.length * 100}
                         height={30}
-                        colorFunc={colorFunc}
+                        colorFunc={(d) => colorFunc(d.y)}
                         xAttributeList={timesteps}
                         yAttributeList={stateIDs}
-                        onElementClick={(node, d) => {
-                            d3.selectAll('.clicked').classed('clicked', false);
-                            setActiveState(d.y);
-                            d3.select(node).classed('clicked', true);
-                        }}
+                        onElementClick={onScatterplotElementClick}
                     />
                 </Stack>
                 {nebPlots !== null && (
@@ -181,7 +187,7 @@ function SubSequenceView({
                         <Stack direction="row" spacing={0.5}>
                             {nebPlots.map((plot) => {
                                 const {
-                                    states,
+                                    nebStates,
                                     start,
                                     end,
                                     interpolate,
@@ -191,7 +197,7 @@ function SubSequenceView({
                                 } = plot;
                                 return (
                                     <NEBWrapper
-                                        stateIDs={states}
+                                        stateIDs={nebStates}
                                         trajectoryName={trajectoryName}
                                         start={start}
                                         end={end}
@@ -199,6 +205,7 @@ function SubSequenceView({
                                         maxSteps={maxSteps}
                                         fmax={fmax}
                                         saveResults={saveResults}
+                                        width={(interestingStates.length * 100) / nebPlots.length}
                                         setActiveState={(stateID) => setActiveState(stateID)}
                                     />
                                 );
@@ -214,7 +221,9 @@ function SubSequenceView({
                     id: d,
                     timestep: timesteps[i],
                 }))}
+                colorFunc={colorFunc}
                 submit={addNEB}
+                id={id}
             />
         </>
     );

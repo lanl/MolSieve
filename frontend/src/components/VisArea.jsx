@@ -1,4 +1,6 @@
-import { React, useState, useEffect, useReducer, useCallback } from 'react';
+import { React, useState, useEffect, useReducer, useCallback, startTransition } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+
 import Box from '@mui/material/Box';
 import CssBaseline from '@mui/material/CssBaseline';
 import IconButton from '@mui/material/IconButton';
@@ -26,7 +28,6 @@ import ChartBox from './ChartBox';
 import StateDetailView from './StateDetailView';
 import TransferListModal from '../modals/TransferListModal';
 import '../css/App.css';
-import GlobalStates from '../api/globalStates';
 
 import ComparisonView from './ComparisonView';
 import SelectionComparisonView from './SelectionComparisonView';
@@ -36,7 +37,6 @@ import usePrevious from '../hooks/usePrevious';
 import {
     chunkSimilarity,
     stateRatioChunkSimilarity,
-    buildDictFromArray,
     percentToString,
     tooltip,
     focusChart,
@@ -44,8 +44,9 @@ import {
 } from '../api/myutils';
 import { createUUID } from '../api/math/random';
 
-import { zTest } from '../api/math/stats';
-import { getAllImportantStates } from '../api/trajectories';
+import { getAllImportantStates, getAllVisibleChunks, swapPositions } from '../api/trajectories';
+
+import { clearClusterStates, clusterStates } from '../api/states';
 
 const MULTIVARIATE_CHART_MODAL = 'multivariate_chart';
 
@@ -60,22 +61,22 @@ const SELECTION_LENGTH = [0, 1, 3, 2, 2, 2];
 
 export default function VisArea({
     trajectories,
-    runs,
     properties,
-    swapPositions,
-    expand,
     sx,
-    setZoom,
     visScripts,
+    simplifySet,
+    recalculateClustering,
 }) {
     const [currentModal, setCurrentModal] = useState(null);
     const [activeState, setActiveState] = useState(null);
+
+    const dispatch = useDispatch();
 
     const [selectionMode, setSelectionMode] = useState(NO_SELECT);
     const [selectedObjects, setSelectedObjects] = useState([]);
 
     const [anchorEl, setAnchorEl] = useState(null);
-    const [showStateClustering, setShowStateClustering] = useState(false);
+    const colorState = useSelector((state) => state.states.colorState);
 
     const [toolTipList, setToolTipList] = useState([]);
     const oldToolTipList = usePrevious(toolTipList);
@@ -137,59 +138,17 @@ export default function VisArea({
 
     const addSelectionCallback = useCallback(addSelection, []);
 
-    const updateGS = (oldGS, newGS) => {
-        const updatedGS = {};
-        for (const property of Object.keys(oldGS)) {
-            const oldProp = oldGS[property];
-            const newProp = newGS[property];
-            if (newProp) {
-                updatedGS[property] = {
-                    min: newProp.min < oldProp.min ? newProp.min : oldProp.min,
-                    max: newProp.max > oldProp.max ? newProp.max : oldProp.max,
-                };
-            }
-        }
-        return updatedGS;
-    };
-
-    const [globalScale, updateGlobalScale] = useReducer((state, action) => {
-        switch (action.type) {
-            case 'create':
-                return {
-                    ...state,
-                    [action.payload]: { min: Number.MAX_VALUE, max: Number.MIN_VALUE },
-                };
-            case 'update':
-                return updateGS(state, action.payload);
-            case 'addProperties':
-                return {
-                    ...state,
-                    ...buildDictFromArray(action.payload, {
-                        min: Number.MAX_VALUE,
-                        max: Number.MIN_VALUE,
-                    }),
-                };
-            default:
-                throw new Error('Unknown action');
-        }
-    }, buildDictFromArray(properties, { min: Number.MAX_VALUE, max: Number.MIN_VALUE }));
-
-    useEffect(() => {
-        if (globalScale) {
-            const currentProperties = Object.keys(globalScale);
-            const newProperties = properties.filter(
-                (property) => !currentProperties.includes(property)
-            );
-            updateGlobalScale({ type: 'addProperties', payload: newProperties });
-        }
-    }, [JSON.stringify(properties)]);
-
     const [propertyCombos, reducePropertyCombos] = useReducer((state, action) => {
         switch (action.type) {
             case 'create': {
                 const id = createUUID();
-                updateGlobalScale({ type: 'create', payload: id });
                 return [...state, { id, properties: action.payload }];
+            }
+            case 'delete': {
+                return state.filter((d) => d.id !== action.payload);
+            }
+            case 'pop': {
+                return state.slice(1);
             }
             default:
                 throw new Error('Unknown action');
@@ -201,16 +160,6 @@ export default function VisArea({
      *
      * @returns {Array<Chunk>} All chunks visible on the screen
      */
-    const getAllVisibleChunks = () => {
-        let visible = [];
-        for (const trajectory of Object.values(trajectories)) {
-            const { name } = trajectory;
-            const { extents } = runs[name];
-            const { iChunks, uChunks } = trajectory.getVisibleChunks(extents);
-            visible = [...visible, ...iChunks, ...uChunks];
-        }
-        return visible;
-    };
 
     useEffect(() => {
         if (toolTipList.length > 0) {
@@ -228,7 +177,7 @@ export default function VisArea({
     useEffect(() => {
         setSelectionMode(NO_SELECT);
         setToolTipList([]);
-        GlobalStates.clearClusterStates();
+        dispatch(clearClusterStates);
     }, [JSON.stringify(trajectories)]);
 
     useEffect(() => {
@@ -265,10 +214,10 @@ export default function VisArea({
         }
     };
 
-    const selectObjectCallback = useCallback(selectObject, [
-        selectionMode,
-        JSON.stringify(selectedObjects),
-    ]);
+    const selectObjectCallback = useCallback(
+        (o) => selectObject(o),
+        [selectionMode, selectedObjects.length]
+    );
 
     const startSelection = (selectedMode, action) => {
         // the button was clicked again, finish the selection
@@ -290,30 +239,41 @@ export default function VisArea({
         }
     };
 
+    const visible = useSelector((state) => getAllVisibleChunks(state));
+    const allStates = useSelector((state) => getAllImportantStates(state));
+
     const findSimilar = (chunkSimilarityFunc, formatFunc, selection) => {
         // compare all chunks to the one that was selected
         const selected = selection[0];
         focusChart(selected.id);
 
-        const visible = getAllVisibleChunks().filter((c) => c.id !== selected.id && c.important);
+        const v = visible.filter((d) => d.id !== selected.id && d.important);
         const similarities = {};
-        for (const vc of visible) {
+        //  let minS = Number.MAX_SAFE_INTEGER;
+        //   let maxS = Number.MIN_SAFE_INTEGER;
+        for (const vc of v) {
             const sim = chunkSimilarityFunc(selected, vc);
-            similarities[`ec_${vc.id}`] = sim;
+            similarities[`chunk_${vc.id}`] = sim;
+            // minS = Math.min(minS, sim);
+            //    maxS = Math.max(maxS, sim);
         }
 
-        const charts = document.querySelectorAll('.embeddedChart');
+        const charts = document.querySelectorAll('rect.important');
         const ttList = [];
-        for (const chart of charts) {
+        // const oScale = d3.scaleLinear().domain([minS, maxS]).range([0, 1]);
+        for (let i = 0; i < charts.length; i++) {
+            const chart = charts[i];
             if (similarities[chart.id] !== undefined) {
-                // chart.style.opacity = `${similarities[chart.id]}`;
-                const tt = tooltip(chart, formatFunc(similarities[chart.id]), {
-                    allowHTML: true,
-                    arrow: true,
-                    theme: 'translucent',
-                    placement: 'top',
-                });
-                ttList.push(tt);
+                // chart.style.opacity = `${oScale(similarities[chart.id])}`;
+                if (similarities[chart.id] > 0.05) {
+                    const tt = tooltip(chart, formatFunc(similarities[chart.id]), {
+                        allowHTML: true,
+                        arrow: true,
+                        theme: 'translucent',
+                        placement: 'top',
+                    });
+                    ttList.push(tt);
+                }
             }
         }
 
@@ -324,7 +284,7 @@ export default function VisArea({
     return (
         <Box id="c" sx={sx}>
             <CssBaseline />
-            <ChartBox sx={{ marginBottom: 5 }}>
+            <ChartBox sx={{ marginBottom: '5px' }}>
                 {(width) => (
                     <>
                         <Box display="flex">
@@ -338,7 +298,8 @@ export default function VisArea({
                                     <ViewListIcon />
                                 </IconButton>
                             </Tooltip>
-                            <Tooltip title="Compare chunks / selections" arrow>
+                            {/* <Box onClick={() => reducePropertyCombos({ type: 'pop' })}>X</Box> */}
+                            <Tooltip title="Compare regions / sub-regions" arrow>
                                 <IconButton
                                     size="small"
                                     color={selectionMode !== CHUNK_SELECT ? 'secondary' : 'default'}
@@ -395,9 +356,14 @@ export default function VisArea({
                                     }
                                     size="small"
                                     onClick={() =>
-                                        startSelection(SWAP_SELECTIONS, (selection) =>
-                                            swapPositions(selection[0], selection[1])
-                                        )
+                                        startSelection(SWAP_SELECTIONS, (selection) => {
+                                            dispatch(
+                                                swapPositions({
+                                                    a: selection[0].name,
+                                                    b: selection[1].name,
+                                                })
+                                            );
+                                        })
                                     }
                                 >
                                     <SwapVertIcon />
@@ -405,9 +371,9 @@ export default function VisArea({
                             </Tooltip>
                             <Tooltip
                                 title={
-                                    showStateClustering
-                                        ? 'Color states by ID'
-                                        : 'Color states by structural properties'
+                                    colorState
+                                        ? 'Color states by structural properties'
+                                        : 'Color states by ID'
                                 }
                                 arrow
                             >
@@ -415,11 +381,14 @@ export default function VisArea({
                                     color="secondary"
                                     size="small"
                                     onClick={() =>
-                                        !showStateClustering
-                                            ? GlobalStates.clusterStates(
-                                                  getAllImportantStates(trajectories)
-                                              ).then(() => setShowStateClustering(true))
-                                            : setShowStateClustering(false)
+                                        !colorState
+                                            ? dispatch(
+                                                  clusterStates({
+                                                      properties,
+                                                      stateIDs: allStates,
+                                                  })
+                                              )
+                                            : dispatch(clearClusterStates())
                                     }
                                 >
                                     <InvertColorsIcon />
@@ -455,50 +424,37 @@ export default function VisArea({
                             </Tooltip>
                         </Box>
 
-                        <Stack direction="column" spacing={2}>
-                            {Object.values(trajectories)
-                                .sort((a, b) => a.position > b.position)
-                                .map((trajectory) => {
-                                    const run = runs[trajectory.name];
-                                    const { extents } = run;
-                                    return (
-                                        <TrajectoryChart
-                                            key={trajectory.id}
-                                            width={width}
-                                            height={(showTop + propertyCombos.length) * 50 + 50}
-                                            scatterplotHeight={50}
-                                            trajectory={trajectory}
-                                            extents={extents}
-                                            currentClustering={trajectory.current_clustering}
-                                            chunkingThreshold={trajectory.chunkingThreshold}
-                                            setStateHovered={setActiveState}
-                                            properties={properties}
-                                            propertyCombos={propertyCombos}
-                                            chunkSelectionMode={selectionMode}
-                                            selectObject={selectObjectCallback}
-                                            addSelection={addSelectionCallback}
-                                            selectedObjects={selectedObjects}
-                                            selections={selections}
-                                            updateGlobalScale={updateGlobalScale}
-                                            globalScale={globalScale}
-                                            showStateClustering={showStateClustering}
-                                            showTop={showTop}
-                                            expand={expand}
-                                            setZoom={setZoom}
-                                        />
-                                    );
-                                })}
+                        <Stack direction="column" spacing={1}>
+                            {trajectories.map((trajectory) => {
+                                return (
+                                    <TrajectoryChart
+                                        key={trajectory}
+                                        width={width}
+                                        height={(showTop + propertyCombos.length) * 50 + 50}
+                                        scatterplotHeight={50}
+                                        trajectoryName={trajectory}
+                                        setStateHovered={setActiveState}
+                                        properties={properties}
+                                        propertyCombos={propertyCombos}
+                                        chunkSelectionMode={selectionMode}
+                                        selectObject={selectObjectCallback}
+                                        addSelection={addSelectionCallback}
+                                        selectedObjects={selectedObjects}
+                                        selections={selections}
+                                        showTop={showTop}
+                                        simplifySet={simplifySet}
+                                        recalculateClustering={recalculateClustering}
+                                    />
+                                );
+                            })}
                         </Stack>
                     </>
                 )}
             </ChartBox>
             <Stack direction="row" gap={1}>
-                <Box marginLeft={5} minWidth="225px">
+                <Box marginLeft={5} minWidth="190px">
                     {activeState !== null && activeState !== undefined && (
-                        <StateDetailView
-                            state={GlobalStates.get(activeState)}
-                            visScript={visScript}
-                        />
+                        <StateDetailView stateID={activeState} visScript={visScript} />
                     )}
                 </Box>
 
@@ -521,8 +477,8 @@ export default function VisArea({
                         const timesteps = extent.map((d) => d.timestep);
 
                         // check if start and end timesteps are at least within some chunk of the trajectory
-                        const t = trajectories[trajectoryName];
-                        const disabled = t.isTimestepsWithinChunks(timesteps);
+                        // const t = trajectories[trajectoryName];
+                        // const disabled = t.isTimestepsWithinChunks(timesteps);
 
                         return (
                             <SubSequenceView
@@ -545,13 +501,12 @@ export default function VisArea({
                                 className={uuid}
                                 id={uuid}
                                 onElementClick={(state) => setActiveState(state)}
-                                disabled={disabled}
+                                // disabled={disabled}
                                 trajectoryName={trajectoryName}
                                 stateIDs={ids}
                                 timesteps={timesteps}
                                 visScript={visScript}
                                 properties={properties}
-                                globalScale={globalScale}
                                 deleteFunc={() => {
                                     deleteSelection(uuid);
                                 }}
@@ -570,7 +525,6 @@ export default function VisArea({
                                 <ComparisonView
                                     properties={properties}
                                     selection={selection}
-                                    globalScale={globalScale}
                                     deleteFunc={() => removeComparison(uuid)}
                                 />
                             );
@@ -611,6 +565,7 @@ export default function VisArea({
             >
                 {visScripts.map((vs) => (
                     <MenuItem
+                        key={vs}
                         onClick={() => {
                             setVisScript(vs);
                             setAnchorEl(null);
@@ -656,11 +611,11 @@ export default function VisArea({
                 <MenuItem
                     disabled
                     onClick={() => {
-                        startSelection(FIND_SIMILAR_SELECT, (selection) =>
+                        /* startSelection(FIND_SIMILAR_SELECT, (selection) =>
                             findSimilar(
                                 (a, b) => {
-                                    const aStates = a.states.map((id) => GlobalStates.get(id));
-                                    const bStates = b.states.map((id) => GlobalStates.get(id));
+                                    const aStates = a.states.map((id) => States.get(id));
+                                    const bStates = b.states.map((id) => States.get(id));
                                     // for which property?
                                     return zTest(
                                         aStates.map((d) => d[properties]),
@@ -671,7 +626,7 @@ export default function VisArea({
                                 selection
                             )
                         );
-                        setAnchorEl(null);
+                        setAnchorEl(null) */
                     }}
                 >
                     Z-score
@@ -694,7 +649,7 @@ export default function VisArea({
                         focused
                         value={showTop}
                         onChange={(e) => {
-                            setShowTop(parseInt(e.target.value, 10));
+                            startTransition(() => setShowTop(parseInt(e.target.value, 10)));
                         }}
                         label={`Show top ${showTop} properties`}
                     />

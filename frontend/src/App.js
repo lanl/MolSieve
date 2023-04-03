@@ -1,30 +1,25 @@
 import React from 'react';
+
+import { connect } from 'react-redux';
+
 import './css/App.css';
 import Box from '@mui/material/Box';
 import Toolbar from '@mui/material/Toolbar';
 import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
-import MenuIcon from '@mui/icons-material/Menu';
-
 import { withSnackbar } from 'notistack';
+
 import AjaxMenu from './components/AjaxMenu';
 import LoadRunModal from './modals/LoadRunModal';
-import Trajectory from './api/trajectory';
-import FilterBuilder from './api/FilterBuilder';
+
 import VisArea from './components/VisArea';
-import {
-    apiLoadTrajectory,
-    apiModifyTrajectory,
-    apiGetScriptProperties,
-    apiGetVisScripts,
-} from './api/ajax';
-import ControlDrawer from './components/ControlDrawer';
-import GlobalStates from './api/globalStates';
+import { apiLoadTrajectory, apiGetScriptProperties, apiGetVisScripts } from './api/ajax';
 import { createUUID } from './api/math/random';
-import { getNeighbors } from './api/myutils';
+
+import { calculateGlobalUniqueStates, addProperties } from './api/states';
+import { addTrajectory, simplifySet, recluster } from './api/trajectories';
 
 import WebSocketManager from './api/websocketmanager';
-import ColorManager from './api/colormanager';
 
 import { API_URL } from './api/constants';
 
@@ -39,22 +34,20 @@ class App extends React.Component {
         this.state = {
             currentModal: null,
             showRunList: false,
-            drawerOpen: false,
             run: null,
             trajectories: {},
-            runs: {},
-            colors: new ColorManager(),
             properties: [],
             visScripts: [],
         };
     }
 
     componentDidMount() {
+        const { dispatch } = this.props;
+
         apiGetScriptProperties()
             .then((properties) => {
-                GlobalStates.addProperties(properties);
-
                 apiGetVisScripts().then((scripts) => {
+                    dispatch(addProperties(properties));
                     this.setState((prevState) => ({
                         properties: [...prevState.properties, ...properties],
                         visScripts: [...prevState.visScripts, ...scripts],
@@ -63,18 +56,6 @@ class App extends React.Component {
             })
             .catch((e) => alert(e));
     }
-
-    toggleModal = (key) => {
-        const { currentModal } = this.state;
-        if (currentModal) {
-            this.setState({
-                currentModal: null,
-            });
-            return;
-        }
-
-        this.setState({ currentModal: key });
-    };
 
     selectRun = (v) => {
         this.setState({
@@ -98,38 +79,21 @@ class App extends React.Component {
      *  @param {string} run - Run to recalculate the clustering for
      *  @param {number} clusters - Number of clusters to split the trajectory into.
      */
-    recalculate_clustering = (run, clusters) =>
-        // first check if the state has that clustering already calculated
-        new Promise((resolve, reject) => {
-            const { trajectories, colors } = this.state;
-            const { chunkingThreshold } = trajectories[run];
-            WebSocketManager.clear(run);
-
-            const { enqueueSnackbar } = this.props;
-            enqueueSnackbar(`Recalculating clustering for trajectory ${run}...`);
-
-            apiModifyTrajectory(run, clusters, chunkingThreshold)
-                .then((data) => {
-                    const currentTraj = trajectories[run];
-                    const newColors = colors.request_colors(
-                        clusters - currentTraj.current_clustering
-                    );
-                    currentTraj.current_clustering = clusters;
-                    currentTraj.idToCluster = data.idToCluster;
-                    currentTraj.simplifySet(data.simplified);
-                    currentTraj.add_colors(newColors);
-                    this.setState(
-                        { trajectories: { ...trajectories, [run]: currentTraj }, colors },
-                        () => {
-                            enqueueSnackbar(`Clustering recalculated for trajectory ${run}...`);
-                            resolve();
-                        }
-                    );
-                })
+    recalculate_clustering = (name, clusters) => {
+        return new Promise((_, reject) => {
+            const { enqueueSnackbar, dispatch } = this.props;
+            enqueueSnackbar(`Recalculating clustering for trajectory ${name}...`);
+            dispatch(recluster({ name, clusters }))
+                .unwrap()
+                .then(() => enqueueSnackbar(`Reclustered trajectory ${name}`))
                 .catch((e) => {
+                    enqueueSnackbar(`Reclustering trajectory ${name} failed: ${e.message}`, {
+                        variant: 'error',
+                    });
                     reject(e);
                 });
         });
+    };
 
     /**
      *  Creates a new trajectory object and populates it with data from the database
@@ -140,218 +104,61 @@ class App extends React.Component {
      * @param {Number} chunkingThreshold - Simplification threshold
      */
     loadTrajectory = (run, mMin, mMax, chunkingThreshold) => {
-        const { enqueueSnackbar } = this.props;
+        const { enqueueSnackbar, dispatch } = this.props;
         enqueueSnackbar(`Loading trajectory ${run}...`);
 
         apiLoadTrajectory(run, mMin, mMax, chunkingThreshold)
             .then((data) => {
-                const newTraj = new Trajectory();
-                newTraj.uniqueStates = data.uniqueStates;
-                newTraj.name = run;
-                newTraj.id = createUUID();
-                newTraj.idToCluster = data.idToCluster;
-                newTraj.feasible_clusters = data.feasible_clusters;
-                newTraj.chunkingThreshold = chunkingThreshold;
-                newTraj.current_clustering = data.current_clustering;
+                const { properties } = this.state;
+                const { current_clustering: currentClustering, simplified, uniqueStates } = data;
 
-                GlobalStates.calculateGlobalUniqueStates(data.uniqueStates, run);
-                newTraj.simplifySet(data.simplified);
-
-                const { trajectories, colors } = this.state;
-
-                const trajColors = colors.request_colors(newTraj.current_clustering);
-                newTraj.add_colors(trajColors);
-                newTraj.position = Object.keys(trajectories).length;
-
-                const newRuns = this.initFilters(run, newTraj);
-
-                WebSocketManager.addKey(run);
-                this.setState(
-                    {
-                        runs: newRuns,
-                        trajectories: { ...trajectories, [run]: newTraj },
-                        colors,
-                    },
-                    () => enqueueSnackbar(`Trajectory ${run} successfully loaded.`)
+                dispatch(
+                    calculateGlobalUniqueStates({
+                        newUniqueStates: uniqueStates,
+                        run,
+                    })
                 );
+
+                dispatch(
+                    addTrajectory({
+                        name: run,
+                        id: createUUID(),
+                        chunkingThreshold,
+                        currentClustering,
+                        newChunks: simplified,
+                        properties,
+                    })
+                );
+
+                enqueueSnackbar(`Trajectory ${run} successfully loaded.`);
             })
-            .catch((e) => alert(`${e}. ${e.response.detail}`));
-    };
-
-    initFilters = (run, newTraj) => {
-        const { runs } = this.state;
-
-        runs[run] = {
-            current_clustering: newTraj.current_clustering,
-            chunkingThreshold: newTraj.chunkingThreshold,
-            extents: [0, newTraj.length],
-        };
-
-        const filters = {};
-
-        // const fb = new FilterBuilder();
-
-        // filters.clustering_difference = fb.buildClusteringDifference();
-        //    filters.chunks = fb.buildHideChunks();
-        // filters.transitions = fb.buildTransitions();
-        // filters.fuzzy_membership = fb.buildFuzzyMemberships();
-
-        runs[run].filters = filters;
-
-        return runs;
-    };
-
-    updateRun = (run, attribute, value) => {
-        const { runs } = this.state;
-        runs[run][attribute] = value;
-        this.setState({ runs: { ...runs } });
+            .catch((e) => alert(`${e}`));
     };
 
     simplifySet = (run, threshold) => {
-        WebSocketManager.clear(run);
-        const { trajectories } = this.state;
-        const { [run]: newTraj } = trajectories;
-
-        const { enqueueSnackbar } = this.props;
+        const { enqueueSnackbar, dispatch } = this.props;
 
         enqueueSnackbar(`Re-simplifying trajectory ${run}...`);
-        apiModifyTrajectory(run, newTraj.current_clustering, threshold).then((data) => {
-            newTraj.simplifySet(data.simplified);
-            newTraj.chunkingThreshold = threshold;
-            this.setState(
-                (prevState) => ({
-                    trajectories: { ...prevState.trajectories, [run]: newTraj },
-                }),
-                () => enqueueSnackbar(`Sequence re-simplified for trajectory ${run}.`)
-            );
-        });
+        dispatch(simplifySet({ name: run, threshold })).then(() =>
+            enqueueSnackbar(`Sequence re-simplified for trajectory ${run}.`)
+        );
     };
 
-    /**
-     * Expands the given chunk by the sliceSize provided. The left / right neighbors of the chunk are shortened.
-     *
-     */
-    expand = (id, sliceSize, trajectory) => {
-        const { chunkList, chunks } = trajectory;
-        const chunk = chunks.get(id);
-        const chunkIndex = chunkList.indexOf(chunk);
-
-        const neighbors = getNeighbors(chunkList, chunkIndex);
-        const [left, right] = neighbors;
-
-        const loadNeighbors = (l, r) => {
-            return new Promise((resolve, reject) => {
-                if (l) {
-                    l.loadSequence().then(() => {
-                        if (r) {
-                            r.loadSequence().then(() => resolve());
-                        } else {
-                            resolve();
-                        }
-                    });
-                } else if (r) {
-                    r.loadSequence().then(() => resolve());
-                } else {
-                    reject();
-                }
+    toggleModal = (key) => {
+        const { currentModal } = this.state;
+        if (currentModal) {
+            this.setState({
+                currentModal: null,
             });
-        };
-
-        loadNeighbors(left, right)
-            .then(() => {
-                if (left) {
-                    const leftVals = left.takeFromSequence(sliceSize, 'back');
-                    chunk.addToSequence(leftVals, 'front');
-                    chunks.set(left.id, left);
-                    if (!left.sequence.length) {
-                        chunks.delete(left.id);
-                    }
-                }
-
-                if (right) {
-                    const rightVals = right.takeFromSequence(sliceSize, 'front');
-                    chunk.addToSequence(rightVals, 'back');
-                    chunks.set(right.id, right);
-                    if (!right.sequence.length) {
-                        chunks.delete(right.id);
-                    }
-                }
-
-                chunks.set(chunk.id, chunk);
-
-                // previous state gets pushed down, which is why it doesn't update immediately
-                this.setState((prevState) => ({
-                    trajectories: { ...prevState.trajectories, [trajectory.name]: trajectory },
-                }));
-            })
-            .catch(() => alert('No neighbors to expand into!'));
-    };
-
-    toggleDrawer = () => {
-        this.setState((prevState) => ({ drawerOpen: !prevState.drawerOpen }));
-    };
-
-    swapPositions = (a, b) => {
-        // swap the position variables of the two trajectories
-        const temp = a.position;
-        a.position = b.position; // eslint-disable-line
-        b.position = temp; //eslint-disable-line
-
-        this.setState((prevState) => ({
-            trajectories: {
-                ...prevState.trajectories,
-                [a.name]: a,
-                [b.name]: b,
-            },
-        }));
-    };
-
-    addFilter = (state) => {
-        const { runs, trajectories } = this.state;
-        const run = runs[state.run];
-        const { filters } = run;
-
-        // get us the ids of all the states in our simplified sequence
-        const stateIds = trajectories[state.run].uniqueStates;
-        const sequence = stateIds.map((s) => GlobalStates.get(s));
-
-        const fb = new FilterBuilder();
-        const filter = fb.buildCustomFilter(state.filter_type, state.attribute, sequence);
-
-        filters[filter.id] = filter;
-
-        run.filters = filters;
-        runs[state.run] = run;
-        this.setState({ runs: { ...runs } });
-    };
-
-    propagateChange = (filter) => {
-        const { runs } = this.state;
-        const thisFilter = runs[filter.run].filters[filter.id];
-
-        if (filter.options) {
-            thisFilter.options = filter.options;
+            return;
         }
 
-        thisFilter.enabledFor = filter.enabledFor;
-
-        thisFilter.enabled = filter.enabled;
-
-        runs[filter.run].filters[filter.id] = thisFilter;
-        this.setState({ runs: { ...runs } });
+        this.setState({ currentModal: key });
     };
 
     render() {
-        const {
-            trajectories,
-            runs,
-            properties,
-            drawerOpen,
-            showRunList,
-            currentModal,
-            run,
-            visScripts,
-        } = this.state;
+        const { trajectoryNames } = this.props;
+        const { properties, showRunList, currentModal, run, visScripts } = this.state;
         return (
             <Box sx={{ display: 'flex', flexDirection: 'column' }}>
                 <Toolbar
@@ -363,7 +170,7 @@ class App extends React.Component {
                     }}
                 >
                     <Typography sx={{ flexGrow: 1 }} color="primary" variant="h6">
-                        NeoMDWeb
+                        MolSieve
                     </Typography>
                     <Button
                         color="primary"
@@ -376,52 +183,20 @@ class App extends React.Component {
                     >
                         Manage trajectories
                     </Button>
-                    {Object.keys(trajectories).length > 0 && (
-                        <Button
-                            color="primary"
-                            onClick={() => {
-                                this.toggleDrawer();
-                            }}
-                        >
-                            <MenuIcon />
-                        </Button>
-                    )}
                 </Toolbar>
                 <VisArea
-                    trajectories={trajectories}
-                    runs={runs}
-                    swapPositions={this.swapPositions}
-                    expand={this.expand}
+                    trajectories={trajectoryNames}
+                    recalculateClustering={this.recalculate_clustering}
+                    simplifySet={this.simplifySet}
                     properties={properties}
                     visScripts={visScripts}
-                    sx={{
-                        width: drawerOpen ? `calc(100% - 300px)` : `100%`,
-                    }}
-                    setZoom={(name, values) => {
-                        this.updateRun(name, 'extents', values);
-                    }}
                 />
-
-                {Object.keys(trajectories).length > 0 && (
-                    <ControlDrawer
-                        sx={{ width: '300px', boxSizing: 'border-box' }}
-                        trajectories={trajectories}
-                        runs={runs}
-                        updateRun={this.updateRun}
-                        recalculateClustering={this.recalculate_clustering}
-                        simplifySet={this.simplifySet}
-                        drawerOpen={drawerOpen}
-                        toggleDrawer={this.toggleDrawer}
-                        addFilter={this.addFilter}
-                        propagateChange={this.propagateChange}
-                    />
-                )}
 
                 <AjaxMenu
                     anchorEl={this.runListButton.current}
                     api_call={`${API_URL}/api/get_run_list`}
                     open={showRunList}
-                    clicked={Object.keys(trajectories)}
+                    clicked={trajectoryNames}
                     handleClose={() => {
                         this.setState({
                             showRunList: !showRunList,
@@ -451,4 +226,7 @@ class App extends React.Component {
         );
     }
 }
-export default withSnackbar(App);
+
+export default connect((state) => ({
+    trajectoryNames: state.trajectories.names,
+}))(withSnackbar(App));

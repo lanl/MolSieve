@@ -12,13 +12,13 @@ function Scatterplot({
     xAttributeList,
     yAttributeList,
     additionalAttributes,
-    selected,
     brush,
     colorFunc = () => 'black',
     onElementClick = () => {},
     onElementMouseOver = () => {},
     onElementMouseOut = () => {},
     margin = { top: 5, bottom: 10, left: 0, right: 7.5 },
+    showLine = false,
     showYAxis = false,
     id = '',
 }) {
@@ -127,6 +127,22 @@ function Scatterplot({
                 svg.append('g').attr('transform', `translate(${margin.left},0)`).call(yAxis);
             }
 
+            if (showLine) {
+                const line = d3
+                    .line()
+                    .x((d) => scaleX(d.x))
+                    .y((d) => scaleY(d.y) + 2.5)
+                    .curve(d3.curveBumpX);
+
+                svg.append('path')
+                    .datum(data)
+                    .attr('d', (d) => {
+                        return line(d);
+                    })
+                    .attr('stroke', '#C6C6C6')
+                    .attr('fill', 'none');
+            }
+
             if (brush) {
                 const brushG = svg.append('g').classed('brush', true);
                 brushG.call(brush);
@@ -135,41 +151,6 @@ function Scatterplot({
         },
         [scaleX, scaleY, colorFunc]
     );
-
-    // this should be decoupled
-    useEffect(() => {
-        d3.select(ref.current).selectAll('.currentSelection').classed('currentSelection', false);
-
-        if (selected) {
-            for (const s of selected) {
-                const { set, active, highlightValue } = s;
-                const start = Math.min(...set);
-                const end = Math.max(...set);
-
-                if (active) {
-                    let states = d3
-                        .select(ref.current)
-                        .selectAll('.state')
-                        .filter((d) => d.x >= start && d.x <= end);
-
-                    if (highlightValue !== undefined) {
-                        states = states.filter((d) => d.y === highlightValue);
-                    }
-
-                    states.classed('currentSelection', true);
-                }
-            }
-        } else {
-            d3.select(ref.current).selectAll('.selection').remove();
-        }
-
-        return () => {
-            d3.select(ref.current).selectAll('.selection').remove();
-            d3.select(ref.current)
-                .selectAll('.currentSelection')
-                .classed('currentSelection', false);
-        };
-    }, [JSON.stringify(selected), scaleX, scaleY, colorFunc]);
 
     return (
         <svg

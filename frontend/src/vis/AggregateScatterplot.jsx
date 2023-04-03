@@ -1,4 +1,4 @@
-import { React, useState, useEffect, memo } from 'react';
+import { React, memo, useMemo, useEffect } from 'react';
 
 import * as d3 from 'd3';
 import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
@@ -10,12 +10,10 @@ function AggregateScatterplot({
     width,
     height,
     colorFunc = () => 'black',
-    margin = { top: 0, bottom: 3, left: 0, right: 0 },
+    margin = { top: 0, bottom: 4, left: 0, right: 0 },
     onElementClick = () => {},
 }) {
-    const [data, setData] = useState(null);
-
-    useEffect(() => {
+    const data = useMemo(() => {
         const chunkSize = yAttributeList.length / 10;
         const chunks = [];
 
@@ -27,16 +25,16 @@ function AggregateScatterplot({
             const threshold = 1 / uniqueStates.length;
 
             const majority = [];
-            for (const e of Object.keys(dist)) {
-                if (dist[e] > threshold) {
-                    majority.push(parseInt(e, 10));
+            for (const [e, v] of Object.entries(dist)) {
+                if (v > threshold) {
+                    majority.push(e);
                 }
             }
             chunks.push(majority.sort());
         }
 
-        setData(chunks);
-    }, [JSON.stringify(xAttributeList), JSON.stringify(yAttributeList)]);
+        return chunks;
+    }, [xAttributeList.length, yAttributeList.length]);
 
     const ref = useTrajectoryChartRender(
         (svg) => {
@@ -81,8 +79,17 @@ function AggregateScatterplot({
                     .classed('clickable', true);
             }
         },
-        [JSON.stringify(data), width, height, colorFunc]
+        [xAttributeList.length, yAttributeList.length, width, height]
     );
+
+    useEffect(() => {
+        if (ref.current) {
+            d3.select(ref.current)
+                .selectAll('rect')
+                .attr('fill', (d) => colorFunc(d));
+        }
+    }, [ref, colorFunc]);
+
     return (
         <svg
             ref={ref}

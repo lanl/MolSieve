@@ -11,5 +11,5 @@ export default function ImageViewer({ img }) {
         }
     }, [img]);
 
-    return <img ref={imgRef} alt="" style={{ width: 100, height: 200, objectFit: 'cover' }} />;
+    return <img ref={imgRef} alt="" style={{ width: 100, height: 100 }} />;
 }

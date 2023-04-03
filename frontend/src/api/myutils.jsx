@@ -5,6 +5,8 @@ import * as d3 from 'd3';
 
 import 'tippy.js/themes/translucent.css';
 
+export const getNumberLoaded = (arr) => arr.filter((d) => d.loaded === true).length;
+
 export function djb2(str) {
     let hash = 5381;
     for (let i = 0; i < str.length; i++) {
@@ -27,11 +29,8 @@ export function hashStringToColor(str) {
 }
 
 export function occurrenceDict(arr) {
-    return arr.reduce((a, c) => {
-        const d = { ...a };
-        d[c] = (d[c] || 0) + 1;
-        return d;
-    }, {});
+    /* eslint-disable-next-line */
+    return arr.reduce((a, c) => ((a[c] = (a[c] || 0) + 1), a), {});
 }
 
 export function distributionDict(arr) {
@@ -78,6 +77,25 @@ export function oneShotTooltip(node, content) {
     }
     tippy(node, settings);
 }
+
+export const destroyToolTip = (node) => {
+    /* eslint-disable-next-line */
+    const instance = node._tippy;
+    if (instance) {
+        instance.destroy();
+    }
+};
+
+export const showToolTip = (node, content) => {
+    /* eslint-disable-next-line */
+    let instance = node._tippy;
+    if (!instance) {
+        instance = tooltip(node, content);
+    } else {
+        instance.setContent(content);
+    }
+    instance.show();
+};
 
 export function onEntityMouseOver(node, d, text) {
     // https://atomiks.github.io/tippyjs/v6/addons/#singleton
@@ -174,15 +192,6 @@ export function range(start, end) {
     return [...Array(end - start + 1)].map((_, i) => i + start);
 }
 
-/* Returns an array of a chunk's children */
-export function getChildren(chunk) {
-    if (chunk.childSize) {
-        return chunk.children;
-    }
-    // use this to splice into sequence array?
-    return [chunk.timestep, chunk.last];
-}
-
 /**
  * Returns the difference between two sets as a set; i.e
  * only the items that are present in A alone without B.
@@ -217,7 +226,8 @@ export function withinExtent(d, extent) {
     return (
         (d.timestep >= start && d.last <= end) ||
         (d.last >= start && d.last <= end) ||
-        (d.timestep >= start && d.timestep <= end)
+        (d.timestep >= start && d.timestep <= end) ||
+        (d.timestep <= start && d.last >= end) // the extent is inside of the chunk
     );
 }
 
@@ -404,7 +414,7 @@ export function stateRatioChunkSimilarity(a, b) {
 }
 
 export function percentToString(num) {
-    return `${num.toFixed(3) * 100}%`;
+    return `${Math.trunc(num.toFixed(3) * 100)}%`;
 }
 
 /**

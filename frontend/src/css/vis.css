@@ -14,16 +14,17 @@
   opacity: 1.0;
 }
 
-.selectedExtent {
-    border: 1px solid black;
-}
-
 .clickable {
     cursor: pointer;
 }
 
 .clickable:hover {
     stroke: black;
+}
+
+.icon.clickable:hover {
+    fill: black;
+    stroke: none;
 }
 
 .highlightedStates {
@@ -61,10 +62,14 @@
     stroke: black;
     stroke-dasharray: 2;
     stroke-dashoffset: 25%;
-    color: white;
 }
 
 .important:hover {
+    stroke-dasharray: none;
+    stroke-dashoffset: none;
+}
+
+.important.clicked {
     stroke-dasharray: none;
     stroke-dashoffset: none;
 }
@@ -92,13 +97,21 @@
   opacity: 1;
 }
 
+rect.selection {
+    fill: none;
+    stroke: gray;
+}
+
 .arrowed {    
     marker-end: url(#arrow);
 }
 
 .clicked {
-    opacity: 1.0;
     stroke: black;
+}
+
+.unimportant.clicked {
+    opacity: 0.6;
 }
 
 img.clicked {

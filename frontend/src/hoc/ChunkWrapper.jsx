@@ -1,4 +1,5 @@
-import { React, useState, useEffect, useRef, memo } from 'react';
+import { React, useState, useEffect, memo, useMemo, useCallback, startTransition } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
 
 import * as d3 from 'd3';
 import { create, all } from 'mathjs';
@@ -18,231 +19,182 @@ import ControlChart from '../vis/ControlChart';
 import AggregateScatterplot from '../vis/AggregateScatterplot';
 
 import { exponentialMovingAverage, betaPDF } from '../api/math/stats';
-import { abbreviate, buildDictFromArray } from '../api/myutils';
+import { abbreviate, showToolTip, destroyToolTip } from '../api/myutils';
 
-import { LOADING_CHUNK_SIZE } from '../api/constants';
-
-import GlobalStates from '../api/globalStates';
 import LoadingBox from '../components/LoadingBox';
 
-import loadChart from '../api/websocketmethods';
-
 import EmbeddedChart from '../vis/EmbeddedChart';
+import PropertyWrapper from './PropertyWrapper';
+
+import { makeGetStates, getStateColoringMethod, updateGlobalScale } from '../api/states';
 
 function ChunkWrapper({
     chunk,
-    properties,
     height,
     addSelection,
     width,
-    trajectory,
     selections,
     selectObject,
     chunkSelectionMode,
     selectedObjects,
-    globalScale,
-    updateGlobalScale,
     ranks,
-    showStateClustering,
     doubleClickAction,
     propertyCombos,
     extents,
     scatterplotHeight,
     setStateHovered,
+    trajectory,
     setZoom,
+    onMouseEnter,
+    onMouseLeave,
 }) {
-    // set as useReducer
     const [isInitialized, setIsInitialized] = useState(false);
     const [progress, setProgress] = useState(0.0);
-    const [isInterrupted, setIsInterrupted] = useState(false);
+    const [startExtent, endExtent] = extents;
 
-    const [colorFunc, setColorFunc] = useState(() => (d) => {
-        const state = GlobalStates.get(d);
-        return state.individualColor;
-    });
+    const [startSlice, endSlice, valCount] = useMemo(() => {
+        const { timestep, last } = chunk;
+        const sliceStart = startExtent <= timestep ? 0 : startExtent - timestep;
+        const sliceEnd = endExtent >= last ? last : endExtent;
 
-    const [mva, setMva] = useState({});
-    const [stats, setStats] = useState(
-        buildDictFromArray(properties, { std: undefined, mean: undefined })
+        return [sliceStart, sliceEnd, sliceEnd - timestep];
+    }, [startExtent, endExtent, chunk.timestep, chunk.last]);
+
+    // With useSelector(), returning a new object every time will always force a re-render by default.
+    const slicedChunk = useMemo(() => chunk.slice(startSlice, endSlice), [startSlice, endSlice]);
+
+    const dispatch = useDispatch();
+
+    const getStates = makeGetStates();
+    const states = useSelector((state) => getStates(state, chunk.sequence).filter((d) => d.loaded));
+
+    const colorState = useSelector((state) => getStateColoringMethod(state));
+
+    const chartSel = useMemo(
+        () =>
+            Object.keys(selections)
+                .filter((selectionID) => {
+                    const selection = selections[selectionID];
+                    const timesteps = selection.extent.map((d) => d.timestep);
+                    return (
+                        selection.trajectoryName === trajectory.name &&
+                        slicedChunk.containsSequence(timesteps)
+                    );
+                })
+                .map((selectionID) => {
+                    const selection = selections[selectionID];
+                    const { start, end } = selection.originalExtent;
+
+                    // this needs to be done so that the selection can rescale
+                    const x = d3
+                        .scaleLinear()
+                        .domain(d3.extent(slicedChunk.timesteps))
+                        .range([0, width - 7.5]);
+
+                    return {
+                        set: selection.extent.map((d) => d.timestep),
+                        brushValues: { start: x(start), end: x(end) },
+                        id: selectionID,
+                    };
+                }),
+        [
+            Object.keys(selections).length,
+            width,
+            slicedChunk.timesteps.length,
+            startExtent,
+            endExtent,
+        ]
     );
 
     const [mvaPeriod, setMvaPeriod] = useState(Math.min(chunk.sequence.length / 4, 100));
     const [tDict, setTDict] = useState({});
-    const ws = useRef(null);
 
-    const updateGS = (states) => {
-        const propDict = {};
-        for (const prop of properties) {
-            const vals = states.map((d) => d[prop]);
-            propDict[prop] = { min: d3.min(vals), max: d3.max(vals) };
-        }
-        updateGlobalScale({ type: 'update', payload: propDict });
-    };
+    const calculateControlChart = useCallback(
+        (vals, property) => {
+            const data = vals.map((d) => d[property]);
+            const std = d3.deviation(data);
+            const mva = exponentialMovingAverage(data, mvaPeriod);
+            const mean = d3.mean(data);
 
-    const render = () => {
-        const mvaDict = {};
-        // const rDict = {};
-        const statDict = {};
-        const states = chunk.sequence.map((id) => GlobalStates.get(id));
-
-        for (const prop of properties) {
-            const propList = states.map((d) => d[prop]);
-
-            const std = d3.deviation(propList);
-            const m = exponentialMovingAverage(propList, mvaPeriod);
-            const mean = d3.mean(propList);
-            // const diffXtent = d3.extent(differentiate(m));
-
-            mvaDict[prop] = m;
-            // rDict[prop] = diffXtent.reduce((acc, cv) => acc + Math.abs(cv), 0);
-            statDict[prop] = { std, mean };
-        }
-        setMva(mvaDict);
-        // updateRanks(rDict, 1);
-        setStats(statDict);
-    };
+            return { mva, std, mean };
+        },
+        [mvaPeriod]
+    );
 
     useEffect(() => {
-        render();
-    }, [mvaPeriod]);
-
-    useEffect(() => {
-        if (ws.current) {
-            ws.current.close();
-            ws.current = null;
-        }
-
-        const { hasProperties, missingProperties } = GlobalStates.subsetHasProperties(
-            properties,
-            chunk.states
-        );
-
-        if (!hasProperties) {
-            loadChart(
-                missingProperties,
-                ws,
-                chunk.trajectory.name,
-                properties,
-                setProgress,
-                setIsInterrupted,
-                updateGS,
-                render,
-                setIsInitialized,
-                LOADING_CHUNK_SIZE
-            );
-        } else {
-            setProgress(1.0);
-            setIsInitialized(true);
-            render();
-        }
-
-        return () => {
-            if (ws.current) {
-                ws.current.close();
-                ws.current = null;
-            }
-        };
-    }, [JSON.stringify(chunk)]);
+        setProgress(states.length / chunk.sequence.length);
+        setIsInitialized(true);
+    }, [states.length]);
 
     useEffect(() => {
         if (propertyCombos) {
-            const states = chunk.sequence.map((id) => GlobalStates.get(id));
+            startTransition(() => {
+                const math = create(all, {});
 
-            const math = create(all, {});
-
-            const combos = {};
-            for (const combo of propertyCombos) {
-                const t2 = [];
-                for (let i = 0; i < states.length - 1; i++) {
-                    const md = [];
-                    const ma = [];
+                const combos = {};
+                for (const combo of propertyCombos) {
+                    const t2 = [];
+                    const means = {};
                     for (const prop of combo.properties) {
-                        const { mean } = stats[prop];
-                        md.push(states[i][prop] - mean);
-                        ma.push(states[i + 1][prop] - states[i][prop]);
+                        means[prop] = d3.mean(states, (d) => d[prop]);
                     }
-                    // calculate S
-                    const vv = math.multiply(math.transpose(ma), ma);
-                    const s = math.divide(vv, 2 * (states.length - 1));
-                    const t = math.multiply(math.transpose(md), math.inv(s), md);
-                    if (t !== Infinity) {
-                        t2.push(t);
-                    } else {
-                        t2.push(0);
+                    for (let i = 0; i < states.length - 1; i++) {
+                        const md = [];
+                        const ma = [];
+
+                        for (const prop of combo.properties) {
+                            md.push(states[i][prop] - means[prop]);
+                            ma.push(states[i + 1][prop] - states[i][prop]);
+                        }
+                        // calculate S
+                        const vv = math.multiply(math.transpose(ma), ma);
+                        const s = math.divide(vv, 2 * (states.length - 1));
+                        const t = math.multiply(math.transpose(md), math.inv(s), md);
+                        if (t !== Infinity && !Number.isNaN(t)) {
+                            t2.push(t);
+                        } else {
+                            t2.push(0);
+                        }
                     }
+
+                    // calculate UCL
+                    const m = states.length;
+                    const p = combo.properties.length;
+                    const q = (2 * (m - 1) ** 2) / (3 * m - 4);
+
+                    // determine best value for alpha
+                    const ucl = ((m - 1) ** 2 / m) * betaPDF(0.005, p / 2, (q - p - 1) / 2);
+
+                    dispatch(
+                        updateGlobalScale({
+                            property: combo.id,
+                            values: t2,
+                        })
+                    );
+                    combos[combo.id] = { ucl, values: t2, property: combo.id };
                 }
-
-                // calculate UCL
-                const m = states.length;
-                const p = combo.properties.length;
-                const q = (2 * (m - 1) ** 2) / (3 * m - 4);
-
-                // determine best value for alpha
-                const ucl = ((m - 1) ** 2 / m) * betaPDF(0.005, p / 2, (q - p - 1) / 2);
-
-                combos[combo.id] = { ucl, values: t2 };
-            }
-            setTDict(combos);
-        }
-    }, [JSON.stringify(propertyCombos), JSON.stringify(chunk), JSON.stringify(stats)]);
-
-    useEffect(() => {
-        if (showStateClustering) {
-            setColorFunc(() => (d) => {
-                const state = GlobalStates.get(d);
-                return state.stateClusteringColor;
-            });
-        } else {
-            setColorFunc(() => (d) => {
-                const state = GlobalStates.get(d);
-                return state.individualColor;
+                setTDict(combos);
             });
         }
-    }, [showStateClustering]);
+    }, [propertyCombos.length]);
 
-    if (isInterrupted) {
-        return <div>Loading interrupted</div>;
-    }
-
-    const [slice, setSlice] = useState([0, chunk.last]);
-    const [timesteps, setTimesteps] = useState(chunk.timesteps);
-
-    useEffect(() => {
-        const [start, end] = extents;
-        const { timestep, last } = chunk;
-        const sliceStart = start <= timestep ? 0 : start - timestep;
-        const sliceEnd = end >= last ? last : end - last;
-
-        setSlice([sliceStart, sliceEnd]);
-    }, [JSON.stringify(extents), JSON.stringify(chunk)]);
-
-    useEffect(() => {
-        const [sliceStart, sliceEnd] = slice;
-        setTimesteps(chunk.timesteps.filter((d) => d >= sliceStart && d <= sliceEnd));
-    }, [JSON.stringify(slice), JSON.stringify(chunk)]);
-
-    const [sliceStart, sliceEnd] = slice;
     const controlChartHeight =
         (height - scatterplotHeight) / (ranks.length + Object.keys(tDict).length);
 
     const finishBrush = ({ selection }) => {
         // extents determines the zoom level
-        const [chunkSliceStart, chunkSliceEnd] = extents;
         const x = d3
             .scaleLinear()
-            .domain(
-                d3.extent(chunk.timesteps.filter((d) => d >= chunkSliceStart && d <= chunkSliceEnd))
-            )
+            .domain(d3.extent(slicedChunk.timesteps))
             .range([0, width - 7.5]); // 7.5 to match margin on scatterplot
 
         const startTimestep = x.invert(selection[0]);
         const endTimestep = x.invert(selection[1]);
 
-        const states = chunk.sequence
-            .map((sID) => GlobalStates.get(sID))
+        const selectedStates = chunk.sequence
             .map((s, i) => ({
                 timestep: chunk.timestep + i,
-                id: s.id,
+                id: s,
             }))
             .filter(
                 (d) =>
@@ -250,126 +202,180 @@ function ChunkWrapper({
             );
 
         addSelection(
-            states,
+            selectedStates,
             trajectory.name,
             { start: startTimestep, end: endTimestep },
             { start: selection[0], end: selection[1] }
         );
     };
 
-    return isInitialized ? (
+    const brush = useCallback(
+        d3.brushX().on('end', (e) => finishBrush(e)),
+        [startExtent, endExtent, width]
+    );
+
+    const chartControls = useMemo(
+        () => (
+            <Box width={width} display="flex" alignItems="center" gap={1}>
+                <Tooltip title="Zoom into region">
+                    <IconButton onClick={() => setZoom([chunk.timestep, chunk.last])}>
+                        <ZoomInMapIcon />
+                    </IconButton>
+                </Tooltip>
+                <Slider
+                    min={2}
+                    defaultValue={Math.min(Math.trunc(chunk.sequence.length / 10), 100)}
+                    max={Math.trunc(chunk.sequence.length / 4)}
+                    step={1}
+                    size="small"
+                    onChangeCommitted={(_, v) => startTransition(() => setMvaPeriod(v))}
+                />
+                <Tooltip title="Moving average period" arrow>
+                    <Typography variant="caption">{mvaPeriod}</Typography>
+                </Tooltip>
+            </Box>
+        ),
+        [mvaPeriod, width]
+    );
+
+    const selectChunk = useCallback(() => {
+        if (chunkSelectionMode === 1 || chunkSelectionMode === 4) {
+            selectObject(chunk);
+        }
+    }, [chunkSelectionMode]);
+
+    const controlChartTooltip = useCallback(
+        (property) => (node, coords) => {
+            const [x, y] = coords;
+            const content = `<b>Timestep:</b> ${chunk.timestep + x} <br/><b>${abbreviate(
+                property
+            )}:</b> ${y.toFixed(2)}`;
+            showToolTip(node, content);
+        },
+        [chunk.timestep]
+    );
+
+    const controlChartExtents = [startSlice, valCount];
+
+    return (
         <EmbeddedChart
             height={height}
             width={width}
             color={chunk.color}
-            brush={d3.brushX().on('end', (e) => finishBrush(e))}
-            controls={
-                <Box width={width} display="flex" alignItems="center" gap={1}>
-                    <Tooltip title="Zoom into region">
-                        <IconButton
-                            onClick={() => setZoom(trajectory.name, [chunk.timestep, chunk.last])}
-                        >
-                            <ZoomInMapIcon />
-                        </IconButton>
-                    </Tooltip>
-                    <Slider
-                        min={2}
-                        defaultValue={Math.min(Math.trunc(chunk.sequence.length / 4), 100)}
-                        max={Math.trunc(chunk.sequence.length / 4)}
-                        step={1}
-                        size="small"
-                        onChangeCommitted={(_, v) => setMvaPeriod(v)}
-                    />
-                    <Tooltip title="Moving average period" arrow>
-                        <Typography variant="caption">{mvaPeriod}</Typography>
-                    </Tooltip>
-                </Box>
-            }
-            onChartClick={() => selectObject(chunk)}
+            brush={brush}
+            controls={chartControls}
+            onChartClick={selectChunk}
             id={`ec_${chunk.id}`}
             selected={
                 chunkSelectionMode !== 0 &&
                 chunkSelectionMode !== 3 &&
                 selectedObjects.map((d) => d.id).includes(chunk.id)
             }
-            selections={selections}
+            selections={chartSel}
         >
-            {(ww) => (
-                <Box
-                    onClick={(e) => {
-                        if (e.detail === 2) {
-                            doubleClickAction();
-                        }
-                    }}
-                >
-                    {progress < 1.0 ? (
-                        <LinearProgress
-                            variant="determinate"
-                            value={progress * 100}
-                            className="bar"
-                        />
-                    ) : null}
-                    <Stack direction="column">
-                        {ranks.map((property) => {
-                            const { min, max } = globalScale[property];
-                            const { std, mean } = stats[property];
-                            return (
-                                <ControlChart
-                                    key={`${chunk.id}-${property}`}
-                                    globalScaleMin={min}
-                                    globalScaleMax={max}
-                                    ucl={mean + std}
-                                    lcl={mean - std}
-                                    height={controlChartHeight}
-                                    width={ww}
-                                    yAttributeList={mva[property].slice(sliceStart, sliceEnd)}
-                                    xAttributeList={timesteps}
-                                    lineColor={trajectory.colorByCluster(chunk)}
-                                    title={`${abbreviate(property)}`}
-                                />
-                            );
-                        })}
-                        {Object.keys(tDict).map((id) => {
-                            const t = tDict[id];
-                            const { values, ucl } = t;
-                            return (
-                                <ControlChart
-                                    key={`${chunk.id}-${id}`}
-                                    globalScaleMin={d3.min(values)}
-                                    globalScaleMax={d3.max(values)}
-                                    ucl={ucl}
-                                    height={controlChartHeight}
-                                    width={width}
-                                    yAttributeList={values.slice(sliceStart, sliceEnd)}
-                                    xAttributeList={timesteps}
-                                    lineColor={trajectory.colorByCluster(chunk)}
-                                />
-                            );
-                        })}
-                    </Stack>
-                    <AggregateScatterplot
-                        key={`${chunk.id}-aggregate-scatterplot`}
-                        xAttributeList={timesteps}
-                        yAttributeList={chunk.sequence.slice(sliceStart, sliceEnd)}
-                        width={width}
-                        height={scatterplotHeight}
-                        colorFunc={colorFunc}
-                        onElementClick={(node, d) => {
-                            d3.selectAll('.clicked').classed('clicked', false);
-                            setStateHovered(d);
-                            d3.select(node).classed('clicked', true);
+            {(ww) =>
+                isInitialized ? (
+                    <Box
+                        onClick={(e) => {
+                            if (e.detail === 2) {
+                                doubleClickAction(chunk);
+                            }
                         }}
-                    />
-                </Box>
-            )}
+                        onMouseEnter={() => {
+                            onMouseEnter(chunk);
+                        }}
+                        onMouseLeave={() => {
+                            onMouseLeave(chunk);
+                        }}
+                    >
+                        {progress < 1.0 ? (
+                            <LinearProgress
+                                variant="determinate"
+                                value={progress * 100}
+                                className="bar"
+                            />
+                        ) : null}
+                        <Stack direction="column">
+                            {ranks.map((property) => {
+                                return (
+                                    <PropertyWrapper
+                                        key={`${chunk.id}-${property}`}
+                                        property={property}
+                                        calculateValues={calculateControlChart}
+                                        data={states}
+                                    >
+                                        {(min, max, values) => (
+                                            <ControlChart
+                                                globalScaleMin={min}
+                                                globalScaleMax={max}
+                                                ucl={values.mean + values.std}
+                                                lcl={values.mean - values.std}
+                                                height={controlChartHeight}
+                                                width={ww}
+                                                finalLength={chunk.sequence.length}
+                                                yAttributeList={values.mva}
+                                                extents={controlChartExtents}
+                                                margin={{ top: 3, bottom: 2, left: 0, right: 0 }}
+                                                lineColor={chunk.color}
+                                                title={`${abbreviate(property)}`}
+                                                onMouseOver={controlChartTooltip(property)}
+                                                // still causes re-render - property wrapper can inject its values
+                                                onMouseOut={destroyToolTip}
+                                            />
+                                        )}
+                                    </PropertyWrapper>
+                                );
+                            })}
+
+                            {Object.keys(tDict).map((id) => {
+                                const t = tDict[id];
+                                const { values, ucl, property } = t;
+
+                                return (
+                                    <PropertyWrapper
+                                        key={`${chunk.id}-${property}`}
+                                        property={property}
+                                    >
+                                        {(min, max) => (
+                                            <ControlChart
+                                                key={`${chunk.id}-${id}`}
+                                                globalScaleMin={min}
+                                                globalScaleMax={max}
+                                                ucl={ucl}
+                                                height={controlChartHeight}
+                                                width={ww}
+                                                extents={controlChartExtents}
+                                                margin={{ top: 3, bottom: 2, left: 2, right: 2 }}
+                                                yAttributeList={values}
+                                                xAttributeList={chunk.timesteps}
+                                                lineColor={chunk.color}
+                                            />
+                                        )}
+                                    </PropertyWrapper>
+                                );
+                            })}
+                        </Stack>
+                        <AggregateScatterplot
+                            key={`${chunk.id}-aggregate-scatterplot`}
+                            xAttributeList={slicedChunk.timesteps}
+                            yAttributeList={slicedChunk.sequence}
+                            width={ww}
+                            height={scatterplotHeight}
+                            colorFunc={colorState}
+                            onElementClick={(node, d) => {
+                                d3.selectAll('.clicked').classed('clicked', false);
+                                setStateHovered(d);
+                                d3.select(node).classed('clicked', true);
+                            }}
+                            margin={{ top: 0, bottom: 4, left: 0, right: 0 }}
+                        />
+                    </Box>
+                ) : (
+                    <LoadingBox />
+                )
+            }
         </EmbeddedChart>
-    ) : (
-        <LoadingBox />
     );
 }
-
-ChunkWrapper.defaultProps = {
-    showTop: 4,
-};
 
 export default memo(ChunkWrapper);

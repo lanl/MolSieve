@@ -272,21 +272,19 @@ export function apiGetVisScripts() {
     });
 }
 
-export function apiSubsetConnectivityDifference(stateIDs, controller) {
+export function apiSubsetConnectivityDifference(stateIDs) {
     return new Promise((resolve, reject) => {
         axios
-            .post(`${API_URL}/api/subset_connectivity_difference`, stateIDs, {
-                signal: controller.signal,
-            })
+            .post(`${API_URL}/api/subset_connectivity_difference`, stateIDs)
             .then((response) => resolve(response.data))
             .catch((e) => reject(e));
     });
 }
 
-export function apiSelectionDistance(stateIDPairs) {
+export function apiSelectionDistance(stateSet1, stateSet2) {
     return new Promise((resolve, reject) => {
         axios
-            .post(`${API_URL}/api/selection_distance`, stateIDPairs)
+            .post(`${API_URL}/api/selection_distance`, { stateSet1, stateSet2 })
             .then((response) => resolve(response.data))
             .catch((e) => reject(e));
     });

@@ -1,5 +1,5 @@
 import React from 'react';
-import ReactDOM from 'react-dom';
+import { createRoot } from 'react-dom/client';
 import './css/index.css';
 import '@fontsource/roboto/300.css';
 import '@fontsource/roboto/400.css';
@@ -9,6 +9,9 @@ import { SnackbarProvider } from 'notistack';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 
+import { Provider } from 'react-redux';
+import { enableMapSet } from 'immer';
+import store from './store';
 import App from './App';
 
 const theme = createTheme({
@@ -23,23 +26,26 @@ const theme = createTheme({
     },
 });
 
+enableMapSet();
+
 /* eslint-disable react/jsx-filename-extension */
-ReactDOM.render(
-    <React.StrictMode>
-        <ThemeProvider theme={theme}>
-            <SnackbarProvider
-                anchorOrigin={{
-                    vertical: 'bottom',
-                    horizontal: 'left',
-                }}
-            >
+const container = document.getElementById('root');
+const root = createRoot(container);
+root.render(
+    <ThemeProvider theme={theme}>
+        <SnackbarProvider
+            anchorOrigin={{
+                vertical: 'bottom',
+                horizontal: 'left',
+            }}
+        >
+            <Provider store={store}>
                 <CssBaseline>
                     <App />
                 </CssBaseline>
-            </SnackbarProvider>
-        </ThemeProvider>
-    </React.StrictMode>,
-    document.getElementById('root')
+            </Provider>
+        </SnackbarProvider>
+    </ThemeProvider>
 );
 
 // If you want to start measuring performance in your app, pass a function
