@@ -69,7 +69,7 @@ async def update_task(task_id: str, data: dict):
         else:
             await cm.send(task_id, data)
 
-
+# seperate worker file
 @router.websocket("/ws/{task_id}")
 async def ws(task_id: str, websocket: WebSocket):
     await cm.connect(task_id, websocket)
@@ -110,7 +110,7 @@ def generate_ovito_image(atoms, image_modifier):
     image_string = image_string.removeprefix("b'")
     return image_string
 
-
+# place in worker route
 @router.get("/calculate_neb_on_path", status_code=201)
 async def calculate_neb_on_path(
     run: str,
@@ -204,7 +204,15 @@ def cluster_states(props: List[str] = Body([]), stateIds: List[int] = Body([])):
 
     return dict(zip(ids, labels))
 
+
 async def load_properties_for_subset(stateList):
+    """
+    Given a list of states, checks the properties currently loaded in the system and 
+    calculates the properties for each state if they are missing.
+
+    :param stateList List[int]: A list of state IDs to run the calculations for.    
+    :raises ValueError: Complain if specified property does not exist. 
+    """
     driver = GraphDriver()
 
     # TODO: put in seperate function
@@ -224,12 +232,7 @@ async def load_properties_for_subset(stateList):
         for key, values in missingProperties.items():
             script = property_to_script.get(key)
             if not script:
-                # check for script with same name - this can be any number of properties
-                # each script should return a dictionary of id : attribute(s)
-                # then we put it in the database
-                # each script should have a function that returns the attributes it produces, so that we can search in the database beforehand
-                raise HTTPException(status_code=404, detail="Unknown property")
-
+                raise ValueError("Unknown property")
             if script not in runScripts:
                 runScripts[script] = values
             else:
@@ -264,8 +267,15 @@ async def load_properties_for_subset(stateList):
         return stateList
 
 
-# needs to be smarter than this to avoid repetition
 async def run_script(script: str, state_atom_dict):
+    """
+    Runs the provided script's run() function on the state_atom_dict provided.
+
+    :param script str: The script's name.
+    :param state_atom_dict Dict[int, ase.Atoms]: A dictionary of IDs to atoms to run the script on.
+
+    :returns: The result of the scripts being run on the dictionary.
+    """
     code = get_script_code(script)
     exec(code, globals())
     new_attributes = run(state_atom_dict)
@@ -278,6 +288,7 @@ async def run_script(script: str, state_atom_dict):
     return new_attributes
 
 
+# this is in neomd as well, need to pick one version
 def get_potential(run: str) -> str:
     """
     Gets a potential file associated with the run, and writes it to the current working directory.
@@ -299,7 +310,7 @@ def get_potential(run: str) -> str:
         return filename
 
 
-def load_sequence(run: str):
+def load_sequence(run: str) -> Trajectory:
     """
     Loads the sequence for the trajectory and creates a Trajectory object to use.
     Uses a cached version if available.
@@ -315,21 +326,31 @@ def load_sequence(run: str):
     driver = GraphDriver()
     trajectory = Trajectory.load_sequence(driver, run)
 
-    save_pickle(run, "sequence", {
-        'sequence': trajectory.sequence,
-        'unique_states': trajectory.unique_states
-    })
+    save_pickle(
+        run,
+        "sequence",
+        {"sequence": trajectory.sequence, "unique_states": trajectory.unique_states},
+    )
     return trajectory
 
 
 @router.get("/script_properties")
 def script_properties():
+    """
+    Gets the properties of each script within the scripts folder.
+
+    :returns List[str]: A list of properties within the scripts.
+    """
     properties_to_script = get_script_properties_map()
     return list(properties_to_script.keys())
 
 
 @router.get("/vis_scripts")
 def vis_scripts():
+    """
+    Gets the names of the visualization scripts placed in the vis_scripts folder.
+    :returns List[str]: A list of visualization script names.
+    """
     scripts = []
     with os.scandir("vis_scripts") as entries:
         for entry in entries:
@@ -340,7 +361,11 @@ def vis_scripts():
 
 
 def get_script_properties_map():
-    # read scripts folder, enumerate every file and return as array
+    """
+    Read all of the scripts within the scripts folder, then get the properties that they will return.
+    :returns Dict[str, str]: A dictionary mapping each property to its script.
+    """
+
     properties_to_script = {}
     with os.scandir("scripts") as entries:
         for entry in entries:
@@ -357,6 +382,15 @@ def get_script_properties_map():
 
 
 def get_script_code(script_name, folder="scripts"):
+    """
+    Get the actual code for the script within the folder specified.
+
+    :param script_name str: Name of script to retrieve.
+    :param folder str: Name of folder to check.
+    :raises FileNotFoundError: Complain if file does not exist.
+
+    :returns str: A string containing the script's code.
+    """
     with os.scandir(folder) as entries:
         for entry in entries:
             if entry.name == script_name:
@@ -365,9 +399,18 @@ def get_script_code(script_name, folder="scripts"):
         raise FileNotFoundError
 
 
-# could be sequence/{run}
+# maybe better to just hit database rather than use cache and load entire run?
 @router.get("/get_sequence")
 def get_sequence(run: str, start: Optional[int], end: Optional[int] = None):
+    """
+    Retreives the sequence for the specified trajectory, optionally returning a range of the sequence.
+
+    :param run: The name of the trajectory.
+    :param start: The beginning of the range to retrieve.
+    :param end: The end of the range.
+
+    :returns List[int]: A list of state IDs within the specified range.
+    """
     mem_client = PooledClient("localhost", max_pool_size=4, serde=serde.pickle_serde)
     trajectory = mem_client.get(run)
 
@@ -382,6 +425,11 @@ def get_sequence(run: str, start: Optional[int], end: Optional[int] = None):
 
 @router.get("/get_run_list")
 def get_run_list():
+    """
+    Returns the trajectories available in the database.
+
+    :returns List[str]: A list of trajectories available in the database.
+    """
     driver = GraphDriver()
 
     j = []
@@ -460,7 +508,7 @@ def load_trajectory(run: str, mMin: int, mMax: int, chunkingThreshold: float):
         "current_clustering": trajectory.current_clustering,
     }
 
-
+# organize with other background worker jobs
 @router.post("/subset_connectivity_difference")
 def subset_connectivity_difference(stateIDs: List[int] = Body([])):
     task_id = uuid()
@@ -478,6 +526,7 @@ def subset_connectivity_difference(stateIDs: List[int] = Body([])):
     return task_id
 
 
+# make this a websocket?
 @router.post("/selection_distance")
 def selection_distance(
     stateSet1: List[int] = Body([]), stateSet2: List[int] = Body([])
