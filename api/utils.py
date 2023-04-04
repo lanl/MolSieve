@@ -3,7 +3,7 @@ import json
 import neo4j
 import os
 
-from .config import Config
+from .config import config
 
 def metadata_to_parameters(raw_metadata):
     """
@@ -44,26 +44,28 @@ def get_atom_type(parameters):
     return parameters["pair_coeff"][-1].split(" ")[-1]
 
 
-def saveTestPickle(run, t, j):
+def save_pickle(run, t, j):
     """
     Saves the dictionary supplied into a pickle file for later use.
 
     :param run: name of the run you're saving
-    :param t: type of sequence you're saving
-    :param j: dictionary to save
+    :param t: name of the data you're saving
+    :param j: value to save
     """
 
-    createDir("api/testing")
+    if config.save_cache:
+        createDir("api/cache")
 
-    with open("api/testing/{run}_{t}.pickle".format(run=run, t=t), "wb") as f:
-        pickle.dump(j, f)
+        with open(f"api/cache/{run}_{t}.pickle", "wb") as f:
+            pickle.dump(j, f)
 
 
 def createDir(path):
     if not os.path.exists(path):
         os.mkdir(path)
 
-def loadTestPickle(run, t):
+
+def load_pickle(run, t):
     """
     Loads the data saved from the specified pickle file.
 
@@ -72,12 +74,14 @@ def loadTestPickle(run, t):
     :returns: data that was pickled
     """
 
-    try:
-        with open("api/testing/{run}_{t}.pickle".format(run=run, t=t), "rb") as f:
-            return pickle.load(f)
-    except Exception as e:
-        print("Loading from database instead...")
-        return None
+    if config.load_cache:
+        try:
+            with open(f"api/testing/{run}_{t}.pickle", "rb") as f:
+                return pickle.load(f)
+        except Exception:
+            print(f"Calculating {run} {t} instead of using cached version.")
+            return None
+
 
 def getStateIDCounter():
     j = {}

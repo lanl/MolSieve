@@ -1,7 +1,6 @@
 from neomd import calculator
-from .graphdriver import GraphDriver
 
-from .utils import saveTestPickle, loadTestPickle
+from .utils import save_pickle, load_pickle
 import pygpcca as gp
 import neo4j
 from scipy import sparse
@@ -13,6 +12,7 @@ import random
 from fastapi import HTTPException
 
 SIZE_THRESHOLD = 250
+
 
 class Trajectory:
     metadata = None
@@ -33,17 +33,14 @@ class Trajectory:
         self.unique_states = unique_states
 
     def single_pcca(self, numClusters: int, driver):
-        driver = GraphDriver()
-
         m, idx_to_id = calculator.calculate_transition_matrix(
-            driver, run=self.name, discrete=True
-        )
+            driver, run=self.name)
         gpcca = gp.GPCCA(m, z="LM", method="krylov")
 
         self._single_pcca(gpcca, idx_to_id, numClusters)
 
     def _single_pcca(self, gpcca, idx_to_id, num_clusters: int):
-        r = loadTestPickle(self.name, f"{self.name}_pcca_cluster_{num_clusters}")
+        r = load_pickle(self.name, f"pcca_cluster_{num_clusters}")
         if r is not None:
             self.clusterings[num_clusters] = r["clusters"]
             self.fuzzy_memberships[num_clusters] = r["fuzzy_memberships"]
@@ -54,9 +51,9 @@ class Trajectory:
         except Exception as exception:
             raise exception
         self.save_membership_info(gpcca, idx_to_id, num_clusters)
-        saveTestPickle(
+        save_pickle(
             self.name,
-            f"{self.name}_pcca_cluster_{num_clusters}",
+            f"pcca_cluster_{num_clusters}",
             {
                 "clusters": self.clusterings[num_clusters],
                 "fuzzy_memberships": self.fuzzy_memberships[num_clusters],
@@ -65,7 +62,7 @@ class Trajectory:
 
     def pcca(self, m_min: int, m_max: int, driver):
         # attempt to re-hydrate from JSON file before running PCCA
-        r = loadTestPickle(self.name, f"optimal_pcca_{m_min}_{m_max}")
+        r = load_pickle(self.name, f"optimal_pcca_{m_min}_{m_max}")
         if r is not None:
             self.clusterings = r["clusterings"]
             self.fuzzy_memberships = r["fuzzy_memberships"]
@@ -75,7 +72,7 @@ class Trajectory:
             return
         t0 = time.time()
         m, idx_to_id = calculator.calculate_transition_matrix(
-            driver, run=self.name, discrete=True
+            driver, run=self.name
         )
         t1 = time.time()
         logging.info(f"Loading transition matrix took {t1-t0} seconds total.")
@@ -102,7 +99,7 @@ class Trajectory:
         except Exception as e:
             raise e
 
-        saveTestPickle(
+        save_pickle(
             self.name,
             f"optimal_pcca_{m_min}_{m_max}",
             {
@@ -246,7 +243,7 @@ class Trajectory:
         return importance
 
     def calculate_id_to_timestep(self, driver):
-        r = loadTestPickle(self.name, "idToTimestep")
+        r = load_pickle(self.name, "idToTimestep")
         if r is not None:
             self.id_to_timestep = r
             return
@@ -264,5 +261,5 @@ class Trajectory:
             except neo4j.exceptions.ServiceUnavailable as exception:
                 raise exception
 
-        saveTestPickle(self.name, "idToTimestep", j)
+        save_pickle(self.name, "idToTimestep", j)
         self.id_to_timestep = j

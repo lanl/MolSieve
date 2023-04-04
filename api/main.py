@@ -31,7 +31,7 @@ from .background_worker.celery import TASK_COMPLETE, celery
 from .connectionmanager import ConnectionManager
 from .graphdriver import GraphDriver
 from .trajectory import Trajectory
-from .utils import getMetadata, loadTestPickle, saveTestPickle
+from .utils import getMetadata, load_pickle, save_pickle
 
 os.environ["OVITO_THREAD_COUNT"] = "1"
 os.environ["DISPLAY"] = ""
@@ -392,59 +392,27 @@ def get_potential(run: str) -> str:
         return filename
 
 
-def calculate_trajectory_occurrences(run: str):
-    driver = GraphDriver()
-
-    qb = querybuilder.Neo4jQueryBuilder([("State", run, "State", "ONE-TO-ONE")])
-
-    q = qb.generate_get_occurrences(run, f"{run}_occurrences")
-
-    with driver.session() as session:
-        session.run(q.text)
-
-
-def load_sequence(run: str, properties: List[str], driver):
+def load_sequence(run: str):
     """
-    Creates a Trajectory object for later use.
+    Loads the sequence for the trajectory and creates a Trajectory object to use. 
 
-    :param run str: The name of the run to load.
-    :param properties List[str]: Which properties to load, if any.
-    :param driver: Neo4j driver to use.
+    :param run str: The name of the trajectory to load.
+
+    :returns: A Trajectory object with the sequence and unique state counts loaded.
     """
-    get_potential(run)
-    run_md = get_metadata(run)
 
-    if f"{run}_occurrences" not in run_md:
-        calculate_trajectory_occurrences(run)
-
-    if "atom_type" not in run_md:
-        raise HTTPException(status_code=500, detail="No atom type found")
-
-    r = loadTestPickle(run, "sequence")
+    r = load_pickle(run, "sequence")
     if r is not None:
         return Trajectory(run, r["sequence"], r["unique_states"])
 
-    uniqueStateAttributes = []
+    driver = GraphDriver()
 
-    if len(properties) > 0:
-        for prop in properties:
-            uniqueStateAttributes.append(str(prop))
-
-    """qb = querybuilder.Neo4jQueryBuilder(
-        [
-            ("State", run, "State", "ONE-TO-ONE"),
-            ("Atom", "PART_OF", "State", "MANY-TO-ONE"),
-        ]
-    )"""
-
-    q = """
+    q = f"""
     MATCH (n:State:{run})-[r:{run}]->(:State:{run})
     RETURN n.id as id
     ORDER BY r.timestep ASC;
-    """.format(
-        run=run
-    )
-
+    """
+    
     j = {}
     with driver.session() as session:
         result = session.run(q)
@@ -453,8 +421,7 @@ def load_sequence(run: str, properties: List[str], driver):
 
     new_traj = Trajectory(run, j["sequence"], j["unique_states"])
 
-    # needs to be more descriptive, with properties saved as well!
-    saveTestPickle(run, "sequence", j)
+    save_pickle(run, "sequence", j)
     return new_traj
 
 
@@ -507,9 +474,8 @@ def get_sequence(run: str, start: Optional[int], end: Optional[int] = None):
     mem_client = PooledClient("localhost", max_pool_size=4, serde=serde.pickle_serde)
     trajectory = mem_client.get(run)
 
-    driver = GraphDriver()
     if trajectory is None:
-        trajectory = load_sequence(run, ["id"], driver)
+        trajectory = load_sequence(run)
 
     if start is None or end is None:
         return trajectory.sequence
@@ -595,7 +561,7 @@ def modify_trajectory(run: str, chunkingThreshold: float, numClusters: int):
 
     driver = GraphDriver()
     if trajectory is None:
-        trajectory = load_sequence(run, ["id"], driver)
+        trajectory = load_sequence(run)
 
     if numClusters not in trajectory.clusterings.keys():
         trajectory.single_pcca(numClusters, driver)
@@ -625,7 +591,8 @@ def load_trajectory(run: str, mMin: int, mMax: int, chunkingThreshold: float):
     """
 
     driver = GraphDriver()
-    trajectory = load_sequence(run, ["id"], driver)
+    get_potential(run)
+    trajectory = load_sequence(run)
 
     try:
         trajectory.pcca(mMin, mMax, driver)
