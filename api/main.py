@@ -277,13 +277,13 @@ async def run_script(script: str, state_atom_dict):
     # move into seperate process?
     return new_attributes
 
+
 def get_potential(run: str) -> str:
     """
     Gets a potential file associated with the run, and writes it to the current working directory.
     Used in various LAMMPS calculations.
 
     :param run: the run to query for the potential file
-
     :return: the filename of the potential file
     """
     driver = GraphDriver()
@@ -298,41 +298,28 @@ def get_potential(run: str) -> str:
 
         return filename
 
-# tested - but maybe move to neomd?
+
 def load_sequence(run: str):
     """
     Loads the sequence for the trajectory and creates a Trajectory object to use.
+    Uses a cached version if available.
     :param run str: The name of the trajectory to load.
 
     :returns: A Trajectory object with the sequence and unique states loaded.
     """
-
-    runs = get_run_list()
-    if run not in runs:
-        raise ValueError(f"Trajectory {run} not found!")
 
     r = load_pickle(run, "sequence")
     if r is not None:
         return Trajectory(run, r["sequence"], r["unique_states"])
 
     driver = GraphDriver()
+    trajectory = Trajectory.load_sequence(driver, run)
 
-    q = f"""
-    MATCH (n:State:{run})-[r:{run}]->(:State:{run})
-    RETURN n.id as id
-    ORDER BY r.timestep ASC;
-    """
-
-    j = {}
-    with driver.session() as session:
-        result = session.run(q)
-        j["sequence"] = result.value()
-        j["unique_states"] = set(j["sequence"])
-
-    new_traj = Trajectory(run, j["sequence"], j["unique_states"])
-
-    save_pickle(run, "sequence", j)
-    return new_traj
+    save_pickle(run, "sequence", {
+        'sequence': trajectory.sequence,
+        'unique_states': trajectory.unique_states
+    })
+    return trajectory
 
 
 @router.get("/script_properties")
@@ -392,21 +379,19 @@ def get_sequence(run: str, start: Optional[int], end: Optional[int] = None):
     else:
         return trajectory.sequence[start : end + 1]
 
+
 @router.get("/get_run_list")
 def get_run_list():
     driver = GraphDriver()
 
     j = []
     with driver.session() as session:
-        try:
-            result = session.run("MATCH (m:Metadata) RETURN DISTINCT m.run;")
-            runs = []
-            for r in result.values():
-                for record in r:
-                    runs.append(record)
-            j = runs
-        except neo4j.exceptions.ServiceUnavailable as exception:
-            raise exception
+        result = session.run("MATCH (m:Metadata) RETURN DISTINCT m.run;")
+        runs = []
+        for r in result.values():
+            for record in r:
+                runs.append(record)
+        j = runs
 
     return j
 
@@ -427,7 +412,7 @@ def modify_trajectory(run: str, chunkingThreshold: float, numClusters: int):
         trajectory = load_sequence(run)
 
     if numClusters not in trajectory.clusterings.keys():
-        trajectory.single_pcca(numClusters, driver)
+        trajectory.single_pcca(driver, numClusters)
 
     trajectory.current_clustering = numClusters
     trajectory.calculateIDToCluster()
@@ -466,17 +451,12 @@ def load_trajectory(run: str, mMin: int, mMax: int, chunkingThreshold: float):
 
     trajectory.simplify_sequence(chunkingThreshold)
 
-    # trajectory.calculate_id_to_timestep(driver)
-
     mem_client = PooledClient("localhost", max_pool_size=1, serde=serde.pickle_serde)
     mem_client.set(run, trajectory)
 
-    # only return current clustering?
-    # feasible may not be necessary at all
     return {
         "uniqueStates": trajectory.simplified_unique_states,
         "simplified": trajectory.chunks,
-        "feasible_clusters": trajectory.feasible_clusters,
         "current_clustering": trajectory.current_clustering,
     }
 

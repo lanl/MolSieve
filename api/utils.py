@@ -1,9 +1,11 @@
-import pickle
 import json
-import neo4j
 import os
+import pickle
+
+import neo4j
 
 from .config import config
+
 
 def metadata_to_parameters(raw_metadata):
     """
@@ -53,7 +55,7 @@ def save_pickle(run, t, j):
     :param j: value to save
     """
 
-    if config.save_cache:
+    if config.SAVE_CACHE:
         createDir("api/cache")
 
         with open(f"api/cache/{run}_{t}.pickle", "wb") as f:
@@ -74,7 +76,7 @@ def load_pickle(run, t):
     :returns: data that was pickled
     """
 
-    if config.load_cache:
+    if config.LOAD_CACHE:
         try:
             with open(f"api/testing/{run}_{t}.pickle", "rb") as f:
                 return pickle.load(f)
@@ -90,10 +92,13 @@ def getStateIDCounter():
     )
     stateIDCounter = 0
     with driver.session() as session:
-        result = session.run("MATCH (m:ServerMetadata) RETURN m.stateIDCounter as stateIDCounter;")
+        result = session.run(
+            "MATCH (m:ServerMetadata) RETURN m.stateIDCounter as stateIDCounter;"
+        )
         record = result.single()
         stateIDCounter = record.value()
     return stateIDCounter
+
 
 def getMetadata(run, getJson=False):
     """
@@ -151,9 +156,10 @@ def loadTestJson(run, t):
         print("Loading from database instead...")
         return None
 
+
 def checkRequiredProperties(properties, metadata):
     """
-    Checks if the given trajectory's metadata object contains all the 
+    Checks if the given trajectory's metadata object contains all the
     properties provided. This lets us check whether or not we need to run various calculations.
     """
     count = 0
