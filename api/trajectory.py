@@ -9,8 +9,6 @@ import time
 import logging
 import random
 
-from fastapi import HTTPException
-
 SIZE_THRESHOLD = 250
 
 
@@ -61,7 +59,6 @@ class Trajectory:
         )
 
     def pcca(self, m_min: int, m_max: int, driver):
-        # attempt to re-hydrate from JSON file before running PCCA
         r = load_pickle(self.name, f"optimal_pcca_{m_min}_{m_max}")
         if r is not None:
             self.clusterings = r["clusterings"]
@@ -70,12 +67,10 @@ class Trajectory:
             self.feasible_clusters = r["feasible_clusters"]
             self.min_chi = r["min_chi"]
             return
-        t0 = time.time()
+
         m, idx_to_id = calculator.calculate_transition_matrix(
             driver, run=self.name
         )
-        t1 = time.time()
-        logging.info(f"Loading transition matrix took {t1-t0} seconds total.")
 
         gpcca = gp.GPCCA(m, z="LM", method="krylov")
         try:
@@ -89,12 +84,7 @@ class Trajectory:
                 self.current_clustering = self.optimal_value
 
             feasible_clusters = [self.optimal_value]
-            t0 = time.time()
             self._single_pcca(gpcca, idx_to_id, self.optimal_value)
-            t1 = time.time()
-            logging.info(
-                f"Clustering into {self.optimal_value} clusters took {t1-t0} seconds total."
-            )
             self.feasible_clusters = feasible_clusters
         except Exception as e:
             raise e
@@ -242,6 +232,7 @@ class Trajectory:
 
         return importance
 
+    # move to neomd?
     def calculate_id_to_timestep(self, driver):
         r = load_pickle(self.name, "idToTimestep")
         if r is not None:
@@ -249,17 +240,14 @@ class Trajectory:
             return
 
         query = """MATCH (n:{run})-[r:{run}]->(:{run})
-                   RETURN DISTINCT ID(n) as id, collect(r.timestep) as timesteps;""".format(
+                   RETURN DISTINCT n.id as id, collect(r.timestep) as timesteps;""".format(
             run=self.name
         )
 
         j = None
         with driver.session() as session:
-            try:
-                result = session.run(query)
-                j = result.data()
-            except neo4j.exceptions.ServiceUnavailable as exception:
-                raise exception
+            result = session.run(query)
+            j = result.data()
 
         save_pickle(self.name, "idToTimestep", j)
         self.id_to_timestep = j

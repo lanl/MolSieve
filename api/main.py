@@ -55,18 +55,6 @@ unprocessed = {}
 
 logging.basicConfig(filename="molsieve.log", level=logging.INFO)
 
-# move to celery worker
-@router.get("/run_cypher_query")
-def run_cypher_query(query: str):
-    driver = GraphDriver()
-    j = []
-    with driver.session() as session:
-        results = session.run(query)
-        for r in results.value():
-            j.append(r)
-
-    return j
-
 
 # put in seperate worker file
 @router.post("/update_task/{task_id}")
@@ -92,28 +80,6 @@ async def ws(task_id: str, websocket: WebSocket):
         await websocket.receive()
     except WebSocketDisconnect:
         await cm.disconnect(task_id)
-
-
-@router.websocket("/generate_ovito_images")
-async def generate_ovito_images(websocket: WebSocket):
-    await websocket.accept()
-    try:
-        ids = await websocket.receive_json()
-        driver = GraphDriver()
-        qb = querybuilder.Neo4jQueryBuilder(
-            [
-                ("Atom", "PART_OF", "State", "MANY-TO-ONE"),
-            ]
-        )
-
-        q = qb.generate_get_node_list("State", ids, "PART_OF")
-        attr_atom_dict = converter.query_to_ASE(driver, q)
-
-        for id, atoms in attr_atom_dict.items():
-            img = generate_ovito_image(atoms, default_image_modifier)
-            await websocket.send_json({"id": id, "img": img})
-    except WebSocketDisconnect:
-        print("Websocket disconnected")
 
 
 @router.get("/generate_ovito_image", status_code=200)
@@ -174,11 +140,6 @@ async def calculate_neb_on_path(
         }
     )
     return task_id
-
-
-@router.post("/load_property_for_subset", status_code=200)
-def load_property_for_subset(prop: str, stateIds: List[int]):
-    return load_properties_for_subset([prop], stateIds)
 
 
 @router.websocket("/load_properties_for_subset")
@@ -243,26 +204,6 @@ def cluster_states(props: List[str] = Body([]), stateIds: List[int] = Body([])):
 
     return dict(zip(ids, labels))
 
-
-@router.post("/load_properties_for_subset", status_code=200)
-async def load_properties_for_subset_endpoint(
-    props: List[str] = Body([]), stateIds: List[int] = Body([])
-):
-    qb = querybuilder.Neo4jQueryBuilder()
-    driver = GraphDriver()
-
-    q = qb.generate_get_node_list(
-        "State", idAttributeList=stateIds, attributeList=props
-    )
-
-    stateList = []
-    with driver.session() as session:
-        result = session.run(q.text)
-        stateList = result.data()
-
-    return await load_properties_for_subset(stateList)
-
-
 async def load_properties_for_subset(stateList):
     driver = GraphDriver()
 
@@ -325,13 +266,6 @@ async def load_properties_for_subset(stateList):
 
 # needs to be smarter than this to avoid repetition
 async def run_script(script: str, state_atom_dict):
-    driver = GraphDriver()
-    qb = querybuilder.Neo4jQueryBuilder(
-        [
-            ("Atom", "PART_OF", "State", "MANY-TO-ONE"),
-        ]
-    )
-
     code = get_script_code(script)
     exec(code, globals())
     new_attributes = run(state_atom_dict)
@@ -342,33 +276,6 @@ async def run_script(script: str, state_atom_dict):
 
     # move into seperate process?
     return new_attributes
-
-
-# move to celery worker
-@router.get("/load_property", status_code=200)
-def load_property(prop: str):
-    """
-    Loads the given property for all applicable nodes
-    :param prop: The property to load.
-
-    :returns: a dict of {id: property}
-    """
-    uniqueStateAttributes = ["id", prop]
-    driver = GraphDriver()
-
-    qb = querybuilder.Neo4jQueryBuilder()
-
-    query = qb.generate_get_all_nodes(
-        "State", node_attributes=uniqueStateAttributes, ignoreNull=True
-    )
-
-    j = {}
-    with driver.session() as session:
-        result = session.run(query.text)
-        j["propertyList"] = result.data()
-
-    return j
-
 
 def get_potential(run: str) -> str:
     """
@@ -391,7 +298,7 @@ def get_potential(run: str) -> str:
 
         return filename
 
-
+# tested - but maybe move to neomd?
 def load_sequence(run: str):
     """
     Loads the sequence for the trajectory and creates a Trajectory object to use.
@@ -400,7 +307,6 @@ def load_sequence(run: str):
     :returns: A Trajectory object with the sequence and unique states loaded.
     """
 
-    # need to check if trajectory exists
     runs = get_run_list()
     if run not in runs:
         raise ValueError(f"Trajectory {run} not found!")
@@ -485,53 +391,6 @@ def get_sequence(run: str, start: Optional[int], end: Optional[int] = None):
         return trajectory.sequence
     else:
         return trajectory.sequence[start : end + 1]
-
-
-@router.get("/get_property_list")
-def get_property_list():
-    driver = GraphDriver()
-
-    j = []
-    with driver.session() as session:
-        try:
-            result = session.run(
-                "MATCH (n:State) WITH n LIMIT 100 UNWIND keys(n) as key RETURN DISTINCT key;"
-            )
-            j = [r[0] for r in result.values()]
-            # add metadata properties
-
-            result = session.run(
-                f"""MATCH (m:Metadata)
-                UNWIND keys(m) AS prop
-                WITH m, prop WHERE m[prop] = true
-                RETURN DISTINCT prop;"""
-            )
-            for r in result:
-                if r[0] not in j:
-                    j.append(r[0])
-
-        except neo4j.exceptions.ServiceUnavailable as exception:
-            raise exception
-
-    return j
-
-
-@router.get("/get_atom_properties")
-def get_atom_properties():
-    driver = GraphDriver()
-
-    j = []
-    with driver.session() as session:
-        try:
-            result = session.run(
-                "MATCH (n:Atom) WITH n LIMIT 1000 UNWIND keys(n) as key RETURN DISTINCT key;"
-            )
-            j = [r[0] for r in result.values()]
-        except neo4j.exceptions.ServiceUnavailable as exception:
-            raise exception
-
-    return j
-
 
 @router.get("/get_run_list")
 def get_run_list():

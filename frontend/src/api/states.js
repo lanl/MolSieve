@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk, createSelector } from '@reduxjs/toolkit';
 import State from './state';
-import { loadPropertiesForSubset, apiClusterStates } from './ajax';
+import { apiClusterStates } from './ajax';
 /* eslint-disable-next-line */
 import { wsConnect } from './websocketmiddleware';
 import { startListening } from './listenerMiddleware';
@@ -54,32 +54,10 @@ export const subsetHasProperty = (state, property, subset) => {
     return !missing.length;
 };
 
-/* Ensure that the states indexed by the ids provided in the subset array have the given property loaded
- * Basically, check if the property is loaded, and if not, load it.
- */
-export const ensureSubsetHasProperties = createAsyncThunk(
-    'states/ensureSubsetHasProperties',
-    async (properties, subset) => {
-        const { hasProperties, missingProperties } = subsetHasProperties(properties, subset);
-
-        if (!hasProperties) {
-            const mp = missingProperties.map((d) => d.name);
-            const data = await loadPropertiesForSubset(mp, subset);
-            return data;
-        }
-        return [];
-    }
-);
-
 export const clusterStates = createAsyncThunk('states/clusterStates', async (payload) => {
     const { properties, stateIDs } = payload;
     return apiClusterStates(properties, stateIDs);
 });
-
-/* Wrapper for hasProperties in case only one property is needed */
-export const ensureSubsetHasProperty = (state, property, subset) => {
-    return ensureSubsetHasProperties(state, [property], subset);
-};
 
 const selectStateStore = (state) => state.states.values;
 export const getState = (state, id) => state.states.values[id];
@@ -210,13 +188,9 @@ export const states = createSlice({
         },
     },
     extraReducers: (builder) => {
-        builder
-            .addCase(ensureSubsetHasProperties.fulfilled, (state, action) =>
-                state.caseReducers.addPropToState(action.payload)
-            )
-            .addCase(clusterStates.fulfilled, (state, action) => {
-                return { ...state, stateClustering: action.payload, colorState: USE_CLUSTERING };
-            });
+        builder.addCase(clusterStates.fulfilled, (state, action) => {
+            return { ...state, stateClustering: action.payload, colorState: USE_CLUSTERING };
+        });
     },
 });
 

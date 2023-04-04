@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "NeoMDWeb"
+name = "MolSieve"
 version = "0.1.0"
 description = ""
 authors = ["Rostyslav Hnatyshyn <rostyslav.hnatyshyn@gmail.com>"]
@@ -26,6 +26,7 @@ pymemcache = "^4.0.0"
 Cython = "^0.29.32"
 scikit-learn = "^1.1.3"
 networkx = "^2.8.8"
+pytest = "^7.2.2"
 
 [tool.poetry.dev-dependencies]
 pyright = "^1.1.244"
