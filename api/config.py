@@ -4,4 +4,5 @@ class Config(object):
     save_cache = False
     load_cache = False
 
+
 config = Config()

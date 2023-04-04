@@ -394,12 +394,16 @@ def get_potential(run: str) -> str:
 
 def load_sequence(run: str):
     """
-    Loads the sequence for the trajectory and creates a Trajectory object to use. 
-
+    Loads the sequence for the trajectory and creates a Trajectory object to use.
     :param run str: The name of the trajectory to load.
 
-    :returns: A Trajectory object with the sequence and unique state counts loaded.
+    :returns: A Trajectory object with the sequence and unique states loaded.
     """
+
+    # need to check if trajectory exists
+    runs = get_run_list()
+    if run not in runs:
+        raise ValueError(f"Trajectory {run} not found!")
 
     r = load_pickle(run, "sequence")
     if r is not None:
@@ -412,7 +416,7 @@ def load_sequence(run: str):
     RETURN n.id as id
     ORDER BY r.timestep ASC;
     """
-    
+
     j = {}
     with driver.session() as session:
         result = session.run(q)
