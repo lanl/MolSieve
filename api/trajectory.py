@@ -14,11 +14,6 @@ from fastapi import HTTPException
 
 SIZE_THRESHOLD = 250
 
-"""
-TODO: Consider decoupling Neo4j driver from this class completely
-"""
-
-
 class Trajectory:
     metadata = None
     cmds = None

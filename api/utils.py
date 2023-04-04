@@ -1,7 +1,5 @@
 import pickle
 import json
-import scipy.stats
-import inspect
 import neo4j
 import os
 
@@ -65,7 +63,6 @@ def createDir(path):
     if not os.path.exists(path):
         os.mkdir(path)
 
-
 def loadTestPickle(run, t):
     """
     Loads the data saved from the specified pickle file.
@@ -81,21 +78,6 @@ def loadTestPickle(run, t):
     except Exception as e:
         print("Loading from database instead...")
         return None
-
-
-def saveTestJson(run, t, j):
-    """
-    Saves the dictionary supplied into a json file for later use.
-
-    :param run: name of the run you're saving
-    :param t: type of sequence you're saving
-    :param j: dictionary to save
-    """
-
-    createDir("api/testing")
-
-    with open("api/testing/{run}_{t}.json".format(run=run, t=t), "w") as f:
-        json.dump(j, f, ensure_ascii=False, indent=4)
 
 def getStateIDCounter():
     j = {}
@@ -164,23 +146,6 @@ def loadTestJson(run, t):
     except Exception:
         print("Loading from database instead...")
         return None
-
-
-def isContinuousDistribution(c):
-    return isinstance(c, scipy.stats._continuous_distns)
-
-
-def getScipyDistributions():
-    modifiers = []
-
-    dists = [value for _, value in inspect.getmembers(scipy.stats._continuous_distns)]
-
-    for name, value in inspect.getmembers(scipy.stats):
-        if value in dists and callable(value):
-            modifiers.append(name)
-
-    return modifiers
-
 
 def checkRequiredProperties(properties, metadata):
     """

@@ -1,10 +1,7 @@
 import base64
 import io
-import json
 import logging
 import os
-import time
-from itertools import chain
 from typing import List, Optional
 
 import ase.geometry
@@ -28,14 +25,13 @@ from pymemcache.client.base import PooledClient
 from sklearn import preprocessing
 from sklearn.cluster import OPTICS
 
-from neomd import calculator, converter, querybuilder, utils, visualizations
+from neomd import converter, querybuilder, visualizations
 
 from .background_worker.celery import TASK_COMPLETE, celery
 from .connectionmanager import ConnectionManager
 from .graphdriver import GraphDriver
-from .models import AnalysisStep
 from .trajectory import Trajectory
-from .utils import getMetadata, getScipyDistributions, loadTestPickle, saveTestPickle
+from .utils import getMetadata, loadTestPickle, saveTestPickle
 
 os.environ["OVITO_THREAD_COUNT"] = "1"
 os.environ["DISPLAY"] = ""
@@ -57,18 +53,7 @@ router = APIRouter(prefix="/api")
 cm = ConnectionManager()
 unprocessed = {}
 
-logging.basicConfig(filename="neomd.log", level=logging.INFO)
-
-
-@router.get("/get_scipy_distributions")
-def get_scipy_distributions():
-    return getScipyDistributions()
-
-
-@router.get("/get_ovito_modifiers")
-def get_ovito_modifiers():
-    return utils.return_ovito_modifiers()
-
+logging.basicConfig(filename="molsieve.log", level=logging.INFO)
 
 # move to celery worker
 @router.get("/run_cypher_query")
@@ -83,6 +68,7 @@ def run_cypher_query(query: str):
     return j
 
 
+# put in seperate worker file
 @router.post("/update_task/{task_id}")
 async def update_task(task_id: str, data: dict):
     if task_id in cm.active_connections:
@@ -90,9 +76,7 @@ async def update_task(task_id: str, data: dict):
             result = AsyncResult(task_id, app=celery)
             if result.ready():
                 data = result.get()
-                await cm.send(
-                    task_id, {"type": TASK_COMPLETE}
-                )
+                await cm.send(task_id, {"type": TASK_COMPLETE})
                 await cm.disconnect(task_id)
         else:
             await cm.send(task_id, data)
@@ -161,68 +145,6 @@ def generate_ovito_image(atoms, image_modifier):
     return image_string
 
 
-@router.post("/generate_ovito_animation")
-async def generate_ovito_animation(
-    width: int = Body(200), height: int = Body(200), states: List[int] = Body(...)
-):
-    driver = GraphDriver()
-
-    qb = querybuilder.Neo4jQueryBuilder([("Atom", "PART_OF", "State", "MANY-TO-ONE")])
-
-    q = qb.generate_get_node_list("State", states, "PART_OF")
-    attr_atom_dict = converter.query_to_ASE(driver, q)
-
-    output_path = "vid.webm"
-    # https://stackoverflow.com/questions/55873174/how-do-i-return-an-image-in-fastapi/67497103#67497103
-    visualizations.render_ASE_list_to_file(
-        attr_atom_dict.values(),
-        output_path,
-        image_height=height,
-        image_width=width,
-    )
-
-    # TODO: make into a stream
-    # TODO: avoid writing video file
-    video_string = ""
-    with open(output_path, "rb") as video:
-        video_string = base64.b64encode(video.read())
-    os.remove(output_path)
-    return {"video": video_string}
-
-
-@router.post("/run_analysis", status_code=201)
-async def run_analysis(
-    steps: List[AnalysisStep],
-    run: Optional[str] = Body(None),
-    states: Optional[List[int]] = Body([]),
-    displayResults: bool = Body(True),
-    saveResults: bool = Body(True),
-):
-    task_id = uuid()
-    unprocessed.update(
-        {
-            task_id: {
-                "name": "run_analysis",
-                "params": {
-                    "steps": steps,
-                    "run": run,
-                    "states": states,
-                    "displayResults": displayResults,
-                    "saveResults": saveResults,
-                },
-            }
-        }
-    )
-    return task_id
-
-
-@router.post("/perform_KS_Test", status_code=201)
-def perform_KSTest(data: dict):
-    task_id = uuid()  # = celery_app.send_task('perform_KS_Test', args=[data])
-    unprocessed.update({task_id: {"name": "perform_KS_Test", "params": {"data": data}}})
-    return task_id
-
-
 @router.get("/calculate_neb_on_path", status_code=201)
 async def calculate_neb_on_path(
     run: str,
@@ -254,32 +176,6 @@ async def calculate_neb_on_path(
     return task_id
 
 
-@router.post("/calculate_path_similarity")
-def calculate_path_similarity(
-    p1: List[int],
-    p2: List[int],
-    state_attributes: List[str] = [],
-    atom_attributes: List[str] = [],
-):
-
-    task_id = uuid()
-    unprocessed.update(
-        {
-            task_id: {
-                "name": "calculate_path_similarity",
-                "params": {
-                    "p1": p1,
-                    "p2": p2,
-                    "state_attributes": state_attributes,
-                    "atom_attributes": atom_attributes,
-                },
-            }
-        }
-    )
-
-    return task_id
-
-
 @router.post("/load_property_for_subset", status_code=200)
 def load_property_for_subset(prop: str, stateIds: List[int]):
     return load_properties_for_subset([prop], stateIds)
@@ -305,6 +201,7 @@ async def ws_load_properties_for_subset(websocket: WebSocket):
         def split(arr, chunk_size):
             for i in range(0, len(arr), chunk_size):
                 yield arr[i : i + chunk_size]
+
         chunks = list(split(stateList, data["chunkSize"]))
 
         for chunk in chunks:
@@ -673,12 +570,11 @@ def get_run_list():
     j = []
     with driver.session() as session:
         try:
-            result = session.run("MATCH (m:Metadata) RETURN m.run;")
+            result = session.run("MATCH (m:Metadata) RETURN DISTINCT m.run;")
             runs = []
             for r in result.values():
                 for record in r:
-                    if record not in runs:
-                        runs.append(record)
+                    runs.append(record)
             j = runs
         except neo4j.exceptions.ServiceUnavailable as exception:
             raise exception
@@ -729,29 +625,16 @@ def load_trajectory(run: str, mMin: int, mMax: int, chunkingThreshold: float):
     """
 
     driver = GraphDriver()
-
-    logging.info(f"Loading sequence {run}")
-    t0 = time.time()
     trajectory = load_sequence(run, ["id"], driver)
-    t1 = time.time()
-    logging.info(f"Loading sequence took {t1-t0} seconds total.")
 
-    logging.info("Calculating PCCA")
-    t0 = time.time()
     try:
         trajectory.pcca(mMin, mMax, driver)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"{e}")
-    t1 = time.time()
-    logging.info(f"PCCA took {t1-t0} seconds total.")
 
     trajectory.calculateIDToCluster()
 
-    logging.info("Simplifying sequence")
-    t0 = time.time()
     trajectory.simplify_sequence(chunkingThreshold)
-    t1 = time.time()
-    logging.info(f"Simplification took {t1-t0} seconds total.")
 
     # trajectory.calculate_id_to_timestep(driver)
 
@@ -784,9 +667,11 @@ def subset_connectivity_difference(stateIDs: List[int] = Body([])):
 
     return task_id
 
+
 @router.post("/selection_distance")
-def selection_distance(stateSet1: List[int] = Body([]),
-                       stateSet2: List[int] = Body([])):
+def selection_distance(
+    stateSet1: List[int] = Body([]), stateSet2: List[int] = Body([])
+):
     driver = GraphDriver()
 
     # get all states without duplicates
@@ -795,7 +680,7 @@ def selection_distance(stateSet1: List[int] = Body([]),
     q = qb.generate_get_node_list("State", stateIDs, "PART_OF")
     state_atom_dict = converter.query_to_ASE(driver, q)
 
-    m = {id : {id2: 0 for id2 in stateSet2} for id in stateSet1}
+    m = {id: {id2: 0 for id2 in stateSet2} for id in stateSet1}
     for id1 in stateSet1:
         s1 = state_atom_dict[id1]
         for id2 in stateSet2:
@@ -803,5 +688,6 @@ def selection_distance(stateSet1: List[int] = Body([]),
             dist = ase.geometry.distance(s1, s2)
             m[id1][id2] = dist
     return m
+
 
 app.include_router(router)
