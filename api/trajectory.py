@@ -1,6 +1,7 @@
 import random
 from collections import Counter
-from typing import List
+from typing import Optional
+
 import neo4j
 import pygpcca as gp
 from scipy import sparse
@@ -9,6 +10,7 @@ from neomd import calculator
 
 from .config import config
 from .utils import load_pickle, save_pickle
+
 
 # needs more comments, testing
 class Trajectory:
@@ -38,7 +40,7 @@ class Trajectory:
         :param driver neo4j.Driver: Driver to access the database with
         :param run str: Name of the trajectory to load.
         """
-        
+
         r = load_pickle(run, "sequence")
         if r is not None:
             return Trajectory(run, r["sequence"], r["unique_states"])
@@ -68,68 +70,30 @@ class Trajectory:
 
         return cls(run, sequence, unique_states)
 
-    def single_pcca(self, driver, num_clusters: int):
-        """
-        Attempts to run PCCA for the user-specified number of clusters and updates the Trajectory object.
-        Calculates min_chi before running _single_pcca.
-
-        :param numClusters int: Number of clusters to try and cluster the sequence into.
-        :param driver neo4j.Driver: Neo4j connection to use for connecting to the database.
-        """
-        m, idx_to_id = calculator.calculate_transition_matrix(driver, run=self.name)
-        gpcca = gp.GPCCA(m, z="LM", method="krylov")
-        self.check_min_chi_range(gpcca, num_clusters)
-        self._single_pcca(gpcca, idx_to_id, num_clusters)
-
-    def _single_pcca(self, gpcca, idx_to_id, num_clusters: int):
-        """
-        Runs PCCA for a user-specified number of clusters and updates the Trajectory object.
-        This function assumes that you have a GPCCA object which already has the min_chi indicator
-        calculated.
-
-        :param gpcca : GPCCA object to use
-        :param idx_to_id: [TODO:description]
-        :param num_clusters: Number of clusters to cluster the trajectory into.
-        """
-        r = load_pickle(self.name, f"pcca_cluster_{num_clusters}")
-        if r is not None:
-            self.clusterings[num_clusters] = r["clusters"]
-            self.fuzzy_memberships[num_clusters] = r["fuzzy_memberships"]
-            return
-        gpcca.optimize(num_clusters)
-        self.save_membership_info(gpcca, idx_to_id, num_clusters)
-        save_pickle(
-            self.name,
-            f"pcca_cluster_{num_clusters}",
-            {
-                "clusters": self.clusterings[num_clusters],
-                "fuzzy_memberships": self.fuzzy_memberships[num_clusters],
-            },
-        )
-
-    # needs testing
-    def check_min_chi_range(self, gpcca, num_clusters: int):
+    def check_min_chi_range(
+        self, gpcca, m_min, m_max, num_clusters: Optional[int]
+    ) -> int:
         """
         Checks if the min_chi indicator needs to be updated based on the cluster specified.
 
         :param gpcca: GPCCA object to update
         :param num_clusters int: The number of clusters that will be tested.
+
+        :returns int: The number of clusters to cluster the trajectory into.
         """
 
-        if len(self.min_chi) > 0:
-            m_min = self.m_min
-            m_max = self.m_max
+        if num_clusters is not None:
             if m_min > num_clusters:
                 self.update_optimal_clustering(gpcca, num_clusters, m_max)
             elif m_max < num_clusters:
                 self.update_optimal_clustering(gpcca, m_min, num_clusters)
             else:
-                # don't need to update, but need to run it anyway for GPCCA to work
-                gpcca.minChi(m_min, m_max)
-        else:
-            self.update_optimal_clustering(gpcca, 2, min(max(3, num_clusters), 20))
+                self.update_optimal_clustering(gpcca, m_min, m_max)
 
-    # needs testing
+            return num_clusters
+        else:
+            return self.update_optimal_clustering(gpcca, m_min, m_max)
+
     def update_optimal_clustering(self, gpcca, m_min: int, m_max: int):
         """
         Finds the optimal clustering from the provided minChi indicators;
@@ -153,37 +117,75 @@ class Trajectory:
         self.optimal_value = min(clusterings, key=lambda e: e["indicator"])["cluster"]
         return self.optimal_value
 
-    def pcca(self, m_min: int, m_max: int, driver):
-        r = load_pickle(self.name, f"optimal_pcca_{m_min}_{m_max}")
+    def calculate_transition_matrix(self, driver: neo4j.Driver):
+        """
+        Wrapper for calculating the transition matrix of the trajectory; uses cached versions of the matrix if available.
+
+        :param driver: Neo4j driver to query the database with.
+
+        :returns: A tuple of a scipy.sparse matrix and a List to index it with.
+        """
+        r = load_pickle(self.name, "transition_matrix")
         if r is not None:
-            self.clusterings = r["clusterings"]
-            self.fuzzy_memberships = r["fuzzy_memberships"]
-            self.current_clustering = r["optimal_value"]
-            self.min_chi = r["min_chi"]
-            self.m_min = m_min
-            self.m_max = m_max
-            return
+            return r["matrix"], r["idx_to_id"]
 
         m, idx_to_id = calculator.calculate_transition_matrix(driver, run=self.name)
 
+        save_pickle(
+            self.name, "transition_matrix", {"matrix": m, "idx_to_id": idx_to_id}
+        )
+
+        return m, idx_to_id
+
+    def pcca(
+        self, driver: neo4j.Driver, m_min: int, m_max: int, num_clusters: Optional[int]
+    ):
+        """
+        Runs PCCA on the trajectory. We need the range every time because pyGPCCA doesn't work without 
+        calculating the minChi indicators beforehand.
+
+        :param driver: Neo4j driver to query database with.
+        :param m_min: The minimimum number of clusters in the range.
+        :param m_max: The maximum number of clusters in the range.
+        :param num_clusters: Optional, the exact number of clusters to cluster the trajectory with.
+        """
+        m, idx_to_id = self.calculate_transition_matrix(driver)
         gpcca = gp.GPCCA(m, z="LM", method="krylov")
-        ov = self.update_optimal_clustering(gpcca, m_min, m_max)
+
+        ov = self.check_min_chi_range(gpcca, m_min, m_max, num_clusters)
 
         self.current_clustering = ov
-        self._single_pcca(gpcca, idx_to_id, ov)
+        self.single_pcca(gpcca, idx_to_id, ov)
 
+    def single_pcca(self, gpcca, idx_to_id, num_clusters: int):
+        """
+        Runs PCCA for a user-specified number of clusters and updates the Trajectory object.
+        This function assumes that you have a GPCCA object which already has the min_chi indicator
+        calculated.
+
+        :param gpcca : GPCCA object to use
+        :param idx_to_id: [TODO:description]
+        :param num_clusters: Number of clusters to cluster the trajectory into.
+        """
+        r = load_pickle(self.name, f"pcca_cluster_{num_clusters}")
+        if r is not None:
+            self.clusterings[num_clusters] = r["clusters"]
+            self.fuzzy_memberships[num_clusters] = r["fuzzy_memberships"]
+            return
+
+        gpcca.optimize(num_clusters)
+
+        self.save_membership_info(gpcca, idx_to_id, num_clusters)
         save_pickle(
             self.name,
-            f"optimal_pcca_{m_min}_{m_max}",
+            f"pcca_cluster_{num_clusters}",
             {
-                "clusterings": self.clusterings,
-                "fuzzy_memberships": self.fuzzy_memberships,
-                "optimal_value": self.optimal_value,
-                "min_chi": self.min_chi,
+                "clusters": self.clusterings[num_clusters],
+                "fuzzy_memberships": self.fuzzy_memberships[num_clusters],
             },
         )
 
-    def save_membership_info(self, gpcca, idx_to_id, num_clusters):
+    def save_membership_info(self, gpcca, idx_to_id, num_clusters: int):
         """
         Saves the clustering membership information from GPCCA in the Trajectory object.
 
@@ -205,7 +207,7 @@ class Trajectory:
 
     def current_cluster(self):
         """
-        Returns the current clustering being used, a list of lists of IDs that 
+        Returns the current clustering being used, a list of lists of IDs that
         describe which cluster a state belongs to.
 
         :returns: List[List[int]]
@@ -240,7 +242,7 @@ class Trajectory:
         Takes the fuzzy membership probabilities currently assigned to the Trajectory object,
         and first calculates whether or not a state is important (transition region).
         Then, iterates through the array and splits the sequence into "chunks" (regions in the paper),
-        where groups of "important" states are transition regions, and "unimportant" states are 
+        where groups of "important" states are transition regions, and "unimportant" states are
         super-states.
 
         :param simpThreshold: The simplification threshold specified by the user.

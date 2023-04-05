@@ -245,10 +245,11 @@ def list_trajectories():
 
 
 @router.get("/load_trajectory")
-def load_trajectory(run: str, mMin: int, mMax: int, chunkingThreshold: float):
+def load_trajectory(run: str, mMin: int, mMax: int, chunkingThreshold: float, numClusters: int | None = None):
     """
     Loads the trajectory's sequence, runs PCCA on it, simplifies it, and returns a list of important / unimportant regions + states.
-
+    If numClusters is specified, it is used to cluster the trajectory; otherwise, the optimal clustering value found by minChi(mMin,mMax) is used.
+    
     :param run str: The name of the trajectory to load
     :param mMin int: When running PCCA, the minimum cluster size to try.
     :param mMax int: When running PCCA, the maximum cluster size to try.
@@ -259,7 +260,7 @@ def load_trajectory(run: str, mMin: int, mMax: int, chunkingThreshold: float):
     get_potential(run)  # needed for NEB later on
     trajectory = Trajectory.load_sequence(driver, run)
 
-    trajectory.pcca(mMin, mMax, driver)
+    trajectory.pcca(driver, mMin, mMax, numClusters)
     trajectory.calculateIDToCluster()  # calculate what cluster each state belongs to, need it for simplify_sequence
     trajectory.simplify_sequence(chunkingThreshold)
 

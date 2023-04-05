@@ -127,6 +127,8 @@ class App extends React.Component {
                         currentClustering,
                         newChunks: simplified,
                         properties,
+                        mMin,
+                        mMax,
                     })
                 );
 

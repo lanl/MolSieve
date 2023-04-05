@@ -95,13 +95,15 @@ export const getAllVisibleChunks = createSelector(
     }
 );
 
+// TODO: maybe somehow merge these two?
 export const simplifySet = createAsyncThunk('trajectories/simplifySet', async (args, thunkAPI) => {
     const { name, threshold } = args;
     const { getState, dispatch } = thunkAPI;
     const state = getState();
 
-    const trajectory = state.trajectories.values[name].currentClustering;
-    const data = await apiModifyTrajectory(name, trajectory, threshold);
+    const trajectory = state.trajectories.values[name];
+    const { mMin, mMax, currentClustering } = trajectory;
+    const data = await apiModifyTrajectory(name, mMin, mMax, currentClustering, threshold);
     dispatch(
         calculateGlobalUniqueStates({
             newUniqueStates: data.uniqueStates,
@@ -116,9 +118,11 @@ export const recluster = createAsyncThunk('trajectories/recluster', async (args,
     const { getState, dispatch } = thunkAPI;
 
     const state = getState();
-    const threshold = state.trajectories.values[name].chunkingThreshold;
 
-    const data = await apiModifyTrajectory(name, clusters, threshold);
+    const trajectory = state.trajectories.values[name];
+    const { mMin, mMax, chunkingThreshold } = trajectory;
+
+    const data = await apiModifyTrajectory(name, mMin, mMax, clusters, chunkingThreshold);
     dispatch(
         calculateGlobalUniqueStates({
             newUniqueStates: data.uniqueStates,
@@ -197,8 +201,16 @@ export const trajectories = createSlice({
     },
     reducers: {
         addTrajectory: (state, action) => {
-            const { name, id, chunkingThreshold, currentClustering, newChunks, properties } =
-                action.payload;
+            const {
+                name,
+                id,
+                chunkingThreshold,
+                currentClustering,
+                newChunks,
+                properties,
+                mMin,
+                mMax,
+            } = action.payload;
 
             const colors = clusterColors.splice(0, currentClustering);
             const { values, names } = state;
@@ -209,6 +221,8 @@ export const trajectories = createSlice({
                 colors,
                 chunkList: [],
                 ranks: [...properties],
+                mMin,
+                mMax,
             };
             trajectories.caseReducers.setChunks(state, {
                 payload: {

@@ -80,6 +80,25 @@ export function apiLoadTrajectory(run, mMin, mMax, chunkingThreshold) {
     });
 }
 
+export function apiModifyTrajectory(run, mMin, mMax, numClusters, chunkingThreshold) {
+    return new Promise((resolve, reject) => {
+        axios
+            .get(`${API_URL}/data/load_trajectory`, {
+                params: {
+                    run,
+                    mMin,
+                    mMax,
+                    numClusters,
+                    chunkingThreshold,
+                },
+            })
+            .then((response) => {
+                resolve(response.data);
+            })
+            .catch((e) => reject(e));
+    });
+}
+
 /**
  * [TODO:description]
  *
@@ -97,23 +116,6 @@ export function apiClusterStates(properties, states) {
                     headers: { 'Content-Type': 'application/json' },
                 }
             )
-            .then((response) => {
-                resolve(response.data);
-            })
-            .catch((e) => reject(e));
-    });
-}
-
-export function apiModifyTrajectory(run, numClusters, chunkingThreshold) {
-    return new Promise((resolve, reject) => {
-        axios
-            .get(`${API_URL}/api/modify_trajectory`, {
-                params: {
-                    run,
-                    numClusters,
-                    chunkingThreshold,
-                },
-            })
             .then((response) => {
                 resolve(response.data);
             })

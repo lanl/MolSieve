@@ -195,40 +195,6 @@ def vis_scripts():
                 scripts.append(entry.name)
     return scripts
 
-# actions like this go under actions route?
-@router.get("/modify_trajectory")
-def modify_trajectory(run: str, chunkingThreshold: float, numClusters: int):
-    """
-    Update the trajectory's exploratory parameters, i.e., the simplfication threshold and number of PCCA clusters.
-    Not split into two seperate functions since you need to apply both when the number of clusters changes.
-
-    :param run str: The trajectory to modify.
-    :param chunkingThreshold: The simplification threshold.
-    :param numClusters: The number of clusters to cluster the trajectory into.
-    """
-    mem_client = PooledClient("localhost", max_pool_size=4, serde=serde.pickle_serde)
-    trajectory = mem_client.get(run)
-
-    driver = GraphDriver()
-    if trajectory is None:
-        trajectory = Trajectory.load_sequence(driver, run)
-
-    if numClusters not in trajectory.clusterings.keys():
-        trajectory.single_pcca(driver, numClusters)
-
-    trajectory.current_clustering = numClusters
-    trajectory.calculateIDToCluster()
-    trajectory.simplify_sequence(chunkingThreshold)
-
-    mem_client.set(run, trajectory)
-
-    return {
-        "uniqueStates": trajectory.simplified_unique_states,
-        "simplified": trajectory.chunks,
-        "current_clustering": trajectory.current_clustering,
-    }
-
-
 # make this a websocket?
 # actions
 @router.post("/selection_distance")
