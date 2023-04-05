@@ -337,6 +337,17 @@ export const trajectories = createSlice({
                 trajectories.caseReducers.updateRank(state, { payload: { states, name } });
             }
         },
+        updateClusterRange: (state, action) => {
+            const { name, currentClustering } = action.payload;
+            const { values } = state;
+
+            const trajectory = values[name];
+            const { mMin, mMax } = trajectory;
+
+            // can be minimum 2; no upper limit for mMax
+            trajectory.mMin = Math.max(2, Math.min(currentClustering, mMin));
+            trajectory.mMax = Math.max(currentClustering, mMax);
+        },
     },
     extraReducers: (builder) => {
         builder.addCase(simplifySet.fulfilled, (state, action) => {
@@ -355,6 +366,12 @@ export const trajectories = createSlice({
                 payload: {
                     newChunks: simplified,
                     trajectoryName: name,
+                    currentClustering,
+                },
+            });
+            trajectories.caseReducers.updateClusterRange(state, {
+                payload: {
+                    name,
                     currentClustering,
                 },
             });

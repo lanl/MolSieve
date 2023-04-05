@@ -47,7 +47,6 @@ cm = ConnectionManager()
 unprocessed = {}
 
 app.include_router(data.router)
-app.include_router(router)
 logging.basicConfig(filename="molsieve.log", level=logging.INFO)
 
 
@@ -228,5 +227,5 @@ def selection_distance(
             m[id1][id2] = dist
     return m
 
-
 app.include_router(router)
+
