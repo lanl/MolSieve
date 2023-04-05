@@ -209,7 +209,7 @@ startListening({
     actionCreator: calculateGlobalUniqueStates,
     effect: (_, listenerAPI) => {
         const { dispatch } = listenerAPI;
-        dispatch(wsConnect(`${WS_URL}/api/load_properties_for_subset`));
+        dispatch(wsConnect(`${WS_URL}/data/load_properties_for_subset`));
     },
 });
 export default states.reducer;

@@ -2,28 +2,6 @@ import axios from 'axios';
 
 import { API_URL } from './constants';
 
-/**
- * Ajax query to the backend to retrieve the sequence for a trajectory, given
- * its name and properties.
- * @param {string} run - Name of the run to retrieve the sequence for
- * @param {Array<string>} properties - Properties of the trajectory to retrieve
- */
-export function apiLoadSequence(run, properties) {
-    return new Promise((resolve, reject) => {
-        axios
-            .get(`${API_URL}/api/load_sequence`, {
-                params: {
-                    run,
-                    properties: properties.toString(),
-                },
-            })
-            .then((response) => {
-                return resolve(response.data);
-            })
-            .catch((e) => reject(e));
-    });
-}
-
 // TODO: add comment
 export function apiLoadMetadata(run) {
     return new Promise((resolve, reject) => {
@@ -74,7 +52,7 @@ export function apiCalculateNEB(run, start, end, interpolate, maxSteps, fmax, sa
 export function apiGenerateOvitoImage(id, visScript, controller) {
     return new Promise((resolve, reject) => {
         axios
-            .get(`${API_URL}/api/generate_ovito_image?id=${id}&visScript=${visScript}`, {
+            .get(`${API_URL}/data/generate_ovito_image?id=${id}&visScript=${visScript}`, {
                 signal: controller.signal,
             })
             .then((response) => {
@@ -87,7 +65,7 @@ export function apiGenerateOvitoImage(id, visScript, controller) {
 export function apiLoadTrajectory(run, mMin, mMax, chunkingThreshold) {
     return new Promise((resolve, reject) => {
         axios
-            .get(`${API_URL}/api/load_trajectory`, {
+            .get(`${API_URL}/data/load_trajectory`, {
                 params: {
                     run,
                     mMin,
@@ -146,7 +124,9 @@ export function apiModifyTrajectory(run, numClusters, chunkingThreshold) {
 export function apiGetSequence(run, range) {
     return new Promise((resolve, reject) => {
         axios
-            .get(`${API_URL}/api/get_sequence`, { params: { run, start: range[0], end: range[1] } })
+            .get(`${API_URL}/data/get_sequence`, {
+                params: { run, start: range[0], end: range[1] },
+            })
             .then((response) => {
                 resolve(response.data);
             })

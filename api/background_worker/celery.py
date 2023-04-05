@@ -1,13 +1,10 @@
-#from api.models import AnalysisStep
-
-from api.utils import getMetadata, getStateIDCounter
-from typing import Optional, List, Dict, Any
+from typing import List, Dict, Any
 from .celeryconfig import CeleryConfig
 
 import neo4j
 from celery import Celery, current_task, Task
 from celery.utils.log import get_task_logger
-from neomd import querybuilder, converter, calculator
+from neomd import querybuilder, converter, calculator, metadata
 from neomd.query import Query
 from scipy import stats
 import json
@@ -36,183 +33,6 @@ class PostingTask(Task):
     def on_success(self, retval, task_id, args, kwargs):
         send_update(task_id, {"type": TASK_COMPLETE})
         return super().on_success(retval, task_id, args, kwargs)
-
-"""
-@celery_app.task(name="run_analysis", base=PostingTask)
-def run_analysis_task(
-    steps: List[AnalysisStep],
-    run: Optional[str] = None,
-    states: Optional[List[int]] = [],
-    displayResults: bool = True,
-    saveResults: bool = True,
-):
-
-    task_id = current_task.request.id
-
-    driver = neo4j.GraphDatabase.driver(
-        "bolt://127.0.0.1:7687", auth=("neo4j", "secret")
-    )
-    state_atom_dict = None
-
-    if run is not None and len(states) == 0:
-        qb = querybuilder.Neo4jQueryBuilder(
-            [
-                ("State", run, "State", "ONE-TO-ONE"),
-                ("Atom", "PART_OF", "State", "MANY-TO-ONE"),
-            ]
-        )
-        q = qb.generate_trajectory(
-            run, "ASC", ("relation", "timestep"), include_atoms=True
-        )
-
-        current_task.update_state(state="PROGRESS")
-        send_update(
-            task_id,
-            {
-                "type": TASK_PROGRESS,
-                "message": "Finished processing nodes.",
-                "progress": "0.25",
-            },
-        )
-
-        state_atom_dict = converter.query_to_ASE(
-            driver, qb, q, get_atom_type(getMetadata(run)["parameters"])
-        )
-
-        current_task.update_state(state="PROGRESS")
-        send_update(
-            task_id,
-            {
-                "type": TASK_PROGRESS,
-                "message": "Finished converting nodes.",
-                "progress": "0.5",
-            },
-        )
-    else:
-        qb = querybuilder.Neo4jQueryBuilder(
-            [("Atom", "PART_OF", "State", "MANY-TO-ONE")]
-        )
-        q = qb.generate_get_node_list("State", states, "PART_OF")
-
-        current_task.update_state(state="PROGRESS")
-        send_update(
-            task_id,
-            {
-                "type": TASK_PROGRESS,
-                "message": "Finished processing nodes.",
-                "progress": "0.25",
-            },
-        )
-        # what if atom types are mixed?
-        state_atom_dict = converter.query_to_ASE(driver, qb, q, "Pt")
-        current_task.update_state(state="PROGRESS")
-        send_update(
-            task_id,
-            {
-                "type": TASK_PROGRESS,
-                "message": "Finished converting nodes.",
-                "progress": "0.5",
-            },
-        )
-
-    results = []
-    for idx, step in enumerate(steps):
-        if step.analysisType == "ovito_modifier":
-            new_attributes = calculator.apply_ovito_pipeline_modifier(
-                state_atom_dict, analysisType=step.value
-            )
-            # TODO: Event that notifies pipeline has been applied
-            current_task.update_state(state="PROGRESS")
-            send_update(
-                task_id,
-                {
-                    "type": TASK_PROGRESS,
-                    "message": f"Pipeline step {idx + 1} {step.value} applied",
-                    "progress": "0.5",
-                },
-            )
-
-            if saveResults:
-                q = None
-                uniqueAttributes = []
-                with driver.session() as session:
-                    tx = session.begin_transaction()
-                    for state_number, data in new_attributes.items():
-                        if q is None:
-                            q = qb.generate_update_entity(
-                                data, "State", "number", "node"
-                            )
-                        data.update({"number": state_number})
-                        for key in data.keys():
-                            if key not in uniqueAttributes:
-                                uniqueAttributes.append(key)
-                        tx.run(q.text, data)
-                    # get all the trajectories that each state belongs to
-                    state_number_list = ",".join(
-                        [f'"{k}"' for k in new_attributes.keys()]
-                    )
-                    q = MATCH (n:State) WHERE n.number IN [{state_number_list}]
-                    RETURN DISTINCT labels(n) AS labels;
-                    .format(
-                        state_number_list=state_number_list
-                    )
-                    res = tx.run(q)
-                    runs = []
-                    for r in res:
-                        for label in r["labels"]:
-                            if (
-                                label != "State"
-                                and label != "NEB"
-                                and label not in runs
-                            ):
-                                runs.append(label)
-
-                    # apply property to metadata list
-                    run_list = ",".join([f'"{k}"' for k in runs])
-                    q = f"MATCH (m:Metadata) WHERE m.run IN [{run_list}] SET "
-                    for idx, key in enumerate(uniqueAttributes):
-                        q += f"m.{key} = true"
-                        if idx != len(uniqueAttributes) - 1:
-                            q += ", "
-                        else:
-                            q += ";"
-                    tx.run(q)
-                    tx.commit()
-
-            if displayResults:
-                results.append(new_attributes)
-        else:
-            raise NotImplementedError()
-
-    return json.dumps(results)
-"""
-
-"""
-Unused for now, load property usually is pretty fast
-@celery_app.task(name='load_property', base=PostingTask)
-def load_property_task(prop: str):
-    uniqueStateAttributes = ["id", prop]
-    driver = neo4j.GraphDatabase.driver("bolt://127.0.0.1:7687",
-                                        auth=("neo4j", "secret"))
-    task_id = current_task.request.id
-    
-    qb = querybuilder.Neo4jQueryBuilder()
-
-    query = qb.generate_get_all_nodes(
-        "State", node_attributes=uniqueStateAttributes, ignoreNull = True)
-
-    send_update(task_id, {'type': TASK_PROGRESS, 'message': 'Retrieved all nodes', 'progress': 0.5})
-    current_task.update_state(state='PROGRESS')  
-    j = {}
-    with driver.session() as session:
-        result = session.run(query.text)
-        j["propertyList"] = result.data()
-
-    send_update(task_id, {'type': TASK_PROGRESS, 'message': 'Retrieved all properties', 'progress': 1})
-    current_task.update_state(state='PROGRESS')  
-
-    return json.dumps(j)
-"""
 
 
 @celery.task(name="subset_connectivity_difference", base=PostingTask)
@@ -329,7 +149,7 @@ def calculate_neb_on_path(
         },
     )
 
-    metadata = getMetadata(run)
+    md = metadata.get_metadata(run)
 
     path = {}
     allStates = []
@@ -397,7 +217,7 @@ def calculate_neb_on_path(
         images = calculator.calculate_neb_for_pair(
             s1_atoms,
             s2_atoms,
-            metadata["cmds"],
+            md["cmds"],
             interpolate,
             maxSteps,
             fmax,

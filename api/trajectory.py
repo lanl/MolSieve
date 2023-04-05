@@ -38,6 +38,10 @@ class Trajectory:
         :param driver neo4j.Driver: Driver to access the database with
         :param run str: Name of the trajectory to load.
         """
+        
+        r = load_pickle(run, "sequence")
+        if r is not None:
+            return Trajectory(run, r["sequence"], r["unique_states"])
 
         # maybe move this query to neomd?
         q = f"""
@@ -55,6 +59,12 @@ class Trajectory:
 
         if len(sequence) == 0 or len(unique_states) == 0:
             raise ValueError(f"Trajectory {run} not found.")
+
+        save_pickle(
+            run,
+            "sequence",
+            {"sequence": sequence, "unique_states": unique_states},
+        )
 
         return cls(run, sequence, unique_states)
 

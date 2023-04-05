@@ -1,52 +1,115 @@
-import json
 import os
 import pickle
 
-import neo4j
-
+from typing import Any, Dict, List
 from .config import config
-# needs comments and testing
+from typeguard import typechecked
 
-def metadata_to_parameters(raw_metadata):
+# image rendering
+from PIL import Image
+import base64
+import io
+
+
+def remove_duplicates(arr: List[Any]):
+    return list(set(arr))
+
+def find_missing_properties(data: List[Dict[str, Any]], identifier: str = "id") -> Dict[str, List[Any]]:
     """
-    Converts metadata to parameters to use for LAMMPSRun parameters.
+    Given a list of dictionaries (objects) iterate through each object and find
+    all objects that have None assigned to a property.
 
-    :param raw_metadata: The raw metadata string to convert.
+    :param data: The list of objects to check.
+    :param identifier: What is used to uniquely identify each object, placed in resulting dictionary.
 
-    :returns: The metadata as a dictionary.
+    :returns Dict[str, List[Any]]: A dictionary of properties to lists of object identifiers that are missing that property.
     """
-    parameters = {}
-    for line in raw_metadata.splitlines():
-        if line != "":
-            (firstWord, rest) = line.split(maxsplit=1)
-            # for some reason, pair_coeff needs to be a list
-            if firstWord == "pair_coeff":
-                rest = [rest]
-            parameters.update({firstWord: rest})
-    return parameters
+    missing_properties = {}
+    for d in data:
+        for key, value in d.items():
+            if value is None:
+                if key not in missing_properties:
+                    missing_properties[key] = []
+                missing_properties[key].append(d[identifier])
+
+    return missing_properties
 
 
-def metadata_to_cmds(metadata_dict):
+def qImage_to_string(qimg) -> str:
     """
-    Converts metadata to commands to use for LAMMPSLib's lmpcmds parameters.
+    Converts a qImage object to a string that can be returned as part of a request.
 
-    :param raw_metadata: The metadata dict to convert.
-
-    :returns: The metadata as a list.
+    :param qimg: The qImage object to convert.
+    :returns str: base64 encoding of the resulting image
     """
-    parameters = []
-    parameters.append("pair_style {rest}".format(rest=metadata_dict["pair_style"]))
-    parameters.append("pair_coeff {rest}".format(rest=metadata_dict["pair_coeff"][0]))
-    return parameters
+
+    img = Image.fromqimage(qimg)
+    rawBytes = io.BytesIO()
+    img.save(rawBytes, "PNG")
+    rawBytes.seek(0)
+    img_base64 = base64.b64encode(rawBytes.read())
+
+    image_string = str(img_base64)
+    image_string = image_string.removesuffix("'")
+    image_string = image_string.removeprefix("b'")
+    return image_string
 
 
-def get_atom_type(parameters):
-    if type(parameters) is not dict:
-        raise ValueError("This only works with dict parameters.")
+def get_script_properties_map(folder: str = "scripts") -> Dict[str, str]:
+    """
+    Read all of the scripts within the scripts folder, then get the properties that they will return.
+    :returns Dict[str, str]: A dictionary mapping each property to its script.
+    """
+
+    properties_to_script = {}
+    with os.scandir(folder) as entries:
+        for entry in entries:
+            _, ext = os.path.splitext(entry)
+            if ext == ".py":
+                with open(entry.path, mode="r") as script:
+                    code = script.read()
+                # puts properties in global namespace
+                exec(code, globals())
+                for prop in properties():
+                    properties_to_script[prop] = entry.name
+
+    return properties_to_script
+
+
+@typechecked
+def get_script_code(script_name: str, folder: str = "scripts") -> str:
+    """
+    Get the actual code for the script within the folder specified.
+
+    :param script_name str: Name of script to retrieve.
+    :param folder str: Name of folder to check.
+    :raises FileNotFoundError: Complain if file does not exist.
+
+    :returns str: A string containing the script's code.
+    """
+    with os.scandir(folder) as entries:
+        for entry in entries:
+            if entry.name == script_name:
+                with open(entry.path, mode="r") as script:
+                    return script.read()
+        raise FileNotFoundError
+
+
+@typechecked
+def get_atom_type(parameters: Dict[str, str]) -> str:
+    """
+    Gets the atom type of the trajectory from the metadata.
+
+    :param parameters: Dictionary of parameters calculated from the LAMMPS bootstrap script.
+    :raises ValueError: Complain if pair_coeff not found.
+    """
+    if "pair_coeff" not in parameters.keys():
+        raise ValueError("pair_coeff field not found in dictionary supplied.")
     return parameters["pair_coeff"][-1].split(" ")[-1]
 
 
-def save_pickle(run, t, j):
+@typechecked
+def save_pickle(run: str, t: str, j: Any):
     """
     Saves the dictionary supplied into a pickle file for later use.
 
@@ -62,12 +125,19 @@ def save_pickle(run, t, j):
             pickle.dump(j, f)
 
 
-def createDir(path):
+@typechecked
+def createDir(path: str):
+    """
+    Creates a directory if it doesn't exist.
+
+    :param path str: The name of the directory.
+    """
     if not os.path.exists(path):
         os.mkdir(path)
 
 
-def load_pickle(run, t):
+@typechecked
+def load_pickle(run: str, t: str) -> Any:
     """
     Loads the data saved from the specified pickle file.
 
@@ -83,87 +153,3 @@ def load_pickle(run, t):
         except Exception:
             print(f"Calculating {run} {t} instead of using cached version.")
             return None
-
-
-def getStateIDCounter():
-    j = {}
-    driver = neo4j.GraphDatabase.driver(
-        "bolt://127.0.0.1:7687", auth=("neo4j", "secret")
-    )
-    stateIDCounter = 0
-    with driver.session() as session:
-        result = session.run(
-            "MATCH (m:ServerMetadata) RETURN m.stateIDCounter as stateIDCounter;"
-        )
-        record = result.single()
-        stateIDCounter = record.value()
-    return stateIDCounter
-
-
-def getMetadata(run, getJson=False):
-    """
-    Gets the metadata of a run. If the metadata has not been loaded yet, loads it into memory. There is an option
-    to return a JSON string that can be passed back to the front-end.
-
-    :param string run: Run to retrieve metadata for
-    :param bool getJson: Whether or not to return a JSON string with the metadata information.
-
-    :returns: a dict of metadata parameters and optionally a JSON string with the metadata information.
-    """
-    j = {}
-    metadata = {}
-    driver = neo4j.GraphDatabase.driver(
-        "bolt://127.0.0.1:7687", auth=("neo4j", "secret")
-    )
-    with driver.session() as session:
-        try:
-            result = session.run(
-                "MATCH (n:Metadata {{run: '{run}' }}) RETURN n".format(run=run)
-            )
-            record = result.single()
-            for n in record.values():
-                for key, value in n.items():
-                    if key == "LAMMPSBootstrapScript":
-                        params = metadata_to_parameters(value)
-                        cmds = metadata_to_cmds(params)
-                        metadata.update({"parameters": params})
-                        metadata.update({"cmds": cmds})
-                    j.update({key: value})
-                    metadata.update({key: value})
-        except neo4j.exceptions.ServiceUnavailable as exception:
-            raise exception
-
-        if getJson:
-            return metadata, j
-        else:
-            return metadata
-
-
-def loadTestJson(run, t):
-    """
-    Reads json file into memory
-
-    :param run: Run to load from
-    :param t: type of sequence to load
-
-    :returns: Dict with sequence data
-
-    """
-    try:
-        with open("api/testing/{run}_{t}.json".format(run=run, t=t), "r") as f:
-            return json.loads(f.read())
-    except Exception:
-        print("Loading from database instead...")
-        return None
-
-
-def checkRequiredProperties(properties, metadata):
-    """
-    Checks if the given trajectory's metadata object contains all the
-    properties provided. This lets us check whether or not we need to run various calculations.
-    """
-    count = 0
-    for property in properties:
-        if property in metadata.keys():
-            count += 1
-    return len(properties) == count
