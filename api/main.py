@@ -82,8 +82,17 @@ async def ws(task_id: str, websocket: WebSocket):
         await cm.disconnect(task_id)
 
 
+# data
 @router.get("/generate_ovito_image", status_code=200)
 async def generate_ovito_image_endpoint(id: int, visScript: str):
+    """
+    Generates an image of the state ID specified using the specified visualization script.
+
+    :param id int: The state ID to be rendered.
+    :param visScript: The visualization script to use.
+
+    :returns: Object containing state ID and a base64 encoded image string.
+    """
     driver = GraphDriver()
     qb = querybuilder.Neo4jQueryBuilder([("Atom", "PART_OF", "State", "MANY-TO-ONE")])
 
@@ -95,8 +104,16 @@ async def generate_ovito_image_endpoint(id: int, visScript: str):
 
     return {"id": id, "img": generate_ovito_image(atom_dict[id], modify_pipeline)}
 
+# move to utils, decouple from atoms object
+def generate_ovito_image(atoms, image_modifier) -> str:
+    """
+    Uses neomd to get a qImage object, and then converts it to a string that can be returned as part of a request.
 
-def generate_ovito_image(atoms, image_modifier):
+    :param atoms ase.Atoms: Atoms object to render.
+    :param image_modifier function: User-defined function to modify the resulting image.
+    
+    :returns str: base64 encoding of the resulting image
+    """
     qimg = visualizations.render_ASE(atoms, pipeline_modifier=image_modifier)
 
     img = Image.fromqimage(qimg)
@@ -110,7 +127,7 @@ def generate_ovito_image(atoms, image_modifier):
     image_string = image_string.removeprefix("b'")
     return image_string
 
-# place in worker route
+# place in action route
 @router.get("/calculate_neb_on_path", status_code=201)
 async def calculate_neb_on_path(
     run: str,
@@ -141,39 +158,43 @@ async def calculate_neb_on_path(
     )
     return task_id
 
+# action
+@router.post("/subset_connectivity_difference")
+def subset_connectivity_difference(stateIDs: List[int] = Body([])):
+    task_id = uuid()
+    unprocessed.update(
+        {
+            task_id: {
+                "name": "subset_connectivity_difference",
+                "params": {
+                    "stateIDs": stateIDs,
+                },
+            }
+        }
+    )
 
-@router.websocket("/load_properties_for_subset")
-async def ws_load_properties_for_subset(websocket: WebSocket):
-    await websocket.accept()
-    try:
-        data = await websocket.receive_json()
-        qb = querybuilder.Neo4jQueryBuilder()
-        driver = GraphDriver()
-
-        q = qb.generate_get_node_list(
-            "State", idAttributeList=data["stateIds"], attributeList=data["props"]
-        )
-
-        stateList = []
-        with driver.session() as session:
-            result = session.run(q.text)
-            stateList = result.data()
-
-        def split(arr, chunk_size):
-            for i in range(0, len(arr), chunk_size):
-                yield arr[i : i + chunk_size]
-
-        chunks = list(split(stateList, data["chunkSize"]))
-
-        for chunk in chunks:
-            await websocket.send_json(await load_properties_for_subset(chunk))
-        await websocket.close()
-    except WebSocketDisconnect:
-        print("Websocket disconnected")
+    return task_id
 
 
+# need to update with neomd's get_metadata
+# data
+@router.get("/get_metadata")
+def get_metadata(run: str):
+    _, j = getMetadata(run, getJson=True)
+    return j
+
+# stays as action
 @router.post("/cluster_states", status_code=200)
 def cluster_states(props: List[str] = Body([]), stateIds: List[int] = Body([])):
+    """
+    Given a set of properties and a list of state IDs, grabs them from the database and then
+    clusters them using the OPTICS algorithm.
+
+    :param props: The properties to use while clustering.
+    :param stateIds: The state IDs to use while clustering.
+
+    :returns: A dictionary of state IDs to cluster numbers.
+    """
     qb = querybuilder.Neo4jQueryBuilder()
     driver = GraphDriver()
 
@@ -205,6 +226,47 @@ def cluster_states(props: List[str] = Body([]), stateIds: List[int] = Body([])):
     return dict(zip(ids, labels))
 
 
+# goes in data route
+@router.websocket("/load_properties_for_subset")
+async def ws_load_properties_for_subset(websocket: WebSocket):
+    """
+    Websocket method; expects a single list of states sent from the client and a number specifying how the list should be split.
+    The server initially grabs the entire list of nodes from the server, and then splits the list according to the chunk size.
+    It then checks each node within the list to see if it has the properties specified, if not, it runs the user script corresponding
+    to the property and saves it to the database.
+
+    :param websocket: Websocket object, automatically supplied by FastAPI.
+    :returns: A list of states with the properties requested.
+    """
+    await websocket.accept()
+    try:
+        data = await websocket.receive_json()
+        qb = querybuilder.Neo4jQueryBuilder()
+        driver = GraphDriver()
+
+        q = qb.generate_get_node_list(
+            "State", idAttributeList=data["stateIds"], attributeList=data["props"]
+        )
+
+        stateList = []
+        with driver.session() as session:
+            result = session.run(q.text)
+            stateList = result.data()
+
+        def split(arr, chunk_size):
+            for i in range(0, len(arr), chunk_size):
+                yield arr[i : i + chunk_size]
+
+        chunks = list(split(stateList, data["chunkSize"]))
+
+        for chunk in chunks:
+            await websocket.send_json(await load_properties_for_subset(chunk))
+        await websocket.close()
+    except WebSocketDisconnect:
+        print("Websocket disconnected")
+
+
+# data route
 async def load_properties_for_subset(stateList):
     """
     Given a list of states, checks the properties currently loaded in the system and 
@@ -266,7 +328,7 @@ async def load_properties_for_subset(stateList):
     else:
         return stateList
 
-
+# place in scripts route
 async def run_script(script: str, state_atom_dict):
     """
     Runs the provided script's run() function on the state_atom_dict provided.
@@ -289,6 +351,7 @@ async def run_script(script: str, state_atom_dict):
 
 
 # this is in neomd as well, need to pick one version
+# under data route
 def get_potential(run: str) -> str:
     """
     Gets a potential file associated with the run, and writes it to the current working directory.
@@ -309,7 +372,7 @@ def get_potential(run: str) -> str:
 
         return filename
 
-
+# data route
 def load_sequence(run: str) -> Trajectory:
     """
     Loads the sequence for the trajectory and creates a Trajectory object to use.
@@ -333,7 +396,7 @@ def load_sequence(run: str) -> Trajectory:
     )
     return trajectory
 
-
+# place in scripts route
 @router.get("/script_properties")
 def script_properties():
     """
@@ -344,7 +407,7 @@ def script_properties():
     properties_to_script = get_script_properties_map()
     return list(properties_to_script.keys())
 
-
+# place in scripts route
 @router.get("/vis_scripts")
 def vis_scripts():
     """
@@ -359,7 +422,7 @@ def vis_scripts():
                 scripts.append(entry.name)
     return scripts
 
-
+# place in scripts route
 def get_script_properties_map():
     """
     Read all of the scripts within the scripts folder, then get the properties that they will return.
@@ -380,7 +443,7 @@ def get_script_properties_map():
 
     return properties_to_script
 
-
+# place in scripts route
 def get_script_code(script_name, folder="scripts"):
     """
     Get the actual code for the script within the folder specified.
@@ -400,6 +463,7 @@ def get_script_code(script_name, folder="scripts"):
 
 
 # maybe better to just hit database rather than use cache and load entire run?
+# data route
 @router.get("/get_sequence")
 def get_sequence(run: str, start: Optional[int], end: Optional[int] = None):
     """
@@ -422,7 +486,7 @@ def get_sequence(run: str, start: Optional[int], end: Optional[int] = None):
     else:
         return trajectory.sequence[start : end + 1]
 
-
+# data route
 @router.get("/get_run_list")
 def get_run_list():
     """
@@ -443,15 +507,17 @@ def get_run_list():
 
     return j
 
-
-@router.get("/get_metadata")
-def get_metadata(run: str):
-    _, j = getMetadata(run, getJson=True)
-    return j
-
-
+# actions like this go under actions route?
 @router.get("/modify_trajectory")
 def modify_trajectory(run: str, chunkingThreshold: float, numClusters: int):
+    """
+    Update the trajectory's exploratory parameters, i.e., the simplfication threshold and number of PCCA clusters.
+    Not split into two seperate functions since you need to apply both when the number of clusters changes.
+
+    :param run str: The trajectory to modify.
+    :param chunkingThreshold: The simplification threshold.
+    :param numClusters: The number of clusters to cluster the trajectory into.
+    """
     mem_client = PooledClient("localhost", max_pool_size=4, serde=serde.pickle_serde)
     trajectory = mem_client.get(run)
 
@@ -474,7 +540,7 @@ def modify_trajectory(run: str, chunkingThreshold: float, numClusters: int):
         "current_clustering": trajectory.current_clustering,
     }
 
-
+# maybe go to data route
 @router.get("/load_trajectory")
 def load_trajectory(run: str, mMin: int, mMax: int, chunkingThreshold: float):
     """
@@ -508,29 +574,23 @@ def load_trajectory(run: str, mMin: int, mMax: int, chunkingThreshold: float):
         "current_clustering": trajectory.current_clustering,
     }
 
-# organize with other background worker jobs
-@router.post("/subset_connectivity_difference")
-def subset_connectivity_difference(stateIDs: List[int] = Body([])):
-    task_id = uuid()
-    unprocessed.update(
-        {
-            task_id: {
-                "name": "subset_connectivity_difference",
-                "params": {
-                    "stateIDs": stateIDs,
-                },
-            }
-        }
-    )
-
-    return task_id
-
 
 # make this a websocket?
+# actions
 @router.post("/selection_distance")
 def selection_distance(
     stateSet1: List[int] = Body([]), stateSet2: List[int] = Body([])
 ):
+    """
+    Given two lists of state IDs, get their atomic configurations and compare using ase's 
+    Frobeian norm.
+
+    :param stateSet1: First set of states. 
+    :param stateSet2: Second set of states.
+
+    :returns Dict[int, Dict[int, float]]: A dictionary of dictionaries (like matrix) that describes
+    the distance from one state to all other states.
+    """
     driver = GraphDriver()
 
     # get all states without duplicates

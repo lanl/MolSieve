@@ -10,7 +10,7 @@ from neomd import calculator
 from .config import config
 from .utils import load_pickle, save_pickle
 
-
+# needs more comments, testing
 class Trajectory:
     metadata = None
     cmds = None

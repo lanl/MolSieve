@@ -5,7 +5,7 @@ import pickle
 import neo4j
 
 from .config import config
-
+# needs comments and testing
 
 def metadata_to_parameters(raw_metadata):
     """
