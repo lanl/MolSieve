@@ -26,7 +26,7 @@ TASK_COMPLETE = "TASK_COMPLETE"
 
 
 def send_update(task_id: str, data: Dict[Any, Any]):
-    requests.post(f"http://localhost:8000/api/update_task/{task_id}", json=data)
+    requests.post(f"http://localhost:8000/worker/update_task/{task_id}", json=data)
 
 
 class PostingTask(Task):
