@@ -1,13 +1,10 @@
 from typing import Any, Dict, List
 
-import neo4j
 import requests
 from celery import Celery, Task, current_task
 from celery.utils.log import get_task_logger
-from scipy import stats
 
 from neomd import calculator, converter, metadata, querybuilder
-from neomd.query import Query
 
 from ..graphdriver import GraphDriver
 from .celeryconfig import CeleryConfig
@@ -26,21 +23,40 @@ TASK_COMPLETE = "TASK_COMPLETE"
 
 
 def send_update(task_id: str, data: Dict[Any, Any]):
+    """
+    Send update to FastAPI containing whatever data is passed here.
+
+    :param task_id: The task to update.
+    :param data: The data to send.
+    """
     requests.post(f"http://localhost:8000/worker/update_task/{task_id}", json=data)
 
 
 class PostingTask(Task):
     def before_start(self, task_id, args, kwargs):
+        # send update that task is starting
         send_update(task_id, {"type": TASK_START})
         return super().before_start(task_id, args, kwargs)
 
     def on_success(self, retval, task_id, args, kwargs):
+        # send update that task has finished
         send_update(task_id, {"type": TASK_COMPLETE})
         return super().on_success(retval, task_id, args, kwargs)
 
 
 @celery.task(name="subset_connectivity_difference", base=PostingTask)
 def subset_connectivity_difference(stateIDs: List[int]):
+    """
+    Calculates the critical states of a sequence.
+    This is achieved using a greedy algorithm where the first state is compared to the entire sequence,
+    and then the index of the state with the most difference is returned.
+    Using this most different state, we start the loop again and look for the maximally different state from that point in the sequence.
+    Continue until 3 iterations or we reach the end.
+
+    :param stateIDs: The states to compare.
+
+    :returns: The IDs of the critical states of the sequence.
+    """
     driver = GraphDriver()
     task_id = current_task.request.id
 
@@ -76,6 +92,7 @@ def subset_connectivity_difference(stateIDs: List[int]):
             break
         iter += 1
 
+    # again, return the states here possibly?
     return ""
 
 
@@ -89,6 +106,17 @@ def neb_on_path(
     fmax: float = 0.01,
     saveResults: bool = True,
 ):
+    """
+    Calculates the NEB on a path on the given trajectory from the start to the end timesteps provided.
+
+    :param run: Name of the trajectory.
+    :param start: Start timestep.
+    :param end: End timestep.
+    :param interpolate: How many images should be between each timestep.
+    :param maxSteps: Maximum step reached in the optimization before it stops.
+    :param fmax: Minimum energy value before stopping.
+    :param saveResults: Unused. The database always saves results.
+    """
 
     task_id = current_task.request.id
     driver = GraphDriver()
