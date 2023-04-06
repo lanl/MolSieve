@@ -46,7 +46,7 @@ export default function NEBWrapper({
     useEffect(() => {
         apiCalculateNEB(trajectoryName, start, end, interpolate, maxSteps, fmax, saveResults)
             .then((id) => {
-                const client = new WebSocket(`${WS_URL}/api/ws/${id}`);
+                const client = new WebSocket(`${WS_URL}/worker/ws/${id}`);
                 client.onmessage = onMessageHandler(
                     () => {
                         reduceResults({ type: 'clear' });

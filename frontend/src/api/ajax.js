@@ -31,7 +31,7 @@ export function onMessageHandler(onStart, onProgress, onComplete) {
 export function apiCalculateNEB(run, start, end, interpolate, maxSteps, fmax, saveResults) {
     return new Promise((resolve, reject) => {
         axios
-            .get(`${API_URL}/api/calculate_neb_on_path`, {
+            .get(`${API_URL}/calculate/neb_on_path`, {
                 params: {
                     run,
                     start,
@@ -110,7 +110,7 @@ export function apiClusterStates(properties, states) {
     return new Promise((resolve, reject) => {
         axios
             .post(
-                `${API_URL}/api/cluster_states`,
+                `${API_URL}/calculate/cluster_states`,
                 JSON.stringify({ props: properties, stateIds: states }),
                 {
                     headers: { 'Content-Type': 'application/json' },
@@ -157,7 +157,7 @@ export function apiGetVisScripts() {
 export function apiSubsetConnectivityDifference(stateIDs) {
     return new Promise((resolve, reject) => {
         axios
-            .post(`${API_URL}/api/subset_connectivity_difference`, stateIDs)
+            .post(`${API_URL}/calculate/subset_connectivity_difference`, stateIDs)
             .then((response) => resolve(response.data))
             .catch((e) => reject(e));
     });
@@ -166,7 +166,7 @@ export function apiSubsetConnectivityDifference(stateIDs) {
 export function apiSelectionDistance(stateSet1, stateSet2) {
     return new Promise((resolve, reject) => {
         axios
-            .post(`${API_URL}/api/selection_distance`, { stateSet1, stateSet2 })
+            .post(`${API_URL}/calculate/selection_distance`, { stateSet1, stateSet2 })
             .then((response) => resolve(response.data))
             .catch((e) => reject(e));
     });

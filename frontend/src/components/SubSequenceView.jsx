@@ -61,7 +61,10 @@ function SubSequenceView({
         if (!isLoaded) {
             apiSubsetConnectivityDifference(stateIDs).then((taskID) => {
                 // open web socket
-                ws.current = WebSocketManager.connect(`${WS_URL}/api/ws/${taskID}`, 'selections');
+                ws.current = WebSocketManager.connect(
+                    `${WS_URL}/worker/ws/${taskID}`,
+                    'selections'
+                );
 
                 let insertAt = 1;
                 ws.current.addEventListener('message', (e) => {
