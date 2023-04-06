@@ -1,17 +1,21 @@
-from typing import List, Dict, Any
-from .celeryconfig import CeleryConfig
+import json
+from typing import Any, Dict, List
 
 import neo4j
-from celery import Celery, current_task, Task
-from celery.utils.log import get_task_logger
-from neomd import querybuilder, converter, calculator, metadata
-from neomd.query import Query
-from scipy import stats
-import json
 import requests
+from celery import Celery, Task, current_task
+from celery.utils.log import get_task_logger
+from scipy import stats
+
+from neomd import calculator, converter, metadata, querybuilder
+from neomd.query import Query
+
+from .celeryconfig import CeleryConfig
 
 celery = Celery(
-    "background_worker", backend="redis://localhost:6379/0", broker="redis://localhost:6379/0"
+    "background_worker",
+    backend="redis://localhost:6379/0",
+    broker="redis://localhost:6379/0",
 )
 celery.config_from_object(CeleryConfig)
 logger = get_task_logger(__name__)
@@ -42,7 +46,6 @@ def subset_connectivity_difference(stateIDs: List[int]):
     )
     task_id = current_task.request.id
 
-
     qb = querybuilder.Neo4jQueryBuilder([("Atom", "PART_OF", "State", "MANY-TO-ONE")])
     q = qb.generate_get_node_list("State", stateIDs, "PART_OF")
     state_atom_dict = converter.query_to_ASE(driver, q)
@@ -63,19 +66,20 @@ def subset_connectivity_difference(stateIDs: List[int]):
 
             current_task.update_state(state="PROGRESS")
             send_update(
-                    task_id,
-                    {
-                        "type": TASK_PROGRESS,
-                        "data": result['id'],
-                    },
-                )
-      
+                task_id,
+                {
+                    "type": TASK_PROGRESS,
+                    "data": result["id"],
+                },
+            )
+
             connectivity_list = connectivity_list[result["index"] :]
         else:
             break
         iter += 1
 
-    return '' 
+    return ""
+
 
 @celery.task(name="perform_KS_Test", base=PostingTask)
 def perform_KSTest(data: dict):
@@ -117,9 +121,9 @@ def perform_KSTest(data: dict):
 
     return json.dumps({"statistic": statistic, "pvalue": pvalue})
 
-
-@celery.task(name="calculate_neb_on_path", base=PostingTask)
-def calculate_neb_on_path(
+# needs serious cleanup
+@celery.task(name="neb_on_path", base=PostingTask)
+def neb_on_path(
     run: str,
     start: str,
     end: str,
@@ -149,7 +153,7 @@ def calculate_neb_on_path(
         },
     )
 
-    md = metadata.get_metadata(run)
+    md = metadata.get_metadata(driver, run)
 
     path = {}
     allStates = []
@@ -178,7 +182,7 @@ def calculate_neb_on_path(
             if r["timestep"] in path:
                 curr_tuple = path[r["timestep"]]
                 path[r["timestep"]] = (curr_tuple[0], r["sym_state"], curr_tuple[1])
-                
+
         for relation in path.values():
             if relation[0] not in allStates:
                 allStates.append(relation[0])
@@ -201,19 +205,14 @@ def calculate_neb_on_path(
         # should send error message to main
         raise ValueError("Cannot interpolate less than 0 images.")
 
-    stateIDCounter = getStateIDCounter()
+    stateIDCounter = metadata.get_stateID_counter()
     idx = 0
 
-    #from ase.io import lammpsdata 
-
-    for timestep, relation in path.items():
+    for relation in path.values():
         s1, s2, old_state = relation
         s1_atoms = full_atom_dict[s1]
         s2_atoms = full_atom_dict[s2]
 
-        #lammpsdata.write_lammps_data(f'{s1}.dat', s1_atoms, velocities=True)
-        #lammpsdata.write_lammps_data(f'{s2}.dat', s2_atoms, velocities=True)
-        
         images = calculator.calculate_neb_for_pair(
             s1_atoms,
             s2_atoms,
@@ -229,23 +228,27 @@ def calculate_neb_on_path(
             # send first state
             current_task.update_state(state="PROGRESS")
             send_update(
-                    task_id,
-                    {
-                        "type": TASK_PROGRESS,
-                        "progress": f"{idx+1/len(path)}",
-                        "data": {'id': old_state, 'energy': s1_atoms.get_potential_energy(), 'timestep': idx},
+                task_id,
+                {
+                    "type": TASK_PROGRESS,
+                    "progress": f"{idx+1/len(path)}",
+                    "data": {
+                        "id": old_state,
+                        "energy": s1_atoms.get_potential_energy(),
+                        "timestep": idx,
                     },
-                )
-            idx += 1 
+                },
+            )
+            idx += 1
             for atoms in images[1:-1]:
                 cell = atoms.get_cell()
-                cell_x = cell[0, 0] 
-                cell_y = cell[1, 1] 
-                cell_z = cell[2, 2] 
+                cell_x = cell[0, 0]
+                cell_y = cell[1, 1]
+                cell_z = cell[2, 2]
                 xy = cell[1, 0]
                 xz = cell[2, 0]
                 yz = cell[2, 1]
-                px,py,pz = atoms.get_pbc()
+                px, py, pz = atoms.get_pbc()
                 atom_count = len(atoms)
 
                 stateQ = f"""CREATE (s:State:NEB:{run}) 
@@ -285,10 +288,21 @@ def calculate_neb_on_path(
                     symbol = atom.symbol
                     px, py, pz = position
                     vx, vy, vz = velocity
-                    tx.run(atomQ, stateIDCounter=stateIDCounter, symbol=symbol, atom_id=f"{stateIDCounter}_{atom_counter}", internal_id=atom_counter,
-                           px=px,py=py,pz=pz,vx=vx,vy=vy,vz=vz)
+                    tx.run(
+                        atomQ,
+                        stateIDCounter=stateIDCounter,
+                        symbol=symbol,
+                        atom_id=f"{stateIDCounter}_{atom_counter}",
+                        internal_id=atom_counter,
+                        px=px,
+                        py=py,
+                        pz=pz,
+                        vx=vx,
+                        vy=vy,
+                        vz=vz,
+                    )
                     atom_counter += 1
-                
+
                 current_task.update_state(state="PROGRESS")
                 send_update(
                     task_id,
@@ -296,7 +310,11 @@ def calculate_neb_on_path(
                         "type": TASK_PROGRESS,
                         "message": f"Image {idx + 1} processed.",
                         "progress": f"{idx+1/len(path)}",
-                        "data": {'id': stateIDCounter, 'energy': atoms.get_potential_energy(), 'timestep': idx},
+                        "data": {
+                            "id": stateIDCounter,
+                            "energy": atoms.get_potential_energy(),
+                            "timestep": idx,
+                        },
                     },
                 )
                 stateIDCounter += 1
@@ -305,15 +323,19 @@ def calculate_neb_on_path(
             # send last state
             current_task.update_state(state="PROGRESS")
             send_update(
-                    task_id,
-                    {
-                        "type": TASK_PROGRESS,
-                        "message": f"Image {idx + 1} processed.",
-                        "progress": f"{idx+1/len(path)}",
-                        "data": {'id': s2, 'energy': s2_atoms.get_potential_energy(), 'timestep': idx },
+                task_id,
+                {
+                    "type": TASK_PROGRESS,
+                    "message": f"Image {idx + 1} processed.",
+                    "progress": f"{idx+1/len(path)}",
+                    "data": {
+                        "id": s2,
+                        "energy": s2_atoms.get_potential_energy(),
+                        "timestep": idx,
                     },
-                )
-            
+                },
+            )
+
             q = f"MATCH (s:ServerMetadata) SET s.stateIDCounter={stateIDCounter};"
             tx.run(q)
             tx.commit()
@@ -350,6 +372,7 @@ def calculate_path_similarity(
     )
 
     return json.dumps({"score": score})
+
 
 # used with load_properties to save time
 @celery.task(name="save_to_db")

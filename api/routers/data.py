@@ -20,7 +20,6 @@ from ..utils import (
 
 router = APIRouter(prefix="/data", tags=['data'])
 
-
 async def run_script(script: str, state_atom_dict):
     """
     Runs the provided script's run() function on the state_atom_dict provided.
