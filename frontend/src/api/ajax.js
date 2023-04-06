@@ -139,7 +139,7 @@ export function apiGetSequence(run, range) {
 export function apiGetScriptProperties() {
     return new Promise((resolve, reject) => {
         axios
-            .get(`${API_URL}/api/script_properties`)
+            .get(`${API_URL}/scripts/properties`)
             .then((response) => resolve(response.data))
             .catch((e) => reject(e));
     });
@@ -148,7 +148,7 @@ export function apiGetScriptProperties() {
 export function apiGetVisScripts() {
     return new Promise((resolve, reject) => {
         axios
-            .get(`${API_URL}/api/vis_scripts`)
+            .get(`${API_URL}/scripts/visual`)
             .then((response) => resolve(response.data))
             .catch((e) => reject(e));
     });

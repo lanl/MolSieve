@@ -1,3 +1,6 @@
+"""
+Module for running various calculations on the data-set.
+"""
 from typing import List
 
 import ase.geometry
@@ -98,6 +101,20 @@ async def neb_on_path(
     fmax: float = 0.01,
     saveResults: bool = True,
 ):
+    """
+    Calculates the NEB on a path on the given trajectory from the start to the end timesteps provided.
+    Sends a task to the celery background worker to do the work so that the back-end can process other tasks.
+
+    :param run: Name of the trajectory.
+    :param start: Start timestep.
+    :param end: End timestep.
+    :param interpolate: How many images should be between each timestep.
+    :param maxSteps: Maximum step reached in the optimization before it stops.
+    :param fmax: Minimum energy value before stopping.
+    :param saveResults: Unused. The database always saves results.
+
+    :returns int: The task ID.
+    """
 
     task_id = add_task_to_queue(
         "neb_on_path",
@@ -116,6 +133,15 @@ async def neb_on_path(
 
 @router.post("/subset_connectivity_difference")
 def subset_connectivity_difference(stateIDs: List[int] = Body([])):
+    """
+    Uses a greedy search algorithm to generate a preview of the states where
+    each state shown is as different as possible from the previous state.
+    Helps locate structural differences in the simulation.
+
+    :param stateIDs: A list of state IDs to run the calculation for.
+
+    :returns int: The task ID.
+    """
     task_id = add_task_to_queue(
         "subset_connectivity_difference",
         {

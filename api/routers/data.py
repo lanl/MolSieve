@@ -1,3 +1,6 @@
+"""
+Module for retrieving data from the database.
+"""
 from typing import Optional
 
 from celery.utils import uuid
@@ -18,7 +21,8 @@ from ..utils import (
     remove_duplicates,
 )
 
-router = APIRouter(prefix="/data", tags=['data'])
+router = APIRouter(prefix="/data", tags=["data"])
+
 
 async def run_script(script: str, state_atom_dict):
     """
@@ -67,6 +71,13 @@ async def generate_ovito_image_endpoint(id: int, visScript: str):
 
 @router.get("/get_metadata")
 def get_metadata(run: str):
+    """
+    Retrieves metadata for the requested trajectory.
+
+    :param run: Name of the trajectory.
+
+    :returns Dict[str, Any]: Dictionary of metadata information.
+    """
     driver = GraphDriver()
     return metadata.get_metadata(driver, run)
 
@@ -244,11 +255,17 @@ def list_trajectories():
 
 
 @router.get("/load_trajectory")
-def load_trajectory(run: str, mMin: int, mMax: int, chunkingThreshold: float, numClusters: int | None = None):
+def load_trajectory(
+    run: str,
+    mMin: int,
+    mMax: int,
+    chunkingThreshold: float,
+    numClusters: int | None = None,
+):
     """
     Loads the trajectory's sequence, runs PCCA on it, simplifies it, and returns a list of important / unimportant regions + states.
     If numClusters is specified, it is used to cluster the trajectory; otherwise, the optimal clustering value found by minChi(mMin,mMax) is used.
-    
+
     :param run str: The name of the trajectory to load
     :param mMin int: When running PCCA, the minimum cluster size to try.
     :param mMax int: When running PCCA, the maximum cluster size to try.
