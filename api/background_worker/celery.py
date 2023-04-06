@@ -1,4 +1,3 @@
-import json
 from typing import Any, Dict, List
 
 import neo4j
@@ -10,6 +9,7 @@ from scipy import stats
 from neomd import calculator, converter, metadata, querybuilder
 from neomd.query import Query
 
+from ..graphdriver import GraphDriver
 from .celeryconfig import CeleryConfig
 
 celery = Celery(
@@ -41,9 +41,7 @@ class PostingTask(Task):
 
 @celery.task(name="subset_connectivity_difference", base=PostingTask)
 def subset_connectivity_difference(stateIDs: List[int]):
-    driver = neo4j.GraphDatabase.driver(
-        "bolt://127.0.0.1:7687", auth=("neo4j", "secret")
-    )
+    driver = GraphDriver()
     task_id = current_task.request.id
 
     qb = querybuilder.Neo4jQueryBuilder([("Atom", "PART_OF", "State", "MANY-TO-ONE")])
@@ -81,47 +79,6 @@ def subset_connectivity_difference(stateIDs: List[int]):
     return ""
 
 
-@celery.task(name="perform_KS_Test", base=PostingTask)
-def perform_KSTest(data: dict):
-    cdf = data["cdf"]
-    rvs = data["rvs"]
-    prop = data["property"]
-
-    task_id = current_task.request.id
-
-    driver = neo4j.GraphDatabase.driver(
-        "bolt://127.0.0.1:7687", auth=("neo4j", "secret")
-    )
-
-    qb = querybuilder.Neo4jQueryBuilder()
-    q = qb.generate_get_node_list("State", rvs, attributeList=[prop])
-
-    current_task.update_state(state="PROGRESS")
-    send_update(
-        task_id,
-        {
-            "type": TASK_PROGRESS,
-            "message": "Finished processing nodes.",
-            "progress": "0.5",
-        },
-    )
-
-    rvs_df = converter.query_to_df(driver, q)
-    rvs_final = rvs_df[prop].to_numpy()
-    cdf_final = None
-
-    if type(data["cdf"]) is dict:
-        q = qb.generate_get_node_list("State", cdf)
-        cdf_df = converter.query_to_df(driver, q)
-        cdf_final = cdf_df[prop].to_numpy()
-    else:
-        cdf_final = cdf
-
-    statistic, pvalue = stats.kstest(rvs_final, cdf_final)
-
-    return json.dumps({"statistic": statistic, "pvalue": pvalue})
-
-# needs serious cleanup
 @celery.task(name="neb_on_path", base=PostingTask)
 def neb_on_path(
     run: str,
@@ -134,80 +91,38 @@ def neb_on_path(
 ):
 
     task_id = current_task.request.id
+    driver = GraphDriver()
 
-    driver = neo4j.GraphDatabase.driver(
-        "bolt://127.0.0.1:7687", auth=("neo4j", "secret")
-    )
+    md = metadata.get_metadata(driver, run)
+    path, allStates = calculator.canonical_path(driver, run, start, end)
 
     qb = querybuilder.Neo4jQueryBuilder(
         schema=[("Atom", "PART_OF", "State", "MANY-TO-ONE")]
     )
 
-    current_task.update_state(state="PROGRESS")
-    send_update(
-        task_id,
-        {
-            "type": TASK_PROGRESS,
-            "message": "Finished getting nodes.",
-            "progress": "0.1",
-        },
-    )
+    q = qb.generate_get_node_list("State", allStates, "PART_OF")
+    full_atom_dict = converter.query_to_ASE(driver, q)
 
-    md = metadata.get_metadata(driver, run)
-
-    path = {}
-    allStates = []
-    with driver.session() as session:
-        # get the path first, just the ids
-        q = f"""MATCH (n:State:{run})-[r:{run}]->(n2:State:{run})
-        WHERE r.timestep >= {start} AND r.timestep <= {end}
-        RETURN n.id AS first, r.timestep AS timestep, n2.id AS second;"""
-
-        res = session.run(q)
-        for r in res:
-            path.update({r["timestep"]: (r["first"], r["second"], r["first"])})
-
-        # get their canonical representations - this is a seperate query
-        q = f"""OPTIONAL MATCH (n:{run})-[r:canon_rep_{run}]->(n2:State)
-            WHERE r.timestep >= {start} AND r.timestep <= {end} AND n.id IN ["""
-        count = 0
-        for relation in path.values():
-            q += str(relation[0])
-            if count != len(path.items()) - 1:
-                q += ","
-            count += 1
-        q += "] RETURN DISTINCT r.timestep AS timestep, n2.id AS sym_state ORDER BY r.timestep;"
-        res = session.run(q)
-        for r in res:
-            if r["timestep"] in path:
-                curr_tuple = path[r["timestep"]]
-                path[r["timestep"]] = (curr_tuple[0], r["sym_state"], curr_tuple[1])
-
-        for relation in path.values():
-            if relation[0] not in allStates:
-                allStates.append(relation[0])
-            if relation[1] not in allStates:
-                allStates.append(relation[1])
-
-    full_atom_dict = {}
-    for stateID in allStates:
-        q = f"""MATCH (a:Atom)-[:PART_OF]->(n:State) WHERE n.id = {stateID}
-        WITH n,a ORDER BY a.internal_id WITH collect(DISTINCT a) AS atoms, n
-        RETURN n, atoms;
-        """
-        attr_atom_dict = converter.query_to_ASE(driver, Query(q, ["ASE"]))
-
-        for state, atoms in attr_atom_dict.items():
-            full_atom_dict.update({state: atoms})
-
-    energyList = []
     if interpolate < 0:
         # should send error message to main
         raise ValueError("Cannot interpolate less than 0 images.")
 
-    stateIDCounter = metadata.get_stateID_counter()
-    idx = 0
+    # utility function to update client
+    def send_neb_step(id, atoms, index):
+        send_update(
+            task_id,
+            {
+                "type": TASK_PROGRESS,
+                "progress": f"{index+1/len(path)}",
+                "data": {
+                    "id": id,
+                    "energy": atoms.get_potential_energy(),
+                    "timestep": index,
+                },
+            },
+        )
 
+    idx = 0  # keeps count of how many steps we have processed
     for relation in path.values():
         s1, s2, old_state = relation
         s1_atoms = full_atom_dict[s1]
@@ -222,168 +137,31 @@ def neb_on_path(
             fmax,
         )
 
-        with driver.session() as session:
-            tx = session.begin_transaction()
+        send_neb_step(old_state, s1_atoms, idx)
+        idx += 1
 
-            # send first state
-            current_task.update_state(state="PROGRESS")
-            send_update(
-                task_id,
-                {
-                    "type": TASK_PROGRESS,
-                    "progress": f"{idx+1/len(path)}",
-                    "data": {
-                        "id": old_state,
-                        "energy": s1_atoms.get_potential_energy(),
-                        "timestep": idx,
-                    },
-                },
-            )
+        # convert ASE Atoms to new states
+        for atoms in images[1:-1]:
+            stateID = converter.ase_to_neo4j(driver, ["NEB", run], atoms)
+            send_neb_step(stateID, atoms, idx)
             idx += 1
-            for atoms in images[1:-1]:
-                cell = atoms.get_cell()
-                cell_x = cell[0, 0]
-                cell_y = cell[1, 1]
-                cell_z = cell[2, 2]
-                xy = cell[1, 0]
-                xz = cell[2, 0]
-                yz = cell[2, 1]
-                px, py, pz = atoms.get_pbc()
-                atom_count = len(atoms)
 
-                stateQ = f"""CREATE (s:State:NEB:{run}) 
-                        SET s.id = {stateIDCounter},
-                        s.boxhi_x = {cell_x},
-                        s.boxhi_y = {cell_y},
-                        s.boxhi_z = {cell_z},
-                        s.boxlo_x = 0.0,
-                        s.boxlo_y = 0.0,
-                        s.boxlo_z = 0.0,
-                        s.xy = {xy},
-                        s.xz = {xz},
-                        s.yz = {yz},
-                        s.periodic_x = {int(px)},
-                        s.periodic_y = {int(py)},
-                        s.periodic_z = {int(pz)},
-                        s.AtomCount = {atom_count};"""
-                tx.run(stateQ)
+        send_neb_step(s2, s2_atoms, idx)
 
-                positions = atoms.get_positions()
-                velocities = atoms.get_velocities()
-                atomQ = """MATCH (s:NEB) WHERE s.id = $stateIDCounter
-                            CREATE (a:Atom)
-                            SET a.atom_type = $symbol,
-                            a.id = $atom_id,
-                            a.internal_id = $internal_id,
-                            a.position_x = $px,
-                            a.position_y = $py,
-                            a.position_z = $pz,
-                            a.velocity_x = $vx,
-                            a.velocity_y = $vy,
-                            a.velocity_z = $vz
-                            MERGE (a)-[:PART_OF]->(s);"""
-
-                atom_counter = 1
-                for atom, position, velocity in zip(atoms, positions, velocities):
-                    symbol = atom.symbol
-                    px, py, pz = position
-                    vx, vy, vz = velocity
-                    tx.run(
-                        atomQ,
-                        stateIDCounter=stateIDCounter,
-                        symbol=symbol,
-                        atom_id=f"{stateIDCounter}_{atom_counter}",
-                        internal_id=atom_counter,
-                        px=px,
-                        py=py,
-                        pz=pz,
-                        vx=vx,
-                        vy=vy,
-                        vz=vz,
-                    )
-                    atom_counter += 1
-
-                current_task.update_state(state="PROGRESS")
-                send_update(
-                    task_id,
-                    {
-                        "type": TASK_PROGRESS,
-                        "message": f"Image {idx + 1} processed.",
-                        "progress": f"{idx+1/len(path)}",
-                        "data": {
-                            "id": stateIDCounter,
-                            "energy": atoms.get_potential_energy(),
-                            "timestep": idx,
-                        },
-                    },
-                )
-                stateIDCounter += 1
-                idx += 1
-
-            # send last state
-            current_task.update_state(state="PROGRESS")
-            send_update(
-                task_id,
-                {
-                    "type": TASK_PROGRESS,
-                    "message": f"Image {idx + 1} processed.",
-                    "progress": f"{idx+1/len(path)}",
-                    "data": {
-                        "id": s2,
-                        "energy": s2_atoms.get_potential_energy(),
-                        "timestep": idx,
-                    },
-                },
-            )
-
-            q = f"MATCH (s:ServerMetadata) SET s.stateIDCounter={stateIDCounter};"
-            tx.run(q)
-            tx.commit()
+    # return entire list to store in cache later?
     return {}
 
 
-@celery.task(name="calculate_path_similarity", base=PostingTask)
-def calculate_path_similarity(
-    p1: List[int],
-    p2: List[int],
-    state_attributes: List[str] = [],
-    atom_attributes: List[str] = [],
-):
-
-    driver = neo4j.GraphDatabase.driver(
-        "bolt://127.0.0.1:7687", auth=("neo4j", "secret")
-    )
-
-    generation_state_attributes = state_attributes.copy()
-    generation_state_attributes.append("id")
-
-    qb = querybuilder.Neo4jQueryBuilder([("Atom", "PART_OF", "State", "MANY-TO-ONE")])
-
-    q1 = qb.generate_get_node_list(
-        "State", p1, attributeList=generation_state_attributes
-    )
-
-    q2 = qb.generate_get_node_list(
-        "State", p2, attributeList=generation_state_attributes
-    )
-
-    score = calculator.calculate_path_similarity(
-        driver, q1, q2, state_attributes, atom_attributes
-    )
-
-    return json.dumps({"score": score})
-
-
-# used with load_properties to save time
 @celery.task(name="save_to_db")
 def save_to_db(new_attributes):
-    driver = neo4j.GraphDatabase.driver(
-        "bolt://127.0.0.1:7687", auth=("neo4j", "secret")
-    )
+    """
+    Saves the data provided in the database. Heavily used in load_properties, this frees FastAPI from sending data to the database.
 
-    qb = querybuilder.Neo4jQueryBuilder(
-        schema=[("Atom", "PART_OF", "State", "MANY-TO-ONE")]
-    )
+    :param new_attributes Dict[int, Dict[str, Any]]: Dictionary of stateIDs to dictionaries containing new properties.
+    """
+    driver = GraphDriver()
+
+    qb = querybuilder.Neo4jQueryBuilder()
 
     q = None
     with driver.session() as session:
