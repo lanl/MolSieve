@@ -1,25 +1,30 @@
 import { apiGetSequence } from './ajax';
 
+/**
+ * Chunks correspond to regions in the paper; they are mapped into views in the main screen.
+ * Unimportant chunk = super-state
+ * Important chunk = transition region
+ */
 export default class Chunk {
-    timestep;
+    timestep; // first timestep
 
-    last;
+    last; // last timestep
 
     firstID; // id for first state in chunk
 
     id; // id for chunk
 
-    important;
+    important; // whether or not it is important i.e., transition region
 
-    cluster;
+    cluster; // PCCA cluster it belongs to
 
-    sequence = [];
+    sequence = []; // sequence of states belonging to the chunk
 
-    selected = [];
+    selected = []; // randomly selected states used in super-state views
 
-    characteristicState;
+    characteristicState; // the most commonly occurring state in the chunk's sequence
 
-    color;
+    color; // color for chunk TODO: decouple from chunk
 
     constructor(
         id,
@@ -45,6 +50,13 @@ export default class Chunk {
         this.color = color;
     }
 
+    /**
+     * Builds a new Chunk from a slice of this one. Used in zooming in Trajectory Components.
+     *
+     * @param {Number} start - First timestep.
+     * @param {Number} end - Last timestep.
+     * @returns {Chunk} New chunk
+     */
     slice(start, end) {
         if (start <= this.timestep && end >= this.last) {
             return this;
@@ -65,11 +77,20 @@ export default class Chunk {
         );
     }
 
+    /**
+     * Gets the length of the chunk.
+     *
+     * @returns {Number} Length of the chunk.
+     */
     get size() {
         return this.last - this.timestep + 1;
     }
 
-    // returns an array of the underlying timesteps within the chunk, ordered temporally
+    /**
+     * Returns an array of the underlying timesteps within the chunk, ordered temporally
+     *
+     * @returns {Array<Number>} The timesteps within the chunk.
+     */
     get timesteps() {
         const timesteps = [];
         for (let i = this.timestep; i <= this.last; i++) {
@@ -78,16 +99,30 @@ export default class Chunk {
         return timesteps;
     }
 
-    // returns an array of unique state ids within a chunk
+    /**
+     * Returns an array of unique state IDs within a chunk.
+     * @returns {Array<Number>} The unique state IDs within a chunk.
+     */
     get states() {
         return [...this.statesSet];
     }
 
-    // returns a Set of unique states id within a chunk
+    /**
+     * Returns a Set of unique states id within a chunk.
+     *
+     * @returns {Set<Number>} Set of unique state IDs.
+     */
     get statesSet() {
         return new Set(this.sequence);
     }
 
+    /**
+     * Loads the sequence for the chunk if it hasn't been loaded.
+     * Used when expanding into unimportant chunks.
+     *
+     * @param {String} name - Name of the trajectory the chunk belongs to.
+     * @returns {Array<Number>} The state IDs within the chunk's sequence.
+     */
     loadSequence(name) {
         return new Promise((resolve, reject) => {
             if (!this.loaded && !this.important) {
@@ -142,6 +177,12 @@ export default class Chunk {
         return `<em>Timesteps:</em> ${this.timestep} - ${this.last}<br><em>Length:</em> ${this.size}`;
     }
 
+    /**
+     * Checks if the chunk contains the timesteps provided.
+     *
+     * @param {Array<Number>} timesteps - Timesteps to check within the chunk
+     * @returns {Bool} True if timesteps are contained within the chunk.
+     */
     containsSequence(timesteps) {
         const start = Math.min(...timesteps);
         const end = Math.max(...timesteps);
@@ -152,8 +193,9 @@ export default class Chunk {
     /**
      * Removes sliceSize of the sequence in the given direction
      *
-     * @param {[TODO:type]} sliceSize - [TODO:description]
-     * @param {[TODO:type]} direction - [TODO:description]
+     * @param {Number} sliceSize - Number of states to remove.
+     * @param {String} direction - Which side to delete from front (left) or back (right)
+     * @returns {Array<Number} - The states deleted from this sequence.
      */
     takeFromSequence(sliceSize, direction) {
         if (this.sequence.length >= sliceSize) {
@@ -173,6 +215,13 @@ export default class Chunk {
         return this.sequence.splice(0, this.sequence.length);
     }
 
+    /**
+     * Adds states to a chunk's sequence in the direction provided.
+     *
+     * @param {[TODO:type]} values - The states to add to the chunk.
+     * @param {[TODO:type]} direction - Which side to add to - front (left) or back (right)
+     * @throws {Error} - Thrown if unknown direction specified.
+     */
     addToSequence(values, direction) {
         switch (direction) {
             case 'front': {

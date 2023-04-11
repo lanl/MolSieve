@@ -2,6 +2,8 @@
 import { addPropToStates } from './states';
 import { updateRanks } from './trajectories';
 
+// TODO: This should be decoupled from fetching States from the back-end.
+
 export const wsConnect = (host) => ({ type: 'WS_CONNECT', host });
 export const wsConnecting = (host) => ({ type: 'WS_CONNECTING', host });
 export const wsConnected = (host) => ({ type: 'WS_CONNECTED', host });
@@ -13,6 +15,8 @@ const socketMiddleware = () => {
     let socket = null;
 
     const onOpen = (store) => (event) => {
+        // when we open the connection, send all of the unloaded states to the back-end
+        // to calculate their properties
         const state = store.getState();
         const { properties, values } = state.states;
         // try to load 10% of the dataset at a time
@@ -43,7 +47,7 @@ const socketMiddleware = () => {
     };
 
     const onMessage = (store) => (event) => {
-        // would have to query here to find out if everyone is finished rendering
+        // send the newly calculated properties to the Redux store
         const payload = JSON.parse(event.data);
         store.dispatch(addPropToStates(payload));
 
@@ -59,11 +63,7 @@ const socketMiddleware = () => {
                 if (socket !== null) {
                     socket.close();
                 }
-
-                // connect to the remote host
                 socket = new WebSocket(action.host);
-
-                // websocket handlers
                 socket.onmessage = onMessage(store);
                 socket.onclose = onClose(store);
                 socket.onopen = onOpen(store);

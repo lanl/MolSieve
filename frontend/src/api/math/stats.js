@@ -29,6 +29,13 @@ export function simpleMovingAverage(values, n) {
     return means;
 }
 
+/**
+ * Calculates the exponential moving average (EMA) for an array of values.
+ *
+ * @param {Array<Number>} values - An array of numerical values.
+ * @param {Number} n - Time period
+ * @returns {Array<Number>} Array of moving averages.
+ */
 export function exponentialMovingAverage(values, n) {
     const k = 2 / (n + 1);
     const d = [];
@@ -62,6 +69,12 @@ export function boxPlotStats(data) {
     return { q1, median, q3, iqr, minThreshold, maxThreshold };
 }
 
+/**
+ * Calculates stderr (denominator in zTest) for an array of values.
+ *
+ * @param {Array<Number>} data - The values to calculate stderr for.
+ * @returns {Number} The stderr.
+ */
 function stderr(data) {
     return d3.deviation(data) ** 2 / data.length;
 }

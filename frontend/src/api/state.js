@@ -1,8 +1,11 @@
 import { abbreviate } from './myutils';
 
-const IGNORE_PROPS = ['img', 'loaded', 'color'];
-const NO_ABBREVIATE = ['id', 'seenIn'];
+const IGNORE_PROPS = ['img', 'loaded', 'color']; // don't show these properties in UI
+const NO_ABBREVIATE = ['id', 'seenIn']; // don't abbreviate these properties in UI
 
+/**
+ * Thin abstraction over a state ID, just used to make it easier to render properties.
+ */
 export default class State {
     id;
 
@@ -13,7 +16,7 @@ export default class State {
     /**
      * Returns all of the state's properties as an html string.
      *
-     * @returns {[TODO:type]} [TODO:description]
+     * @returns {String} The state's properties as an HTML string.
      */
     toString() {
         let propertyString = '';

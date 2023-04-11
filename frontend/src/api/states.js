@@ -6,54 +6,6 @@ import { wsConnect } from './websocketmiddleware';
 import { startListening } from './listenerMiddleware';
 import { mpn65, WS_URL } from './constants';
 
-/**
- * Given a list of stateIDs, find the states that don't have the property loaded.
- *
- * @param {String} property - Name of property to check
- * @param {Array<Number>} subset - List of stateIDs to check
- */
-export const findMissingPropertyInSubset = (property, subset) => {
-    const missing = [];
-
-    for (const s of subset) {
-        if (!(property in s)) {
-            missing.push(s);
-        }
-    }
-    return missing;
-};
-
-/**
- * Check if the states indexed by the ids provided in the subset array have the given properties loaded.
- *
- * @param {[TODO:type]} properties - [TODO:description]
- * @param {[TODO:type]} subset - [TODO:description]
- * @returns {[TODO:type]} [TODO:description]
- */
-export const subsetHasProperties = (properties, subset) => {
-    const vals = [];
-    for (const property of properties) {
-        const missing = findMissingPropertyInSubset(property, subset);
-        vals.push({ name: property, missing, val: !missing.length });
-    }
-    return {
-        hasProperties: vals.every((d) => d.val),
-        missingProperties: [
-            ...new Set(
-                vals
-                    .filter((d) => !d.val)
-                    .map((d) => d.missing)
-                    .reduce((acc, missing) => [...acc, ...missing], [])
-            ),
-        ],
-    };
-};
-
-export const subsetHasProperty = (state, property, subset) => {
-    const missing = findMissingPropertyInSubset(state, property, subset);
-    return !missing.length;
-};
-
 export const clusterStates = createAsyncThunk('states/clusterStates', async (payload) => {
     const { properties, stateIDs } = payload;
     return apiClusterStates(properties, stateIDs);
@@ -72,10 +24,12 @@ export const makeGetStates = () => {
     );
 };
 
-// some super fun functional programming
-// a function that returns a function that returns a color
-// the first layer can use the redux state to do things
-// the second does something based on that information
+/*
+ * a function that returns a function that returns a color
+ * the first layer can use the redux state to do things
+ * the second does something based on that information
+ * Allows UI to reactively color states.
+ */
 const USE_MPN = 0;
 const USE_CLUSTERING = 1;
 const withMpn = () => (id) => mpn65[id % mpn65.length];
@@ -89,12 +43,18 @@ export const getStateColoringMethod = (state) => colorMethods[state.states.color
 export const states = createSlice({
     name: 'states',
     initialState: {
-        values: {},
+        values: {}, // the data associated with each State object
         properties: [],
-        globalScale: {},
-        colorState: USE_MPN,
+        globalScale: {}, // min and max value of properties
+        colorState: USE_MPN, // what function to use when coloring states in the UI
     },
     reducers: {
+        /**
+         * Adds a property to the State store.
+         *
+         * @param {Object} state - Currently existing properties.
+         * @param {Object} action - The properties to add.
+         */
         addProperties: (state, action) => {
             const { properties } = state;
             for (const property of action.payload) {
@@ -102,6 +62,12 @@ export const states = createSlice({
                 states.caseReducers.addPropertyToGlobalScale(state, { payload: { property } });
             }
         },
+        /**
+         * Adds property to globalScale; initialized with min and max.
+         *
+         * @param {Object} state - The globalScale object for all States.
+         * @param {Object} action - The new property to update.
+         */
         addPropertyToGlobalScale: (state, action) => {
             const { globalScale } = state;
             const { property } = action.payload;
@@ -110,6 +76,12 @@ export const states = createSlice({
                 globalScale[property] = { min: Number.MAX_VALUE, max: Number.MIN_VALUE };
             }
         },
+        /**
+         * Updates the globalScale object if it is beyond the min / max values for the specified property.
+         *
+         * @param {Object} state - The globalScale object.
+         * @param {Object} action - The property and new values to update globalScale with.
+         */
         updateGlobalScale: (state, action) => {
             const { globalScale } = state;
             const { property, values } = action.payload;
@@ -120,6 +92,12 @@ export const states = createSlice({
                 max: Math.max(globalScale[property].max, Math.max(...values)),
             };
         },
+        /**
+         * Resets the globalScale for a property.
+         *
+         * @param {Object} state - The globalScale object.
+         * @param {Object} action - The property to reset.
+         */
         resetGlobalScaleProperty: (state, action) => {
             const { globalScale } = state;
             const { property } = action.payload;
@@ -127,6 +105,13 @@ export const states = createSlice({
             delete globalScale[property];
             states.caseReducers.addPropertyToGlobalScale(state, { payload: { property } });
         },
+        /**
+         * Adds a property to a State object.
+         *
+         * @param {Object} state - The state objects, properties list and global scale.
+         * @param {Object} action - Object with mandatory ID field to join to state object list.
+         * @throws {Error} - Raised if prop is missing ID.
+         */
         addPropToState: (state, action) => {
             const { prop } = action.payload;
             const { id } = prop;
@@ -152,12 +137,24 @@ export const states = createSlice({
                 }
             }
         },
+        /**
+         * Adds property to multiple states. Sets states to be loaded.
+         *
+         * @param {Object} state - The States reducer slice.
+         * @param {Object} action - A list of props to add.
+         */
         addPropToStates: (state, action) => {
             for (const prop of action.payload) {
                 prop.loaded = true;
                 states.caseReducers.addPropToState(state, { payload: { prop } });
             }
         },
+        /**
+         * Deletes a property from every state.
+         *
+         * @param {Object} state - The state values list.
+         * @param {Object} action - The property to delete.
+         */
         removePropFromStates: (state, action) => {
             const { values } = state;
             const { prop } = action.payload;
@@ -168,6 +165,13 @@ export const states = createSlice({
                 }
             }
         },
+        /**
+         * Adds new State objects from the back-end if they do not exist.
+         * TODO: Perhaps delete seenIn?
+         *
+         * @param {Object} state - The state values list.
+         * @param {Object} action - The new states and the trajectory they belong to.
+         */
         calculateGlobalUniqueStates: (state, action) => {
             const { newUniqueStates, run } = action.payload;
             const { values } = state;
@@ -183,12 +187,19 @@ export const states = createSlice({
                 }
             }
         },
+        /**
+         * Removes the state clustering assigned to each state from the clusterStates action.
+         *
+         * @param {Object} state - The States reducer slice.
+         * @returns {Object} - The States reducer slice without any state clustering.
+         */
         clearClusterStates: (state) => {
             return { ...state, colorState: USE_MPN, stateClustering: null };
         },
     },
     extraReducers: (builder) => {
         builder.addCase(clusterStates.fulfilled, (state, action) => {
+            // updates state clustering with back-end results
             return { ...state, stateClustering: action.payload, colorState: USE_CLUSTERING };
         });
     },
@@ -205,6 +216,7 @@ export const {
     toggleStateClustering,
 } = states.actions;
 
+// whenever calculateGlobalUniqueStates is ran, the websocket for load_properties is also initalized
 startListening({
     actionCreator: calculateGlobalUniqueStates,
     effect: (_, listenerAPI) => {

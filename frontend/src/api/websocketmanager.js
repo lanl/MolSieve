@@ -1,10 +1,22 @@
 class WebSocketManager {
     websockets = {};
 
+    /**
+     * Add new websocket key array.
+     *
+     * @param {String} key - Name of new key array.
+     */
     addKey(key) {
         this.websockets[key] = [];
     }
 
+    /**
+     * Connect to URL under the specified key.
+     *
+     * @param {String} url - URL to connect to.
+     * @param {String} key - Key to associate URL with.
+     * @returns {WebSocket} Websocket connection.
+     */
     connect(url, key) {
         const socket = new WebSocket(url);
         this.websockets[key].push(socket);

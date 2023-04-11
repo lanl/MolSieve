@@ -5,34 +5,31 @@ import * as d3 from 'd3';
 
 import 'tippy.js/themes/translucent.css';
 
+/**
+ * Gets the number of states loaded in an array.
+ *
+ * @param {Array<State>} arr - State array
+ * @returns {Number} arr - How many states are loaded.
+ */
 export const getNumberLoaded = (arr) => arr.filter((d) => d.loaded === true).length;
 
-export function djb2(str) {
-    let hash = 5381;
-    for (let i = 0; i < str.length; i++) {
-        hash = (hash << 5) + hash + str.charCodeAt(i); /* hash * 33 + c */
-    }
-    return hash;
-}
-
-export function hashStringToColor(str) {
-    if (str === '') {
-        return 'white';
-    }
-    const hash = djb2(str);
-    const r = (hash & 0xff0000) >> 16;
-    const g = (hash & 0x00ff00) >> 8;
-    const b = hash & 0x0000ff;
-    return `#${`0${r.toString(16)}`.substr(-2)}${`0${g.toString(16)}`.substr(-2)}${`0${b.toString(
-        16
-    )}`.substr(-2)}`;
-}
-
+/**
+ * Counts the number of times an element occurs in an array and returns the counts as a dictionary.
+ *
+ * @param {Array<Number>} arr - Array of numbers.
+ * @returns {Object} Object of id to number of occurrences.
+ */
 export function occurrenceDict(arr) {
     /* eslint-disable-next-line */
     return arr.reduce((a, c) => ((a[c] = (a[c] || 0) + 1), a), {});
 }
 
+/**
+ * Calculates the percentage that each element has occurred within the array specified.
+ *
+ * @param {Array<Number>} arr - Array of numbers.
+ * @returns {Object} Object of id to occurrence probability.
+ */
 export function distributionDict(arr) {
     const oc = occurrenceDict(arr);
     for (const e of Object.keys(oc)) {
@@ -42,12 +39,14 @@ export function distributionDict(arr) {
     return oc;
 }
 
-// https://stackoverflow.com/questions/59065687/how-to-get-most-frequent-occurring-element-in-an-array
-export function mostOccurringElement(arr) {
-    const counts = occurrenceDict(arr);
-    return Object.keys(counts).reduce((a, b) => (counts[a] > counts[b] ? a : b));
-}
-
+/**
+ * Constructs a Tippy tooltip for the specified node.
+ *
+ * @param {Object} node - The DOM element to add a tooltip to.
+ * @param {String} content - The content of the tooltip.
+ * @param {Object} settings - Various Tippy settings.
+ * @returns {Object} Tooltip instance.
+ */
 export function tooltip(node, content, settings) {
     const defaults = {
         allowHTML: true,
@@ -64,6 +63,12 @@ export function tooltip(node, content, settings) {
     return tippy(node, used);
 }
 
+/**
+ * As above, but does not return instance.
+ *
+ * @param {Object} node - DOM node to add tooltip to.
+ * @param {String} content - Tooltip content.
+ */
 export function oneShotTooltip(node, content) {
     const settings = {
         allowHTML: true,
@@ -78,6 +83,11 @@ export function oneShotTooltip(node, content) {
     tippy(node, settings);
 }
 
+/**
+ * Destroys a tooltip instance.
+ *
+ * @param {Object} node - DOMElement to destroy tooltip for.
+ */
 export const destroyToolTip = (node) => {
     /* eslint-disable-next-line */
     const instance = node._tippy;
@@ -86,6 +96,12 @@ export const destroyToolTip = (node) => {
     }
 };
 
+/**
+ * Shows tooltip for a node. Creates an instance if it doesn't exist yet.
+ *
+ * @param {Object} node - DOMElement to show tooltip for.
+ * @param {String} content - Content of tooltip.
+ */
 export const showToolTip = (node, content) => {
     /* eslint-disable-next-line */
     let instance = node._tippy;
@@ -97,28 +113,13 @@ export const showToolTip = (node, content) => {
     instance.show();
 };
 
-export function onEntityMouseOver(node, d, text) {
-    // https://atomiks.github.io/tippyjs/v6/addons/#singleton
-    // can improve performance further
-    let content = d !== null ? `${d.toString()}` : '';
-
-    if (text) {
-        content += text;
-    }
-
-    if (d.img) {
-        content += `<img src="data:image/png;base64,${d.img}"/>`;
-    }
-    // faster if creating many instances
-    oneShotTooltip(node, content);
-}
-
-// https://stackoverflow.com/questions/1960473/get-all-unique-values-in-a-javascript-array-remove-duplicates
-export function onlyUnique(value, index, self) {
-    return self.indexOf(value) === index;
-}
-
 // https://jsfiddle.net/Arg0n/zL0jgspz/2/
+/**
+ * Returns the intersection of the arrays provided.
+ * TODO: could move everything below here to Math
+ * @param {Array} args - The arrays to calculate an intersection for.
+ * @returns {Array} The elements in common between all arrays.
+ */
 export function intersection(...args) {
     const result = [];
     const lists = args;
@@ -140,76 +141,14 @@ export function intersection(...args) {
     return result;
 }
 
-/** Gets the minimum value of the given property within the sequence.
- * @param {string} property - the property you're interested in
- * @param {Array<Object>} sequence - the array of states to search through
- * @return {number} min value of property
- */
-export function getMinProperty(property, sequence) {
-    let min = Number.MAX_VALUE;
-    for (const d of sequence) {
-        if (d[property] < min) {
-            min = d[property];
-        }
-    }
-    return min;
-}
-
-/** Quick utility function to check if an extent is a path or only a group of states. */
-export function isPath(extent) {
-    if (extent.begin !== undefined && extent.end !== undefined) {
-        return true;
-    }
-    return false;
-}
-
-/** Gets the maximum value of the given property within the sequence.
- * @param {string} property - the property you're interested in
- * @param {Array<Object>} sequence - the array of states to search through
- * @return {number} max value of property
- */
-export function getMaxProperty(property, sequence) {
-    let max = Number.MIN_VALUE;
-    for (const d of sequence) {
-        if (d[property] > max) {
-            max = d[property];
-        }
-    }
-    return max;
-}
-/* Returns a list of sorted trajectories, sorted by sequence length */
-export function getLengthList(trajectories) {
-    const lengthList = [];
-    let i = 0;
-    for (const [name, trajectory] of Object.entries(trajectories)) {
-        lengthList[i] = { name, length: trajectory.length() };
-        i++;
-    }
-    return lengthList.sort((a, b) => (a.length > b.length ? 1 : -1));
-}
-
-export function range(start, end) {
-    return [...Array(end - start + 1)].map((_, i) => i + start);
-}
-
 /**
- * Returns the difference between two sets as a set; i.e
- * only the items that are present in A alone without B.
+ * Returns the intersection of two Set objects.
+ * TODO: make this a variable number of arguments
  *
- * @param {Set<Any>} setA - Set A to differentiate.
- * @param {Set<Any>} setB - Set B to differentiate.
- * @returns {Set<Any>} Difference of both sets
+ * @param {Set} setA - The first Set.
+ * @param {Set} setB - The second Set.
+ * @returns {Set} The Set of elements commmon to both set.
  */
-export function setDifference(setA, setB) {
-    const diff = new Set();
-    for (const elem of setA) {
-        if (!setB.has(elem)) {
-            diff.add(elem);
-        }
-    }
-    return diff;
-}
-
 export function setIntersection(setA, setB) {
     const inter = new Set();
     for (const elem of setB) {
@@ -220,17 +159,13 @@ export function setIntersection(setA, setB) {
     return inter;
 }
 
-export function withinExtent(d, extent) {
-    const start = extent[0];
-    const end = extent[1];
-    return (
-        (d.timestep >= start && d.last <= end) ||
-        (d.last >= start && d.last <= end) ||
-        (d.timestep >= start && d.timestep <= end) ||
-        (d.timestep <= start && d.last >= end) // the extent is inside of the chunk
-    );
-}
-
+/**
+ * Returns the union of two sets.
+ *
+ * @param {Set} setA - The first Set.
+ * @param {Set} setB - The second Set.
+ * @returns {Set} A set containing the elements from both sets.
+ */
 export function setUnion(setA, setB) {
     const union = new Set(setA);
     for (const elem of setB) {
@@ -239,50 +174,12 @@ export function setUnion(setA, setB) {
     return union;
 }
 
-/* Determines what kind of scale to use for the given array.
- * If isOrdinal is true, returns ordinal scale. */
-
-export function getScale(data, isOrdinal) {
-    // if array is a range i.e only has two values
-    if (data.length === 2) {
-        return d3.scaleSequential().domain(data);
-    }
-
-    if (isOrdinal) {
-        return d3.scalePoint().domain(data);
-    }
-
-    // if array is continuous
-    const extent = d3.extent(data);
-    if (extent[1] - extent[0] > 10000) {
-        return d3.scaleLog().domain(extent);
-    }
-
-    return d3.scaleLinear().domain(extent);
-}
-
-/* Given a css class name, return all element ids that have that class */
-export function getClassIds(className) {
-    const elements = document.getElementsByClassName(className);
-    const ids = [];
-
-    for (const el of elements) {
-        ids.push(el.getAttribute('id'));
-    }
-
-    return ids;
-}
-
-export function ensureArray(obj) {
-    return obj instanceof Set ? [...obj] : obj;
-}
-
 /**
- * [TODO:description]
+ * Given an array of values, normalizes the values between the specified range.
  *
- * @param {[TODO:type]} d - [TODO:description]
- * @param {[TODO:type]} r - [TODO:description]
- * @returns {[TODO:type]} [TODO:description]
+ * @param {Array<Number>} d - The array of values to normalize.
+ * @param {Array<Number>} r - The normalization range.
+ * @returns {Array<Number>} The normalized values.
  */
 export function normalize(d, r) {
     const max = d3.max(d);
@@ -301,10 +198,11 @@ export function normalize(d, r) {
 }
 
 /**
- * [TODO:description]
+ * As above, but applied to the values of a dictionary.
  *
- * @param {[TODO:type]} d - [TODO:description]
- * @param {[TODO:type]} r - [TODO:description]
+ * @param {Object<String, Number>} d - Dictionary to normalize.
+ * @param {Array<Number>} r - Normalization range.
+ * @returns {Object<String, Number>} Normalized dictionary.
  */
 export function normalizeDict(d, r) {
     const keys = Object.keys(d);
@@ -324,7 +222,7 @@ export function normalizeDict(d, r) {
  *
  * @param {Chunk} a - Chunk a
  * @param {Chunk} b - Chunk b
- * @returns {Number} Percent similarity
+ * @returns {Number} Percentage similarity.
  */
 export function chunkSimilarity(a, b) {
     const aSet = a.statesSet;
@@ -350,6 +248,13 @@ export function compareSets(a, b) {
     }
     return { a, b };
 }
+
+/**
+ * Calculates the magnitude of a vector. Recall |v| = sqrt(v_1 ** 2 + v_2 ** 2 .. v_n ** n)
+ *
+ * @param {Array<Number>} a - The vector.
+ * @returns {Number} The magnitude.
+ */
 export function magnitude(a) {
     if (a.length === 0) {
         return 0;
@@ -359,6 +264,14 @@ export function magnitude(a) {
     return Math.sqrt(sum);
 }
 
+/**
+ * Calculates the dot product between two vectors.
+ *
+ * @param {Array<Number>} a - Vector A.
+ * @param {Array<Number>} b - Vector B.
+ * @throws {Error} - Raised if A and B are not the same length.
+ * @returns {Number} The dot product of a and b.
+ */
 export function dot(a, b) {
     if (a.length !== b.length) {
         throw new Error('Arrays A & B must be the same length.');
@@ -371,6 +284,14 @@ export function dot(a, b) {
     return val;
 }
 
+/**
+ * Calculates the cosine similarity between vectors A and B.
+ *
+ * @param {Array<Number>} a - Vector A.
+ * @param {Array<Number>} b - Vector B.
+ * @throws {Error} - Raised if A and B are not the same length.
+ * @returns {Number} The cosine similarity between vectors A and B.
+ */
 export function cosineSimilarity(a, b) {
     if (a.length !== b.length) {
         throw new Error('Arrays A & B must be the same length.');
@@ -413,6 +334,12 @@ export function stateRatioChunkSimilarity(a, b) {
     return cosineSimilarity(smallVec, largeVec);
 }
 
+/**
+ * Format function to print a floating value as a percentage.
+ *
+ * @param {Number} num - Value.
+ * @returns {String} Value as percentage.
+ */
 export function percentToString(num) {
     return `${Math.trunc(num.toFixed(3) * 100)}%`;
 }
@@ -442,6 +369,13 @@ export function buildDictFromArray(arr, defaultValue) {
     return d;
 }
 
+/**
+ * Gets the neighbors of an element in an array.
+ *
+ * @param {Array} arr - The array.
+ * @param {Number} idx - The index of the element.
+ * @returns {Array} The neighbors of the element.
+ */
 export function getNeighbors(arr, idx) {
     const neighbors = [undefined, undefined];
 
@@ -456,6 +390,11 @@ export function getNeighbors(arr, idx) {
     return neighbors;
 }
 
+/**
+ * Sets all charts on the screen to have the unfocused class except for the selected chart.
+ *
+ * @param {String} c1 - ID of the chart.
+ */
 export function focusChart(c1) {
     const charts = document.querySelectorAll('.embeddedChart');
     for (const chart of charts) {
@@ -465,6 +404,10 @@ export function focusChart(c1) {
     }
 }
 
+/**
+ * Undo above operation.
+ *
+ */
 export function unFocusCharts() {
     const charts = document.querySelectorAll('.embeddedChart.unfocused');
     for (const chart of charts) {

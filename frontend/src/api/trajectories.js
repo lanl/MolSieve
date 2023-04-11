@@ -1,5 +1,4 @@
 import { createSlice, createAsyncThunk, createSelector } from '@reduxjs/toolkit';
-// import * as d3 from 'd3';
 import Chunk from './chunk';
 /* eslint-disable-next-line */
 import { calculateGlobalUniqueStates } from './states';
@@ -20,10 +19,6 @@ const clusterColors = [
     '#bab0ab',
 ];
 
-// functions that you can call on the trajectories dictionary
-// no trajectories object because that would make it harder for react to diff
-//
-// https://redux.js.org/usage/deriving-data-selectors
 export const selectTrajectories = (state) => state.trajectories.values;
 export const selectChunks = (state) => state.trajectories.chunks;
 export const selectTrajectory = (state, name) => state.trajectories.values[name];
@@ -51,7 +46,8 @@ export const getImportantChunkList = createSelector([getChunkList], (chunkList) 
 export const getUnimportantChunkList = createSelector([getChunkList], (chunkList) =>
     chunkList.filter((c) => !c.important)
 );
-// could be more flexible if chunkList gets passed in
+
+// TODO: could be more flexible if chunkList gets passed in
 export const isTimestepsWithinChunks = createSelector(
     [getImportantChunkList, (_, timesteps) => timesteps],
     (chunkList, timesteps) => {
@@ -67,6 +63,7 @@ export const getLength = createSelector([getChunkList], (chunkList) => {
     return Math.max(...lastArray);
 });
 
+// using the extents of a trajectory, get all of the visible chunks on the screen
 export const getVisibleChunks = createSelector(
     [selectTrajectory, getChunkList],
     (trajectory, chunkList) => {
@@ -77,6 +74,7 @@ export const getVisibleChunks = createSelector(
     }
 );
 
+// using the extents of all trajectories, get all of the visible chunks on the screen
 export const getAllVisibleChunks = createSelector(
     [selectTrajectories, selectChunks],
     (trajectories, chunks) => {
@@ -95,6 +93,7 @@ export const getAllVisibleChunks = createSelector(
     }
 );
 
+// see load_trajectory in back-end for more details
 // TODO: maybe somehow merge these two?
 export const simplifySet = createAsyncThunk('trajectories/simplifySet', async (args, thunkAPI) => {
     const { name, threshold } = args;
@@ -113,6 +112,7 @@ export const simplifySet = createAsyncThunk('trajectories/simplifySet', async (a
     return { simplified: data.simplified, name, threshold };
 });
 
+// as above
 export const recluster = createAsyncThunk('trajectories/recluster', async (args, thunkAPI) => {
     const { name, clusters } = args;
     const { getState, dispatch } = thunkAPI;
@@ -132,6 +132,17 @@ export const recluster = createAsyncThunk('trajectories/recluster', async (args,
     return { simplified: data.simplified, name, currentClustering: clusters };
 });
 
+/**
+ * Expands a specified chunk into its neighbors.
+ * 1. Find neighbors
+ * 2. Load their sequences
+ * 3. Take from neighbors, add to chunk
+ *
+ * @async
+ * @param {Object} args - The ID of the chunk, how much to take, and the name of the trajectory.
+ * @param {Object} thunkAPI - getState, dispatch
+ * @returns {Promise<Object>} Results of the expansion
+ */
 export const expand = createAsyncThunk('trajectories/expand', async (args, thunkAPI) => {
     const { id, sliceSize, name } = args;
     const { getState, dispatch } = thunkAPI;
@@ -291,6 +302,12 @@ export const trajectories = createSlice({
             }
             trajectory.chunkList = chunkList;
         },
+        /**
+         * Sets the visible extents for the trajectory, which is reflected in the UI.
+         *
+         * @param {Object} state - Trajectory value list.
+         * @param {Object} action - The name of the trajectory and the extent.
+         */
         setZoom: (state, action) => {
             const { name, extents } = action.payload;
             const { values } = state;
@@ -300,6 +317,12 @@ export const trajectories = createSlice({
                 values[name].extents = [0, values[name].length];
             }
         },
+        /**
+         * Updates the ranks of a specified trajectory.
+         *
+         * @param {Object} state - The values and chunks of all trajectories.
+         * @param {Object} action - The state values that will update trajectory name's ranks.
+         */
         updateRank: (state, action) => {
             const { states, name } = action.payload;
             const { values, chunks } = state;
@@ -330,6 +353,12 @@ export const trajectories = createSlice({
                 .sort((a, b) => a[1] < b[1])
                 .map((d) => d[0]);
         },
+        /**
+         * Update all ranks for all trajectories
+         *
+         * @param {Object} state - Trajectory values.
+         * @param {Object} action - New states values.
+         */
         updateRanks: (state, action) => {
             const { states } = action.payload;
             const { values } = state;
@@ -337,6 +366,12 @@ export const trajectories = createSlice({
                 trajectories.caseReducers.updateRank(state, { payload: { states, name } });
             }
         },
+        /**
+         * Updates the min and maximum clustering for the trajectory to be in sync with back-end values.
+         *
+         * @param {Object} state - Trajectory values
+         * @param {Object} action - Trajectory name and the new clustering value.
+         */
         updateClusterRange: (state, action) => {
             const { name, currentClustering } = action.payload;
             const { values } = state;
@@ -351,6 +386,7 @@ export const trajectories = createSlice({
     },
     extraReducers: (builder) => {
         builder.addCase(simplifySet.fulfilled, (state, action) => {
+            // run after sequence is simplified
             const { name, simplified, threshold } = action.payload;
             trajectories.caseReducers.setChunks(state, {
                 payload: {
@@ -361,6 +397,7 @@ export const trajectories = createSlice({
             });
         });
         builder.addCase(recluster.fulfilled, (state, action) => {
+            // run after reclustering
             const { name, simplified, currentClustering } = action.payload;
             trajectories.caseReducers.setChunks(state, {
                 payload: {
@@ -377,6 +414,7 @@ export const trajectories = createSlice({
             });
         });
         builder.addCase(expand.fulfilled, (state, action) => {
+            // run after expansion finished
             const { chunks: oldChunks, values } = state;
             const chunks = { ...oldChunks };
             const { left, lData, rData, right, id, sliceSize, name } = action.payload;
