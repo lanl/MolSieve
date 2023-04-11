@@ -9,6 +9,20 @@ import { WS_URL } from '../api/constants';
 
 import { calculateGlobalUniqueStates, getStateColoringMethod } from '../api/states';
 
+/**
+ * Higher order component for rendering the results of a NEB calculation.
+ * Opens a websocket and shows results progressively.
+ * TODO: remove saveResults
+ *
+ * @param {String} trajectoryName - Name of the trajectory this NEB is associated with.
+ * @param {Number} start - The first timestep of the path to run the NEB on.
+ * @param {Number} end - The last timestep of the path to run the NEB on.
+ * @param {Number} interpolate - The number of images placed between two steps in the path.
+ * @param {Number} maxSteps - The maximum number of optimization steps before halting.
+ * @param {Number} fmax - The maximum optimization value before halting.
+ * @param {Bool} saveResults - Whether or not to save the results of the NEB to the database.
+ * @param {Function} setActiveState - Function to set the active state in the parent component.
+ */
 export default function NEBWrapper({
     trajectoryName,
     width,

@@ -28,6 +28,27 @@ import PropertyWrapper from './PropertyWrapper';
 
 import { makeGetStates, getStateColoringMethod, updateGlobalScale } from '../api/states';
 
+/**
+ * Transition Region View; a small multiple of control charts + State Space Chart that gives users
+ * a detailed look into a possible region of interest as determined by the simplification algorithm.
+ * TODO: Rename to Transition Region View, think of making selections cleaner
+ *
+ * @param {Chunk} chunk - Chunk corresponding to this view.
+ * @param {Function} addSelection - Function to add a selection.
+ * @param {Array<Object>} selections - Existing selections.
+ * @param {Function} selectObject - Function to select this region.
+ * @param {Number} chunkSelectionMode - What selection mode we are in.
+ * @param {Array<Object>} selectedObjects - Already selected objects.
+ * @param {Array<String>} ranks - Properties ranked by importance.
+ * @param {Function} doubleClickAction - Function called on double clicking the view.
+ * @param {Array<Object>} propertyCombos - Combinations of properties that create multi-variate charts.
+ * @param {Object} extents - The visible extents of the trajectory.
+ * @param {Function} setStateHovered - Function called when states are hovered.
+ * @param {String} trajectory - The name of the trajectory that this chunk corresponds to.
+ * @param {Function} setZoom - Sets the visible extents of the trajectory.
+ * @param {Function} onMouseEnter - Function called when the mouse enters this view.
+ * @param {Function} onMouseLeave - Function called when the mouse leaves this view.
+ */
 function ChunkWrapper({
     chunk,
     height,
@@ -52,6 +73,7 @@ function ChunkWrapper({
     const [progress, setProgress] = useState(0.0);
     const [startExtent, endExtent] = extents;
 
+    // slice the chunk whenever the extent changes, gives illusion of zooming on trajectory component
     const [startSlice, endSlice, valCount] = useMemo(() => {
         const { timestep, last } = chunk;
         const sliceStart = startExtent <= timestep ? 0 : startExtent - timestep;
@@ -60,16 +82,18 @@ function ChunkWrapper({
         return [sliceStart, sliceEnd, sliceEnd - timestep];
     }, [startExtent, endExtent, chunk.timestep, chunk.last]);
 
-    // With useSelector(), returning a new object every time will always force a re-render by default.
     const slicedChunk = useMemo(() => chunk.slice(startSlice, endSlice), [startSlice, endSlice]);
 
     const dispatch = useDispatch();
 
     const getStates = makeGetStates();
+
+    // get the states currently loaded that correspond to this chunk
     const states = useSelector((state) => getStates(state, chunk.sequence).filter((d) => d.loaded));
 
     const colorState = useSelector((state) => getStateColoringMethod(state));
 
+    // calculates the selections that belong to this chunk
     const chartSel = useMemo(
         () =>
             Object.keys(selections)
@@ -126,6 +150,7 @@ function ChunkWrapper({
         setIsInitialized(true);
     }, [states.length]);
 
+    // calculates multi-variate charts whenever propertyCombos is updated
     useEffect(() => {
         if (propertyCombos) {
             startTransition(() => {
@@ -244,6 +269,7 @@ function ChunkWrapper({
         }
     }, [chunkSelectionMode]);
 
+    // tooltip shown whenever a control chart is hovered
     const controlChartTooltip = useCallback(
         (property) => (node, coords) => {
             const [x, y] = coords;

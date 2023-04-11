@@ -17,6 +17,20 @@ import { abbreviate, showToolTip } from '../api/myutils';
 
 import EmbeddedChart from '../vis/EmbeddedChart';
 
+/**
+ * Super-State View; a small multiple of Violin Plots that show the distribution of regions that were considered to be unimportant
+ * by the simplfication algorithm
+ * TODO: Rename to Super-State View
+ *
+ * @param {Chunk} chunk - The chunk associated with this view.
+ * @param {Function} selectObject - Function to select this region.
+ * @param {Array<String>} ranks - Properties ranked by importance.
+ * @param {Number} chunkSelectionMode - Selection mode.
+ * @param {Array<Object>} selectedObjects - Currently selected objects.
+ * @param {Function} onClick - Function called on view click.
+ * @param {Function} onMouseEnter - Function called when mouse enters view.
+ * @param {Function} onMouseLeave - Function called when mouse exits view.
+ */
 function ViolinPlotWrapper({
     chunk,
     height,

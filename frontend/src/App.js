@@ -212,7 +212,7 @@ class App extends React.Component {
 
                 <AjaxMenu
                     anchorEl={this.runListButton.current}
-                    api_call={`${API_URL}/data/list_trajectories`}
+                    apiCall={`${API_URL}/data/list_trajectories`}
                     open={showRunList}
                     clicked={trajectoryNames}
                     handleClose={() => {
