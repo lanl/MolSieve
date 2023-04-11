@@ -32,8 +32,7 @@ def cluster_states(props: List[str] = Body([]), stateIds: List[int] = Body([])):
     driver = GraphDriver()
 
     q = qb.generate_get_node_list(
-        "State", idList=stateIds, attributeList=props + ['id']
-    )
+        "State", idList=stateIds, attributeList=props + ['id'])
 
     j = {}
     with driver.session() as session:
@@ -81,7 +80,6 @@ def selection_distance(
     qb = Neo4jQueryBuilder([("Atom", "PART_OF", "State", "MANY-TO-ONE")], ["State"])
     q = qb.generate_get_node_list("State", stateIDs, "PART_OF")
     state_atom_dict = converter.query_to_ASE(driver, q)
-
     m = {id: {id2: 0 for id2 in stateSet2} for id in stateSet1}
     for id1 in stateSet1:
         s1 = state_atom_dict[id1]
@@ -93,7 +91,7 @@ def selection_distance(
 
 
 @router.get("/neb_on_path", status_code=201)
-async def neb_on_path(
+def neb_on_path(
     run: str,
     start: str,
     end: str,
@@ -132,7 +130,7 @@ async def neb_on_path(
     return task_id
 
 
-@router.post("/subset_connectivity_difference")
+@router.post("/subset_connectivity_difference", status_code=201)
 def subset_connectivity_difference(stateIDs: List[int] = Body([])):
     """
     Uses a greedy search algorithm to generate a preview of the states where

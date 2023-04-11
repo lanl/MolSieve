@@ -51,7 +51,8 @@ def subset_connectivity_difference(stateIDs: List[int]):
     Calculates the critical states of a sequence.
     This is achieved using a greedy algorithm where the first state is compared to the entire sequence,
     and then the index of the state with the most difference is returned.
-    Using this most different state, we start the loop again and look for the maximally different state from that point in the sequence.
+    Using this most different state, we start the loop again and look for the 
+    maximally different state from that point in the sequence.
     Continue until 3 iterations or we reach the end.
 
     :param stateIDs: The states to compare.
