@@ -6,6 +6,11 @@ import { getChunkList, selectTrajectory, setZoom } from '../api/trajectories';
 import '../css/vis.css';
 import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
 
+/**
+ * Timeline view; allows users to adjust the visible extents of the trajectory.
+ *
+ * @param {String} trajectoryName - Name of the trajectory.
+ */
 function Timeline({
     trajectoryName,
     width,
@@ -110,6 +115,7 @@ function Timeline({
                 }
             };
 
+            // brushMargin gives the brush some space so it is guaranteed to be drawn.
             const brushG = svg.append('g').classed('brushG', true);
             const brush = d3
                 .brushX()

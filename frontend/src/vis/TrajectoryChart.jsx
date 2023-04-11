@@ -13,6 +13,25 @@ import '../css/vis.css';
 
 const minimumChartWidth = 200;
 
+/**
+ * The principal component of our system; made up of many transition region and super-state views,
+ * where each view corresponds to a simplified region. Properties are ranked here, and the layout
+ * for each view is calculated.
+ *
+ * TODO: Rename to Trajectory Component.
+ * @param {String} trajectoryName - Name of the trajectory.
+ * @param {Function} setStateHovered - Set state that was hovered TODO: make sure this is used
+ * @param {Array<Object>} selections - The currently selected sub-sequences
+ * @param {Array<String>} properties - The currently loaded properties
+ * @param {Function} selectObject - Function to select a region or trajectory TODO: can be cleaner
+ * @param {Number} chunkSelectionMode - Selection mode
+ * @param {Array<Object>} selectedObjects - Array of currently selected regions or trajectories.
+ * @param {Function} addSelection - Function to add a sub-sequence selection.
+ * @param {Number} showTop - Number of properties to show.
+ * @param {Array<Object>} propertyCombos - Array of property combinations used to make multi-variate charts.
+ * @param {Function} recalculateClustering - Function to recluster trajectory.
+ * @param {Function} simplifySet - Function to simplify trajectory.
+ */
 function TrajectoryChart({
     trajectoryName,
     setStateHovered,
@@ -45,6 +64,7 @@ function TrajectoryChart({
 
     const controlChartHeight = (height - scatterplotHeight) / (propertyCombos.length + showTop);
 
+    // draws property names on the left
     useEffect(() => {
         if (ref) {
             d3.select(ref.current).select('.rankList').remove();
@@ -74,6 +94,7 @@ function TrajectoryChart({
 
     const adjWidth = width - margin.left - margin.right;
 
+    // calculates layout for each chunk
     const scales = useMemo(() => {
         const iChunks = topChunkList.filter((d) => d.important);
         const uChunks = topChunkList.filter((d) => !d.important);
@@ -118,9 +139,9 @@ function TrajectoryChart({
         return { getX, getWidthScale, scaleX };
     }, [extents[0], extents[1], JSON.stringify(topChunkList), width]);
 
-    // here we can filter out the un-rendered charts right away since we only care about rendering here
     const cutRanks = useMemo(() => ranks.slice(0, showTop), [showTop, JSON.stringify(ranks)]);
 
+    // TODO: make cleaner
     const highlight = useCallback(
         (chunk) => {
             d3.select(`.${trajectory.name}`).selectAll('.clicked').classed('clicked', false);

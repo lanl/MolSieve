@@ -4,6 +4,19 @@ import * as d3 from 'd3';
 import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
 import { distributionDict } from '../api/myutils';
 
+/**
+ * State Space Chart; divides the sequence inside a Chunk into even segments
+ * and calculates the most frequently occurring states within each segment.
+ * States are then rendered as rectangles colored according to ID.
+ * Segments with many states are likely to be unstable, while
+ * segments with few states are likely to be stable.
+ *
+ * TODO: Rename to State Space Chart.
+ * @param {Array<Number>} xAttributeList - The x values of the sequence.
+ * @param {Array<Number>} yAttributeList - The y values of the sequence.
+ * @param {Function} colorFunc - Function to color states with.
+ * @param {Function} onElementClick - Function called when elements are clicked.
+ */
 function AggregateScatterplot({
     xAttributeList,
     yAttributeList,
@@ -18,12 +31,16 @@ function AggregateScatterplot({
         const chunks = [];
 
         for (let i = 0; i < yAttributeList.length; i += chunkSize) {
+            // divide chunk into pieces
             const chunk = yAttributeList.slice(i, i + chunkSize);
+            // get distributions of states within each chunk
             const dist = distributionDict(chunk);
 
+            // get the expected distribution value (1 / # of unique states)
             const uniqueStates = [...new Set(chunk)];
             const threshold = 1 / uniqueStates.length;
 
+            // compare actual vs expected distribution
             const majority = [];
             for (const [e, v] of Object.entries(dist)) {
                 if (v > threshold) {

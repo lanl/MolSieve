@@ -4,6 +4,17 @@ import * as d3 from 'd3';
 
 import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
 
+/**
+ * Asymmetrical Violin Plot between two distributions.
+ *
+ * TODO: Rename to AsymmetricalViolinPlot
+ * @param {Array<Object>} data - The data to plot.
+ * @param {Array<String>} colors - Colors to use for each distribution.
+ * @param {Number} scaleMin - Minimum property value.
+ * @param {Number} scaleMax - Maximum property value.
+ * @param {Function} onElementMouseEnter - Function called when a distribution is moused over.
+ * @param {Function} onElementMouseLeave - Function called when a distribution is left.
+ */
 function OverlayViolinPlot({
     data,
     colors,

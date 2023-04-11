@@ -4,6 +4,18 @@ import * as d3 from 'd3';
 
 import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
 
+/**
+ * Violin plots show the overall distribution for a value.
+ *
+ * TODO: In all charts with scale min / max, calculate if not provided
+ * @param {Array<Number>} data - The values of the distribution.
+ * @param {Number} globalScaleMin - The minimum property value.
+ * @param {Number} globalScaleMax - The maximum property value.
+ * @param {String} color - Color to use for the chart
+ * @param {Bool} showYAxis - Show Y Axis?
+ * @param {Function} onMouseEnter - Function called on mouse enter.
+ * @param {Function} onMouseLeave - Function called on mouse leave.
+ */
 function ViolinPlot({
     data,
     width,

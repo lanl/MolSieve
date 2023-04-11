@@ -4,6 +4,17 @@ import * as d3 from 'd3';
 import Skeleton from '@mui/material/Skeleton';
 import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
 
+/**
+ * Simple heat-map of x to y objects and a value
+ *
+ * @param {Array<Number>} xList - X objects
+ * @param {Array<Number>} yList - Y objects
+ * @param {Array<Number>} data - Values between X and Y.
+ * @param {Function} onElementClick - Called when a rectangle is clicked.
+ * @param {Function} onElementMouseOver - Called when a rectangle is moused over.
+ * @param {Function} onElementMouseOut - Called when a rectangle is left.
+ * @param {Array<String>} colorRange - The colors to interpolate between for the values.
+ */
 function HeatMap({
     width,
     height,

@@ -2,7 +2,24 @@ import { React, useMemo, memo } from 'react';
 import * as d3 from 'd3';
 
 import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
-// definitely contributes to slowness
+/**
+ * Control chart; shows moving average of a value over time.
+ *
+ * TODO: Optimize further, cut finalLength, extents
+ * @param {Number} globalScaleMin - Minimum value for property
+ * @param {Number} globalScaleMax - Maximum value for property
+ * @param {Array<Number>} xAttributeList - X values of sequence, only used in tooltips
+ * @param {Array<Number>} yAttributeList - Y values of sequence
+ * @param {Number} ucl - Upper control limit (mean + std)
+ * @param {Number} lcl - Lower control limt (mean - std)
+ * @param {Object} colors - Colors to use for control chart highlighting.
+ * @param {Function} onClick - Function to call when chart is clicked.
+ * @param {Function} onMouseOver - Function to call when chart is moused over.
+ * @param {Function} onMouseOut - Function to call when mouse leaves chart.
+ * @param {Function} renderCallback - Function to call after render is complete.
+ * @param {Array<Number>} extents - Visible extents of the trajectory.
+ * @param {Number} finalLength - Expected length of sequence
+ */
 function ControlChart({
     globalScaleMin,
     globalScaleMax,
@@ -96,8 +113,6 @@ function ControlChart({
                 if (yVal && xVal) {
                     onMouseOver(tooltipCircle.node(), [xVal, yVal]);
                 }
-                // ttInstance.setContent(`<b>X</b>: ${xVal}<br/><b>Y</b>:${yVal.toFixed(2)} <br/>`);
-                // ttInstance.show();
             })
                 .on('click', (event) => {
                     const i = Math.trunc(scaleX.invert(d3.pointer(event)[0]));
@@ -108,7 +123,6 @@ function ControlChart({
                 .on('mouseleave', () => {
                     tooltipCircle.attr('visibility', 'hidden');
                     onMouseOut(tooltipCircle.node());
-                    // ttInstance.hide();
                 });
 
             renderCallback();

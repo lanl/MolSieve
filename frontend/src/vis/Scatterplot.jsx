@@ -6,6 +6,22 @@ import { useTrajectoryChartRender } from '../hooks/useTrajectoryChartRender';
 import '../css/vis.css';
 import '../css/App.css';
 
+/**
+ * A scatterplot of x vs y values.
+ *
+ * TODO: Rename
+ * @param {Array<Number>} xAttributeList - X values for the sequence.
+ * @param {Array<Number>} yAttributeList - Y values for the sequence.
+ * @param {Array<Object>} additionalAttributes - Additional values for each x-y pair.
+ * @param {Function} brush - Brush function that can be called.
+ * @param {Function} colorFunc - Function to color each x-y pair.
+ * @param {Function} onElementClick - Function called when an element is clicked.
+ * @param {Function} onElementMouseOver - Function called when an element is moused over.
+ * @param {Function} onElementMouseOut - Function called when an element is left.
+ * @param {Bool} showLine - Draw lines between adjacent elements?
+ * @param {Bool} showYAxis - Show Y Axis?
+ * @param {String} id - This plot's unique ID.
+ */
 function Scatterplot({
     width,
     height,
@@ -147,7 +163,6 @@ function Scatterplot({
                 const brushG = svg.append('g').classed('brush', true);
                 brushG.call(brush);
             }
-            // applyFilters(trajectories, runs, ref);
         },
         [scaleX, scaleY, colorFunc]
     );
@@ -160,12 +175,6 @@ function Scatterplot({
             viewBox={[0, 0, width, height]}
             width={width}
             height={height}
-            onClick={(e) => {
-                // on double click
-                if (e.detail === 2) {
-                    // doubleClickAction();
-                }
-            }}
         />
     );
 }

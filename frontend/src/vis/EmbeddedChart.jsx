@@ -9,8 +9,18 @@ import HighlightAltIcon from '@mui/icons-material/HighlightAlt';
 import DeselectIcon from '@mui/icons-material/Deselect';
 import * as d3 from 'd3';
 
-/* This component is intended to allow embedding svgs within svgs as React components */
-// essentially the same as a ChartBox, just with a border
+/**
+ * Allows embedding SVG within SVG as React components.
+ *
+ * TODO: Decouple selected
+ * @param {Function} onChartClick - Function called when chart is clicked.
+ * @param {Bool} selected - Is chart selected?
+ * @param {String} id - Chart ID
+ * @param {Function} brush - Function that brushes over chart.
+ * @param {Array<Object>} selections - Selections within chart.
+ * @param {Object} controls - JSX objects to render inside chart.
+ * @param {String} color - Border color
+ */
 function EmbeddedChart({
     children,
     height,
