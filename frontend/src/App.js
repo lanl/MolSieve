@@ -28,19 +28,23 @@ const RUN_MODAL = 'run_modal';
 class App extends React.Component {
     constructor() {
         super();
-        WebSocketManager.addKey('selections');
+        WebSocketManager.addKey('selections'); // TODO: refactor websocket manager
         this.runListButton = React.createRef();
 
+        // TODO: run and currentModal need work
         this.state = {
-            currentModal: null,
-            showRunList: false,
-            run: null,
-            trajectories: {},
-            properties: [],
-            visScripts: [],
+            currentModal: null, // TODO: this can just be show load modal
+            showRunList: false, // whether we can show the list of trajectories
+            run: null, // the current run
+            properties: [], // properties from user scripts
+            visScripts: [], // visualization scripts loaded
         };
     }
 
+    /**
+     * When the App mounts, the front-end automatically loads in properties from scripts and
+     * as well as the code for the visualization scripts.
+     */
     componentDidMount() {
         const { dispatch } = this.props;
 
@@ -57,6 +61,11 @@ class App extends React.Component {
             .catch((e) => alert(e));
     }
 
+    /**
+     * Opens a modal when a run is selected in the AjaxMenu.
+     *
+     * @param {string} v - The run to show in the LoadRunModal.
+     */
     selectRun = (v) => {
         this.setState({
             run: v,
@@ -64,18 +73,12 @@ class App extends React.Component {
         });
     };
 
-    removeRun = (v) => {
-        const { trajectories } = this.state;
-        delete trajectories[v];
-        this.setState({ trajectories });
-    };
-
     /* loadMetadata = (run, newTraj) => {
         return api_load_metadata(run, newTraj);
     }; */
 
     /** Function called by the PCCA slider allocated for each run.
-     *  Reruns the PCCA for however many clusters the user specifies
+     *  Reruns the PCCA for however many clusters the user specifies.
      *  @param {string} run - Run to recalculate the clustering for
      *  @param {number} clusters - Number of clusters to split the trajectory into.
      */
@@ -96,7 +99,7 @@ class App extends React.Component {
     };
 
     /**
-     *  Creates a new trajectory object and populates it with data from the database
+     *  Creates a new trajectory object and populates it with data from the database.
      *
      * @param {String} run - Name of the trajectory to load
      * @param {Number} mMin - Minimum cluster size to try
@@ -112,6 +115,7 @@ class App extends React.Component {
                 const { properties } = this.state;
                 const { current_clustering: currentClustering, simplified, uniqueStates } = data;
 
+                // calculate properties for all the states within this trajectory
                 dispatch(
                     calculateGlobalUniqueStates({
                         newUniqueStates: uniqueStates,
@@ -119,6 +123,7 @@ class App extends React.Component {
                     })
                 );
 
+                // add trajectory to Redux store
                 dispatch(
                     addTrajectory({
                         name: run,
@@ -137,6 +142,12 @@ class App extends React.Component {
             .catch((e) => alert(`${e}`));
     };
 
+    /**
+     * Simplifies the specified trajectory with the given threshold.
+     *
+     * @param {String} run - The trajectory's name.
+     * @param {Number} threshold - The desired simplification threshold.
+     */
     simplifySet = (run, threshold) => {
         const { enqueueSnackbar, dispatch } = this.props;
 
@@ -146,6 +157,11 @@ class App extends React.Component {
         );
     };
 
+    /**
+     * Toggles the specified modal.
+     *
+     * @param {String} key - The modal to toggle.
+     */
     toggleModal = (key) => {
         const { currentModal } = this.state;
         if (currentModal) {
@@ -208,9 +224,8 @@ class App extends React.Component {
                         this.setState({ showRunList: !showRunList }, () => {
                             if (e.target.checked) {
                                 this.selectRun(v);
-                            } else {
-                                this.removeRun(v);
                             }
+                            // TODO: add way to remove trajectory
                         });
                     }}
                 />

@@ -4,6 +4,7 @@ import trajectoriesReducer from './api/trajectories';
 import { listenerMiddleware } from './api/listenerMiddleware';
 import websocketmiddleware from './api/websocketmiddleware';
 
+// puts the store together from the various reducers
 export default configureStore({
     reducer: {
         states: statesReducer,
