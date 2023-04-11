@@ -12,6 +12,15 @@ import Typography from '@mui/material/Typography';
 const domain = [2, 100];
 const defaultValues = [2, 20];
 
+/**
+ * Modal shown when loading a trajectory.
+ *
+ * TODO: Rename, clean up
+ * @param {Function} closeFunc - Function to run on close.
+ * @param {Function} runFunc - Function to run when "calculate" is pressed.
+ * @param {String} run - Name of the trajectory.
+ * @param {Bool} isOpen - True if the modal is open.
+ */
 export default function LoadRunModal({ closeFunc, runFunc, run, isOpen }) {
     const [values, setValues] = useState(defaultValues.slice());
     const [chunkingThreshold, setChunkingThreshold] = useState(0.75);

@@ -15,8 +15,17 @@ import * as d3 from 'd3';
 import '../css/App.css';
 import Scatterplot from '../vis/Scatterplot';
 
-/* import { onMessageHandler, apiCalculateNEB } from '../api/ajax'; */
-
+/**
+ * Modal that appears when run NEB button is clicked, allowing users to make a fine-grained selection on
+ * a selection of states.
+ *
+ * @param {Array<Number>} states - The states to select over.
+ * @param {Function} colorFunc - Function that colors the states.
+ * @param {Function} close - Function that runs on close.
+ * @param {Function} open - Function that runs on open.
+ * @param {Function} submit - Function that runs when "submit" is pressed.
+ * @param {String} id - Unique ID of this modal.
+ */
 export default function NEBModal({ states, colorFunc, close, open, submit, id }) {
     const [interpolate, setInterpolate] = useState(3);
     const [maxSteps, setMaxSteps] = useState(250);
