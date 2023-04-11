@@ -12,7 +12,6 @@ from .config import config
 from .utils import load_pickle, save_pickle
 
 
-# needs more comments, testing
 class Trajectory:
     metadata = None
     cmds = None
@@ -232,7 +231,6 @@ class Trajectory:
             for id in cluster:
                 self.idToCluster[id] = clusterIdx
 
-    # needs testing
     def simplify_sequence(
         self,
         simpThreshold: float,
@@ -324,7 +322,6 @@ class Trajectory:
             uniqueStates.update(chunkUniqueStates)
         self.simplified_unique_states = uniqueStates
 
-    # needs testing
     def calculate_sequence_importance(
         self,
         simpThreshold: float,

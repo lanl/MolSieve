@@ -13,11 +13,15 @@ def driver():
 def trajectory(driver):
     return Trajectory.load_sequence(driver, "nano_pt")
 
+@pytest.fixture
+def clustered_trajectory(driver, trajectory):
+    trajectory.pcca(driver, 2, 20, None)
+    trajectory.calculateIDToCluster()
+    return trajectory
 
 def test_load_sequence_on_nonexistent_trajectory(driver):
     with pytest.raises(ValueError, match="Trajectory test not found."):
         Trajectory.load_sequence(driver, "test")
-
 
 def test_unique_states(trajectory, driver):
     # strangely, it seems that canonical representations are also referred to as nano_pt
@@ -45,3 +49,16 @@ def test_sequence(trajectory, driver):
         last_timestep = result.single().value()
 
     assert last_timestep == len(trajectory.sequence) - 1
+
+# TODO: make this more robust
+def test_simplify_sequence(clustered_trajectory):
+    clustered_trajectory.simplify_sequence(0.75)
+    
+    # make sure chunks are continuous
+    continuous = True
+    for i in range(0, len(clustered_trajectory.chunks) - 1):
+        if clustered_trajectory.chunks[i]['last'] + 1 != clustered_trajectory.chunks[i+1]['timestep']:
+            print(f"{clustered_trajectory.chunks[i]['last']} {clustered_trajectory.chunks[i+1]['timestep']}")   
+            continuous = False
+        
+    assert continuous
