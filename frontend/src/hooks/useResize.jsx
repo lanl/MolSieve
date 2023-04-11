@@ -1,5 +1,10 @@
 import { useRef, useState, useEffect } from 'react';
 /* eslint-disable */
+/**
+ * Hook to resize a component based on the size of the screen.
+ *
+ * @returns {Object} The width, height and reference to a component on the screen.
+ */
 export const useResize = () => {
     const divRef = useRef(null);
     const [width, setWidth] = useState();
