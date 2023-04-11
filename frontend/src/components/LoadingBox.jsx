@@ -3,6 +3,10 @@ import React from 'react';
 import Box from '@mui/material/Box';
 import CircularProgress from '@mui/material/CircularProgress';
 
+/**
+ * Neatly organized Box containing a loading indicator.
+ *
+ */
 export default function LoadingBox({ children, sx }) {
     return (
         <Box sx={sx}>
@@ -13,7 +17,6 @@ export default function LoadingBox({ children, sx }) {
 }
 
 LoadingBox.defaultProps = {
-    fillContainer: true,
     sx: {
         display: 'flex',
         flexGrow: 1,

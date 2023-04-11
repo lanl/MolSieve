@@ -1,5 +1,8 @@
 import { React, useEffect, useRef } from 'react';
 
+/**
+ * A dynamic <img> component that takes base64 encoded strings and renders them to the page.
+ */
 export default function ImageViewer({ img }) {
     const imgRef = useRef(null);
     useEffect(() => {

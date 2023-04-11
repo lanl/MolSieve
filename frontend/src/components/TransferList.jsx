@@ -17,6 +17,10 @@ function intersection(a, b) {
     return a.filter((value) => b.indexOf(value) !== -1);
 }
 
+/**
+ * TransferList component, see https://mui.com/material-ui/react-transfer-list/
+ *
+ */
 export default function TransferList({ available, chosen, setChosen, setAvailable }) {
     const [checked, setChecked] = useState([]);
 

@@ -59,6 +59,15 @@ const CHUNK_SELECT = 4;
 // for a valid selection
 const SELECTION_LENGTH = [0, 1, 3, 2, 2, 2];
 
+/**
+ * Main view of the system. Contains all visual components.
+ *
+ * @param {Array<String>} trajectories - Names of the trajectories to render.
+ * @param {Array<String>} properties - Properties currently loaded in the system.
+ * @param {Array<String>} visScripts - The visualization scripts available to the user.
+ * @param {Function} simplifySet - Function to simplify trajectory.
+ * @param {Function} recalculateClustering - Function to recalculate PCCA clustering count.
+ */
 export default function VisArea({
     trajectories,
     properties,
@@ -67,21 +76,21 @@ export default function VisArea({
     simplifySet,
     recalculateClustering,
 }) {
-    const [currentModal, setCurrentModal] = useState(null);
-    const [activeState, setActiveState] = useState(null);
+    const [currentModal, setCurrentModal] = useState(null); // TODO: can be just one modal
+    const [activeState, setActiveState] = useState(null); // currently clicked state
 
     const dispatch = useDispatch();
 
-    const [selectionMode, setSelectionMode] = useState(NO_SELECT);
+    const [selectionMode, setSelectionMode] = useState(NO_SELECT); // are we currently selecting anything?
     const [selectedObjects, setSelectedObjects] = useState([]);
 
     const [anchorEl, setAnchorEl] = useState(null);
     const colorState = useSelector((state) => state.states.colorState);
 
-    const [toolTipList, setToolTipList] = useState([]);
+    const [toolTipList, setToolTipList] = useState([]); // list of current tooltips, used in find similar
     const oldToolTipList = usePrevious(toolTipList);
 
-    const [showTop, setShowTop] = useState(4);
+    const [showTop, setShowTop] = useState(4); // number of currently visible properties
     const [visScript, setVisScript] = useState('default.py');
 
     const [comparisonSelections, setComparisonSelections] = useReducer((state, action) => {
@@ -153,13 +162,7 @@ export default function VisArea({
             default:
                 throw new Error('Unknown action');
         }
-    }, []);
-
-    /**
-     * Gets all visible chunks across all trajectories.
-     *
-     * @returns {Array<Chunk>} All chunks visible on the screen
-     */
+    }, []); // creates multi-variate charts
 
     useEffect(() => {
         if (toolTipList.length > 0) {
@@ -192,14 +195,6 @@ export default function VisArea({
             }
         }
     }, [selectionMode]);
-    // essentially the same as useCallback
-    /* setStateClickedProp = this.setStateClicked.bind(this);
-     
-    setStateHoveredProp = this.setStateHovered.bind(this);
-     
-    setExtentsUniqueStatesProp = this.setExtentsUniqueStates.bind(this);
-     
-    setSequenceExtentProp = this.setSequenceExtent.bind(this); */
 
     const selectObject = (o) => {
         if (!selectedObjects.map((d) => d.id).includes(o.id)) {
@@ -242,6 +237,7 @@ export default function VisArea({
     const visible = useSelector((state) => getAllVisibleChunks(state));
     const allStates = useSelector((state) => getAllImportantStates(state));
 
+    // TODO: move?
     const findSimilar = (chunkSimilarityFunc, formatFunc, selection) => {
         // compare all chunks to the one that was selected
         const selected = selection[0];
@@ -249,13 +245,9 @@ export default function VisArea({
 
         const v = visible.filter((d) => d.id !== selected.id && d.important);
         const similarities = {};
-        //  let minS = Number.MAX_SAFE_INTEGER;
-        //   let maxS = Number.MIN_SAFE_INTEGER;
         for (const vc of v) {
             const sim = chunkSimilarityFunc(selected, vc);
             similarities[`chunk_${vc.id}`] = sim;
-            // minS = Math.min(minS, sim);
-            //    maxS = Math.max(maxS, sim);
         }
 
         const charts = document.querySelectorAll('rect.important');
@@ -280,6 +272,7 @@ export default function VisArea({
         setToolTipList(ttList);
     };
 
+    // TODO: move toolbar to seperate component?
     // only clear websockets when charts change!
     return (
         <Box id="c" sx={sx}>
@@ -298,7 +291,6 @@ export default function VisArea({
                                     <ViewListIcon />
                                 </IconButton>
                             </Tooltip>
-                            {/* <Box onClick={() => reducePropertyCombos({ type: 'pop' })}>X</Box> */}
                             <Tooltip title="Compare regions / sub-regions" arrow>
                                 <IconButton
                                     size="small"
@@ -607,29 +599,6 @@ export default function VisArea({
                     dense
                 >
                     State ratio comparison
-                </MenuItem>
-                <MenuItem
-                    disabled
-                    onClick={() => {
-                        /* startSelection(FIND_SIMILAR_SELECT, (selection) =>
-                            findSimilar(
-                                (a, b) => {
-                                    const aStates = a.states.map((id) => States.get(id));
-                                    const bStates = b.states.map((id) => States.get(id));
-                                    // for which property?
-                                    return zTest(
-                                        aStates.map((d) => d[properties]),
-                                        bStates.map((d) => d[properties])
-                                    );
-                                },
-                                (a) => `${a.toFixed(3)}`,
-                                selection
-                            )
-                        );
-                        setAnchorEl(null) */
-                    }}
-                >
-                    Z-score
                 </MenuItem>
             </Menu>
             <Menu

@@ -13,22 +13,36 @@ import { WS_URL } from '../api/constants';
 
 import RemovableBox from './RemovableBox';
 import SingleStateViewer from './SingleStateViewer';
-// import RadarChart from '../vis/RadarChart';
 import NEBModal from '../modals/NEBModal';
 import NEBWrapper from '../hoc/NEBWrapper';
 import Scatterplot from '../vis/Scatterplot';
 
 import '../css/App.css';
 
-// import { oneShotTooltip } from '../api/myutils';
 import { apiSubsetConnectivityDifference } from '../api/ajax';
 import { getStateColoringMethod } from '../api/states';
 
+/**
+ * Shows a detailed view of a set of states within the Trajectory,
+ * using a 3D overview of the most important states and a 2D time vs ID plot.
+ * TODO: Rename to Sub Sequence Component
+ *
+ * @param {Array<Number>} stateIDs - States to include.
+ * @param {Array<Number>} timesteps - Timesteps of the states. TODO: can refactor
+ * @param {String} trajectoryName - Name of the trajectory the states belong to.
+ * @param {String} visScript - Visualization script to use when rendering 3D views.
+ * @param {Function} onMouseEnter - Ran when mouse enters component.
+ * @param {Function} onMouseLeave - Ran when mouse leaves component.
+ * @param {Function} onClick - Ran when component is clicked.
+ * @param {Function} onElementClick - Ran when a state (3D or plot) is clicked.
+ * @param {Function} deleteFunc - Ran when delete button is clicked.
+ * @param {String} className - CSS Class name of the component's Box.
+ * @param {String} id - CSS id of the component
+ */
 function SubSequenceView({
     stateIDs,
     timesteps,
     trajectoryName,
-    //   properties,
     visScript,
     sx = {},
     disabled = false,
@@ -40,12 +54,12 @@ function SubSequenceView({
     className = '',
     id = '',
 }) {
-    const [activeState, setActiveState] = useState(stateIDs[0]);
+    const [activeState, setActiveState] = useState(stateIDs[0]); // state currently selected
     const [isLoaded, setIsLoaded] = useState(false);
     const [interestingStates, setInterestingStates] = useState([
         stateIDs[0],
         stateIDs[stateIDs.length - 1],
-    ]);
+    ]); // states in the overview
     const [openModal, setOpenModal] = useState(false);
     const [nebPlots, setNEBPlots] = useState(null);
 
@@ -89,7 +103,6 @@ function SubSequenceView({
                 ws.current.addEventListener('close', () => {
                     setIsLoaded(true);
                 });
-                // setInterestingStates(iStates);
             });
         }
 

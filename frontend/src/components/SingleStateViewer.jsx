@@ -7,9 +7,14 @@ import { getStateColoringMethod } from '../api/states';
 import ImageViewer from './ImageViewer';
 
 import { apiGenerateOvitoImage } from '../api/ajax';
-// import { useDispatch } from 'react-redux';
-// import { addPropToState } from '../api/states';
 
+/**
+ * Wrapper for ImageViewer that gets the 3D render of the state assigned with stateID.
+ *
+ * @param {Number} stateID - The state ID to be rendered.
+ * @param {String} visScript - The visualization script to be applied.
+ * @param {Function} onClick - Function called when the image is clicked.
+ */
 export default function SingleStateViewer({ stateID, visScript, onClick }) {
     const [img, setImg] = useState(undefined);
     const [isLoading, setIsLoading] = useState(false);

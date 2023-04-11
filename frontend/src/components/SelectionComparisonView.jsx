@@ -1,7 +1,6 @@
 import { React, useState, useEffect, memo, useMemo } from 'react';
 import * as d3 from 'd3';
 import Stack from '@mui/material/Stack';
-// import { useSelector } from 'react-redux';
 import LinearProgress from '@mui/material/LinearProgress';
 import RemovableBox from './RemovableBox';
 import HeatMap from '../vis/HeatMap';
@@ -10,6 +9,15 @@ import SingleStateViewer from './SingleStateViewer';
 import { apiSelectionDistance } from '../api/ajax';
 import { oneShotTooltip } from '../api/myutils';
 
+/**
+ * Sub sequence comparison widget; given two state selections, draws a heat map of the distance between each state in the * selection. Clicking a rectangle in the heatmap shows the 3D renders of each state.
+ * TODO: Rename to Sub Sequence Comparison Widget
+ *
+ * @param {Array<Object>} selections - Selection objects containing the states selected.
+ * @param {String} visScript - Visualization script to use inside this widget.
+ * @param {Function} onStateClick - Function to call when 3-D states are clicked
+ * @param {Function} deleteFunc - Function called on deletion.
+ */
 function SelectionComparisonView({
     selections,
     visScript,
@@ -26,6 +34,7 @@ function SelectionComparisonView({
     const [activeStates, setActiveStates] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
 
+    // first load distance calculation between the two selections
     useEffect(() => {
         if (!comparisonData) {
             setIsLoading(true);
@@ -40,7 +49,7 @@ function SelectionComparisonView({
         setActiveStates([]);
     }, [JSON.stringify(comparisonData)]);
 
-    // refactor later - this can be attached to selection object
+    // TODO: refactor later - this can be attached to selection object
     const selectInSubSequence = (id, stateID) => {
         d3.select(`#scatterplot-${id}`).selectAll(`.y-${stateID}`).classed('clicked', true);
     };

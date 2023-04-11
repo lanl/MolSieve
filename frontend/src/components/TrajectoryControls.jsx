@@ -14,6 +14,14 @@ import ZoomOutIcon from '@mui/icons-material/ZoomOut';
 import TuneIcon from '@mui/icons-material/Tune';
 import { setZoom } from '../api/trajectories';
 
+/**
+ * Controls above every Trajectory Component. Allows users to change PCCA cluster count,
+ * simplification threshold and adjust visible extents of each trajectory.
+ *
+ * @param {String} name - Name of the trajectory these controls are associated with.
+ * @param {Function} simplifySet - Function to simplify trajectory.
+ * @param {Function} recalculateClustering - Function to recluster trajectory.
+ */
 export default function TrajectoryControls({
     name,
     simplifySet,

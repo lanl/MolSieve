@@ -7,6 +7,13 @@ import { useSelector } from 'react-redux';
 import SingleStateViewer from './SingleStateViewer';
 import { getState, getStateColoringMethod } from '../api/states';
 
+/**
+ * Shows details about a state with a 3D render and table of its properties.
+ * TODO: Rename to State Detail Widget
+ *
+ * @param {Number} stateID - ID of the state to display information about.
+ * @param {String} visScript - Visualization script to use to draw 3D render.
+ */
 export default function StateDetailView({ stateID, visScript }) {
     const state = useSelector((states) => getState(states, stateID));
     const colorState = useSelector((states) => getStateColoringMethod(states));

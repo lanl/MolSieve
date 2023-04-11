@@ -8,6 +8,12 @@ import Tooltip from '@mui/material/Tooltip';
 import DisabledByDefaultIcon from '@mui/icons-material/DisabledByDefault';
 
 /* eslint-disable react/jsx-props-no-spreading */
+/**
+ * Box with button which removes it.
+ * TODO: disabled does not do anything
+ * @param {Object} toolbar - Array of JSX elements to put alongside the deletion button.
+ * @param {Function} deleteFunc - Function to call when the button is pressed.
+ */
 function RemovableBox({
     children,
     disabled = false,

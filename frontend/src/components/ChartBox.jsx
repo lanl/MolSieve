@@ -2,6 +2,9 @@ import { React } from 'react';
 import Box from '@mui/material/Box';
 import { useResize } from '../hooks/useResize';
 
+/**
+ * Box element that automatically resizes itself.
+ */
 export default function ChartBox({ children, sx }) {
     const { width, height, divRef } = useResize();
 

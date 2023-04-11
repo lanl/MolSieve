@@ -7,33 +7,32 @@ import ListItemText from '@mui/material/ListItemText';
 import Checkbox from '@mui/material/Checkbox';
 import CircularProgress from '@mui/material/CircularProgress';
 
-export default function AjaxMenu({
-    open,
-    api_call: apiCall,
-    itemFunction,
-    clicked,
-    click,
-    anchorEl,
-    handleClose,
-}) {
+/**
+ * Menu that hits a back-end API upon loading.
+ *
+ * @param {Bool} open - Whether or not the menu is open.
+ * @param {String} apiCall - URL of the API to use.
+ * @param {Array} clicked - Items that were already clicked.
+ * @param {Function} click - Function to call when items get clicked.
+ * @param {Object} anchorEl - Element to anchor the menu to.
+ * @param {Function} handleClose - Function to call when closing the menu.
+ */
+export default function AjaxMenu({ open, apiCall, clicked, click, anchorEl, handleClose }) {
     const [items, setItems] = useState([]);
     const [itemsClicked, setClicked] = useState([]);
     const [lastEvent, setLastEvent] = useState(null);
 
+    // call apiCall URL on every open
     useEffect(() => {
         if (open) {
-            if (apiCall !== undefined && apiCall !== '') {
-                axios
-                    .get(apiCall)
-                    .then((response) => {
-                        setItems(response.data);
-                    })
-                    .catch((e) => {
-                        alert(e);
-                    });
-            } else if (itemFunction !== undefined) {
-                setItems(itemFunction());
-            }
+            axios
+                .get(apiCall)
+                .then((response) => {
+                    setItems(response.data);
+                })
+                .catch((e) => {
+                    alert(e);
+                });
         }
 
         if (clicked !== undefined) {
