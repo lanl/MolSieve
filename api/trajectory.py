@@ -45,7 +45,7 @@ class Trajectory:
         if r is not None:
             return Trajectory(run, r["sequence"], r["unique_states"])
 
-        # maybe move this query to neomd?
+        # TODO: maybe move this query to neomd?
         q = f"""
         MATCH (n:State:{run})-[r:{run}]->(:State:{run})
         RETURN n.id as id
@@ -363,7 +363,7 @@ class Trajectory:
 
         return importance
 
-    # move to neomd?
+    # TODO: move to neomd?
     def calculate_id_to_timestep(self, driver):
         r = load_pickle(self.name, "idToTimestep")
         if r is not None:

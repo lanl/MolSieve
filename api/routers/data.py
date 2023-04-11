@@ -1,14 +1,16 @@
 """
 Module for retrieving data from the database.
 """
-from typing import Optional
+from ase import Atoms
+from typing import Optional, Dict, List, Any
 
 from celery.utils import uuid
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from pymemcache import serde
 from pymemcache.client.base import PooledClient
 
-from neomd import converter, metadata, querybuilder, visualizations
+from neomd import converter, metadata, visualizations
+from neomd.queries import Neo4jQueryBuilder
 
 from ..background_worker.celery import celery
 from ..graphdriver import GraphDriver
@@ -24,7 +26,7 @@ from ..utils import (
 router = APIRouter(prefix="/data", tags=["data"])
 
 
-async def run_script(script: str, state_atom_dict):
+async def run_script(script: str, state_atom_dict: Dict[int, Atoms]):
     """
     Runs the provided script's run() function on the state_atom_dict provided.
 
@@ -56,7 +58,7 @@ async def generate_ovito_image_endpoint(id: int, visScript: str):
     :returns: Object containing state ID and a base64 encoded image string.
     """
     driver = GraphDriver()
-    qb = querybuilder.Neo4jQueryBuilder([("Atom", "PART_OF", "State", "MANY-TO-ONE")])
+    qb = Neo4jQueryBuilder([("Atom", "PART_OF", "State", "MANY-TO-ONE")], ["State"])
 
     q = qb.generate_get_node_list("State", [id], "PART_OF")
     atom_dict = converter.query_to_ASE(driver, q)
@@ -96,11 +98,11 @@ async def ws_load_properties_for_subset(websocket: WebSocket):
     await websocket.accept()
     try:
         data = await websocket.receive_json()
-        qb = querybuilder.Neo4jQueryBuilder()
+        qb = Neo4jQueryBuilder(nodes=["State"])
         driver = GraphDriver()
 
         q = qb.generate_get_node_list(
-            "State", idAttributeList=data["stateIds"], attributeList=data["props"]
+            "State", idList=data["stateIds"], attributeList=data["props"] + ['id']
         )
 
         stateList = []
@@ -121,7 +123,7 @@ async def ws_load_properties_for_subset(websocket: WebSocket):
         pass
 
 
-async def load_properties_for_subset(stateList):
+async def load_properties_for_subset(stateList: List[Dict[str, Any]]):
     """
     Given a list of states, checks the properties currently loaded in the system and
     calculates the properties for each state if they are missing.
@@ -155,10 +157,11 @@ async def load_properties_for_subset(stateList):
             all_missing = all_missing + values
 
         if len(all_missing) > 0:
-            qb = querybuilder.Neo4jQueryBuilder(
+            qb = Neo4jQueryBuilder(
                 [
                     ("Atom", "PART_OF", "State", "MANY-TO-ONE"),
-                ]
+                ],
+                ["State"]
             )
             q = qb.generate_get_node_list(
                 "State", remove_duplicates(all_missing), "PART_OF"
@@ -186,7 +189,7 @@ async def load_properties_for_subset(stateList):
         return stateList
 
 
-# this is in neomd as well, need to pick one version
+# TODO: this is in neomd as well, need to pick one version
 def get_potential(run: str) -> str:
     """
     Gets a potential file associated with the run, and writes it to the current working directory.

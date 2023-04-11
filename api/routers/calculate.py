@@ -8,7 +8,8 @@ from fastapi import APIRouter, Body
 from sklearn import preprocessing
 from sklearn.cluster import OPTICS
 
-from neomd import converter, querybuilder
+from neomd import converter
+from neomd.queries import Neo4jQueryBuilder
 
 from ..graphdriver import GraphDriver
 from .worker import add_task_to_queue
@@ -27,11 +28,11 @@ def cluster_states(props: List[str] = Body([]), stateIds: List[int] = Body([])):
 
     :returns: A dictionary of state IDs to cluster numbers.
     """
-    qb = querybuilder.Neo4jQueryBuilder()
+    qb = Neo4jQueryBuilder(nodes=["State"])
     driver = GraphDriver()
 
     q = qb.generate_get_node_list(
-        "State", idAttributeList=stateIds, attributeList=props
+        "State", idList=stateIds, attributeList=props + ['id']
     )
 
     j = {}
@@ -77,7 +78,7 @@ def selection_distance(
 
     # get all states without duplicates
     stateIDs = list(set(stateSet1 + stateSet2))
-    qb = querybuilder.Neo4jQueryBuilder([("Atom", "PART_OF", "State", "MANY-TO-ONE")])
+    qb = Neo4jQueryBuilder([("Atom", "PART_OF", "State", "MANY-TO-ONE")], ["State"])
     q = qb.generate_get_node_list("State", stateIDs, "PART_OF")
     state_atom_dict = converter.query_to_ASE(driver, q)
 

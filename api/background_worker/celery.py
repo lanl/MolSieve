@@ -4,7 +4,8 @@ import requests
 from celery import Celery, Task, current_task
 from celery.utils.log import get_task_logger
 
-from neomd import calculator, converter, metadata, querybuilder
+from neomd import calculator, converter, metadata
+from neomd.queries import Neo4jQueryBuilder
 
 from ..graphdriver import GraphDriver
 from .celeryconfig import CeleryConfig
@@ -60,7 +61,7 @@ def subset_connectivity_difference(stateIDs: List[int]):
     driver = GraphDriver()
     task_id = current_task.request.id
 
-    qb = querybuilder.Neo4jQueryBuilder([("Atom", "PART_OF", "State", "MANY-TO-ONE")])
+    qb = Neo4jQueryBuilder([("Atom", "PART_OF", "State", "MANY-TO-ONE")], ["State"])
     q = qb.generate_get_node_list("State", stateIDs, "PART_OF")
     state_atom_dict = converter.query_to_ASE(driver, q)
 
@@ -124,8 +125,9 @@ def neb_on_path(
     md = metadata.get_metadata(driver, run)
     path, allStates = calculator.canonical_path(driver, run, start, end)
 
-    qb = querybuilder.Neo4jQueryBuilder(
-        schema=[("Atom", "PART_OF", "State", "MANY-TO-ONE")]
+    qb = Neo4jQueryBuilder(
+        [("Atom", "PART_OF", "State", "MANY-TO-ONE")],
+        ["State"]
     )
 
     q = qb.generate_get_node_list("State", allStates, "PART_OF")
@@ -189,7 +191,7 @@ def save_to_db(new_attributes):
     """
     driver = GraphDriver()
 
-    qb = querybuilder.Neo4jQueryBuilder()
+    qb = Neo4jQueryBuilder(nodes=["State"])
 
     q = None
     with driver.session() as session:
@@ -197,7 +199,7 @@ def save_to_db(new_attributes):
         for id, data in new_attributes.items():
             # q is a template query that gets filled in with each datapoint
             if q is None:
-                q = qb.generate_update_entity(data, "State", "id", "node")
+                q = qb.generate_update_entity(data, "State", "id")
             data.update({"id": id})
             tx.run(q.text, data)
         tx.commit()
