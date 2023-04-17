@@ -1,20 +1,23 @@
+import base64
+import io
 import os
 import pickle
-
 from typing import Any, Dict, List
-from .config import config
-from typeguard import typechecked
 
 # image rendering
 from PIL import Image
-import base64
-import io
+from typeguard import typechecked
+
+from .config import config
 
 
 def remove_duplicates(arr: List[Any]):
     return list(set(arr))
 
-def find_missing_properties(data: List[Dict[str, Any]], identifier: str = "id") -> Dict[str, List[Any]]:
+
+def find_missing_properties(
+    data: List[Dict[str, Any]], identifier: str = "id"
+) -> Dict[str, List[Any]]:
     """
     Given a list of dictionaries (objects) iterate through each object and find
     all objects that have None assigned to a property.

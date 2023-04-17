@@ -30,7 +30,9 @@ def send_update(task_id: str, data: Dict[Any, Any]):
     :param task_id: The task to update.
     :param data: The data to send.
     """
-    requests.post(f"http://localhost:8000/worker/update_task/{task_id}", json=data)
+    requests.post(
+        f"http://localhost:8000/worker/update_task/{task_id}", json=data
+    )
 
 
 class PostingTask(Task):
@@ -51,7 +53,7 @@ def subset_connectivity_difference(stateIDs: List[int]):
     Calculates the critical states of a sequence.
     This is achieved using a greedy algorithm where the first state is compared to the entire sequence,
     and then the index of the state with the most difference is returned.
-    Using this most different state, we start the loop again and look for the 
+    Using this most different state, we start the loop again and look for the
     maximally different state from that point in the sequence.
     Continue until 3 iterations or we reach the end.
 
@@ -62,7 +64,9 @@ def subset_connectivity_difference(stateIDs: List[int]):
     driver = GraphDriver()
     task_id = current_task.request.id
 
-    qb = Neo4jQueryBuilder([("Atom", "PART_OF", "State", "MANY-TO-ONE")], ["State"])
+    qb = Neo4jQueryBuilder(
+        [("Atom", "PART_OF", "State", "MANY-TO-ONE")], ["State"]
+    )
     q = qb.generate_get_node_list("State", stateIDs, "PART_OF")
     state_atom_dict = converter.query_to_ASE(driver, q)
 
@@ -127,8 +131,7 @@ def neb_on_path(
     path, allStates = calculator.canonical_path(driver, run, start, end)
 
     qb = Neo4jQueryBuilder(
-        [("Atom", "PART_OF", "State", "MANY-TO-ONE")],
-        ["State"]
+        [("Atom", "PART_OF", "State", "MANY-TO-ONE")], ["State"]
     )
 
     q = qb.generate_get_node_list("State", allStates, "PART_OF")

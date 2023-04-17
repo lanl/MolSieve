@@ -12,7 +12,7 @@ from .config import config
 class GraphDriver(object):
 
     __instance = None
-    __driver = None 
+    __driver = None
 
     def __new__(cls) -> neo4j.Driver:
         if cls.__instance is None:
