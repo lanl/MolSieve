@@ -162,9 +162,14 @@ def neb_on_path(
         s1_atoms = full_atom_dict[s1]
         s2_atoms = full_atom_dict[s2]
 
+        # old_state should not change unless we have a canonical state
+        remapped = s2_atoms
+        if old_state != 0:
+            remapped = calculator.remap_atomic_labels(s1_atoms, s2_atoms)
+
         images = calculator.calculate_neb_for_pair(
             s1_atoms,
-            s2_atoms,
+            remapped,
             md["cmds"],
             interpolate,
             maxSteps,
