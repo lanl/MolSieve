@@ -6,7 +6,7 @@ from celery.utils.log import get_task_logger
 
 from neomd import calculator, converter, metadata
 from neomd.queries import Neo4jQueryBuilder
-
+from ase.calculators.lammpslib import LAMMPSlib
 from ..graphdriver import GraphDriver
 from .celeryconfig import CeleryConfig
 
@@ -143,6 +143,9 @@ def neb_on_path(
 
     # utility function to update client
     def send_neb_step(id, atoms, index):
+        if atoms.calc is None:
+            atoms.calc = LAMMPSlib(keep_alive=True, lmpcmds=md["cmds"])
+
         send_update(
             task_id,
             {
@@ -158,25 +161,25 @@ def neb_on_path(
 
     idx = 0  # keeps count of how many steps we have processed
     for relation in path.values():
-        s1, s2, old_state = relation
+        s1 = relation["first"]
+        s2 = relation["second"]
+        symmetry = relation["symmetry"]
         s1_atoms = full_atom_dict[s1]
         s2_atoms = full_atom_dict[s2]
 
-        # old_state should not change unless we have a canonical state
-        remapped = s2_atoms
-        if old_state != 0:
-            remapped = calculator.remap_atomic_labels(s1_atoms, s2_atoms)
+        if symmetry is not None:
+            s1_atoms = full_atom_dict[symmetry]
 
         images = calculator.calculate_neb_for_pair(
             s1_atoms,
-            remapped,
+            s2_atoms,
             md["cmds"],
             interpolate,
             maxSteps,
             fmax,
         )
 
-        send_neb_step(old_state, s1_atoms, idx)
+        send_neb_step(s1, s1_atoms, idx)
         idx += 1
 
         # convert ASE Atoms to new states
@@ -194,7 +197,8 @@ def neb_on_path(
 @celery.task(name="save_to_db")
 def save_to_db(new_attributes):
     """
-    Saves the data provided in the database. Heavily used in load_properties, this frees FastAPI from sending data to the database.
+    Saves the data provided in the database. Heavily used in load_properties, 
+    this frees FastAPI from sending data to the database.
 
     :param new_attributes Dict[int, Dict[str, Any]]: Dictionary of stateIDs to dictionaries containing new properties.
     """

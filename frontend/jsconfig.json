@@ -4,5 +4,9 @@
             "name": "typescript-eslint-language-service"
         }
     ],
+    "compilerOptions": {
+    "target": "es6",
+    "checkJs": false
+    },
     "exclude": ["node_modules", "build", ".log"]
 }

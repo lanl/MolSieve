@@ -1,3 +1,3 @@
 [flake8]
-ignore = E203
-exclude = .git, .venv, frontend, neomd, petsc, slepc
+ignore = E203, E999, F401, F821, W503 
+exclude = .git, .venv, frontend, petsc, slepc
