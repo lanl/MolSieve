@@ -4,9 +4,9 @@ from typing import Optional
 
 import neo4j
 import pygpcca as gp
-from scipy import sparse
 
 from neomd import calculator
+from neomd.queries import Neo4jQueryBuilder
 
 from .config import config
 from .utils import load_pickle, save_pickle
@@ -47,6 +47,7 @@ class Trajectory:
         # TODO: maybe move this query to neomd?
         q = f"""
         MATCH (n:State:{run})-[r:{run}]->(:State:{run})
+        WHERE r.sym = False
         RETURN n.id as id
         ORDER BY r.timestep ASC;
         """

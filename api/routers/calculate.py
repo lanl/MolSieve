@@ -18,7 +18,9 @@ router = APIRouter(prefix="/calculate", tags=["calculations"])
 
 
 @router.post("/cluster_states", status_code=200)
-def cluster_states(props: List[str] = Body([]), stateIds: List[int] = Body([])):
+def cluster_states(
+    props: List[str] = Body([]), stateIds: List[int] = Body([])
+):
     """
     Given a set of properties and a list of state IDs, grabs them from the database and then
     clusters them using the OPTICS algorithm.
@@ -32,7 +34,8 @@ def cluster_states(props: List[str] = Body([]), stateIds: List[int] = Body([])):
     driver = GraphDriver()
 
     q = qb.generate_get_node_list(
-        "State", idList=stateIds, attributeList=props + ['id'])
+        "State", idList=stateIds, attributeList=props + ["id"]
+    )
 
     j = {}
     with driver.session() as session:
@@ -77,7 +80,9 @@ def selection_distance(
 
     # get all states without duplicates
     stateIDs = list(set(stateSet1 + stateSet2))
-    qb = Neo4jQueryBuilder([("Atom", "PART_OF", "State", "MANY-TO-ONE")], ["State"])
+    qb = Neo4jQueryBuilder(
+        [("Atom", "PART_OF", "State", "MANY-TO-ONE")], ["State"]
+    )
     q = qb.generate_get_node_list("State", stateIDs, "PART_OF")
     state_atom_dict = converter.query_to_ASE(driver, q)
     m = {id: {id2: 0 for id2 in stateSet2} for id in stateSet1}

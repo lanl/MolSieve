@@ -245,6 +245,7 @@ def list_trajectories():
     """
     driver = GraphDriver()
 
+    # maybe build querybuilder with runs?
     j = []
     with driver.session() as session:
         result = session.run("MATCH (m:Metadata) RETURN DISTINCT m.run;")

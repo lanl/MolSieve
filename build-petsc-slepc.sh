@@ -2,6 +2,7 @@
 # make sure to install PETSc / SLEPc dependencies - this is system specific, so I left it out 
 # also, make sure that your virtual environment is activated - specific to the user, so I left that out 
 # need numpy, cython, mpi4py 
+pip install --upgrade pip
 pip install numpy cython mpi4py 
 
 # build PETSc 

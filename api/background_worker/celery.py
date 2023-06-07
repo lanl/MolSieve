@@ -1,12 +1,13 @@
 from typing import Any, Dict, List
 
 import requests
+from ase.calculators.lammpslib import LAMMPSlib
 from celery import Celery, Task, current_task
 from celery.utils.log import get_task_logger
 
 from neomd import calculator, converter, metadata
 from neomd.queries import Neo4jQueryBuilder
-from ase.calculators.lammpslib import LAMMPSlib
+
 from ..graphdriver import GraphDriver
 from .celeryconfig import CeleryConfig
 
@@ -105,8 +106,8 @@ def subset_connectivity_difference(stateIDs: List[int]):
 @celery.task(name="neb_on_path", base=PostingTask)
 def neb_on_path(
     run: str,
-    start: str,
-    end: str,
+    start: int,
+    end: int,
     interpolate: int = 3,
     maxSteps: int = 2500,
     fmax: float = 0.01,
@@ -197,7 +198,7 @@ def neb_on_path(
 @celery.task(name="save_to_db")
 def save_to_db(new_attributes):
     """
-    Saves the data provided in the database. Heavily used in load_properties, 
+    Saves the data provided in the database. Heavily used in load_properties,
     this frees FastAPI from sending data to the database.
 
     :param new_attributes Dict[int, Dict[str, Any]]: Dictionary of stateIDs to dictionaries containing new properties.
