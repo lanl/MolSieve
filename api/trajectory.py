@@ -6,7 +6,6 @@ import neo4j
 import pygpcca as gp
 
 from neomd import calculator
-from neomd.queries import Neo4jQueryBuilder
 
 from .config import config
 from .utils import load_pickle, save_pickle
@@ -112,9 +111,12 @@ class Trajectory:
         self.m_max = m_max
 
         clusterings = [
-            {"indicator": abs(m), "cluster": m_min + idx} for idx, m in enumerate(mc)
+            {"indicator": abs(m), "cluster": m_min + idx}
+            for idx, m in enumerate(mc)
         ]
-        self.optimal_value = min(clusterings, key=lambda e: e["indicator"])["cluster"]
+        self.optimal_value = min(clusterings, key=lambda e: e["indicator"])[
+            "cluster"
+        ]
         return self.optimal_value
 
     def calculate_transition_matrix(self, driver: neo4j.Driver):
@@ -129,19 +131,27 @@ class Trajectory:
         if r is not None:
             return r["matrix"], r["idx_to_id"]
 
-        m, idx_to_id = calculator.calculate_transition_matrix(driver, run=self.name)
+        m, idx_to_id = calculator.calculate_transition_matrix(
+            driver, run=self.name
+        )
 
         save_pickle(
-            self.name, "transition_matrix", {"matrix": m, "idx_to_id": idx_to_id}
+            self.name,
+            "transition_matrix",
+            {"matrix": m, "idx_to_id": idx_to_id},
         )
 
         return m, idx_to_id
 
     def pcca(
-        self, driver: neo4j.Driver, m_min: int, m_max: int, num_clusters: Optional[int]
+        self,
+        driver: neo4j.Driver,
+        m_min: int,
+        m_max: int,
+        num_clusters: Optional[int],
     ):
         """
-        Runs PCCA on the trajectory. We need the range every time because pyGPCCA doesn't work without 
+        Runs PCCA on the trajectory. We need the range every time because pyGPCCA doesn't work without
         calculating the minChi indicators beforehand.
 
         :param driver: Neo4j driver to query database with.
@@ -274,7 +284,10 @@ class Trajectory:
                 # calculates the states that will be used for calculating
                 # distributions in super-state views
                 state_counts = Counter(sequence)
-                top = [x[0] for x in state_counts.most_common(min(len(sequence), 20))]
+                top = [
+                    x[0]
+                    for x in state_counts.most_common(min(len(sequence), 20))
+                ]
 
                 sequence_set = set(sequence)
                 # remove top 20 that were selected
@@ -339,7 +352,8 @@ class Trajectory:
         # it is important else unimportant
         isImportant = (
             lambda id: 1
-            if max(self.current_fuzzy_membership()[id]) <= simpThreshold + epsilon
+            if max(self.current_fuzzy_membership()[id])
+            <= simpThreshold + epsilon
             else 0
         )
         importance = list(map(isImportant, self.sequence))

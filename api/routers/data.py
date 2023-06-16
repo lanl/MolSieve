@@ -1,9 +1,11 @@
 """
 Module for retrieving data from the database.
 """
-from ase import Atoms
-from typing import Optional, Dict, List, Any
+import logging
+import time
+from typing import Any, Dict, List, Optional
 
+from ase import Atoms
 from celery.utils import uuid
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from pymemcache import serde
@@ -40,7 +42,9 @@ async def run_script(script: str, state_atom_dict: Dict[int, Atoms]):
     new_attributes = run(state_atom_dict)
     task_id = uuid()
     celery.send_task(
-        "save_to_db", kwargs={"new_attributes": new_attributes}, task_id=task_id
+        "save_to_db",
+        kwargs={"new_attributes": new_attributes},
+        task_id=task_id,
     )
 
     # move into seperate process?
@@ -58,7 +62,9 @@ async def generate_ovito_image_endpoint(id: int, visScript: str):
     :returns: Object containing state ID and a base64 encoded image string.
     """
     driver = GraphDriver()
-    qb = Neo4jQueryBuilder([("Atom", "PART_OF", "State", "MANY-TO-ONE")], ["State"])
+    qb = Neo4jQueryBuilder(
+        [("Atom", "PART_OF", "State", "MANY-TO-ONE")], ["State"]
+    )
 
     q = qb.generate_get_node_list("State", [id], "PART_OF")
     atom_dict = converter.query_to_ASE(driver, q)
@@ -66,7 +72,9 @@ async def generate_ovito_image_endpoint(id: int, visScript: str):
     modifier = get_script_code(visScript, folder="vis_scripts")
     exec(modifier, globals())
 
-    qimg = visualizations.render_ASE(atom_dict[id], pipeline_modifier=modify_pipeline)
+    qimg = visualizations.render_ASE(
+        atom_dict[id], pipeline_modifier=modify_pipeline
+    )
 
     return {"id": id, "img": qImage_to_string(qimg)}
 
@@ -102,7 +110,9 @@ async def ws_load_properties_for_subset(websocket: WebSocket):
         driver = GraphDriver()
 
         q = qb.generate_get_node_list(
-            "State", idList=data["stateIds"], attributeList=data["props"] + ['id']
+            "State",
+            idList=data["stateIds"],
+            attributeList=data["props"] + ["id"],
         )
 
         stateList = []
@@ -161,7 +171,7 @@ async def load_properties_for_subset(stateList: List[Dict[str, Any]]):
                 [
                     ("Atom", "PART_OF", "State", "MANY-TO-ONE"),
                 ],
-                ["State"]
+                ["State"],
             )
             q = qb.generate_get_node_list(
                 "State", remove_duplicates(all_missing), "PART_OF"
@@ -223,7 +233,9 @@ def get_sequence(run: str, start: Optional[int], end: Optional[int] = None):
 
     :returns List[int]: A list of state IDs within the specified range.
     """
-    mem_client = PooledClient("localhost", max_pool_size=4, serde=serde.pickle_serde)
+    mem_client = PooledClient(
+        "localhost", max_pool_size=4, serde=serde.pickle_serde
+    )
     trajectory = mem_client.get(run)
 
     driver = GraphDriver()
@@ -276,16 +288,23 @@ def load_trajectory(
     :param chunkingThreshold float: Cluster membership threshold at which states are considered important.
     """
 
+    s_t = time.time()
+
     driver = GraphDriver()
     get_potential(run)  # needed for NEB later on
     trajectory = Trajectory.load_sequence(driver, run)
 
     trajectory.pcca(driver, mMin, mMax, numClusters)
-    trajectory.calculateIDToCluster()  # calculate what cluster each state belongs to, need it for simplify_sequence
+    # calculate what cluster each state belongs to, need it for simplify_sequence
+    trajectory.calculateIDToCluster()
     trajectory.simplify_sequence(chunkingThreshold)
 
-    mem_client = PooledClient("localhost", max_pool_size=1, serde=serde.pickle_serde)
+    mem_client = PooledClient(
+        "localhost", max_pool_size=1, serde=serde.pickle_serde
+    )
     mem_client.set(run, trajectory)
+
+    logging.info(f"Backend processing took {time.time() - s_t}.")
 
     return {
         "uniqueStates": trajectory.simplified_unique_states,

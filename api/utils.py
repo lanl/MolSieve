@@ -151,7 +151,7 @@ def load_pickle(run: str, t: str) -> Any:
 
     if config.LOAD_CACHE:
         try:
-            with open(f"api/testing/{run}_{t}.pickle", "rb") as f:
+            with open(f"api/cache/{run}_{t}.pickle", "rb") as f:
                 return pickle.load(f)
         except Exception:
             print(f"Calculating {run} {t} instead of using cached version.")
