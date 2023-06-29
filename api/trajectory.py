@@ -160,11 +160,34 @@ class Trajectory:
         :param num_clusters: Optional, the exact number of clusters to cluster the trajectory with.
         """
         m, idx_to_id = self.calculate_transition_matrix(driver)
+
+        if not num_clusters:
+            r = load_pickle(self.name, "optimal_clusterings")
+            if r is not None:
+                optimal = r.get((m_min, m_max), None)
+                if optimal is not None:
+                    clustering = load_pickle(
+                        self.name, f"pcca_cluster_{optimal}"
+                    )
+                    if clustering is not None:
+                        self.current_clustering = optimal
+                        self.single_pcca(None, idx_to_id, optimal)
+                        return
+
         gpcca = gp.GPCCA(m, z="LM", method="krylov")
 
         ov = self.check_min_chi_range(gpcca, m_min, m_max, num_clusters)
 
         self.current_clustering = ov
+
+        if not num_clusters:
+            r = load_pickle(self.name, "optimal_clusterings")
+            if r is None:
+                r = {}
+            r[(m_min, m_max)] = ov
+
+            save_pickle(self.name, "optimal_clusterings", r)
+
         self.single_pcca(gpcca, idx_to_id, ov)
 
     def single_pcca(self, gpcca, idx_to_id, num_clusters: int):
