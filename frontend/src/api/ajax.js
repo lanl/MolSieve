@@ -119,7 +119,9 @@ export function apiLoadTrajectory(run, mMin, mMax, chunkingThreshold) {
             .then((response) => {
                 resolve(response.data);
             })
-            .catch((e) => reject(e));
+            .catch((e) => {
+                reject(e.response.data.detail);
+            });
     });
 }
 

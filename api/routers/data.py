@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Optional
 
 from ase import Atoms
 from celery.utils import uuid
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect, HTTPException
 from pymemcache import serde
 from pymemcache.client.base import PooledClient
 
@@ -294,7 +294,10 @@ def load_trajectory(
     get_potential(run)  # needed for NEB later on
     trajectory = Trajectory.load_sequence(driver, run)
 
-    trajectory.pcca(driver, mMin, mMax, numClusters)
+    try:
+        trajectory.pcca(driver, mMin, mMax, numClusters)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {e}")
     # calculate what cluster each state belongs to, need it for simplify_sequence
     trajectory.calculateIDToCluster()
     trajectory.simplify_sequence(chunkingThreshold)
