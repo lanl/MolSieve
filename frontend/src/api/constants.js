@@ -53,9 +53,9 @@ export const mpn65 = [
 ];
 
 // change this to wherever you're hosting the backend
-const URL = (process.env.NODE_ENV == 'development') ? 'localhost:8000' : '';
+const URL = process.env.NODE_ENV === 'development' ? 'localhost:8000' : '';
 
-export const API_URL = (URL === '') ? `${URL}` : `http://${URL}`;
-export const WS_URL = (URL === '') ? `wss://${window.location.host}` : `ws://${URL}`;
+export const API_URL = URL === '' ? `${URL}` : `http://${URL}`;
+export const WS_URL = URL === '' ? `wss://${window.location.host}` : `ws://${URL}`;
 
 export const LOADING_CHUNK_SIZE = 100;
