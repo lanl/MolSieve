@@ -84,8 +84,10 @@ class App extends React.Component {
      */
     recalculate_clustering = (name, clusters) => {
         return new Promise((_, reject) => {
-            const { enqueueSnackbar, dispatch } = this.props;
-            enqueueSnackbar(`Recalculating clustering for trajectory ${name}...`);
+            const { enqueueSnackbar, closeSnackbar, dispatch } = this.props;
+            const key = enqueueSnackbar(`Recalculating clustering for trajectory ${name}...`, {
+                persist: true,
+            });
             dispatch(recluster({ name, clusters }))
                 .unwrap()
                 .then(() => enqueueSnackbar(`Reclustered trajectory ${name}`))
@@ -94,6 +96,9 @@ class App extends React.Component {
                         variant: 'error',
                     });
                     reject(e);
+                })
+                .finally(() => {
+                    closeSnackbar(key);
                 });
         });
     };
@@ -107,8 +112,8 @@ class App extends React.Component {
      * @param {Number} chunkingThreshold - Simplification threshold
      */
     loadTrajectory = (run, mMin, mMax, chunkingThreshold) => {
-        const { enqueueSnackbar, dispatch } = this.props;
-        enqueueSnackbar(`Loading trajectory ${run}...`);
+        const { enqueueSnackbar, closeSnackbar, dispatch } = this.props;
+        const key = enqueueSnackbar(`Loading trajectory ${run}...`, { persist: true });
 
         apiLoadTrajectory(run, mMin, mMax, chunkingThreshold)
             .then((data) => {
@@ -136,10 +141,10 @@ class App extends React.Component {
                         mMax,
                     })
                 );
-
                 enqueueSnackbar(`Trajectory ${run} successfully loaded.`);
             })
-            .catch((e) => alert(`${e}`));
+            .catch((e) => alert(`${e}`))
+            .finally(() => closeSnackbar(key));
     };
 
     /**
@@ -149,12 +154,13 @@ class App extends React.Component {
      * @param {Number} threshold - The desired simplification threshold.
      */
     simplifySet = (run, threshold) => {
-        const { enqueueSnackbar, dispatch } = this.props;
+        const { enqueueSnackbar, closeSnackbar, dispatch } = this.props;
 
-        enqueueSnackbar(`Re-simplifying trajectory ${run}...`);
-        dispatch(simplifySet({ name: run, threshold })).then(() =>
-            enqueueSnackbar(`Sequence re-simplified for trajectory ${run}.`)
-        );
+        const key = enqueueSnackbar(`Re-simplifying trajectory ${run}...`, { persist: true });
+        dispatch(simplifySet({ name: run, threshold })).then(() => {
+            closeSnackbar(key);
+            enqueueSnackbar(`Sequence re-simplified for trajectory ${run}.`);
+        });
     };
 
     /**
