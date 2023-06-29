@@ -105,7 +105,15 @@ class Trajectory:
         :param m_min: The minimum clustering count.
         :param m_max: The maximum clustering count.
         """
-        mc = gpcca.minChi(m_min, m_max)
+        try:
+            mc = gpcca.minChi(m_min, m_max)
+        except ValueError as e:
+            suggestion = ". Try using a different number of clusters."
+            if "Request one cluster more or less" in str(e):
+                suggestion = ""
+            raise ValueError(
+                f"Clustering failed: {e}{suggestion}"
+            ) from e
         self.min_chi = mc
         self.m_min = m_min
         self.m_max = m_max

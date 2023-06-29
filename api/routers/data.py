@@ -297,7 +297,7 @@ def load_trajectory(
     try:
         trajectory.pcca(driver, mMin, mMax, numClusters)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error: {e}")
+        raise HTTPException(status_code=500, detail=f"{e}")
     # calculate what cluster each state belongs to, need it for simplify_sequence
     trajectory.calculateIDToCluster()
     trajectory.simplify_sequence(chunkingThreshold)
