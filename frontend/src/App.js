@@ -82,27 +82,25 @@ class App extends React.Component {
      *  @param {string} run - Run to recalculate the clustering for
      *  @param {number} clusters - Number of clusters to split the trajectory into.
      */
-    recalculate_clustering = (name, clusters) => {
-        return new Promise((_, reject) => {
-            const { dispatch } = this.props;
-            const key = enqueueSnackbar(`Recalculating clustering for trajectory ${name}...`, {
-                persist: true,
-                variant: 'loading',
-            });
-            dispatch(recluster({ name, clusters }))
-                .unwrap()
-                .then(() => enqueueSnackbar(`Reclustered trajectory ${name}`))
-                .catch((e) => {
-                    enqueueSnackbar(`Reclustering trajectory ${name} failed: ${e.message}`, {
-                        variant: 'error',
-                    });
-                    reject(e);
-                })
-                .finally(() => {
-                    closeSnackbar(key);
-                });
+    recalculate_clustering = (name, clusters) => new Promise((_, reject) => {
+        const { dispatch } = this.props;
+        const key = enqueueSnackbar(`Recalculating clustering for trajectory ${name}...`, {
+            persist: true,
+            variant: 'loading',
         });
-    };
+        dispatch(recluster({ name, clusters }))
+            .unwrap()
+            .then(() => enqueueSnackbar(`Reclustered trajectory ${name}`))
+            .catch((e) => {
+                enqueueSnackbar(`Reclustering trajectory ${name} failed: ${e.message}`, {
+                    variant: 'error',
+                });
+                reject(e);
+            })
+            .finally(() => {
+                closeSnackbar(key);
+            });
+    });
 
     /**
      *  Creates a new trajectory object and populates it with data from the database.
@@ -200,68 +198,69 @@ class App extends React.Component {
                         vertical: 'bottom',
                         horizontal: 'left',
                     }}
-                />
-
-                <Toolbar
-                    variant="dense"
-                    sx={{
-                        background: '#f8f9f9',
-                        fontColor: '#394043',
-                        boxShadow: '0 1px 2px rgba(0,0,0,0.4)',
-                    }}
                 >
-                    <Typography sx={{ flexGrow: 1 }} color="primary" variant="h6">
-                        MolSieve
-                    </Typography>
-                    <Button
-                        color="primary"
-                        ref={this.runListButton}
-                        onClick={() => {
-                            this.setState((prevState) => ({
-                                showRunList: !prevState.showRunList,
-                            }));
+
+                    <Toolbar
+                        variant="dense"
+                        sx={{
+                            background: '#f8f9f9',
+                            fontColor: '#394043',
+                            boxShadow: '0 1px 2px rgba(0,0,0,0.4)',
                         }}
                     >
-                        Manage trajectories
-                    </Button>
-                </Toolbar>
-                <VisArea
-                    trajectories={trajectoryNames}
-                    recalculateClustering={this.recalculate_clustering}
-                    simplifySet={this.simplifySet}
-                    properties={properties}
-                    visScripts={visScripts}
-                />
-
-                <AjaxMenu
-                    anchorEl={this.runListButton.current}
-                    apiCall={`${API_URL}/data/list_trajectories`}
-                    open={showRunList}
-                    clicked={trajectoryNames}
-                    handleClose={() => {
-                        this.setState({
-                            showRunList: !showRunList,
-                        });
-                    }}
-                    click={(e, v) => {
-                        this.setState({ showRunList: !showRunList }, () => {
-                            if (e.target.checked) {
-                                this.selectRun(v);
-                            }
-                            // TODO: add way to remove trajectory
-                        });
-                    }}
-                />
-
-                {currentModal === RUN_MODAL && (
-                    <LoadRunModal
-                        run={run}
-                        runFunc={this.loadTrajectory}
-                        isOpen={currentModal === RUN_MODAL}
-                        closeFunc={() => this.toggleModal(RUN_MODAL)}
-                        onRequestClose={() => this.toggleModal(RUN_MODAL)}
+                        <Typography sx={{ flexGrow: 1 }} color="primary" variant="h6">
+                            MolSieve
+                        </Typography>
+                        <Button
+                            color="primary"
+                            ref={this.runListButton}
+                            onClick={() => {
+                                this.setState((prevState) => ({
+                                    showRunList: !prevState.showRunList,
+                                }));
+                            }}
+                        >
+                            Manage trajectories
+                        </Button>
+                    </Toolbar>
+                    <VisArea
+                        trajectories={trajectoryNames}
+                        recalculateClustering={this.recalculate_clustering}
+                        simplifySet={this.simplifySet}
+                        properties={properties}
+                        visScripts={visScripts}
                     />
-                )}
+
+                    <AjaxMenu
+                        anchorEl={this.runListButton.current}
+                        apiCall={`${API_URL}/data/list_trajectories`}
+                        open={showRunList}
+                        clicked={trajectoryNames}
+                        handleClose={() => {
+                            this.setState({
+                                showRunList: !showRunList,
+                            });
+                        }}
+                        click={(e, v) => {
+                            this.setState({ showRunList: !showRunList }, () => {
+                                if (e.target.checked) {
+                                    this.selectRun(v);
+                                }
+                                // TODO: add way to remove trajectory
+                            });
+                        }}
+                    />
+
+                    {currentModal === RUN_MODAL && (
+                        <LoadRunModal
+                            run={run}
+                            runFunc={this.loadTrajectory}
+                            isOpen={currentModal === RUN_MODAL}
+                            closeFunc={() => this.toggleModal(RUN_MODAL)}
+                            onRequestClose={() => this.toggleModal(RUN_MODAL)}
+                        />
+                    )}
+                </SnackbarProvider>
             </Box>
         );
     }
