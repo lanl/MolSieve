@@ -170,11 +170,19 @@ function TrajectoryChart({
         []
     );
 
+    // no need to wrap because Box is not memo'd
     const selectTrajectoryToSwap = () => {
         if (chunkSelectionMode === 3) {
             selectObject(trajectory);
         }
     }
+
+    const selectChunk = useCallback((chunk) => {
+        if (chunkSelectionMode === 1 || chunkSelectionMode === 4) {
+            selectObject(chunk);
+        }
+    }, [chunkSelectionMode, selectObject]);
+
     return (
         <Box
             border={selectedObjects.map((d) => d.id).includes(trajectory.id) ? 1.0 : 0.0}
@@ -239,7 +247,7 @@ function TrajectoryChart({
                                     ranks={cutRanks}
                                     selections={selections}
                                     addSelection={addSelection}
-                                    selectObject={selectObject}
+                                    selectObject={selectChunk}
                                     selectedObjects={selectedObjects}
                                     chunkSelectionMode={chunkSelectionMode}
                                     doubleClickAction={dispatchExpansion}
@@ -255,7 +263,7 @@ function TrajectoryChart({
                                     chunk={chunk}
                                     width={chartW}
                                     height={h}
-                                    selectObject={selectObject}
+                                    selectObject={selectChunk}
                                     selectedObjects={selectedObjects}
                                     chunkSelectionMode={chunkSelectionMode}
                                     ranks={cutRanks}

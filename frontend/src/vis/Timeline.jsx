@@ -108,9 +108,7 @@ function Timeline({
                     d3.select(ref.current)
                         .selectAll(`.${trajectoryName}`)
                         .selectAll('rect')
-                        .attr('x', (d) => {
-                            return scaleX(d.timestep);
-                        })
+                        .attr('x', (d) => scaleX(d.timestep))
                         .attr('width', (d) => scaleX(d.last) - scaleX(d.timestep));
                 }
             };
@@ -123,7 +121,8 @@ function Timeline({
                     [brushMargin.left, 1],
                     [width - margin.right, height - 2],
                 ])
-                .on('brush', function ({ selection }) {
+                .on('brush', ({ selection }) => {
+                    if (selection === null) return;
                     const [start, end] = selection;
                     svg.select('#satMaskRect')
                         .attr('x', start)
@@ -143,8 +142,8 @@ function Timeline({
                         .attr('fill', 'white')
                         .attr('height', height);
                 })
-                .on('end', function ({ selection, sourceEvent }) {
-                    if (!sourceEvent) return;
+                .on('end', ({ selection, sourceEvent }) => {
+                    if (!sourceEvent || selection === null) return;
                     const start = Math.trunc(scaleX.invert(selection[0]));
                     const end = Math.trunc(scaleX.invert(selection[1]));
                     dispatch(setZoom({ name: trajectoryName, extents: [start, end] }));
@@ -170,9 +169,7 @@ function Timeline({
             d3.select(ref.current)
                 .selectAll(`.${trajectoryName}`)
                 .selectAll('rect')
-                .attr('x', (d) => {
-                    return scaleX(d.timestep);
-                })
+                .attr('x', (d) => scaleX(d.timestep))
                 .attr('width', (d) => scaleX(d.last) - scaleX(d.timestep));
         }
     };
