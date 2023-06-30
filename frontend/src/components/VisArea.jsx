@@ -107,6 +107,7 @@ export default function VisArea({
     }, {});
 
     const addComparison = (selection, selectionType) => {
+        console.log(selectionType);
         setComparisonSelections({ type: 'add', payload: { selection, selectionType } });
     };
 
@@ -298,19 +299,20 @@ export default function VisArea({
                                     onClick={() => {
                                         startSelection(CHUNK_SELECT, (selection) => {
                                             // check if selection is all one type
+                                            // bad, but better than obj.constructor.name
                                             const types = selection.map(
-                                                (obj) => obj.constructor.name
+                                                (obj) => obj.color !== null && obj.color !== undefined
                                             );
 
                                             const allEqual = types.every((val) => val === types[0]);
 
                                             if (allEqual) {
                                                 const type =
-                                                    types[0] === 'Chunk' ? 'Chunk' : 'Selection';
+                                                    types[0] ? 'Chunk' : 'Selection';
                                                 addComparison(selection, type);
                                             } else {
                                                 enqueueSnackbar(
-                                                    'Cannot mix selections. Please choose either only selections or only chunks.',
+                                                    'Cannot mix selections. Please choose either only selections or regions.',
                                                     {
                                                         variant: 'error',
                                                     }
