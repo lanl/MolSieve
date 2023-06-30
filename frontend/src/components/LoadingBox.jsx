@@ -7,10 +7,10 @@ import CircularProgress from '@mui/material/CircularProgress';
  * Neatly organized Box containing a loading indicator.
  *
  */
-export default function LoadingBox({ children, sx }) {
+export default function LoadingBox({ children, sx, color }) {
     return (
         <Box sx={sx}>
-            <CircularProgress color="primary" />
+            <CircularProgress color={color} />
             {children}
         </Box>
     );
@@ -23,4 +23,5 @@ LoadingBox.defaultProps = {
         alignItems: 'center',
         justifyContent: 'center',
     },
+    color: 'primary',
 };

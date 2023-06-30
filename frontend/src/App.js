@@ -7,8 +7,8 @@ import Box from '@mui/material/Box';
 import Toolbar from '@mui/material/Toolbar';
 import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
-import { withSnackbar } from 'notistack';
-
+import { SnackbarProvider, enqueueSnackbar, closeSnackbar } from 'notistack';
+import LoadingSnackbar from './components/LoadingSnackbar';
 import AjaxMenu from './components/AjaxMenu';
 import LoadRunModal from './modals/LoadRunModal';
 
@@ -84,9 +84,10 @@ class App extends React.Component {
      */
     recalculate_clustering = (name, clusters) => {
         return new Promise((_, reject) => {
-            const { enqueueSnackbar, closeSnackbar, dispatch } = this.props;
+            const { dispatch } = this.props;
             const key = enqueueSnackbar(`Recalculating clustering for trajectory ${name}...`, {
                 persist: true,
+                variant: 'loading',
             });
             dispatch(recluster({ name, clusters }))
                 .unwrap()
@@ -112,8 +113,11 @@ class App extends React.Component {
      * @param {Number} chunkingThreshold - Simplification threshold
      */
     loadTrajectory = (run, mMin, mMax, chunkingThreshold) => {
-        const { enqueueSnackbar, closeSnackbar, dispatch } = this.props;
-        const key = enqueueSnackbar(`Loading trajectory ${run}...`, { persist: true });
+        const { dispatch } = this.props;
+        const key = enqueueSnackbar(`Loading trajectory ${run}...`, {
+            persist: true,
+            variant: 'loading',
+        });
 
         apiLoadTrajectory(run, mMin, mMax, chunkingThreshold)
             .then((data) => {
@@ -154,9 +158,12 @@ class App extends React.Component {
      * @param {Number} threshold - The desired simplification threshold.
      */
     simplifySet = (run, threshold) => {
-        const { enqueueSnackbar, closeSnackbar, dispatch } = this.props;
+        const { dispatch } = this.props;
 
-        const key = enqueueSnackbar(`Re-simplifying trajectory ${run}...`, { persist: true });
+        const key = enqueueSnackbar(`Re-simplifying trajectory ${run}...`, {
+            persist: true,
+            variant: 'loading',
+        });
         dispatch(simplifySet({ name: run, threshold })).then(() => {
             closeSnackbar(key);
             enqueueSnackbar(`Sequence re-simplified for trajectory ${run}.`);
@@ -185,6 +192,16 @@ class App extends React.Component {
         const { properties, showRunList, currentModal, run, visScripts } = this.state;
         return (
             <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                <SnackbarProvider
+                    Components={{
+                        loading: LoadingSnackbar,
+                    }}
+                    anchorOrigin={{
+                        vertical: 'bottom',
+                        horizontal: 'left',
+                    }}
+                />
+
                 <Toolbar
                     variant="dense"
                     sx={{
@@ -252,4 +269,4 @@ class App extends React.Component {
 
 export default connect((state) => ({
     trajectoryNames: state.trajectories.names,
-}))(withSnackbar(App));
+}))(App);

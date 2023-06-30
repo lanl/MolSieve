@@ -5,12 +5,12 @@ import '@fontsource/roboto/300.css';
 import '@fontsource/roboto/400.css';
 import '@fontsource/roboto/500.css';
 import '@fontsource/roboto/700.css';
-import { SnackbarProvider } from 'notistack';
+
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
-
 import { Provider } from 'react-redux';
 import { enableMapSet } from 'immer';
+
 import store from './store';
 import App from './App';
 
@@ -23,6 +23,9 @@ const theme = createTheme({
         secondary: {
             main: '#8C8C8C',
         },
+        white: {
+            main: '#fff',
+        },
     },
 });
 
@@ -33,17 +36,10 @@ const container = document.getElementById('root');
 const root = createRoot(container);
 root.render(
     <ThemeProvider theme={theme}>
-        <SnackbarProvider
-            anchorOrigin={{
-                vertical: 'bottom',
-                horizontal: 'left',
-            }}
-        >
-            <Provider store={store}>
-                <CssBaseline>
-                    <App />
-                </CssBaseline>
-            </Provider>
-        </SnackbarProvider>
+        <Provider store={store}>
+            <CssBaseline>
+                <App />
+            </CssBaseline>
+        </Provider>
     </ThemeProvider>
 );
