@@ -170,12 +170,11 @@ function TrajectoryChart({
         []
     );
 
-    const selectTrajectoryToSwap = useCallback(() => {
+    const selectTrajectoryToSwap = () => {
         if (chunkSelectionMode === 3) {
             selectObject(trajectory);
         }
-    }, [chunkSelectionMode]);
-
+    }
     return (
         <Box
             border={selectedObjects.map((d) => d.id).includes(trajectory.id) ? 1.0 : 0.0}
