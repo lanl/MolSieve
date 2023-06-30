@@ -34,9 +34,7 @@ export const getAllImportantStates = createSelector([getAllImportantChunks], (ch
 
 export const getChunkList = createSelector(
     [selectTrajectory, selectChunks],
-    (trajectory, chunks) => {
-        return trajectory.chunkList.map((id) => chunks[id]);
-    }
+    (trajectory, chunks) => trajectory.chunkList.map((id) => chunks[id])
 );
 
 export const getImportantChunkList = createSelector([getChunkList], (chunkList) =>
@@ -160,27 +158,25 @@ export const expand = createAsyncThunk('trajectories/expand', async (args, thunk
     const left = chunks[leftID];
     const right = chunks[rightID];
 
-    const loadNeighbors = (l, r) => {
-        return new Promise((resolve, reject) => {
-            if (l) {
-                l.loadSequence(name).then((lData) => {
-                    if (r) {
-                        r.loadSequence(name).then((rData) => {
-                            resolve({ lData, rData });
-                        });
-                    } else {
-                        resolve({ lData });
-                    }
-                });
-            } else if (r) {
-                r.loadSequence(name).then((rData) => {
-                    resolve({ rData });
-                });
-            } else {
-                reject();
-            }
-        });
-    };
+    const loadNeighbors = (l, r) => new Promise((resolve, reject) => {
+        if (l) {
+            l.loadSequence(name).then((lData) => {
+                if (r) {
+                    r.loadSequence(name).then((rData) => {
+                        resolve({ lData, rData });
+                    });
+                } else {
+                    resolve({ lData });
+                }
+            });
+        } else if (r) {
+            r.loadSequence(name).then((rData) => {
+                resolve({ rData });
+            });
+        } else {
+            reject();
+        }
+    });
 
     const { lData, rData } = await loadNeighbors(left, right);
     // update global states with any new data

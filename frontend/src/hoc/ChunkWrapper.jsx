@@ -263,11 +263,6 @@ function ChunkWrapper({
         [mvaPeriod, width]
     );
 
-    const selectChunk = useCallback(() => {
-        if (chunkSelectionMode === 1 || chunkSelectionMode === 4) {
-            selectObject(chunk);
-        }
-    }, [chunkSelectionMode]);
 
     // tooltip shown whenever a control chart is hovered
     const controlChartTooltip = useCallback(
@@ -290,7 +285,7 @@ function ChunkWrapper({
             color={chunk.color}
             brush={brush}
             controls={chartControls}
-            onChartClick={selectChunk}
+            onChartClick={() => selectObject(chunk)}
             id={`ec_${chunk.id}`}
             selected={
                 chunkSelectionMode !== 0 &&
@@ -322,36 +317,34 @@ function ChunkWrapper({
                             />
                         ) : null}
                         <Stack direction="column">
-                            {ranks.map((property) => {
-                                return (
-                                    <PropertyWrapper
-                                        key={`${chunk.id}-${property}`}
-                                        property={property}
-                                        calculateValues={calculateControlChart}
-                                        data={states}
-                                    >
-                                        {(min, max, values) => (
-                                            <ControlChart
-                                                globalScaleMin={min}
-                                                globalScaleMax={max}
-                                                ucl={values.mean + values.std}
-                                                lcl={values.mean - values.std}
-                                                height={controlChartHeight}
-                                                width={ww}
-                                                finalLength={chunk.sequence.length}
-                                                yAttributeList={values.mva}
-                                                extents={controlChartExtents}
-                                                margin={{ top: 3, bottom: 2, left: 0, right: 0 }}
-                                                lineColor={chunk.color}
-                                                title={`${abbreviate(property)}`}
-                                                onMouseOver={controlChartTooltip(property)}
-                                                // still causes re-render - property wrapper can inject its values
-                                                onMouseOut={destroyToolTip}
-                                            />
-                                        )}
-                                    </PropertyWrapper>
-                                );
-                            })}
+                            {ranks.map((property) => (
+                                <PropertyWrapper
+                                    key={`${chunk.id}-${property}`}
+                                    property={property}
+                                    calculateValues={calculateControlChart}
+                                    data={states}
+                                >
+                                    {(min, max, values) => (
+                                        <ControlChart
+                                            globalScaleMin={min}
+                                            globalScaleMax={max}
+                                            ucl={values.mean + values.std}
+                                            lcl={values.mean - values.std}
+                                            height={controlChartHeight}
+                                            width={ww}
+                                            finalLength={chunk.sequence.length}
+                                            yAttributeList={values.mva}
+                                            extents={controlChartExtents}
+                                            margin={{ top: 3, bottom: 2, left: 0, right: 0 }}
+                                            lineColor={chunk.color}
+                                            title={`${abbreviate(property)}`}
+                                            onMouseOver={controlChartTooltip(property)}
+                                            // still causes re-render - property wrapper can inject its values
+                                            onMouseOut={destroyToolTip}
+                                        />
+                                    )}
+                                </PropertyWrapper>
+                            ))}
 
                             {Object.keys(tDict).map((id) => {
                                 const t = tDict[id];

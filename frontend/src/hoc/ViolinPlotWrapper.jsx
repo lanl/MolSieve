@@ -76,6 +76,10 @@ function ViolinPlotWrapper({
         <em>IQR:</em> ${values.stats.iqr} <br/>`;
         showToolTip(node, content);
     };
+
+    // selected can be a prop, will remove need for chunkSelectionMode entirely
+    // onChartClick should just be a general prop as well
+
     return (
         <EmbeddedChart
             height={height}
@@ -108,30 +112,28 @@ function ViolinPlotWrapper({
                             />
                         ) : null}
                         <Stack direction="column">
-                            {ranks.map((property) => {
-                                return (
-                                    <PropertyWrapper
-                                        key={`${chunk.id}-${property}`}
-                                        property={property}
-                                        data={states}
-                                        calculateValues={calcStats}
-                                    >
-                                        {(min, max, values) => (
-                                            <ViolinPlot
-                                                showYAxis={false}
-                                                data={values.data}
-                                                color={chunk.color}
-                                                property={property}
-                                                width={ww}
-                                                onMouseEnter={violinPlotTooltip(property, values)}
-                                                height={boxPlotHeight}
-                                                globalScaleMin={min}
-                                                globalScaleMax={max}
-                                            />
-                                        )}
-                                    </PropertyWrapper>
-                                );
-                            })}
+                            {ranks.map((property) => (
+                                <PropertyWrapper
+                                    key={`${chunk.id}-${property}`}
+                                    property={property}
+                                    data={states}
+                                    calculateValues={calcStats}
+                                >
+                                    {(min, max, values) => (
+                                        <ViolinPlot
+                                            showYAxis={false}
+                                            data={values.data}
+                                            color={chunk.color}
+                                            property={property}
+                                            width={ww}
+                                            onMouseEnter={violinPlotTooltip(property, values)}
+                                            height={boxPlotHeight}
+                                            globalScaleMin={min}
+                                            globalScaleMax={max}
+                                        />
+                                    )}
+                                </PropertyWrapper>
+                            ))}
                         </Stack>
                     </Box>
                 ) : (

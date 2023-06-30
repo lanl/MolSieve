@@ -333,7 +333,7 @@ export default function VisArea({
                                     size="small"
                                     onClick={(e) =>
                                         selectionMode !== FIND_SIMILAR_SELECT
-                                            ? startSelection(FIND_SIMILAR_SELECT, () => {})
+                                            ? startSelection(FIND_SIMILAR_SELECT, () => { })
                                             : setAnchorEl(e.currentTarget)
                                     }
                                     id="findSimilarButton"
@@ -375,11 +375,11 @@ export default function VisArea({
                                     onClick={() =>
                                         !colorState
                                             ? dispatch(
-                                                  clusterStates({
-                                                      properties,
-                                                      stateIDs: allStates,
-                                                  })
-                                              )
+                                                clusterStates({
+                                                    properties,
+                                                    stateIDs: allStates,
+                                                })
+                                            )
                                             : dispatch(clearClusterStates())
                                     }
                                 >
@@ -417,28 +417,26 @@ export default function VisArea({
                         </Box>
 
                         <Stack direction="column" spacing={1}>
-                            {trajectories.map((trajectory) => {
-                                return (
-                                    <TrajectoryChart
-                                        key={trajectory}
-                                        width={width}
-                                        height={(showTop + propertyCombos.length) * 50 + 50}
-                                        scatterplotHeight={50}
-                                        trajectoryName={trajectory}
-                                        setStateHovered={setActiveState}
-                                        properties={properties}
-                                        propertyCombos={propertyCombos}
-                                        chunkSelectionMode={selectionMode}
-                                        selectObject={selectObjectCallback}
-                                        addSelection={addSelectionCallback}
-                                        selectedObjects={selectedObjects}
-                                        selections={selections}
-                                        showTop={showTop}
-                                        simplifySet={simplifySet}
-                                        recalculateClustering={recalculateClustering}
-                                    />
-                                );
-                            })}
+                            {trajectories.map((trajectory) => (
+                                <TrajectoryChart
+                                    key={trajectory}
+                                    width={width}
+                                    height={(showTop + propertyCombos.length) * 50 + 50}
+                                    scatterplotHeight={50}
+                                    trajectoryName={trajectory}
+                                    setStateHovered={setActiveState}
+                                    properties={properties}
+                                    propertyCombos={propertyCombos}
+                                    chunkSelectionMode={selectionMode}
+                                    selectObject={selectObjectCallback}
+                                    addSelection={addSelectionCallback}
+                                    selectedObjects={selectedObjects}
+                                    selections={selections}
+                                    showTop={showTop}
+                                    simplifySet={simplifySet}
+                                    recalculateClustering={recalculateClustering}
+                                />
+                            ))}
                         </Stack>
                     </>
                 )}
