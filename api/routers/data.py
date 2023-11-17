@@ -7,10 +7,11 @@ from typing import Any, Dict, List, Optional
 
 from ase import Atoms
 from celery.utils import uuid
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect, HTTPException
+from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
 from pymemcache import serde
 from pymemcache.client.base import PooledClient
 
+import neomd.utils
 from neomd import converter, metadata, visualizations
 from neomd.queries import Neo4jQueryBuilder
 
@@ -51,13 +52,16 @@ async def run_script(script: str, state_atom_dict: Dict[int, Atoms]):
     return new_attributes
 
 
-@router.get("/generate_ovito_image", status_code=200)
-async def generate_ovito_image_endpoint(id: int, visScript: str):
+@router.post("/generate_ovito_image", status_code=200)
+async def generate_ovito_image_endpoint(
+    id: int, visScript: str, data: dict[str, str] = None
+):
     """
     Generates an image of the state ID specified using the specified visualization script.
 
     :param id int: The state ID to be rendered.
     :param visScript: The visualization script to use.
+    :param data: additional data to be used in the visulization script.
 
     :returns: Object containing state ID and a base64 encoded image string.
     """
@@ -72,11 +76,14 @@ async def generate_ovito_image_endpoint(id: int, visScript: str):
     modifier = get_script_code(visScript, folder="vis_scripts")
     exec(modifier, globals())
 
-    qimg = visualizations.render_ASE(
-        atom_dict[id], pipeline_modifier=modify_pipeline
+    pipeline = visualizations.build_pipeline(
+        atom_dict[id], pipeline_modifier=modify_pipeline, data=data
     )
+    results = pipeline.compute()
+    # converts OVITO results to json encodable format
+    unpacked = neomd.utils.unpack_ovito(results)
 
-    return {"id": id, "img": qImage_to_string(qimg)}
+    return {"id": id, "results": unpacked}
 
 
 @router.get("/get_metadata")

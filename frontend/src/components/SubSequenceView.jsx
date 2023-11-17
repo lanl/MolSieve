@@ -46,15 +46,15 @@ function SubSequenceView({
     visScript,
     sx = {},
     disabled = false,
-    onMouseEnter = () => {},
-    onMouseLeave = () => {},
-    onClick = () => {},
-    onElementClick = () => {},
-    deleteFunc = () => {},
+    onMouseEnter = () => { },
+    onMouseLeave = () => { },
+    onClick = () => { },
+    onElementClick = () => { },
+    deleteFunc = () => { },
     className = '',
     id = '',
 }) {
-    const [activeState, setActiveState] = useState(stateIDs[0]); // state currently selected
+    const [activeState, setActiveState] = useState({ id: stateIDs[0], trajectory: trajectoryName }); // state currently selected
     const [isLoaded, setIsLoaded] = useState(false);
     const [interestingStates, setInterestingStates] = useState([
         stateIDs[0],
@@ -127,12 +127,12 @@ function SubSequenceView({
 
     useEffect(() => {
         onElementClick(activeState);
-        d3.select(`#scatterplot-${id}`).selectAll(`.y-${activeState}`).classed('clicked', true);
-    }, [activeState]);
+        // d3.select(`#scatterplot-${id}`).selectAll(`.y-${activeState}`).classed('clicked', true);
+    }, [activeState.id]);
 
     const onScatterplotElementClick = useCallback(
         (_, d) => {
-            setActiveState(d.y);
+            setActiveState({ 'id': d.y, 'timestep': d.x, 'trajectory': trajectoryName });
         },
         [setActiveState]
     );
@@ -164,11 +164,11 @@ function SubSequenceView({
                     {interestingStates.map((stateID) => (
                         <SingleStateViewer
                             key={stateID}
-                            stateID={stateID}
+                            activeState={{ id: stateID, trajectory: trajectoryName }}
                             visScript={visScript}
                             onClick={(e) => {
                                 d3.selectAll('.clicked').classed('clicked', false);
-                                setActiveState(stateID);
+                                // setActiveState(stateID);
                                 // select matching state in scatterplot
                                 d3.select(e.target).classed('clicked', true);
                             }}

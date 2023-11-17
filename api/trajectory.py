@@ -10,6 +10,9 @@ from neomd import calculator
 from .config import config
 from .utils import load_pickle, save_pickle
 
+# TODO: move this to neomd
+# make PCCA a seperate static class
+
 
 class Trajectory:
     metadata = None
@@ -43,23 +46,8 @@ class Trajectory:
         if r is not None:
             return Trajectory(run, r["sequence"], r["unique_states"])
 
-        # TODO: maybe move this query to neomd?
-        q = f"""
-        MATCH (n:State:{run})-[r:{run}]->(:State:{run})
-        WHERE r.sym = False
-        RETURN n.id as id
-        ORDER BY r.timestep ASC;
-        """
-
-        sequence = []
-        unique_states = set()
-        with driver.session() as session:
-            result = session.run(q)
-            sequence = result.value()
-            unique_states = set(sequence)
-
-        if len(sequence) == 0 or len(unique_states) == 0:
-            raise ValueError(f"Trajectory {run} not found.")
+        sequence = calculator.get_sequence(driver, run)
+        unique_states = set(sequence)
 
         save_pickle(
             run,
@@ -111,9 +99,7 @@ class Trajectory:
             suggestion = ". Try using a different number of clusters."
             if "Request one cluster more or less" in str(e):
                 suggestion = ""
-            raise ValueError(
-                f"Clustering failed: {e}{suggestion}"
-            ) from e
+            raise ValueError(f"Clustering failed: {e}{suggestion}") from e
         self.min_chi = mc
         self.m_min = m_min
         self.m_max = m_max

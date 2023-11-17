@@ -79,6 +79,8 @@ export default function VisArea({
     const [currentModal, setCurrentModal] = useState(null); // TODO: can be just one modal
     const [activeState, setActiveState] = useState(null); // currently clicked state
 
+    console.log(activeState);
+
     const dispatch = useDispatch();
 
     const [selectionMode, setSelectionMode] = useState(NO_SELECT); // are we currently selecting anything?
@@ -446,7 +448,7 @@ export default function VisArea({
             <Stack direction="row" gap={1}>
                 <Box marginLeft={5} minWidth="190px">
                     {activeState !== null && activeState !== undefined && (
-                        <StateDetailView stateID={activeState} visScript={visScript} />
+                        <StateDetailView activeState={activeState} visScript={visScript} />
                     )}
                 </Box>
 

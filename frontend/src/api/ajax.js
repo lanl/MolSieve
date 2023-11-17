@@ -75,6 +75,7 @@ export function apiCalculateNEB(run, start, end, interpolate, maxSteps, fmax, sa
 }
 
 /**
+ * TODO: update docs
  * Generates an OVITO render of a state given its ID.
  *
  * @param {Number} id - The ID of the state to render.
@@ -82,10 +83,13 @@ export function apiCalculateNEB(run, start, end, interpolate, maxSteps, fmax, sa
  * @param {AbortController} controller - Controller that can kill the operation in the middle of it.
  * @returns {Object} Object containing a base64 encoded image string and the ID of the state.
  */
-export function apiGenerateOvitoImage(id, visScript, controller) {
+export function apiGenerateOvitoImage(id, visScript, controller, data={}) {
     return new Promise((resolve, reject) => {
         axios
-            .get(`${API_URL}/data/generate_ovito_image?id=${id}&visScript=${visScript}`, {
+            .post(`${API_URL}/data/generate_ovito_image?id=${id}&visScript=${visScript}`, data, {
+                headers: {
+                    'Content-Type': 'application/json'
+                },
                 signal: controller.signal,
             })
             .then((response) => {

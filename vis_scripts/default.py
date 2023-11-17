@@ -1,2 +1,2 @@
-def modify_pipeline(pipeline):
+def modify_pipeline(pipeline, data):
     pass

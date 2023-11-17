@@ -8,6 +8,8 @@ import { zTest } from './math/stats';
 
 // import { startListening } from './listenerMiddleware';
 
+// TODO: need function to get state from timestep
+
 const clusterColors = [
     '#e15759',
     '#76b7b2',

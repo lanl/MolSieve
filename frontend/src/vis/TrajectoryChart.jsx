@@ -155,7 +155,7 @@ function TrajectoryChart({
     }, [trajectory.name]);
 
     const showCharacteristicState = useCallback(
-        (chunk) => setStateHovered(chunk.characteristicState),
+        (chunk) => setStateHovered({ 'id': chunk.characteristicState, 'trajectory': trajectory.name }),
         []
     );
     const dispatchExpansion = useCallback(

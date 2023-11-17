@@ -383,7 +383,7 @@ function ChunkWrapper({
                             colorFunc={colorState}
                             onElementClick={(node, d) => {
                                 d3.selectAll('.clicked').classed('clicked', false);
-                                setStateHovered(d);
+                                setStateHovered({ 'id': parseInt(d, 10), 'trajectory': trajectory.name });
                                 d3.select(node).classed('clicked', true);
                             }}
                             margin={{ top: 0, bottom: 4, left: 0, right: 0 }}

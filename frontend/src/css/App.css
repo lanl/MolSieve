@@ -16,7 +16,6 @@ img {
 }
 
 .embeddedChart .floatingToolBar {
-    visibility: hidden;
 }
 
 .embeddedChart:hover .floatingToolBar {

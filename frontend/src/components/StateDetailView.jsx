@@ -14,15 +14,15 @@ import { getState, getStateColoringMethod } from '../api/states';
  * @param {Number} stateID - ID of the state to display information about.
  * @param {String} visScript - Visualization script to use to draw 3D render.
  */
-export default function StateDetailView({ stateID, visScript }) {
-    const state = useSelector((states) => getState(states, stateID));
+export default function StateDetailView({ activeState, visScript }) {
+    const state = useSelector((states) => getState(states, activeState.id));
     const colorState = useSelector((states) => getStateColoringMethod(states));
     return (
         <Paper>
-            <SingleStateViewer stateID={state.id} visScript={visScript} />
-            <Box height={5} width="100%" sx={{ backgroundColor: colorState(stateID) }} />
+            <SingleStateViewer activeState={activeState} visScript={visScript} />
+            <Box height={5} width="100%" sx={{ backgroundColor: colorState(activeState) }} />
             <DataGrid
-                sx={{ width: '190px' }}
+                sx={{ width: '200px' }}
                 autoHeight
                 density="compact"
                 disableColumnSelector

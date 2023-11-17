@@ -6,7 +6,7 @@
     },
     "extends": [
       "airbnb",
-      "plugin:prettier/recommended"
+      "prettier"
     ],
     "parserOptions": {
         "ecmaFeatures": {
@@ -15,8 +15,7 @@
         "ecmaVersion": "latest",
         "sourceType": "module"
     },
-    "plugins": [
-    ],
+    "plugins": ["prettier"],
     "rules": {
       "no-restricted-syntax": ["error", "ForInStatement", "LabeledStatement", "WithStatement"],
       "no-plusplus": 0,
