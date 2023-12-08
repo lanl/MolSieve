@@ -78,9 +78,8 @@ def selection_distance(
 
     # get all states without duplicates
     stateIDs = list(set(stateSet1 + stateSet2))
-    qb = Neo4jQueryBuilder(
-        [("Atom", "PART_OF", "State", "MANY-TO-ONE")], ["State"]
-    )
+    qb = Neo4jQueryBuilder.infer_db_structure(driver)
+
     q = qb.get_states(stateIDs, True)
     state_atom_dict = converter.query_to_ASE(driver, q)
     m = {id: {id2: 0 for id2 in stateSet2} for id in stateSet1}

@@ -65,9 +65,7 @@ def subset_connectivity_difference(stateIDs: List[int]):
     driver = GraphDriver()
     task_id = current_task.request.id
 
-    qb = Neo4jQueryBuilder(
-        [("Atom", "PART_OF", "State", "MANY-TO-ONE")], ["State"]
-    )
+    qb = Neo4jQueryBuilder.infer_db_structure(driver)
     q = qb.get_states(stateIDs, True)
     state_atom_dict = converter.query_to_ASE(driver, q)
 
@@ -131,10 +129,7 @@ def neb_on_path(
     md = metadata.get_metadata(driver, run)
     path, allStates = calculator.canonical_path(driver, run, start, end)
 
-    qb = Neo4jQueryBuilder(
-        [("Atom", "PART_OF", "State", "MANY-TO-ONE")], ["State"]
-    )
-
+    qb = Neo4jQueryBuilder.infer_db_structure(driver)
     q = qb.get_states(allStates, True)
     full_atom_dict = converter.query_to_ASE(driver, q)
 

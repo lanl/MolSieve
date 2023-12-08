@@ -66,9 +66,7 @@ async def generate_ovito_image_endpoint(
     :returns: Object containing state ID and a base64 encoded image string.
     """
     driver = GraphDriver()
-    qb = Neo4jQueryBuilder(
-        [("Atom", "PART_OF", "State", "MANY-TO-ONE")], ["State"]
-    )
+    qb = Neo4jQueryBuilder.infer_db_structure(driver)
 
     q = qb.get_states([id], True)
     atom_dict = converter.query_to_ASE(driver, q)
@@ -173,12 +171,7 @@ async def load_properties_for_subset(stateList: List[Dict[str, Any]]):
             all_missing = all_missing + values
 
         if len(all_missing) > 0:
-            qb = Neo4jQueryBuilder(
-                [
-                    ("Atom", "PART_OF", "State", "MANY-TO-ONE"),
-                ],
-                ["State"],
-            )
+            qb = Neo4jQueryBuilder.infer_db_structure(driver)
             q = qb.get_states(remove_duplicates(all_missing), True)
             state_atom_dict = converter.query_to_ASE(driver, q)
 
