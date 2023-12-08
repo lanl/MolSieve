@@ -68,7 +68,7 @@ def subset_connectivity_difference(stateIDs: List[int]):
     qb = Neo4jQueryBuilder(
         [("Atom", "PART_OF", "State", "MANY-TO-ONE")], ["State"]
     )
-    q = qb.generate_get_node_list("State", stateIDs, "PART_OF")
+    q = qb.get_states(stateIDs, True)
     state_atom_dict = converter.query_to_ASE(driver, q)
 
     connectivity_list = []  # all connectivity matrices in order
@@ -135,7 +135,7 @@ def neb_on_path(
         [("Atom", "PART_OF", "State", "MANY-TO-ONE")], ["State"]
     )
 
-    q = qb.generate_get_node_list("State", allStates, "PART_OF")
+    q = qb.get_states(allStates, True)
     full_atom_dict = converter.query_to_ASE(driver, q)
 
     if interpolate < 0:

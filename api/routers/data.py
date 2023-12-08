@@ -70,7 +70,7 @@ async def generate_ovito_image_endpoint(
         [("Atom", "PART_OF", "State", "MANY-TO-ONE")], ["State"]
     )
 
-    q = qb.generate_get_node_list("State", [id], "PART_OF")
+    q = qb.get_states([id], True)
     atom_dict = converter.query_to_ASE(driver, q)
 
     modifier = get_script_code(visScript, folder="vis_scripts")
@@ -116,10 +116,9 @@ async def ws_load_properties_for_subset(websocket: WebSocket):
         qb = Neo4jQueryBuilder(nodes=["State"])
         driver = GraphDriver()
 
-        q = qb.generate_get_node_list(
-            "State",
-            idList=data["stateIds"],
-            attributeList=data["props"] + ["id"],
+        q = qb.get_states(
+            id_list=data["stateIds"],
+            attribute_list=data["props"] + ["id"],
         )
 
         stateList = []
@@ -180,9 +179,7 @@ async def load_properties_for_subset(stateList: List[Dict[str, Any]]):
                 ],
                 ["State"],
             )
-            q = qb.generate_get_node_list(
-                "State", remove_duplicates(all_missing), "PART_OF"
-            )
+            q = qb.get_states(remove_duplicates(all_missing), True)
             state_atom_dict = converter.query_to_ASE(driver, q)
 
             # convert stateList to dict for easy modification

@@ -33,9 +33,7 @@ def cluster_states(
     qb = Neo4jQueryBuilder(nodes=["State"])
     driver = GraphDriver()
 
-    q = qb.generate_get_node_list(
-        "State", idList=stateIds, attributeList=props + ["id"]
-    )
+    q = qb.get_states(id_list=stateIds, attribute_list=props + ["id"])
 
     j = {}
     with driver.session() as session:
@@ -83,7 +81,7 @@ def selection_distance(
     qb = Neo4jQueryBuilder(
         [("Atom", "PART_OF", "State", "MANY-TO-ONE")], ["State"]
     )
-    q = qb.generate_get_node_list("State", stateIDs, "PART_OF")
+    q = qb.get_states(stateIDs, True)
     state_atom_dict = converter.query_to_ASE(driver, q)
     m = {id: {id2: 0 for id2 in stateSet2} for id in stateSet1}
     for id1 in stateSet1:
