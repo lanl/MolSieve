@@ -1,0 +1,26 @@
+--- lammpslib.py.old	2024-11-20 12:14:29.104245763 -0700
++++ lammpslib.py	2024-11-20 12:15:09.714561211 -0700
+@@ -596,7 +596,7 @@
+             self.lmp.command(cmd)
+ 
+         self.redo_atom_types(atoms)
+-
++    
+     def redo_atom_types(self, atoms):
+         current_types = {
+             (i + 1, self.parameters.atom_types[sym]) for i, sym
+@@ -613,6 +613,14 @@
+             cmd = f"set atom {i} type {i_type}"
+             self.lmp.command(cmd)
+ 
++        # set charges only when LAMMPS `atom_style` permits charges
++        # https://docs.lammps.org/Library_properties.html#extract-atom-flags
++        if self.lmp.extract_setting('q_flag') == 1:
++            charges = atoms.get_initial_charges()
++            if np.any(charges != 0.0):
++                for i, q in enumerate(charges):
++                    self.lmp.command(f'set atom {i + 1} charge {q}')
++
+         self.previous_atoms_numbers = atoms.numbers.copy()
+ 
+     def restart_lammps(self, atoms):

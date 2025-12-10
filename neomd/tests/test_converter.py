@@ -1,0 +1,45 @@
+import pytest
+
+from neomd import converter
+
+
+@pytest.mark.usefixtures("driver", "qb")
+def test_query_to_ASE_with_path(driver, qb):
+    q = qb.generate_get_path(305, 310, "nano_pt", "timestep")
+
+    state_atom_dict = converter.query_to_ASE(driver, q)
+    atoms = list(state_atom_dict.values())
+
+    # should be IDs 34, 35 and 95
+    assert len(atoms) == 3
+    assert (
+        all(list(map(lambda a: (a.symbols == "Pt147").all(), atoms))) is True
+    )
+
+
+@pytest.mark.usefixtures("driver", "qb")
+def test_query_to_ASE_with_list(driver, qb):
+    q = qb.get_states([1, 2, 3], True)
+
+    state_atom_dict = converter.query_to_ASE(driver, q)
+    atoms = list(state_atom_dict.values())
+
+    # should be IDs 34, 35 and 95
+    assert len(atoms) == 3
+    assert (
+        all(list(map(lambda a: (a.symbols == "Pt147").all(), atoms))) is True
+    )
+
+
+@pytest.mark.usefixtures("driver", "qb")
+def test_ase_to_query(driver, qb):
+    q = qb.get_states([1, 2, 3], True)
+    state_atom_dict = converter.query_to_ASE(driver, q)
+    atom = list(state_atom_dict.values())[0]
+    counter = converter.ase_to_neo4j(driver, ["NEB"], atom)
+
+    q = qb.get_states([counter], True)
+    state_atom_dict2 = converter.query_to_ASE(driver, q)
+    atom2 = list(state_atom_dict2.values())[0]
+
+    assert (atom.symbols == atom2.symbols).all()
