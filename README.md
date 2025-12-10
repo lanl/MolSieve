@@ -1,5 +1,21 @@
 # MolSieve 
-Visual analytics system for analyzing long-duration molecular dynamics trajectories. Uses [NeoMD](https://github.com/rostyhn/neomd) to manage trajectory data. Since the dependencies are difficult to manage, the `docker` image is the recommended way to use this web-server.
+Visual analytics system for analyzing long-duration molecular dynamics trajectories. NeoMD is a library written to help manage the trajectory data. Since the dependencies are difficult to manage, the `docker` image is the recommended way to use this web-server.
+
+This program was published as a paper for *IEEE VIS 2023*: **MolSieve: A Progressive Visual Analytics System for Molecular Dynamics Simulations**. Read it on [arXiv](https://arxiv.org/abs/2308.11724).
+
+If you use any part of this program in your research, please cite it:
+```
+@article{Hnatyshyn.2023.MPV,
+author={Hnatyshyn, Rostyslav and Zhao, Jieqiong and Perez, Danny and Ahrens, James and Maciejewski, Ross},
+journal={IEEE Transactions on Visualization and Computer Graphics}, 
+title={MolSieve: A Progressive Visual Analytics System for Molecular Dynamics Simulations}, 
+year={2024},
+volume={30},
+number={1},
+pages={727-737},
+keywords={Trajectory;Analytical models;Biological system modeling;Visual analytics;Three-dimensional displays;Computational modeling;Data models;Molecular dynamics;time-series analysis;visual analytics},
+doi={10.1109/TVCG.2023.3326584}}
+```
 
 # Docker Installation
 NOTE: The dockerfile is currently out of date.
