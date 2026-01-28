@@ -20,7 +20,7 @@ import ovito  # always keep ovito imported
 import pandas as pd
 from ase import Atoms
 from ase.calculators.lammpslib import LAMMPSlib
-from ase.neb import NEB
+from ase.mep import NEB
 from ase.optimize import FIRE
 from ovito.io.ase import ase_to_ovito
 from ovito.pipeline import Pipeline, StaticSource

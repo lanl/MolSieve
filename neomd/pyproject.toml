@@ -1,27 +1,35 @@
-[tool.poetry]
+[project]
 name = "neomd"
 version = "0.1.0"
 description = ""
-authors = ["Rostyslav Hnatyshyn <rostyslav.hnatyshyn@gmail.com>"]
+authors = [{ name = "Rostyslav Hnatyshyn", email = "rostyslav.hnatyshyn@gmail.com" }]
+requires-python = ">=3.10,<3.13"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+dependencies = [
+    "ase>=3.22.1,<4",
+    "pandas>=1.4.2,<2",
+    "numpy>=1.22.3,<2",
+    "ovito>=3.7.4,<4",
+    "neo4j>=5.13.0,<6",
+    "typeguard>=2.13.3,<3",
+    "opencv-python>=4.5.5,<5",
+    "networkx>=3.1,<4",
+    "netrd>=0.3.0,<0.4",
+    "fitsnap3>=3.1.0.4,<4",
+    "nglview>=3.1.4,<4",
+    "tqdm>=4.67.1,<5",
+]
 
-[tool.poetry.dependencies]
-python = ">=3.10,<3.12"
-ase = "^3.22.1"
-pandas = "^1.4.2"
-numpy = "^1.22.3"
-ovito = "^3.7.4"
-neo4j = "^5.13.0"
-typeguard = "^2.13.3"
-opencv-python = "^4.5.5"
-networkx = "^3.1"
-netrd = "^0.3.0"
-fitsnap3 = "^3.1.0.4"
-nglview = "^3.1.4"
-tqdm = "^4.67.1"
-
-[tool.poetry.group.dev.dependencies]
-pytest = "^7.1.2"
-ipython = "^8.3.0"
+[dependency-groups]
+dev = [
+    "pytest>=7.1.2,<8",
+    "ipython>=8.3.0,<9",
+]
 
 [tool.black]
 line-length = 79
@@ -30,10 +38,6 @@ line-length = 79
 profile = "black"
 multi_line_output = 3
 
-[build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
-
 [tool.pyright]
 include = ["neomd"]
 exclude = [".venv", "tests/data", "examples"]
@@ -41,3 +45,7 @@ venvPath = "."
 venv = ".venv"
 
 executionEnviornments = [{ root = "neomd" }]
+
+[build-system]
+requires = ["uv_build>=0.9.27,<0.10.0"]
+build-backend = "uv_build"
